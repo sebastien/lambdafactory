@@ -26,18 +26,34 @@ class ModelBadArgument(Exception):
 
 class Element:
 	"""Element is the *base class* for every class within this module. This is
-	where common operations can be defined."""
+	where common operations can be defined.
+	
+	Each element has a `meta` attribute that can be used to store some things
+	like documentation."""
 	COUNT = 0
 
 	def __init__( self, name=None ):
 		assert name is None or type(name) in (str, unicode)
 		self._id    = self.COUNT
 		self._name  = name
+		self.meta   = {}
 		self.COUNT += 1
 
 	@classmethod
 	def getModelType( self ):
 		return mt.typeFromClass(self)
+
+	def hasDocumentation( self ):
+		"""Tells if this element has attached documentation."""
+		return self.meta.get("doc") 
+
+	def getDocumentation( self ):
+		"""Gets the documentation attached to this element."""
+		return self.meta.get("doc")
+
+	def setDocumentation( self, text ):
+		"""Sets the documentation for this element."""
+		self.meta["doc"] = text
 
 # ------------------------------------------------------------------------------
 #
@@ -61,12 +77,37 @@ class Context(Element, IContext):
 		return self._slots.get(name)
 
 	def hasSlot( self, name ):
-		return name in self._slots().keys()
+		return name in self._slots.keys()
 
-class Class(Context, IReferencable):
+	def getSlots( self ):
+		return self._slots.items()
+
+class Class(Context, IClass, IAssignable):
+
+	def __init__( self, name=None ):
+		Context.__init__(self, name=name)
+		assertImplements(self, IClass)
+
+	def getOperations( self ):
+		return [value for value in self._slots.values() if isinstance(value, IInvocable)]
 
 	def getMethods( self ):
-		return [value for value in self._slots.values() if isinstance(value, IInvocable)]
+		return [value for value in self._slots.values() if isinstance(value, IMethod) and not isinstance(value, IClassMethod)]
+
+	def getClassMethods( self ):
+		return [value for value in self._slots.values() if isinstance(value, IClassMethod)]
+
+	def getName( self ):
+		return self._name
+
+class Module(Context, IModule, IAssignable):
+
+	def __init__( self, name=None ):
+		Context.__init__(self, name=name)
+		assertImplements(self, IModule)
+
+	def getClasses( self ):
+		return [value for value in self._slots.values() if isinstance(value, IClass)]
 
 	def getName( self ):
 		return self._name
@@ -101,7 +142,7 @@ class Process( Element, IProcess ):
 		# TODO: Find how we process the operations to get a type
 		
 
-class Function(Process, IReferencable, IInvocable, IAssignable):
+class Function(Process, IReferencable, IAssignable, IFunction):
 
 	def __init__(self, name, arguments ):
 		Process.__init__(self, name=name)
@@ -130,7 +171,7 @@ class Function(Process, IReferencable, IInvocable, IAssignable):
 	def getId( self ):
 		return self._id
 
-class Method(Function):
+class Method(Function, IMethod):
 	pass
 
 # ------------------------------------------------------------------------------
@@ -352,6 +393,9 @@ class Factory:
 
 	def createClass( self, name ):
 		return self._getImplementation("Class")(name)
+
+	def createModule( self, name ):
+		return self._getImplementation("Module")(name)
 
 	def allocate( self, slot ):
 		return self._getImplementation("Allocation")(slot)

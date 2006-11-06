@@ -1,4 +1,4 @@
-from lfactory import modelbase
+from lambdafactory import modelbase
 
 # We try to model this:
 #
@@ -27,7 +27,7 @@ method_doThis.addOperations(
 )
 class_myClass.setSlot("doThis", method_doThis)
 
-from lfactory.modelwriter import Writer
+from lambdafactory.modelwriter import Writer
 w = Writer()
 print w.writeClass(class_myClass)
 

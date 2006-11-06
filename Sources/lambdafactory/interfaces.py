@@ -256,11 +256,38 @@ class IContext:
 	def hasSlot( self, name ):
 		"""Tells if the context has a slot with the given name."""
 
-class IModule(IContext):
-	pass
+	@abstract
+	def getSlots( self ):
+		"""Returns (key, evaluable) pairs representing the slots within this
+		context."""
 
 class IClass(IContext):
 	pass
+
+	@abstract
+	def getOperations( self ):
+		"""Returns the operations (methods and class methods) defined within this class."""
+		pass
+
+	@abstract
+	def getMethods( self ):
+		"""Returns the methods defined within this class."""
+		pass
+	
+	@abstract
+	def getClassMethods( self ):
+		"""Returns the class method defined within this class."""
+		pass
+
+	def getName( self ):
+		"""Returns this class name. It can be `None` if the class is anonymous."""
+
+class IModule(IContext):
+	pass
+
+	@abstract
+	def getClasses( self ):
+		pass
 
 class IProcess:
 	"""A process is a sequence of operations."""
@@ -281,6 +308,9 @@ class IFunction(IProcess):
 	pass
 
 class IMethod(IFunction):
+	pass
+
+class IClassMethod(IMethod):
 	pass
 
 # EOF

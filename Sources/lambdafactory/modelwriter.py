@@ -47,20 +47,44 @@ class Writer:
 	program representation. You can call the main @write method to get the
 	representatio of any model element."""
 
+	def writeModule( self, moduleElement ):
+		"""Writes a Module element."""
+		return self._format("@module %s:" % (moduleElement.getName()),
+			[self.write(s[1]) for s in moduleElement.getSlots()],
+			"@end"
+		)
+
 	def writeClass( self, classElement ):
 		"""Writes a class element."""
 		return self._format(
+			self._document(classElement),
 			"@class %s:" % (classElement.getName()),
-			flatten([self.writeMethod(m) for m in classElement.getMethods()])
+			flatten([self.writeMethod(m) for m in classElement.getMethods()]),
+			"@end"
 		)
 
 	def writeMethod( self, methodElement ):
 		"""Writes a method element."""
 		return self._format(
+			self._document(methodElement),
 			"@method %s ( %s ):" % (
 				methodElement.getName(),
 				", ".join(map(self.writeArgument, methodElement.getArguments()))
-			), map(self.write, methodElement.getOperations())
+			),
+			map(self.write, methodElement.getOperations()),
+			"@end"
+		)
+
+	def writeFunction( self, function ):
+		"""Writes a function element."""
+		return self._format(
+			self._document(function),
+			"@function %s ( %s ):" % (
+				function.getName(),
+				", ".join(map(self.write, function.getArguments()))
+			),
+			map(self.write, function.getOperations()),
+			"@end"
 		)
 
 	def writeArgument( self, argElement ):
@@ -128,12 +152,18 @@ class Writer:
 
 	def write( self, element ):
 		res = None
+		# NOTE: I could surely do that using some reflection, or some more
+		# advanced technique, but I let that to later ;)
 		if element is None:
 			pass
+		elif isinstance(element, interfaces.IModule):
+			res = self.writeModule(element)
 		elif isinstance(element, interfaces.IClass):
 			res = self.writeClass(element)
 		elif isinstance(element, interfaces.IMethod):
 			res = self.writeMethod(element)
+		elif isinstance(element, interfaces.IFunction):
+			res = self.writeFunction(element)
 		elif isinstance(element, interfaces.IArgument):
 			res = self.writeArgument(element)
 		elif isinstance(element, interfaces.IOperator):
@@ -158,5 +188,11 @@ class Writer:
 
 	def _format( self, *values ):
 		return format(*values)
+	
+	def _document( self, element ):
+		if element.hasDocumentation():
+			return "// " + element.getDocumentation()
+		else:
+			return None
 
 # EOF
