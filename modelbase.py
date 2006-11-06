@@ -141,8 +141,6 @@ class Method(Function):
 
 class Operation(Element, IEvaluable, IOperation):
 
-	ARGS = []
-
 	def __init__( self, *arguments ):
 		Element.__init__(self)
 		assertImplements(self, IEvaluable)
@@ -199,15 +197,13 @@ class Operation(Element, IEvaluable, IOperation):
 		else:
 			return isinstance(arg, argtype)
 
-class Instanciation(Operation):
-	ARGS = [ IInstanciable ]
+class Instanciation(Operation, IInstanciation):
 
 	def getInstanciable( self ):
 		"""Returns the instanciable used in this operation."""
 		return self.getArgument(0)
 
-class Assignation(Operation):
-	ARGS = [ IReference, IEvaluable ]
+class Assignation(Operation, IAssignation):
 
 	def getTarget( self ):
 		"""Returns this assignation target."""
@@ -217,22 +213,19 @@ class Assignation(Operation):
 		"""Returns this assigned value."""
 		return self.getArgument(1)
 
-class Allocation(Operation):
-	ARGS = [ ISlot ]
+class Allocation(Operation, IAllocation):
 
 	def geSlotToAllocate( self ):
 		"""Returns slot to be allocated by this operation."""
 		return self.getArgument(0)
 
-class Resolution(Operation):
-	ARGS = [ IReference ]
+class Resolution(Operation, IResolution):
 
 	def getReference( self ):
 		"""Returns the reference to be resolved."""
 		return self.getArgument(0)
 
-class Computation(Operation):
-	ARGS = [ IOperator, IEvaluable, IEvaluable ]
+class Computation(Operation, IComputation):
 
 	def getOperator( self ):
 		"""Returns the reference to be resolved."""
@@ -250,9 +243,7 @@ class Computation(Operation):
 	def getRightOperand( self ):
 		return self.getArgument(2)
 
-class Invocation(Operation):
-
-	ARGS = [ IEvaluable, [IEvaluable] ]
+class Invocation(Operation, IInvocation):
 
 	def getTarget( self ):
 		"""Returns the invocation target reference."""
@@ -261,9 +252,8 @@ class Invocation(Operation):
 	def getArguments( self ):
 		"""Returns evaluable arguments."""
 
-class Termination(Operation):
-
-	ARGS = [ IEvaluable ]
+# FIXME
+class Termination(Operation, ITermination):
 
 	def getReturnedEvaluable( self ):
 		"""Returns the termination return evaluable."""

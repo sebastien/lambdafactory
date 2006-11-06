@@ -87,6 +87,151 @@ class IInstanciable:
 	instanciated. Conceptually, an instanciation could be considered as a
 	specific kind of invocation."""
 
+
+class IInvocable:
+	"""An invocable can be used in an invocation operation."""
+
+	@abstract
+	def getArguments( self ):
+		"""Returns a list of arguments (which are names associated with optional
+		type information."""
+
+#------------------------------------------------------------------------------
+#
+#  Operational Elements
+#
+#------------------------------------------------------------------------------
+
+class IValue(IEvaluable):
+	"""A value represents an atomic element of the language, like a number, a
+	string, or a name (that can resolved by the language, acts as key for data
+	structures, etc.)."""
+
+class ILitteral(IValue):
+	"""A litteral is a value that does not need a context to be evaluated. The
+	evaluation is direct."""
+
+class IReference(IValue):
+	"""A reference is a name that can be converted into a value using a
+	resolution operation (for instance)."""
+
+	def getReferenceName( self ):
+		"""Returns the name which this reference contains. The name is used by
+		the resolution operation to actually resolve a value from the name."""
+
+class IOperator(IReference):
+	pass
+
+class ISlot(IReference):
+	"""An argument is a reference with additional type information."""
+
+	def getTypeInformation( self ):
+		"""Returns type information (constraints) that are associated to this
+		argument."""
+
+class IArgument(ISlot):
+	pass
+#------------------------------------------------------------------------------
+#
+#  Operations
+#
+#------------------------------------------------------------------------------
+
+class IOperation:
+
+	@abstract
+	def addArgument( self, argument ):
+		"""Adds an argument to this operation. This should do checking of
+		arguments (by expected internal type and number)."""
+
+	@abstract
+	def getArguments( self ):
+		"""Returns the arguments to this operation."""
+
+	@classmethod
+	def getArgumentsInternalTypes( self ):
+		"""Returns the *internal types* for this operations arguments. This is
+		typically the list of interfaces or classes that the arguments must
+		comply to."""
+
+class IAssignation(IOperation):
+	ARGS = [ IReference, IEvaluable ]
+
+	@abstract
+	def getTarget( self ):
+		"""Returns this assignation target."""
+
+	@abstract
+	def getAssignedValue( self ):
+		"""Returns this assigned value."""
+
+class IInstanciation(IOperation):
+	ARGS = [ IInstanciable ]
+
+	@abstract
+	def getInstanciable( self ):
+		"""Returns the instanciable used in this operation."""
+
+class IAllocation(IOperation):
+	ARGS = [ ISlot ]
+
+	@abstract
+	def geSlotToAllocate( self ):
+		"""Returns slot to be allocated by this operation."""
+
+class IResolution(IOperation):
+	ARGS = [ IReference ]
+
+	@abstract
+	def getReference( self ):
+		"""Returns the reference to be resolved."""
+
+class IComputation(IOperation):
+	ARGS = [ IOperator, IEvaluable, IEvaluable ]
+
+	@abstract
+	def getOperator( self ):
+		"""Returns the reference to be resolved."""
+
+	@abstract
+	def getOperand( self ):
+		"""Returns the left operand of this computation."""
+
+	@abstract
+	def getOperands( self ):
+		"""Returns the left (and right, if any) operands of this computation."""
+
+	@abstract
+	def getLeftOperand( self ):
+		"""Returns the left operand of this computation."""
+
+	@abstract
+	def getRightOperand( self ):
+		"""Returns the right operand of this computation (if any)"""
+
+class IInvocation(IOperation):
+	ARGS = [ IEvaluable, [IEvaluable] ]
+
+	@abstract
+	def getTarget( self ):
+		"""Returns the invocation target reference."""
+
+	@abstract
+	def getArguments( self ):
+		"""Returns evaluable arguments."""
+
+# FIXME
+class ITermination(IOperation):
+	ARGS = [ IEvaluable ]
+
+	@abstract
+	def getReturnedEvaluable( self ):
+		"""Returns the termination return evaluable."""
+
+	@abstract
+	def getArguments( self ):
+		"""Returns evaluable arguments."""
+
 #------------------------------------------------------------------------------
 #
 #  Generic Element Interfaces
@@ -124,70 +269,5 @@ class IProcess:
 	def getOperations( self ):
 		"""Returns the list of operations in this process."""
 
-class IInvocable(IProcess):
-	"""An invocable can be used in an invocation operation."""
-
-	@abstract
-	def getArguments( self ):
-		"""Returns a list of arguments (which are names associated with optional
-		type information."""
-
-class IOperation:
-
-	@abstract
-	def addArgument( self, argument ):
-		"""Adds an argument to this operation. This should do checking of
-		arguments (by expected internal type and number)."""
-
-	@abstract
-	def getArguments( self ):
-		"""Returns the arguments to this operation."""
-
-	@classmethod
-	def getArgumentsInternalTypes( self ):
-		"""Returns the *internal types* for this operations arguments. This is
-		typically the list of interfaces or classes that the arguments must
-		comply to."""
-
-class IComputation(IAllocation):
-
-class IAssignation(IOperation)
-	ARGS = [ IReference, IEvaluable ]
-
-#------------------------------------------------------------------------------
-#
-#  Operational Elements
-#
-#------------------------------------------------------------------------------
-
-class IValue(IEvaluable):
-	"""A value represents an atomic element of the language, like a number, a
-	string, or a name (that can resolved by the language, acts as key for data
-	structures, etc.)."""
-
-class ILitteral(IValue):
-	"""A litteral is a value that does not need a context to be evaluated. The
-	evaluation is direct."""
-
-class IReference(IValue):
-	"""A reference is a name that can be converted into a value using a
-	resolution operation (for instance)."""
-
-	def getReferenceName( self ):
-		"""Returns the name which this reference contains. The name is used by
-		the resolution operation to actually resolve a value from the name."""
-
-class IOperator(IReference):
-	pass
-
-class ISlot(IReference):
-	"""An argument is a reference with additional type information."""
-
-	def getTypeInformation( self ):
-		"""Returns type information (constraints) that are associated to this
-		argument."""
-
-class IArgument(ISlot):
-	pass
 
 # EOF
