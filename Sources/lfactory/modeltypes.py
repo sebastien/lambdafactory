@@ -1,13 +1,28 @@
 # Encoding: ISO-8859-1
 # vim: ts=4 tw=79 noet 
 
-import typecast
+import typecast, interfaces
 
-class Data:pass
-class Operations: 	pass
-class Structure: pass
-class Behaviour: pass
-class Runtime: pass
+class TypeCollection:
+	"""A type collection is a class that contains type definitions which can be
+	easily retrieved using the @getType method."""
+
+	@classmethod
+	def getType( self, name ):
+		"""Returns the type with the given name, or None if it does not
+		exist."""
+		keys = dir()
+		if name in keys:
+			return getattr(self, name)
+		else:
+			return None
+
+class Data(TypeCollection):pass
+class Operations(TypeCollection): 	pass
+class Structure(TypeCollection): pass
+class Behaviour(TypeCollection): pass
+class Runtime(TypeCollection): pass
+COLLECTIONS = (Data, Operations, Structure, Behaviour, Runtime)
 
 Nil                            = typecast.Nil
 Nothing                        = typecast.Nothing
@@ -38,7 +53,18 @@ Behaviour.Method               = typecast.Process()
 
 Runtime.Instance               = typecast.Context()
 
-def classToType( aclass ):
+def typeFromClass( aclass ):
+	"""Returns the modeltype corresponding to the given Python model class.
+	This allows to bridge types from the Python model implementation to the
+	abstract typecast-based typesystem.
+	
+	This function will raise an execption if the type is not defined."""
 	name = aclass.__name__
+	if interfaces.implements(aclass, interfaces.IOperation):
+		res = Operations.getType(name)
+	if not res:
+		raise Exception("No model type for Python class: %s" % (aclass))
+	else:
+		return res
 
 # EOF

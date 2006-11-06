@@ -1,5 +1,5 @@
 # Encoding: ISO-8859-1
-# vim: ts=4 tw=79 noet fenc=latin-1
+# vim: ts=4 tw=79 noet
 # ------------------------------------------------------------------------------
 # Project           :   SweetC                        <http://www.ivy.fr/sweetc>
 # Author            :   Sebastien Pierre                      <sebastien@ivy.fr>

@@ -24,7 +24,7 @@
 # Project variables___________________________________________________________
 
 # Project name. Do not put spaces.
-PROJECT         = Railways
+PROJECT         = LambdaFactory
 PROJECT_VERSION = $(shell grep __version__ Sources/$(PACKAGE)/__init__.py | cut -d'"' -f2)
 PROJECT_STATUS  = DEVELOPMENT
 

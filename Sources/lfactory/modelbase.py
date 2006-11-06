@@ -144,29 +144,33 @@ class Operation(Element, IEvaluable, IOperation):
 	def __init__( self, *arguments ):
 		Element.__init__(self)
 		assertImplements(self, IEvaluable)
-		self._arguments = []
-		self.setArguments(arguments)
+		self._oparguments = []
+		self.setOpArguments(arguments)
 
-	def setArguments( self, arguments ):
+	def setOpArguments( self, arguments ):
 		if not len(arguments) <= len(self.ARGS):
 			raise ModelException("Too many arguments: %s expected %s, got %s" \
 			% (self, len(self.ARGS), len(arguments)))
-		self._arguments = []
-		map(self.addArgument, arguments)
+		self._oparguments = []
+		map(self.addOpArgument, arguments)
 
-	def addArgument( self, argument ):
-		offset = len(self._arguments)
+	def addOpArgument( self, argument ):
+		offset = len(self._oparguments)
 		if offset > len(self.ARGS):
 			raise ModelException("Too many arguments: %s expected args %s as %s, got %s" \
 			% (self, offset, len(self.ARGS), offset + 1))
 		if not self._isInstance(argument, self.ARGS[offset]):
 			raise ModelException("Incompatible argument:  %s expected arg %s as  %s, got %s" \
 			% (self, offset, self.ARGS[offset], argument.__class__.__name__))
-		self._arguments.append(argument)
+		self._oparguments.append(argument)
 
-	def getArguments( self ):
+	def getOpArguments( self ):
 		"""Returns the arguments to this operation."""
-		return self._arguments
+		return self._oparguments
+	
+	def getOpArgument( self, i ):
+		"""Returns the arguments with the given index."""
+		return self._oparguments[i]
 
 	def evaluate( self, context ):
 		pass
@@ -178,7 +182,7 @@ class Operation(Element, IEvaluable, IOperation):
 		return self.__name__
 
 	@classmethod
-	def getArgumentsInternalTypes( self ):
+	def getOpArgumentsInternalTypes( self ):
 		"""Returns the *internal types* for this operations arguments. This is
 		typically the list of interfaces or classes that the arguments must
 		comply to."""
@@ -201,35 +205,35 @@ class Instanciation(Operation, IInstanciation):
 
 	def getInstanciable( self ):
 		"""Returns the instanciable used in this operation."""
-		return self.getArgument(0)
+		return self.getOpArgument(0)
 
 class Assignation(Operation, IAssignation):
 
-	def getTarget( self ):
+	def getTargetReference( self ):
 		"""Returns this assignation target."""
-		return self.getArgument(0)
+		return self.getOpArgument(0)
 
 	def getAssignedValue( self ):
 		"""Returns this assigned value."""
-		return self.getArgument(1)
+		return self.getOpArgument(1)
 
 class Allocation(Operation, IAllocation):
 
-	def geSlotToAllocate( self ):
+	def getSlotToAllocate( self ):
 		"""Returns slot to be allocated by this operation."""
-		return self.getArgument(0)
+		return self.getOpArgument(0)
 
 class Resolution(Operation, IResolution):
 
 	def getReference( self ):
 		"""Returns the reference to be resolved."""
-		return self.getArgument(0)
+		return self.getOpArgument(0)
 
 class Computation(Operation, IComputation):
 
 	def getOperator( self ):
 		"""Returns the reference to be resolved."""
-		return self.getArgument(0)
+		return self.getOpArgument(0)
 
 	def getOperand( self ):
 		return self.getLeftOperand()
@@ -238,29 +242,27 @@ class Computation(Operation, IComputation):
 		return self.getLeftOperand(), self.getRightOperand()
 
 	def getLeftOperand( self ):
-		return self.getArgument(1)
+		return self.getOpArgument(1)
 
 	def getRightOperand( self ):
-		return self.getArgument(2)
+		return self.getOpArgument(2)
 
 class Invocation(Operation, IInvocation):
 
 	def getTarget( self ):
 		"""Returns the invocation target reference."""
-		return self.getArgument(0)
+		return self.getOpArgument(0)
 
 	def getArguments( self ):
 		"""Returns evaluable arguments."""
+		return self.getOpArgument(1) or ()
 
 # FIXME
 class Termination(Operation, ITermination):
 
 	def getReturnedEvaluable( self ):
 		"""Returns the termination return evaluable."""
-		return self.getArgument(0)
-
-	def getArguments( self ):
-		"""Returns evaluable arguments."""
+		return self.getOpArgument(0)
 
 # ------------------------------------------------------------------------------
 #
@@ -271,7 +273,18 @@ class Termination(Operation, ITermination):
 class Value(Element, IEvaluable):
 	pass
 
-class Litteral(Value):
+class Litteral(Value, ILitteral):
+
+	def __init__( self, actualValue ):
+		Value.__init__(self)
+		self._litteralValue = actualValue
+		assertImplements(self, ILitteral)
+
+	def getActualValue( self ):
+		"""Returns the (python) value for this litteral."""
+		return self._litteralValue
+
+class Number(Litteral, INumber):
 	pass
 
 class Reference(Value, IReference):
@@ -298,8 +311,14 @@ class Slot(Reference, ISlot):
 	def getReferenceName( self ):
 		return self._refname
 
+	def getTypeInformation( self ):
+		return self._typeinfo
+
 class Argument(Slot, IArgument):
-	pass
+
+	def __init__( self, refname, typeinfo ):
+		Slot.__init__(self, refname, typeinfo)
+		assertImplements(self, IArgument)
 
 # ------------------------------------------------------------------------------
 #
@@ -355,7 +374,7 @@ class Factory:
 	def _ref( self, name ):
 		return self._getImplementation("Reference")(name)
 
-	def _slot( self, name, typeinfo="None" ):
+	def _slot( self, name, typeinfo=None ):
 		return self._getImplementation("Slot")(name, typeinfo)
 
 	def _arg( self, name, typeinfo=None ):
@@ -363,5 +382,9 @@ class Factory:
 	
 	def _op( self, symbol ):
 		return self._getImplementation("Operator")(symbol)
+
+	def _number( self, number ):
+		return self._getImplementation("Number")(number)
+
 
 # EOF

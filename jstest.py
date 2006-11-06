@@ -1,4 +1,4 @@
-import modelbase
+from lfactory import modelbase
 
 # We try to model this:
 #
@@ -22,12 +22,12 @@ method_doThis.addOperations(
 	f.allocate(f._slot("value")),
 	f.assign(f._ref("value"), f.compute(f._op("+"), f.resolve(f._ref("a")), f.resolve(f._ref("b")))),
 	# We could write the above line as
-	f.assign(f._ref("value"), f.compute(f._op("+"), f.resolve(f._ref("a")), f.resolve(f._ref("b")))),
+	f.assign(f._ref("value"), f.compute(f._op("/"), f.resolve(f._ref("b")), f._number(10.0))),
 	f.returns(f.invoke(f.resolve(f._ref("c")), (f.resolve(f._ref("value")))))
 )
 class_myClass.setSlot("doThis", method_doThis)
 
-from modelwriter import Writer
+from lfactory.modelwriter import Writer
 w = Writer()
 print w.writeClass(class_myClass)
 

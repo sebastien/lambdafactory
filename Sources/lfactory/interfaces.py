@@ -3,6 +3,7 @@ def abstract(f):
 	def decorator(*args, **kwargs):
 		raise Exception("Not implemented")
 	decorator.isAbstract = True
+	decorator.__doc__ = getattr(f, "__doc__")
 	return decorator
 
 def implements( instance, interface ):
@@ -111,7 +112,10 @@ class ILitteral(IValue):
 	"""A litteral is a value that does not need a context to be evaluated. The
 	evaluation is direct."""
 
-class IReference(IValue):
+class INumber(IValue):
+	pass
+
+class IReference(IValue, IReferencable):
 	"""A reference is a name that can be converted into a value using a
 	resolution operation (for instance)."""
 
@@ -131,6 +135,7 @@ class ISlot(IReference):
 
 class IArgument(ISlot):
 	pass
+
 #------------------------------------------------------------------------------
 #
 #  Operations
@@ -140,16 +145,16 @@ class IArgument(ISlot):
 class IOperation:
 
 	@abstract
-	def addArgument( self, argument ):
+	def addOpArgument( self, argument ):
 		"""Adds an argument to this operation. This should do checking of
 		arguments (by expected internal type and number)."""
 
 	@abstract
-	def getArguments( self ):
+	def getOpArguments( self ):
 		"""Returns the arguments to this operation."""
 
 	@classmethod
-	def getArgumentsInternalTypes( self ):
+	def getOpArgumentsInternalTypes( self ):
 		"""Returns the *internal types* for this operations arguments. This is
 		typically the list of interfaces or classes that the arguments must
 		comply to."""
@@ -158,12 +163,12 @@ class IAssignation(IOperation):
 	ARGS = [ IReference, IEvaluable ]
 
 	@abstract
-	def getTarget( self ):
-		"""Returns this assignation target."""
+	def getTargetReference( self ):
+		"""Returns this assignation target reference."""
 
 	@abstract
 	def getAssignedValue( self ):
-		"""Returns this assigned value."""
+		"""Returns this assigned evaluable."""
 
 class IInstanciation(IOperation):
 	ARGS = [ IInstanciable ]
@@ -176,11 +181,12 @@ class IAllocation(IOperation):
 	ARGS = [ ISlot ]
 
 	@abstract
-	def geSlotToAllocate( self ):
+	def getSlotToAllocate( self ):
 		"""Returns slot to be allocated by this operation."""
 
 class IResolution(IOperation):
-	ARGS = [ IReference ]
+	"""A resolution resolves a reference into a value."""
+	ARGS = [ IReferencable ]
 
 	@abstract
 	def getReference( self ):
@@ -228,10 +234,6 @@ class ITermination(IOperation):
 	def getReturnedEvaluable( self ):
 		"""Returns the termination return evaluable."""
 
-	@abstract
-	def getArguments( self ):
-		"""Returns evaluable arguments."""
-
 #------------------------------------------------------------------------------
 #
 #  Generic Element Interfaces
@@ -254,6 +256,12 @@ class IContext:
 	def hasSlot( self, name ):
 		"""Tells if the context has a slot with the given name."""
 
+class IModule(IContext):
+	pass
+
+class IClass(IContext):
+	pass
+
 class IProcess:
 	"""A process is a sequence of operations."""
 
@@ -269,5 +277,10 @@ class IProcess:
 	def getOperations( self ):
 		"""Returns the list of operations in this process."""
 
+class IFunction(IProcess):
+	pass
+
+class IMethod(IFunction):
+	pass
 
 # EOF
