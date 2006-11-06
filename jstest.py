@@ -27,6 +27,10 @@ method_doThis.addOperations(
 )
 class_myClass.setSlot("doThis", method_doThis)
 
+from modelwriter import Writer
+w = Writer()
+print w.writeClass(class_myClass)
+
 # We proceed with the evaluation of this model
 # context = Context({"a":f._value(Unknown, mt.Number), "b":f._value(Unknown, mt.Number),
 # "c":f._value(Unknown, mt.Function( mt.Number, mt.Number ))})

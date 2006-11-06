@@ -63,10 +63,13 @@ class Context(Element, IContext):
 	def hasSlot( self, name ):
 		return name in self._slots().keys()
 
-class Class(Context):
+class Class(Context, IReferencable):
 
 	def getMethods( self ):
 		return [value for value in self._slots.values() if isinstance(value, IInvocable)]
+
+	def getName( self ):
+		return self._name
 
 # ------------------------------------------------------------------------------
 #

@@ -149,6 +149,11 @@ class IOperation:
 		typically the list of interfaces or classes that the arguments must
 		comply to."""
 
+class IComputation(IAllocation):
+
+class IAssignation(IOperation)
+	ARGS = [ IReference, IEvaluable ]
+
 #------------------------------------------------------------------------------
 #
 #  Operational Elements
