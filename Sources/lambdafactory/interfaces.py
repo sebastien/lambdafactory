@@ -300,6 +300,16 @@ class IClass(IContext):
 	pass
 
 	@abstract
+	def getAttributes( self ):
+		"""Returns the attributes defined within this class."""
+		pass
+
+	@abstract
+	def getClassAttributes( self ):
+		"""Returns the class attributes defined within this class."""
+		pass
+
+	@abstract
 	def getOperations( self ):
 		"""Returns the operations (methods and class methods) defined within this class."""
 		pass
@@ -308,7 +318,7 @@ class IClass(IContext):
 	def getMethods( self ):
 		"""Returns the methods defined within this class."""
 		pass
-	
+
 	@abstract
 	def getClassMethods( self ):
 		"""Returns the class method defined within this class."""

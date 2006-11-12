@@ -8,7 +8,7 @@
 # License   : Revised BSD License
 # -----------------------------------------------------------------------------
 # Creation  : 02-Nov-2006
-# Last mod  : 03-Nov-2006
+# Last mod  : 12-Nov-2006
 # -----------------------------------------------------------------------------
 
 # FIXME: Evaluable == Expression ?
@@ -113,11 +113,23 @@ class Class(Context, IClass, IAssignable):
 		Context.__init__(self, name=name)
 		assertImplements(self, IClass)
 
+	def getAttributes( self ):
+		return [value for value in self._slots.values()
+			if isinstance(value, IAttribute) and not isinstance(value, IClassAttribute)
+		]
+
+	def getClassAttributes( self ):
+		return [value for value in self._slots.values()
+			if isinstance(value, IClassAttribute)
+		]
+
 	def getOperations( self ):
 		return [value for value in self._slots.values() if isinstance(value, IInvocable)]
 
 	def getMethods( self ):
-		return [value for value in self._slots.values() if isinstance(value, IMethod) and not isinstance(value, IClassMethod)]
+		return [value for value in self._slots.values()
+			if isinstance(value, IMethod) and not isinstance(value, IClassMethod)
+		]
 
 	def getClassMethods( self ):
 		return [value for value in self._slots.values() if isinstance(value, IClassMethod)]

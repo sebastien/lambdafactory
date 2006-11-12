@@ -49,10 +49,11 @@ class Writer:
 
 	# This defines an ordered set of interfaces names (without the leading I).
 	# This list is used in the the write method
+	# NOTE: When adding elements, be sure to put the *particular first*
 	INTERFACES = (
 		"Module", "Class",
 		"ClassMethod", "Method", "Function",
-		"Argument",
+		"ClassAttribute", "Attribute", "Argument", "Reference",
 		"Operator", "Number", "String",
 		"Allocation", "Assignation", "Computation",
 		"Invocation", "Resolution", "Termination"
@@ -70,6 +71,8 @@ class Writer:
 		return self._format(
 			self._document(classElement),
 			"class %s:" % (classElement.getName()),
+			flatten([self.write(m) for m in classElement.getAttributes()]),
+			flatten([self.write(m) for m in classElement.getClassAttributes()]),
 			flatten([self.write(m) for m in classElement.getMethods()]),
 			flatten([self.write(m) for m in classElement.getClassMethods()]),
 			"end"
@@ -118,6 +121,24 @@ class Writer:
 			argElement.getReferenceName(),
 		)
 
+	def writeAttribute( self, element ):
+		"""Writes an argument element."""
+		return "attribute %s %s" % (
+			(element.getTypeInformation() or "any"),
+			element.getReferenceName(),
+		)
+
+	def writeClassAttribute( self, element ):
+		"""Writes an argument element."""
+		return "class attribute %s %s" % (
+			(element.getTypeInformation() or "any"),
+			element.getReferenceName(),
+		)
+
+	def writeReference( self, element ):
+		"""Writes an argument element."""
+		return element.getReferenceName()
+
 	def writeOperator( self, operator ):
 		"""Writes an operator element."""
 		return "%s" % (operator.getReferenceName())
@@ -125,6 +146,10 @@ class Writer:
 	def writeNumber( self, number ):
 		"""Writes a number element."""
 		return "%s" % (number.getActualValue())
+
+	def writeString( self, element ):
+		"""Writes a string element."""
+		return '"%s"' % (element.getActualValue().replace('"', '\\"'))
 
 	def writeAllocation( self, allocation ):
 		"""Writes an allocation operation."""
@@ -180,11 +205,11 @@ class Writer:
 		for name, the_interface in this_interfaces:
 			if isinstance(element, the_interface):
 				if not hasattr(self, "write" + name ):
-					raise Exception("Writer does not defined write method for: "
+					raise Exception("Writer does not define write method for: "
 					+ name)
 				else:
 					return getattr(self, "write" + name)(element)
-		raise Exception("Element implements not known interface: "
+		raise Exception("Element implements unknown interface: "
 		+ str(element))
 
 	def _format( self, *values ):
