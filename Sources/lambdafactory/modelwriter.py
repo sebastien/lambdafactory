@@ -49,42 +49,55 @@ class Writer:
 
 	def writeModule( self, moduleElement ):
 		"""Writes a Module element."""
-		return self._format("@module %s:" % (moduleElement.getName()),
+		return self._format("module %s:" % (moduleElement.getName()),
 			[self.write(s[1]) for s in moduleElement.getSlots()],
-			"@end"
+			"end"
 		)
 
 	def writeClass( self, classElement ):
 		"""Writes a class element."""
 		return self._format(
 			self._document(classElement),
-			"@class %s:" % (classElement.getName()),
-			flatten([self.writeMethod(m) for m in classElement.getMethods()]),
-			"@end"
+			"class %s:" % (classElement.getName()),
+			flatten([self.write(m) for m in classElement.getMethods()]),
+			flatten([self.write(m) for m in classElement.getClassMethods()]),
+			"end"
 		)
 
 	def writeMethod( self, methodElement ):
 		"""Writes a method element."""
 		return self._format(
 			self._document(methodElement),
-			"@method %s ( %s ):" % (
+			"method %s ( %s ):" % (
 				methodElement.getName(),
 				", ".join(map(self.writeArgument, methodElement.getArguments()))
 			),
 			map(self.write, methodElement.getOperations()),
-			"@end"
+			"end"
+		)
+
+	def writeClassMethod( self, methodElement ):
+		"""Writes a class method element."""
+		return self._format(
+			self._document(methodElement),
+			"operation %s ( %s ):" % (
+				methodElement.getName(),
+				", ".join(map(self.writeArgument, methodElement.getArguments()))
+			),
+			map(self.write, methodElement.getOperations()),
+			"end"
 		)
 
 	def writeFunction( self, function ):
 		"""Writes a function element."""
 		return self._format(
 			self._document(function),
-			"@function %s ( %s ):" % (
+			"function %s ( %s ):" % (
 				function.getName(),
 				", ".join(map(self.write, function.getArguments()))
 			),
 			map(self.write, function.getOperations()),
-			"@end"
+			"end"
 		)
 
 	def writeArgument( self, argElement ):
@@ -160,6 +173,8 @@ class Writer:
 			res = self.writeModule(element)
 		elif isinstance(element, interfaces.IClass):
 			res = self.writeClass(element)
+		elif isinstance(element, interfaces.IClassMethod):
+			res = self.writeClassMethod(element)
 		elif isinstance(element, interfaces.IMethod):
 			res = self.writeMethod(element)
 		elif isinstance(element, interfaces.IFunction):
@@ -191,7 +206,7 @@ class Writer:
 	
 	def _document( self, element ):
 		if element.hasDocumentation():
-			return "// " + element.getDocumentation()
+			return "# " + element.getDocumentation()
 		else:
 			return None
 

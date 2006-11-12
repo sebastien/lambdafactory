@@ -34,10 +34,20 @@ class Element:
 
 	def __init__( self, name=None ):
 		assert name is None or type(name) in (str, unicode)
-		self._id    = self.COUNT
-		self._name  = name
-		self.meta   = {}
-		self.COUNT += 1
+		self._id     = self.COUNT
+		self._name   = name
+		self._source = None
+		self.meta    = {}
+		self.COUNT  += 1
+
+	def getSource( self ):
+		"""Returns the source for this element (it can be an URL, a file path,
+		etc)."""
+		return self._source
+
+	def setSource( self, source ):
+		"""Sets the source for this element."""
+		self._source = source
 
 	@classmethod
 	def getModelType( self ):
@@ -54,6 +64,21 @@ class Element:
 	def setDocumentation( self, text ):
 		"""Sets the documentation for this element."""
 		self.meta["doc"] = text
+
+class Annotation(IAnnotation):
+
+	def __init__( self, content = None ):
+		assert content is None or type(content) in (str, unicode)
+		self._content = None
+
+	def setContent( self, content ):
+		self._content = content
+
+	def getContent( self ):
+		return self._content
+
+class Comment(Annotation, IComment):
+	pass
 
 # ------------------------------------------------------------------------------
 #
@@ -174,6 +199,10 @@ class Function(Process, IReferencable, IAssignable, IFunction):
 class Method(Function, IMethod):
 	pass
 
+class ClassMethod(Method, IClassMethod):
+	pass
+
+
 # ------------------------------------------------------------------------------
 #
 # OPERATIONS
@@ -201,8 +230,9 @@ class Operation(Element, IEvaluable, IOperation):
 			raise ModelException("Too many arguments: %s expected args %s as %s, got %s" \
 			% (self, offset, len(self.ARGS), offset + 1))
 		if not self._isInstance(argument, self.ARGS[offset]):
+			print argument, self.ARGS[offset]
 			raise ModelException("Incompatible argument:  %s expected arg %s as  %s, got %s" \
-			% (self, offset, self.ARGS[offset], argument.__class__.__name__))
+			% (self, offset, self.ARGS[offset], argument))
 		self._oparguments.append(argument)
 
 	def getOpArguments( self ):
@@ -242,13 +272,13 @@ class Operation(Element, IEvaluable, IOperation):
 		else:
 			return isinstance(arg, argtype)
 
-class Instanciation(Operation, IInstanciation):
+class Instanciation(Operation, IInstanciation, IEvaluable):
 
 	def getInstanciable( self ):
 		"""Returns the instanciable used in this operation."""
 		return self.getOpArgument(0)
 
-class Assignation(Operation, IAssignation):
+class Assignation(Operation, IAssignation, IEvaluable):
 
 	def getTargetReference( self ):
 		"""Returns this assignation target."""
@@ -258,19 +288,24 @@ class Assignation(Operation, IAssignation):
 		"""Returns this assigned value."""
 		return self.getOpArgument(1)
 
-class Allocation(Operation, IAllocation):
+class Allocation(Operation, IAllocation, IEvaluable):
 
 	def getSlotToAllocate( self ):
 		"""Returns slot to be allocated by this operation."""
 		return self.getOpArgument(0)
 
-class Resolution(Operation, IResolution):
+class Resolution(Operation, IResolution, IEvaluable):
 
 	def getReference( self ):
 		"""Returns the reference to be resolved."""
 		return self.getOpArgument(0)
 
-class Computation(Operation, IComputation):
+	def getContext( self ):
+		"""Returns the reference to be resolved."""
+		return self.getOpArgument(1)
+
+
+class Computation(Operation, IComputation, IEvaluable):
 
 	def getOperator( self ):
 		"""Returns the reference to be resolved."""
@@ -288,7 +323,7 @@ class Computation(Operation, IComputation):
 	def getRightOperand( self ):
 		return self.getOpArgument(2)
 
-class Invocation(Operation, IInvocation):
+class Invocation(Operation, IInvocation, IEvaluable):
 
 	def getTarget( self ):
 		"""Returns the invocation target reference."""
@@ -328,6 +363,9 @@ class Litteral(Value, ILitteral):
 class Number(Litteral, INumber):
 	pass
 
+class String(Litteral, IString):
+	pass
+
 class Reference(Value, IReference):
 
 	def __init__( self, refname ):
@@ -361,6 +399,13 @@ class Argument(Slot, IArgument):
 		Slot.__init__(self, refname, typeinfo)
 		assertImplements(self, IArgument)
 
+class Attribute(Slot, IAttribute):
+	pass
+
+class ClassAttribute(Slot, IClassAttribute):
+	pass
+
+
 # ------------------------------------------------------------------------------
 #
 # FACTORY
@@ -388,8 +433,11 @@ class Factory:
 	def createFunction( self, name, arguments ):
 		return self._getImplementation("Function")(name, arguments)
 
-	def createMethod( self, name, arguments ):
+	def createMethod( self, name, arguments=None ):
 		return self._getImplementation("Method")(name, arguments)
+
+	def createClassMethod( self, name, arguments=() ):
+		return self._getImplementation("ClassMethod")(name, arguments)
 
 	def createClass( self, name ):
 		return self._getImplementation("Class")(name)
@@ -409,11 +457,14 @@ class Factory:
 	def invoke( self, evaluable, *arguments ):
 		return self._getImplementation("Invocation")(evaluable, arguments)
 
-	def resolve( self, reference ):
-		return self._getImplementation("Resolution")(reference)
+	def resolve( self, reference, context=None ):
+		return self._getImplementation("Resolution")(reference, context)
 
 	def returns( self, evaluable ):
 		return self._getImplementation("Termination")(evaluable)
+
+	def comment( self, content ):
+		return self._getImplementation("Comment")(content)
 
 	def _ref( self, name ):
 		return self._getImplementation("Reference")(name)
@@ -423,12 +474,20 @@ class Factory:
 
 	def _arg( self, name, typeinfo=None ):
 		return self._getImplementation("Argument")(name, typeinfo)
-	
+
+	def _attr( self, name, typeinfo=None):
+		return self._getImplementation("Attribute")(name, typeinfo)
+
+	def _clattr( self, name, typeinfo=None):
+		return self._getImplementation("ClassAttribute")(name, typeinfo)
+
 	def _op( self, symbol ):
 		return self._getImplementation("Operator")(symbol)
 
 	def _number( self, number ):
 		return self._getImplementation("Number")(number)
 
+	def _string( self, value ):
+		return self._getImplementation("String")(value)
 
 # EOF

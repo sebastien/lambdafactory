@@ -1,7 +1,7 @@
 
 def abstract(f):
-	def decorator(*args, **kwargs):
-		raise Exception("Not implemented")
+	def decorator(self, *args, **kwargs):
+		raise Exception("Operation not implemented: %s in %s" % (f, self.__class__))
 	decorator.isAbstract = True
 	decorator.__doc__ = getattr(f, "__doc__")
 	return decorator
@@ -99,6 +99,28 @@ class IInvocable:
 
 #------------------------------------------------------------------------------
 #
+#  Annotation Elements
+#
+#------------------------------------------------------------------------------
+
+class IAnnotation:
+	"""An annotation is some information that is not used for the actual
+	program, but annotates/gives meta-information about is elements."""
+
+	@abstract
+	def getContent( self ):
+		"""Returns the content of this annotation."""
+
+class IComment(IAnnotation):
+	"""A comment is an annotation that can occur anywhere in a source file."""
+
+class IDocumentation(IAnnotation):
+	"""Documentation is often attached to various language elements.
+	Documentation can be found in coments (as in Java), or be directly embedded
+	as values (as in Python)."""
+
+#------------------------------------------------------------------------------
+#
 #  Operational Elements
 #
 #------------------------------------------------------------------------------
@@ -115,6 +137,9 @@ class ILitteral(IValue):
 class INumber(IValue):
 	pass
 
+class IString(IValue):
+	pass
+
 class IReference(IValue, IReferencable):
 	"""A reference is a name that can be converted into a value using a
 	resolution operation (for instance)."""
@@ -126,7 +151,7 @@ class IReference(IValue, IReferencable):
 class IOperator(IReference):
 	pass
 
-class ISlot(IReference):
+class ISlot(IReference, IAssignable):
 	"""An argument is a reference with additional type information."""
 
 	def getTypeInformation( self ):
@@ -134,6 +159,12 @@ class ISlot(IReference):
 		argument."""
 
 class IArgument(ISlot):
+	pass
+
+class IAttribute(ISlot):
+	pass
+
+class IClassAttribute(IAttribute):
 	pass
 
 #------------------------------------------------------------------------------
@@ -186,11 +217,15 @@ class IAllocation(IOperation):
 
 class IResolution(IOperation):
 	"""A resolution resolves a reference into a value."""
-	ARGS = [ IReferencable ]
+	ARGS = [ IReferencable, IReferencable ]
 
 	@abstract
 	def getReference( self ):
 		"""Returns the reference to be resolved."""
+
+	@abstract
+	def getContext( self ):
+		"""Returns the (optional) context in which the resolution should occur."""
 
 class IComputation(IOperation):
 	ARGS = [ IOperator, IEvaluable, IEvaluable ]
@@ -279,6 +314,7 @@ class IClass(IContext):
 		"""Returns the class method defined within this class."""
 		pass
 
+	@abstract
 	def getName( self ):
 		"""Returns this class name. It can be `None` if the class is anonymous."""
 
@@ -305,7 +341,10 @@ class IProcess:
 		"""Returns the list of operations in this process."""
 
 class IFunction(IProcess):
-	pass
+
+	@abstract
+	def getName( self ):
+		"""Returns this class name. It can be `None` if the class is anonymous."""
 
 class IMethod(IFunction):
 	pass
