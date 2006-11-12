@@ -263,6 +263,7 @@ class Operation(Element, IEvaluable, IOperation):
 		"""A more specific implementation of isinstance, that allows list of
 		types to be used as types. For instance, `[ISlot]` stands for ''a
 		list of arguments''."""
+		if arg is None: return True
 		if type(argtype) in (list, tuple):
 			if not (type(arg) in (list, tuple)): return False
 			for e in arg:

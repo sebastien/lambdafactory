@@ -47,6 +47,17 @@ class Writer:
 	program representation. You can call the main @write method to get the
 	representatio of any model element."""
 
+	# This defines an ordered set of interfaces names (without the leading I).
+	# This list is used in the the write method
+	INTERFACES = (
+		"Module", "Class",
+		"ClassMethod", "Method", "Function",
+		"Argument",
+		"Operator", "Number", "String",
+		"Allocation", "Assignation", "Computation",
+		"Invocation", "Resolution", "Termination"
+	)
+
 	def writeModule( self, moduleElement ):
 		"""Writes a Module element."""
 		return self._format("module %s:" % (moduleElement.getName()),
@@ -70,7 +81,7 @@ class Writer:
 			self._document(methodElement),
 			"method %s ( %s ):" % (
 				methodElement.getName(),
-				", ".join(map(self.writeArgument, methodElement.getArguments()))
+				", ".join(map(self.write, methodElement.getArguments()))
 			),
 			map(self.write, methodElement.getOperations()),
 			"end"
@@ -82,7 +93,7 @@ class Writer:
 			self._document(methodElement),
 			"operation %s ( %s ):" % (
 				methodElement.getName(),
-				", ".join(map(self.writeArgument, methodElement.getArguments()))
+				", ".join(map(self.write, methodElement.getArguments()))
 			),
 			map(self.write, methodElement.getOperations()),
 			"end"
@@ -165,41 +176,16 @@ class Writer:
 
 	def write( self, element ):
 		res = None
-		# NOTE: I could surely do that using some reflection, or some more
-		# advanced technique, but I let that to later ;)
-		if element is None:
-			pass
-		elif isinstance(element, interfaces.IModule):
-			res = self.writeModule(element)
-		elif isinstance(element, interfaces.IClass):
-			res = self.writeClass(element)
-		elif isinstance(element, interfaces.IClassMethod):
-			res = self.writeClassMethod(element)
-		elif isinstance(element, interfaces.IMethod):
-			res = self.writeMethod(element)
-		elif isinstance(element, interfaces.IFunction):
-			res = self.writeFunction(element)
-		elif isinstance(element, interfaces.IArgument):
-			res = self.writeArgument(element)
-		elif isinstance(element, interfaces.IOperator):
-			res = self.writeOperator(element)
-		elif isinstance(element, interfaces.INumber):
-			res = self.writeNumber(element)
-		elif isinstance(element, interfaces.IAllocation):
-			res = self.writeAllocation(element)
-		elif isinstance(element, interfaces.IAssignation):
-			res = self.writeAssignation(element)
-		elif isinstance(element, interfaces.IComputation):
-			res = self.writeComputation(element)
-		elif isinstance(element, interfaces.IInvocation):
-			res = self.writeInvocation(element)
-		elif isinstance(element, interfaces.IResolution):
-			res = self.writeResolution(element)
-		elif isinstance(element, interfaces.ITermination):
-			res = self.writeTermination(element)
-		else:
-			raise Exception("No write method implemented for: %s" % (element))
-		return res
+		this_interfaces = [(i,getattr(interfaces,"I" + i)) for i in self.INTERFACES]
+		for name, the_interface in this_interfaces:
+			if isinstance(element, the_interface):
+				if not hasattr(self, "write" + name ):
+					raise Exception("Writer does not defined write method for: "
+					+ name)
+				else:
+					return getattr(self, "write" + name)(element)
+		raise Exception("Element implements not known interface: "
+		+ str(element))
 
 	def _format( self, *values ):
 		return format(*values)
