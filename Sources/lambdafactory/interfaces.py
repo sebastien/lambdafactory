@@ -169,6 +169,102 @@ class IClassAttribute(IAttribute):
 
 #------------------------------------------------------------------------------
 #
+#  Contexts and Processes
+#
+#------------------------------------------------------------------------------
+
+class IContext:
+	"""A context is an element that has slots, which bind evaluable elements
+	(aka values) to names."""
+
+	@abstract
+	def setSlot( self, name, evaluable ):
+		"""Binds the given evaluable to the named slot."""
+
+	@abstract
+	def getSlot( self, name ):
+		"""Returns the given evaluable bound to named slot."""
+
+	@abstract
+	def hasSlot( self, name ):
+		"""Tells if the context has a slot with the given name."""
+
+	@abstract
+	def getSlots( self ):
+		"""Returns (key, evaluable) pairs representing the slots within this
+		context."""
+
+class IClass(IContext):
+	pass
+
+	@abstract
+	def getAttributes( self ):
+		"""Returns the attributes defined within this class."""
+		pass
+
+	@abstract
+	def getClassAttributes( self ):
+		"""Returns the class attributes defined within this class."""
+		pass
+
+	@abstract
+	def getOperations( self ):
+		"""Returns the operations (methods and class methods) defined within this class."""
+		pass
+
+	@abstract
+	def getMethods( self ):
+		"""Returns the methods defined within this class."""
+		pass
+
+	@abstract
+	def getClassMethods( self ):
+		"""Returns the class method defined within this class."""
+		pass
+
+	@abstract
+	def getName( self ):
+		"""Returns this class name. It can be `None` if the class is anonymous."""
+
+class IModule(IContext):
+	pass
+
+	@abstract
+	def getClasses( self ):
+		pass
+
+class IProcess:
+	"""A process is a sequence of operations."""
+
+	@abstract
+	def addOperation( self, operation ):
+		"""Adds the given operation as a child of this process."""
+
+	@abstract
+	def addOperations( self, *operations ):
+		"""Adds the given operations as children of this process."""
+
+	@abstract
+	def getOperations( self ):
+		"""Returns the list of operations in this process."""
+
+class IBlock(IProcess):
+	"""A block is a specific type of (sub) process."""
+
+class IFunction(IProcess):
+
+	@abstract
+	def getName( self ):
+		"""Returns this class name. It can be `None` if the class is anonymous."""
+
+class IMethod(IFunction):
+	pass
+
+class IClassMethod(IMethod):
+	pass
+
+#------------------------------------------------------------------------------
+#
 #  Operations
 #
 #------------------------------------------------------------------------------
@@ -261,7 +357,68 @@ class IInvocation(IOperation):
 	def getArguments( self ):
 		"""Returns evaluable arguments."""
 
-# FIXME
+class IMatchOperation(IOperation):
+	"""A match operation is the binding of an expression and a process."""
+	ARGS = [ IEvaluable, IProcess ]
+
+	@abstract
+	def getRule( self ):
+		"""Returns the evaluable that acts as a rule for this operation."""
+		return self.getOpArgument(0)
+
+	@abstract
+	def getProcess( self ):
+		"""Returns the process that will be executed if the rule matches."""
+		return self.getOpArgument(1)
+
+class ISelection(IOperation):
+	"""Selections are the abstract objects behind `if`, `select` or
+	pattern-matching operations. Each selection has match operations as
+	arguments, which bind a subprocess to a predicate expression."""
+	ARGS = [ [IMatchOperation] ]
+
+	@abstract
+	def addRule( self, evaluable ):
+		"""Adds a rule to this operation."""
+
+	@abstract
+	def getRules( self ):
+		"""Returns the ordered set of rule for this selection."""
+
+class IIteration( IOperation ):
+	"""An iteration is the multiple application of a process given a set of
+	values produced by an iterator."""
+	ARGS = [ ISlot, IEvaluable, IProcess ]
+
+	def getIteratedSlot( self ):
+		"""Returns the slot that will contain the iterated value."""
+		return self.getOpArgument(0)
+
+	def getIterator( self ):
+		"""Returns this iteration iterator."""
+		return self.getOpArgument(1)
+
+	def getProcess( self ):
+		"""Returns the iterated process."""
+		return self.getOpArgument(2)
+
+class IEnumeration( IOperation ):
+	"""An enumeration produces values between a start and an end value, with the
+	given step."""
+	ARGS = [ IEvaluable, IEvaluable, IEvaluable ]
+
+	def getStart( self ):
+		"""Returns this enumeration start."""
+		return self.getOpArgument(0)
+
+	def getEnd( self ):
+		"""Returns this enumeration end."""
+		return self.getOpArgument(1)
+
+	def getStep( self ):
+		"""Returns this enumeration step."""
+		return self.getOpArgument(2)
+
 class ITermination(IOperation):
 	ARGS = [ IEvaluable ]
 
@@ -269,97 +426,6 @@ class ITermination(IOperation):
 	def getReturnedEvaluable( self ):
 		"""Returns the termination return evaluable."""
 
-#------------------------------------------------------------------------------
-#
-#  Generic Element Interfaces
-#
-#------------------------------------------------------------------------------
 
-class IContext:
-	"""A context is an element that has slots, which bind evaluable elements
-	(aka values) to names."""
-
-	@abstract
-	def setSlot( self, name, evaluable ):
-		"""Binds the given evaluable to the named slot."""
-
-	@abstract
-	def getSlot( self, name ):
-		"""Returns the given evaluable bound to named slot."""
-
-	@abstract
-	def hasSlot( self, name ):
-		"""Tells if the context has a slot with the given name."""
-
-	@abstract
-	def getSlots( self ):
-		"""Returns (key, evaluable) pairs representing the slots within this
-		context."""
-
-class IClass(IContext):
-	pass
-
-	@abstract
-	def getAttributes( self ):
-		"""Returns the attributes defined within this class."""
-		pass
-
-	@abstract
-	def getClassAttributes( self ):
-		"""Returns the class attributes defined within this class."""
-		pass
-
-	@abstract
-	def getOperations( self ):
-		"""Returns the operations (methods and class methods) defined within this class."""
-		pass
-
-	@abstract
-	def getMethods( self ):
-		"""Returns the methods defined within this class."""
-		pass
-
-	@abstract
-	def getClassMethods( self ):
-		"""Returns the class method defined within this class."""
-		pass
-
-	@abstract
-	def getName( self ):
-		"""Returns this class name. It can be `None` if the class is anonymous."""
-
-class IModule(IContext):
-	pass
-
-	@abstract
-	def getClasses( self ):
-		pass
-
-class IProcess:
-	"""A process is a sequence of operations."""
-
-	@abstract
-	def addOperation( self, operation ):
-		"""Adds the given operation as a child of this process."""
-
-	@abstract
-	def addOperations( self, *operations ):
-		"""Adds the given operations as children of this process."""
-
-	@abstract
-	def getOperations( self ):
-		"""Returns the list of operations in this process."""
-
-class IFunction(IProcess):
-
-	@abstract
-	def getName( self ):
-		"""Returns this class name. It can be `None` if the class is anonymous."""
-
-class IMethod(IFunction):
-	pass
-
-class IClassMethod(IMethod):
-	pass
 
 # EOF

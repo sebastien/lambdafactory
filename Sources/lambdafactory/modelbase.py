@@ -177,7 +177,9 @@ class Process( Element, IProcess ):
 	def evaluate( self, context ):
 		pass
 		# TODO: Find how we process the operations to get a type
-		
+
+class Block( Process, IBlock ):
+	pass
 
 class Function(Process, IReferencable, IAssignable, IFunction):
 
@@ -288,40 +290,32 @@ class Operation(Element, IEvaluable, IOperation):
 class Instanciation(Operation, IInstanciation, IEvaluable):
 
 	def getInstanciable( self ):
-		"""Returns the instanciable used in this operation."""
 		return self.getOpArgument(0)
 
 class Assignation(Operation, IAssignation, IEvaluable):
 
 	def getTargetReference( self ):
-		"""Returns this assignation target."""
 		return self.getOpArgument(0)
 
 	def getAssignedValue( self ):
-		"""Returns this assigned value."""
 		return self.getOpArgument(1)
 
 class Allocation(Operation, IAllocation, IEvaluable):
 
 	def getSlotToAllocate( self ):
-		"""Returns slot to be allocated by this operation."""
 		return self.getOpArgument(0)
 
 class Resolution(Operation, IResolution, IEvaluable):
 
 	def getReference( self ):
-		"""Returns the reference to be resolved."""
 		return self.getOpArgument(0)
 
 	def getContext( self ):
-		"""Returns the reference to be resolved."""
 		return self.getOpArgument(1)
-
 
 class Computation(Operation, IComputation, IEvaluable):
 
 	def getOperator( self ):
-		"""Returns the reference to be resolved."""
 		return self.getOpArgument(0)
 
 	def getOperand( self ):
@@ -339,18 +333,42 @@ class Computation(Operation, IComputation, IEvaluable):
 class Invocation(Operation, IInvocation, IEvaluable):
 
 	def getTarget( self ):
-		"""Returns the invocation target reference."""
 		return self.getOpArgument(0)
 
 	def getArguments( self ):
-		"""Returns evaluable arguments."""
 		return self.getOpArgument(1) or ()
 
-# FIXME
+class Selection(Operation, ISelection):
+
+	def addRule( self, evaluable ):
+		res = self.getOpArguments()
+		if not res:
+			res = []
+			self.addOpArgument(res)
+		else:
+			res = res[0]
+		res.append(evaluable)
+
+	def getRules( self ):
+		return self.getOpArgument(0)
+
+class MatchOperation(Operation, IMatchOperation):
+
+	def getRule( self ):
+		return self.getOpArgument(0)
+
+	def getProcess( self ):
+		return self.getOpArgument(1)
+
+class Iteration( Operation, IIteration ):
+	pass
+
+class Enumeration(Operation, IEnumeration):
+	pass
+
 class Termination(Operation, ITermination):
 
 	def getReturnedEvaluable( self ):
-		"""Returns the termination return evaluable."""
 		return self.getOpArgument(0)
 
 # ------------------------------------------------------------------------------
@@ -443,6 +461,9 @@ class Factory:
 		else:
 			return getattr(self._module, name)
 
+	def createBlock( self ):
+		return self._getImplementation("Block")()
+
 	def createFunction( self, name, arguments ):
 		return self._getImplementation("Function")(name, arguments)
 
@@ -472,6 +493,18 @@ class Factory:
 
 	def resolve( self, reference, context=None ):
 		return self._getImplementation("Resolution")(reference, context)
+
+	def select( self ):
+		return self._getImplementation("Selection")()
+
+	def match( self, evaluable, process ):
+		return self._getImplementation("MatchOperation")(evaluable, process)
+
+	def iterate( self, slot, evaluable, process ):
+		return self._getImplementation("Iteration")(slot, evaluable, process)
+
+	def enumerate( self, start, end, step=None ):
+		return self._getImplementation("Enumeration")(start, end, step)
 
 	def returns( self, evaluable ):
 		return self._getImplementation("Termination")(evaluable)

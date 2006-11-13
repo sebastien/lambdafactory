@@ -55,6 +55,7 @@ class Writer:
 		"ClassMethod", "Method", "Function",
 		"ClassAttribute", "Attribute", "Argument", "Reference",
 		"Operator", "Number", "String",
+		"Enumeration",
 		"Allocation", "Assignation", "Computation",
 		"Invocation", "Resolution", "Termination"
 	)
@@ -167,6 +168,19 @@ class Writer:
 			self.write(assignation.getAssignedValue())
 		)
 
+	def writeEnumeration( self, operation ):
+		"""Writes an enumeration operation."""
+		start = operation.getStart() 
+		end   = operation.getStart() 
+		if isinstance(start, interfaces.ILitteral): start = self.write(start)
+		else: start = "(%s)" % (self.write(start))
+		if isinstance(end, interfaces.ILitteral): end = self.write(end)
+		else: end = "(%s)" % (self.write(end))
+		res = "%s..%s" % (start, end)
+		step = operation.getStep()
+		if step: res += "|" + step
+		return res
+
 	def writeResolution( self, resolution ):
 		"""Writes a resolution operation."""
 		return "%s" % ( resolution.getReference().getReferenceName())
@@ -201,6 +215,7 @@ class Writer:
 
 	def write( self, element ):
 		res = None
+		if element is None: return ""
 		this_interfaces = [(i,getattr(interfaces,"I" + i)) for i in self.INTERFACES]
 		for name, the_interface in this_interfaces:
 			if isinstance(element, the_interface):
