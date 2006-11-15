@@ -238,6 +238,16 @@ class Operation(Element, IEvaluable, IOperation):
 		self._oparguments = []
 		map(self.addOpArgument, arguments)
 
+	def setOpArgument( self, i, argument ):
+		if not i < len(self.ARGS):
+			raise ModelException("Too many arguments: %s expected %s, got %s" \
+			% (self, len(self.ARGS), len(arguments)))
+		if not self._isInstance(argument, self.ARGS[i]):
+			raise ModelException("Incompatible argument:  %s expected arg %s as  %s, got %s" \
+			% (self, offset, self.ARGS[i], argument))
+		while len(self._oparguments) < i: self._oparguments.append(None)
+		self._oparguments[i] = argument
+
 	def addOpArgument( self, argument ):
 		offset = len(self._oparguments)
 		if offset > len(self.ARGS):

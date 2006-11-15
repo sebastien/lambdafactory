@@ -280,6 +280,10 @@ class IOperation:
 	def getOpArguments( self ):
 		"""Returns the arguments to this operation."""
 
+	@abstract
+	def setOpArgument( self, i, value ):
+		"""Sets the given argument of this operation, by argument index."""
+
 	@classmethod
 	def getOpArgumentsInternalTypes( self ):
 		"""Returns the *internal types* for this operations arguments. This is
@@ -418,6 +422,10 @@ class IEnumeration( IOperation ):
 	def getStep( self ):
 		"""Returns this enumeration step."""
 		return self.getOpArgument(2)
+
+	def setStep( self, value ):
+		"""Sets this enumeration step"""
+		return self.setOpArgument(2, value)
 
 class ITermination(IOperation):
 	ARGS = [ IEvaluable ]
