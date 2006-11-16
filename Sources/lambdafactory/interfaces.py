@@ -365,12 +365,10 @@ class IMatchOperation(IOperation):
 	"""A match operation is the binding of an expression and a process."""
 	ARGS = [ IEvaluable, IProcess ]
 
-	@abstract
-	def getRule( self ):
-		"""Returns the evaluable that acts as a rule for this operation."""
+	def getPredicate( self ):
+		"""Returns the evaluable that acts as a predicate for this operation."""
 		return self.getOpArgument(0)
 
-	@abstract
 	def getProcess( self ):
 		"""Returns the process that will be executed if the rule matches."""
 		return self.getOpArgument(1)
@@ -427,13 +425,23 @@ class IEnumeration( IOperation ):
 		"""Sets this enumeration step"""
 		return self.setOpArgument(2, value)
 
+class IRepetition( IOperation ):
+	"""A repetition is the repetitive execution of a process according to a
+	predicate expression which can be modified by the process."""
+	ARGS = [ IEvaluable, IProcess ]
+
+	def getCondition( self ):
+		"""Gets the expression that is the condition for this repetition."""
+		return self.getOpArgument(0)
+
+	def getProcess( self ):
+		return self.getOpArgument(1)
+
 class ITermination(IOperation):
 	ARGS = [ IEvaluable ]
 
 	@abstract
 	def getReturnedEvaluable( self ):
 		"""Returns the termination return evaluable."""
-
-
 
 # EOF

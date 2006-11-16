@@ -21,7 +21,7 @@ def _format( value, level=-1 ):
 			res.extend(_format(v, level+1))
 		return res
 	else:
-		assert type(value) in (str, unicode)
+		assert type(value) in (str, unicode), "Unsupported type: %s" % (value)
 		return ["\n".join((level*PREFIX)+v for v in value.split("\n"))]
 
 def format( *values ):
@@ -52,12 +52,13 @@ class Writer:
 	# NOTE: When adding elements, be sure to put the *particular first*
 	INTERFACES = (
 		"Module", "Class",
-		"ClassMethod", "Method", "Function",
+		"ClassMethod", "Method", "Function", "Block",
 		"ClassAttribute", "Attribute", "Argument", "Reference",
 		"Operator", "Number", "String",
 		"Enumeration",
 		"Allocation", "Assignation", "Computation",
-		"Invocation", "Resolution", "Termination"
+		"Invocation", "Resolution", "Selection",
+		"Repetition", "Iteration",  "Termination"
 	)
 
 	def writeModule( self, moduleElement ):
@@ -113,6 +114,12 @@ class Writer:
 			),
 			map(self.write, function.getOperations()),
 			"end"
+		)
+
+	def writeBlock( self, block ):
+		"""Writes a block element."""
+		return self._format(
+			map(self.write, block.getOperations())
 		)
 
 	def writeArgument( self, argElement ):
@@ -178,7 +185,7 @@ class Writer:
 		else: end = "(%s)" % (self.write(end))
 		res = "%s..%s" % (start, end)
 		step = operation.getStep()
-		if step: res += "|" + step
+		if step: res += " step " + self.write(step)
 		return res
 
 	def writeResolution( self, resolution ):
@@ -209,6 +216,43 @@ class Writer:
 			", ".join(map(self.write, invocation.getArguments()))
 		)
 
+	def writeSelection( self, selection ):
+		rules = selection.getRules()
+		result = []
+		for i in range(0,len(rules)):
+			rule = rules[i]
+			if i==0:
+				rule_code = (
+					"if %s:" % (self.write(rule.getPredicate())),
+					self.write(rule.getProcess())
+				)
+			else:
+				rule_code = (
+					"else if %s:" % (self.write(rule.getPredicate())),
+					self.write(rule.getProcess())
+				)
+			result.extend(rule_code)
+		result.append("end")
+		return self._format(*result)
+
+	def writeRepetition( self, repetition ):
+		return self._format(
+			"while %s:" % (self.write(repetition.getCondition())),
+			self.write(repetition.getProcess()),
+			"end"
+		)
+
+	def writeIteration( self, iteration ):
+		"""Writes a iteration operation."""
+		return self._format(
+			"for %s in %s:" % (
+				self.write(iteration.getIteratedSlot()),
+				self.write(iteration.getIterator())
+			),
+			self.write(iteration.getProcess()),
+			"end"
+		)
+
 	def writeTermination( self, termination ):
 		"""Writes a termination operation."""
 		return "return %s" % ( self.write(termination.getReturnedEvaluable()) )
@@ -224,7 +268,7 @@ class Writer:
 					+ name)
 				else:
 					return getattr(self, "write" + name)(element)
-		raise Exception("Element implements unknown interface: "
+		raise Exception("Element implements unsupported interface: "
 		+ str(element))
 
 	def _format( self, *values ):
@@ -354,7 +398,7 @@ class JSWriter(Writer):
 		else: end = "(%s)" % (self.write(end))
 		res = "%s..%s" % (start, end)
 		step = operation.getStep()
-		if step: res += "|" + step
+		if step: res += " step " + self._write(step)
 		return res
 
 	def writeResolution( self, resolution ):

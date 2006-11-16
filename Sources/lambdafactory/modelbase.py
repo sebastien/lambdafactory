@@ -363,17 +363,15 @@ class Selection(Operation, ISelection):
 		return self.getOpArgument(0)
 
 class MatchOperation(Operation, IMatchOperation):
-
-	def getRule( self ):
-		return self.getOpArgument(0)
-
-	def getProcess( self ):
-		return self.getOpArgument(1)
+	pass
 
 class Iteration( Operation, IIteration ):
 	pass
 
 class Enumeration(Operation, IEnumeration):
+	pass
+
+class Repetition(Operation, IRepetition):
 	pass
 
 class Termination(Operation, ITermination):
@@ -512,6 +510,9 @@ class Factory:
 
 	def iterate( self, slot, evaluable, process ):
 		return self._getImplementation("Iteration")(slot, evaluable, process)
+
+	def repeat( self, condition, process ):
+		return self._getImplementation("Repetition")(condition, process)
 
 	def enumerate( self, start, end, step=None ):
 		return self._getImplementation("Enumeration")(start, end, step)
