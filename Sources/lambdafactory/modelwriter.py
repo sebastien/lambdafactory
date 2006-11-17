@@ -52,9 +52,9 @@ class Writer:
 	# NOTE: When adding elements, be sure to put the *particular first*
 	INTERFACES = (
 		"Module", "Class",
-		"ClassMethod", "Method", "Function", "Block",
+		"ClassMethod", "Method", "Function", "Closure", "Block",
 		"ClassAttribute", "Attribute", "Argument", "Reference",
-		"Operator", "Number", "String",
+		"Operator", "Number", "String", "List", "Dict",
 		"Enumeration",
 		"Allocation", "Assignation", "Computation",
 		"Invocation", "Resolution", "Selection",
@@ -102,6 +102,15 @@ class Writer:
 			),
 			map(self.write, methodElement.getOperations()),
 			"end"
+		)
+
+	def writeClosure( self, closure ):
+		"""Writes a closure element."""
+		return self._format(
+			self._document(closure),
+			"( %s )->{" % ( ", ".join(map(self.write, closure.getArguments()))),
+			map(self.write, closure.getOperations()),
+			"}"
 		)
 
 	def writeFunction( self, function ):
@@ -158,6 +167,19 @@ class Writer:
 	def writeString( self, element ):
 		"""Writes a string element."""
 		return '"%s"' % (element.getActualValue().replace('"', '\\"'))
+
+	def writeList( self, element ):
+		"""Writes a list element."""
+		return '[%s]' % (", ".join([
+			self.write(e) for e in element.getValues()
+		]))
+
+	def writeDict( self, element ):
+		return '[%s]' % (", ".join([
+			"%s:%s" % ( self.write(k),self.write(v))
+			for k,v in element.getItems()
+			])
+		)
 
 	def writeAllocation( self, allocation ):
 		"""Writes an allocation operation."""

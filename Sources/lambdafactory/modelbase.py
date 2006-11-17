@@ -8,7 +8,7 @@
 # License   : Revised BSD License
 # -----------------------------------------------------------------------------
 # Creation  : 02-Nov-2006
-# Last mod  : 12-Nov-2006
+# Last mod  : 17-Nov-2006
 # -----------------------------------------------------------------------------
 
 # FIXME: Evaluable == Expression ?
@@ -173,7 +173,7 @@ class Process( Element, IProcess ):
 
 	def getOperations( self ):
 		return self._operations
-	
+
 	def evaluate( self, context ):
 		pass
 		# TODO: Find how we process the operations to get a type
@@ -181,13 +181,14 @@ class Process( Element, IProcess ):
 class Block( Process, IBlock ):
 	pass
 
-class Function(Process, IReferencable, IAssignable, IFunction):
+class Closure(Process, IAssignable, IClosure, IEvaluable):
 
-	def __init__(self, name, arguments ):
+	def __init__(self, arguments, name=None ):
 		Process.__init__(self, name=name)
 		self._arguments = arguments
-		assertImplements(self, IReferencable)
 		assertImplements(self, IInvocable)
+		assertImplements(self, IClosure)
+		assertImplements(self, IEvaluable)
 
 	def setArguments( self, arguments ):
 		"""Sets the arguments for this function."""
@@ -204,18 +205,25 @@ class Function(Process, IReferencable, IAssignable, IFunction):
 		if index > len(self._arguments): return None
 		return self._arguments[index]
 
-	def getName( self ):
-		return self._name
-	
 	def getId( self ):
 		return self._id
+
+class Function( Closure, IFunction, IReferencable ):
+
+	def __init__(self, name, arguments ):
+		Closure.__init__(self, arguments, name)
+		self._arguments = arguments
+		assertImplements(self, IFunction)
+		assertImplements(self, IReferencable)
+
+	def getName( self ):
+		return self._name
 
 class Method(Function, IMethod):
 	pass
 
 class ClassMethod(Method, IClassMethod):
 	pass
-
 
 # ------------------------------------------------------------------------------
 #
@@ -405,6 +413,32 @@ class Number(Litteral, INumber):
 class String(Litteral, IString):
 	pass
 
+class List(Value, IList):
+	def __init__(self):
+		Value.__init__(self)
+		assertImplements(self, IList)
+		self._values = []
+
+	def addValue( self, value ):
+		assertImplements(value, IEvaluable)
+		self._values.append(value)
+
+	def getValues( self ):
+		return self._values
+
+class Dict(Value, IDict):
+
+	def __init__(self):
+		Value.__init__(self)
+		assertImplements(self, IDict)
+		self._values = []
+
+	def setValue( self, key, value ):
+		self._values.append([key,value])
+
+	def getItems( self ):
+		return self._values
+
 class Reference(Value, IReference):
 
 	def __init__( self, refname ):
@@ -471,6 +505,9 @@ class Factory:
 
 	def createBlock( self ):
 		return self._getImplementation("Block")()
+
+	def createClosure( self, arguments ):
+		return self._getImplementation("Closure")(arguments)
 
 	def createFunction( self, name, arguments ):
 		return self._getImplementation("Function")(name, arguments)
@@ -546,5 +583,11 @@ class Factory:
 
 	def _string( self, value ):
 		return self._getImplementation("String")(value)
+
+	def _list( self ):
+		return self._getImplementation("List")()
+
+	def _dict( self ):
+		return self._getImplementation("Dict")()
 
 # EOF

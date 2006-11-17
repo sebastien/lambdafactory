@@ -24,8 +24,10 @@ def implements( instance, interface ):
 
 def assertImplements( instance, interface ):
 	res = implements(instance, interface)
-	if res is True: return
-	else: raise Exception("Operations not implemented: " + str(res))
+	if res is True:
+		return
+	else:
+		raise Exception("Operations not implemented: %s from %s in %s" % (res, interface, instance.__class__))
 
 #------------------------------------------------------------------------------
 #
@@ -55,11 +57,12 @@ class IEvaluable:
 	"""An evaluable is an element that can produce a value. Evaluable elements
 	then have associated type information."""
 
-	@abstract
-	def evaluate( self, context ):
-		"""This *evaluates* the element in the given context. This returns the
-		type (internal or not) for the value of the evaluated element, which
-		should be as narrow as possible."""
+	# FIXME: I guess evaluation should be left to an evaluator
+	#@abstract
+	#def evaluate( self, context ):
+	#	"""This *evaluates* the element in the given context. This returns the
+	#	type (internal or not) for the value of the evaluated element, which
+	#	should be as narrow as possible."""
 
 class IAssignable:
 	"""An assignable value can be *bound to a slot* within a context. Each
@@ -87,7 +90,6 @@ class IInstanciable:
 	"""Instanciable is a property of some elements that allows them to be
 	instanciated. Conceptually, an instanciation could be considered as a
 	specific kind of invocation."""
-
 
 class IInvocable:
 	"""An invocable can be used in an invocation operation."""
@@ -139,6 +141,32 @@ class INumber(IValue):
 
 class IString(IValue):
 	pass
+
+class IList(IValue):
+
+	@abstract
+	def addValue( self, value ):
+		"""Adds a value to this list."""
+		pass
+
+	def getValues( self ):
+		"""Returns the values within this list."""
+		pass
+
+class IDict(IValue):
+	"""A dictionary is a binding of key to values. It may or may not be ordered,
+	depending on the implementation/model semantics."""
+
+	@abstract
+	def setValue( self, key, value ):
+		"""Sets the value to be associated to the given key (which must be an
+		evaluable)."""
+		pass
+
+	@abstract
+	def getItems( self ):
+		"""Returns the items contained in this dict"""
+		pass
 
 class IReference(IValue, IReferencable):
 	"""A reference is a name that can be converted into a value using a
@@ -251,7 +279,17 @@ class IProcess:
 class IBlock(IProcess):
 	"""A block is a specific type of (sub) process."""
 
-class IFunction(IProcess):
+class IClosure(IProcess):
+
+	@abstract
+	def getArguments( self ):
+		pass
+
+	@abstract
+	def setArguments( self ):
+		pass
+
+class IFunction(IClosure):
 
 	@abstract
 	def getName( self ):
