@@ -298,6 +298,12 @@ class IFunction(IClosure):
 class IMethod(IFunction):
 	pass
 
+class IConstructor(IMethod):
+	pass
+
+class IDestructor(IMethod):
+	pass
+
 class IClassMethod(IMethod):
 	pass
 
@@ -329,11 +335,12 @@ class IOperation:
 		comply to."""
 
 class IAssignation(IOperation):
-	ARGS = [ IReference, IEvaluable ]
+	ARGS = [ IEvaluable, IEvaluable ]
 
 	@abstract
-	def getTargetReference( self ):
-		"""Returns this assignation target reference."""
+	def getTarget( self ):
+		"""Returns this assignation target reference, which can be an evaluable
+		(in case you assign to self.something, or a reference)"""
 
 	@abstract
 	def getAssignedValue( self ):
@@ -398,6 +405,17 @@ class IInvocation(IOperation):
 	@abstract
 	def getArguments( self ):
 		"""Returns evaluable arguments."""
+
+class ISliceOperation(IOperation):
+	ARGS = [ IEvaluable, IEvaluable ]
+
+	def getTarget( self ):
+		"""Returns the operation target."""
+		return self.getOpArgument(0)
+
+	def getSlice( self ):
+		"""Returns evaluable that will return the slice."""
+		return self.getOpArgument(1)
 
 class IMatchOperation(IOperation):
 	"""A match operation is the binding of an expression and a process."""

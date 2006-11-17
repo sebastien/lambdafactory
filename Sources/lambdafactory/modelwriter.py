@@ -52,13 +52,13 @@ class Writer:
 	# NOTE: When adding elements, be sure to put the *particular first*
 	INTERFACES = (
 		"Module", "Class",
-		"ClassMethod", "Method", "Function", "Closure", "Block",
+		"Destructor", "Constructor","ClassMethod", "Method", "Function", "Closure", "Block",
 		"ClassAttribute", "Attribute", "Argument", "Reference",
 		"Operator", "Number", "String", "List", "Dict",
 		"Enumeration",
 		"Allocation", "Assignation", "Computation",
 		"Invocation", "Resolution", "Selection",
-		"Repetition", "Iteration",  "Termination"
+		"Repetition", "Iteration",  "SliceOperation", "Termination"
 	)
 
 	def writeModule( self, moduleElement ):
@@ -77,6 +77,26 @@ class Writer:
 			flatten([self.write(m) for m in classElement.getClassAttributes()]),
 			flatten([self.write(m) for m in classElement.getMethods()]),
 			flatten([self.write(m) for m in classElement.getClassMethods()]),
+			"end"
+		)
+
+	def writeDestructor( self, element ):
+		"""Writes a method element."""
+		return self._format(
+			self._document(element),
+			"destructor:",
+			map(self.write, element.getOperations()),
+			"end"
+		)
+
+	def writeConstructor( self, element ):
+		"""Writes a method element."""
+		return self._format(
+			self._document(element),
+			"constructor ( %s ):" % (
+				", ".join(map(self.write, element.getArguments()))
+			),
+			map(self.write, element.getOperations()),
 			"end"
 		)
 
@@ -193,7 +213,7 @@ class Writer:
 	def writeAssignation( self, assignation ):
 		"""Writes an assignation operation."""
 		return "%s = %s" % (
-			assignation.getTargetReference().getReferenceName(),
+			self.write(assignation.getTarget()),
 			self.write(assignation.getAssignedValue())
 		)
 
@@ -212,7 +232,10 @@ class Writer:
 
 	def writeResolution( self, resolution ):
 		"""Writes a resolution operation."""
-		return "%s" % ( resolution.getReference().getReferenceName())
+		if resolution.getContext():
+			return "%s.%s" % (self.write(resolution.getContext()), resolution.getReference().getReferenceName())
+		else:
+			return "%s" % (resolution.getReference().getReferenceName())
 
 	def writeComputation( self, computation ):
 		"""Writes a computation operation."""
@@ -262,6 +285,11 @@ class Writer:
 			"while %s:" % (self.write(repetition.getCondition())),
 			self.write(repetition.getProcess()),
 			"end"
+		)
+
+	def writeSliceOperation( self, operation ):
+		return self._format(
+			"%s[%s]" % (self.write(operation.getTarget()), self.write(operation.getSlice()))
 		)
 
 	def writeIteration( self, iteration ):
@@ -406,7 +434,7 @@ class JSWriter(Writer):
 	def writeAssignation( self, assignation ):
 		"""Writes an assignation operation."""
 		return "%s = %s" % (
-			assignation.getTargetReference().getReferenceName(),
+			assignation.getTarget().getReferenceName(),
 			self.write(assignation.getAssignedValue())
 		)
 

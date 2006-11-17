@@ -222,6 +222,18 @@ class Function( Closure, IFunction, IReferencable ):
 class Method(Function, IMethod):
 	pass
 
+class Constructor(Method, IConstructor):
+
+	def __init__(self, arguments ):
+		Method.__init__(self, None, arguments)
+		assertImplements(self, IConstructor)
+
+class Destructor(Method, IDestructor):
+
+	def __init__(self  ):
+		Method.__init__(self, None, ())
+		assertImplements(self, IDestructor)
+
 class ClassMethod(Method, IClassMethod):
 	pass
 
@@ -312,7 +324,7 @@ class Instanciation(Operation, IInstanciation, IEvaluable):
 
 class Assignation(Operation, IAssignation, IEvaluable):
 
-	def getTargetReference( self ):
+	def getTarget( self ):
 		return self.getOpArgument(0)
 
 	def getAssignedValue( self ):
@@ -369,6 +381,9 @@ class Selection(Operation, ISelection):
 
 	def getRules( self ):
 		return self.getOpArgument(0)
+
+class SliceOperation(Operation, ISliceOperation):
+	pass
 
 class MatchOperation(Operation, IMatchOperation):
 	pass
@@ -515,6 +530,12 @@ class Factory:
 	def createMethod( self, name, arguments=None ):
 		return self._getImplementation("Method")(name, arguments)
 
+	def createConstructor( self, arguments=None ):
+		return self._getImplementation("Constructor")(arguments)
+
+	def createDestructor( self ):
+		return self._getImplementation("Destructor")()
+
 	def createClassMethod( self, name, arguments=() ):
 		return self._getImplementation("ClassMethod")(name, arguments)
 
@@ -551,6 +572,9 @@ class Factory:
 	def repeat( self, condition, process ):
 		return self._getImplementation("Repetition")(condition, process)
 
+	def slice( self, target, _slice ):
+		return self._getImplementation("SliceOperation")(target, _slice)
+
 	def enumerate( self, start, end, step=None ):
 		return self._getImplementation("Enumeration")(start, end, step)
 
@@ -572,7 +596,7 @@ class Factory:
 	def _attr( self, name, typeinfo=None):
 		return self._getImplementation("Attribute")(name, typeinfo)
 
-	def _clattr( self, name, typeinfo=None):
+	def _classattr( self, name, typeinfo=None):
 		return self._getImplementation("ClassAttribute")(name, typeinfo)
 
 	def _op( self, symbol ):
