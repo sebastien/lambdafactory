@@ -42,10 +42,8 @@ def flatten( *lists ):
 	res = [] ; _flatten(lists, res)
 	return res
 
-class Writer:
-	"""This is the default writer implementation that outputs a text-based
-	program representation. You can call the main @write method to get the
-	representatio of any model element."""
+
+class AbstractWriter:
 
 	# This defines an ordered set of interfaces names (without the leading I).
 	# This list is used in the the write method
@@ -60,6 +58,52 @@ class Writer:
 		"Invocation", "Resolution", "Selection",
 		"Repetition", "Iteration",  "SliceOperation", "Termination"
 	)
+
+	def __init__( self ):
+		self._generatedSymbols = {}
+
+	def write( self, element ):
+		res = None
+		if element is None: return ""
+		this_interfaces = [(i,getattr(interfaces,"I" + i)) for i in self.INTERFACES]
+		for name, the_interface in this_interfaces:
+			if isinstance(element, the_interface):
+				if not hasattr(self, "write" + name ):
+					raise Exception("Writer does not define write method for: "
+					+ name)
+				else:
+					return getattr(self, "write" + name)(element)
+		raise Exception("Element implements unsupported interface: "
+		+ str(element))
+
+	def _format( self, *values ):
+		return format(*values)
+	
+	def _document( self, element ):
+		if element.hasDocumentation():
+			return "# " + element.getDocumentation()
+		else:
+			return None
+
+	def _unique( self, name ):
+		i = 0
+		while True:
+			new_name = name + str(i)
+			if self._generatedSymbols.get(new_name) == None:
+				self._generatedSymbols[new_name] = True
+				return new_name
+			i+=1
+
+#------------------------------------------------------------------------------
+#
+#  Default Writer
+#
+#------------------------------------------------------------------------------
+
+class Writer(AbstractWriter):
+	"""This is the default writer implementation that outputs a text-based
+	program representation. You can call the main @write method to get the
+	representatio of any model element."""
 
 	def writeModule( self, moduleElement ):
 		"""Writes a Module element."""
@@ -195,7 +239,7 @@ class Writer:
 		]))
 
 	def writeDict( self, element ):
-		return '[%s]' % (", ".join([
+		return '{%s}' % (", ".join([
 			"%s:%s" % ( self.write(k),self.write(v))
 			for k,v in element.getItems()
 			])
@@ -307,30 +351,14 @@ class Writer:
 		"""Writes a termination operation."""
 		return "return %s" % ( self.write(termination.getReturnedEvaluable()) )
 
-	def write( self, element ):
-		res = None
-		if element is None: return ""
-		this_interfaces = [(i,getattr(interfaces,"I" + i)) for i in self.INTERFACES]
-		for name, the_interface in this_interfaces:
-			if isinstance(element, the_interface):
-				if not hasattr(self, "write" + name ):
-					raise Exception("Writer does not define write method for: "
-					+ name)
-				else:
-					return getattr(self, "write" + name)(element)
-		raise Exception("Element implements unsupported interface: "
-		+ str(element))
 
-	def _format( self, *values ):
-		return format(*values)
-	
-	def _document( self, element ):
-		if element.hasDocumentation():
-			return "# " + element.getDocumentation()
-		else:
-			return None
+#------------------------------------------------------------------------------
+#
+#  JavaScript Writer
+#
+#------------------------------------------------------------------------------
 
-class JSWriter(Writer):
+class JSWriter(AbstractWriter):
 
 	def writeModule( self, moduleElement ):
 		"""Writes a Module element."""
@@ -377,6 +405,26 @@ class JSWriter(Writer):
 			"}"
 		)
 
+	def writeConstructor( self, element ):
+		"""Writes a method element."""
+		return self._format(
+			self._document(element),
+			"initialize: function ( %s ) {" % (
+				", ".join(map(self.write, element.getArguments()))
+			),
+			map(self.write, element.getOperations()),
+			"}"
+		)
+
+	def writeClosure( self, closure ):
+		"""Writes a closure element."""
+		return self._format(
+			self._document(closure),
+			"function(%s){" % ( ", ".join(map(self.write, closure.getArguments()))),
+			map(self.write, closure.getOperations()),
+			"}"
+		)
+
 	def writeFunction( self, function ):
 		"""Writes a function element."""
 		return self._format(
@@ -386,6 +434,14 @@ class JSWriter(Writer):
 				", ".join(map(self.write, function.getArguments()))
 			),
 			map(self.write, function.getOperations()),
+			"}"
+		)
+
+	def writeBlock( self, block ):
+		"""Writes a block element."""
+		return self._format(
+			"{",
+			map(self.write, block.getOperations()),
 			"}"
 		)
 
@@ -423,6 +479,18 @@ class JSWriter(Writer):
 		"""Writes a string element."""
 		return '"%s"' % (element.getActualValue().replace('"', '\\"'))
 
+	def writeList( self, element ):
+		"""Writes a list element."""
+		return '[%s]' % (", ".join([
+			self.write(e) for e in element.getValues()
+		]))
+
+	def writeDict( self, element ):
+		return '{%s}' % (", ".join([
+			"%s:%s" % ( self.write(k),self.write(v))
+			for k,v in element.getItems()
+			])
+		)
 	def writeAllocation( self, allocation ):
 		"""Writes an allocation operation."""
 		s = allocation.getSlotToAllocate()
@@ -434,7 +502,7 @@ class JSWriter(Writer):
 	def writeAssignation( self, assignation ):
 		"""Writes an assignation operation."""
 		return "%s = %s" % (
-			assignation.getTarget().getReferenceName(),
+			self.write(assignation.getTarget()),
 			self.write(assignation.getAssignedValue())
 		)
 
@@ -477,6 +545,46 @@ class JSWriter(Writer):
 		return "%s(%s)" % (
 			self.write(invocation.getTarget()),
 			", ".join(map(self.write, invocation.getArguments()))
+		)
+
+	def writeSelection( self, selection ):
+		rules = selection.getRules()
+		result = []
+		for i in range(0,len(rules)):
+			rule = rules[i]
+			if i==0:
+				rule_code = (
+					"if ( %s )" % (self.write(rule.getPredicate())),
+					self.write(rule.getProcess()),
+				)
+			else:
+				rule_code = (
+					"else if ( %s )" % (self.write(rule.getPredicate())),
+					self.write(rule.getProcess()),
+				)
+			result.extend(rule_code)
+		return self._format(*result)
+
+	def writeIteration( self, iteration ):
+		"""Writes a iteration operation."""
+		it_name = self._unique("_iterator")
+		return self._format(
+			"var %s = %s" % (
+				it_name,
+				self.write(iteration.getIterator())
+			),
+			"while ( %s.hasNext() ) {" % ( it_name),
+			"    var %s = %s.next()" % (
+				self.write(iteration.getIteratedSlot()),
+				it_name
+			),
+			self.write(iteration.getProcess()),
+			"}"
+		)
+
+	def writeSliceOperation( self, operation ):
+		return self._format(
+			"%s[%s]" % (self.write(operation.getTarget()), self.write(operation.getSlice()))
 		)
 
 	def writeTermination( self, termination ):

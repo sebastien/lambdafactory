@@ -91,21 +91,23 @@ class Context(Element, IContext):
 	def __init__( self, name=None ):
 		Element.__init__(self, name=name)
 		assertImplements(self, IContext)
-		self._slots = {}
+		self._slots = []
 
 	def setSlot( self, name, evaluable ):
 		if not isinstance(evaluable, IAssignable):
 			raise ModelBadArgument(self, IAssignable, evaluable)
-		self._slots[name] = evaluable
+		self._slots.append([name, evaluable])
 
 	def getSlot( self, name ):
-		return self._slots.get(name)
+		for sname, svalue in self._slots:
+			if sname == name: return svalue
+		raise Exception("Slot not found:" + name)
 
 	def hasSlot( self, name ):
-		return name in self._slots.keys()
+		return name in map(lambda x:[0],self._slots)
 
 	def getSlots( self ):
-		return self._slots.items()
+		return self._slots
 
 class Class(Context, IClass, IAssignable):
 
@@ -114,25 +116,25 @@ class Class(Context, IClass, IAssignable):
 		assertImplements(self, IClass)
 
 	def getAttributes( self ):
-		return [value for value in self._slots.values()
+		return [value for name,value in self.getSlots()
 			if isinstance(value, IAttribute) and not isinstance(value, IClassAttribute)
 		]
 
 	def getClassAttributes( self ):
-		return [value for value in self._slots.values()
+		return [value for name,value in self.getSlots()
 			if isinstance(value, IClassAttribute)
 		]
 
 	def getOperations( self ):
-		return [value for value in self._slots.values() if isinstance(value, IInvocable)]
+		return [value for name, value in self.getSlots() if isinstance(value, IInvocable)]
 
 	def getMethods( self ):
-		return [value for value in self._slots.values()
+		return [value for name, value in self.getSlots()
 			if isinstance(value, IMethod) and not isinstance(value, IClassMethod)
 		]
 
 	def getClassMethods( self ):
-		return [value for value in self._slots.values() if isinstance(value, IClassMethod)]
+		return [value for name, value in self.getSlots() if isinstance(value, IClassMethod)]
 
 	def getName( self ):
 		return self._name
@@ -144,7 +146,7 @@ class Module(Context, IModule, IAssignable):
 		assertImplements(self, IModule)
 
 	def getClasses( self ):
-		return [value for value in self._slots.values() if isinstance(value, IClass)]
+		return [value for name, value in self.getSlots() if isinstance(value, IClass)]
 
 	def getName( self ):
 		return self._name
