@@ -127,6 +127,7 @@ class IDocumentation(IAnnotation):
 #
 #------------------------------------------------------------------------------
 
+
 class IValue(IEvaluable):
 	"""A value represents an atomic element of the language, like a number, a
 	string, or a name (that can resolved by the language, acts as key for data
@@ -136,10 +137,10 @@ class ILitteral(IValue):
 	"""A litteral is a value that does not need a context to be evaluated. The
 	evaluation is direct."""
 
-class INumber(IValue):
+class INumber(ILitteral):
 	pass
 
-class IString(IValue):
+class IString(ILitteral):
 	pass
 
 class IList(IValue):
@@ -221,6 +222,14 @@ class IContext:
 	def getSlots( self ):
 		"""Returns (key, evaluable) pairs representing the slots within this
 		context."""
+
+	@abstract
+	def setParent( self, context ):
+		"""Sets the parent context for this context."""
+
+	@abstract
+	def getParent( self ): 
+		"""Returns the parent context for this context (if any)"""
 
 class IClass(IContext):
 	pass

@@ -92,10 +92,13 @@ class Context(Element, IContext):
 		Element.__init__(self, name=name)
 		assertImplements(self, IContext)
 		self._slots = []
+		self._parent = None
 
 	def setSlot( self, name, evaluable ):
 		if not isinstance(evaluable, IAssignable):
 			raise ModelBadArgument(self, IAssignable, evaluable)
+		if isinstance(evaluable, IContext):
+			evaluable.setParent(self)
 		self._slots.append([name, evaluable])
 
 	def getSlot( self, name ):
@@ -104,10 +107,18 @@ class Context(Element, IContext):
 		raise Exception("Slot not found:" + name)
 
 	def hasSlot( self, name ):
-		return name in map(lambda x:[0],self._slots)
+		return name in map(lambda x:x[0],self._slots)
 
 	def getSlots( self ):
 		return self._slots
+
+	def setParent( self, context ):
+		if self._parent != None:
+			raise Exception("Context already assigned to a parent")
+		self._parent = context
+
+	def getParent( self ): 
+		return self._parent
 
 class Class(Context, IClass, IAssignable):
 
@@ -157,10 +168,10 @@ class Module(Context, IModule, IAssignable):
 #
 # ------------------------------------------------------------------------------
 
-class Process( Element, IProcess ):
+class Process( Context, IContext, IProcess ):
 
 	def __init__(self, name=None ):
-		Element.__init__(self, name)
+		Context.__init__(self, name)
 		self._operations = []
 		assertImplements(self, IEvaluable)
 
@@ -410,7 +421,7 @@ class Termination(Operation, ITermination):
 #
 # ------------------------------------------------------------------------------
 
-class Value(Element, IEvaluable):
+class Value(Element, IValue, IEvaluable, IAssignable):
 	pass
 
 class Litteral(Value, ILitteral):
@@ -470,7 +481,7 @@ class Reference(Value, IReference):
 class Operator(Reference, IOperator):
 	pass
 
-class Slot(Reference, ISlot):
+class Slot(Reference, ISlot ):
 
 	def __init__( self, refname, typeinfo ):
 		Reference.__init__(self, refname)
