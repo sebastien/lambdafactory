@@ -62,6 +62,61 @@ class AbstractWriter:
 	def __init__( self ):
 		self.resolver = None
 		self._generatedSymbols = {}
+		self.contexts = []
+
+	def _filterContext( self, interface ):
+		return filter(lambda x:isinstance(x,interface), self.contexts)
+
+	def getCurrentClosure( self ):
+		res = self._filterContext(interfaces.IClosure)
+		return res and res[-1] or None
+
+	def getCurrentFunction( self ):
+		res = self._filterContext(interfaces.IFunction)
+		return res and res[-1] or None
+
+	def getCurrentMethod( self ):
+		res = self._filterContext(interfaces.IMethod)
+		return res and res[-1] or None
+
+	def getCurrentClass( self ):
+		res = self._filterContext(interfaces.IClass)
+		return res and res[-1] or None
+
+	def getCurrentModule( self ):
+		res = self._filterContext(interfaces.IModule)
+		return res and res[-1] or None
+
+	def getCurrentContext( self ):
+		return self.contexts[-1]
+
+	def getCurrentDataFlow( self ):
+		i = len(self.contexts) - 1
+		while i >= 0:
+			if self.contexts[i].hasDataFlow():
+				return self.contexts[i].getDataFlow()
+			i -= 1
+		return None
+
+	def _getContextsAsString( self ):
+		res = []
+		for c in self.contexts:
+			v = c.__class__.__name__
+			if hasattr(c,"getName"):
+				n = c.getName()
+				if n: v += ":" + n
+			res.append(v)
+		return ".".join(res)
+
+	def resolve( self, name ):
+		dataflow = self.getCurrentDataFlow()
+		if dataflow:
+			res = dataflow.resolve(name)
+			if not res:
+				print "Unresolved symbol:", name
+				print "in ", self._getContextsAsString()
+		else:
+			raise Exception("No dataflow available")
 
 	def write( self, element ):
 		res = None
@@ -73,12 +128,9 @@ class AbstractWriter:
 					raise Exception("Writer does not define write method for: "
 					+ name)
 				else:
-					end_evaluation = None
-					if self.resolver:
-						end_evaluation = self.resolver.evaluate(element)
+					self.contexts.append(element)
 					result = getattr(self, "write" + name)(element)
-					if end_evaluation:
-						end_evaluation()
+					self.contexts.pop()
 					return result
 		raise Exception("Element implements unsupported interface: "
 		+ str(element))

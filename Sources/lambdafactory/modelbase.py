@@ -65,6 +65,15 @@ class Element:
 		"""Sets the documentation for this element."""
 		self.meta["doc"] = text
 
+	def hasDataFlow( self ):
+		return hasattr(self, "_dataflow")
+
+	def getDataFlow( self ):
+		return self._dataflow
+
+	def setDataFlow( self, df ):
+		self._dataflow = df
+
 class Annotation(IAnnotation):
 
 	def __init__( self, content = None ):
@@ -120,7 +129,7 @@ class Context(Element, IContext):
 	def getParent( self ): 
 		return self._parent
 
-class Class(Context, IClass, IAssignable):
+class Class(Context, IClass, IReferencable, IAssignable):
 
 	def __init__( self, name=None ):
 		Context.__init__(self, name=name)
@@ -150,7 +159,7 @@ class Class(Context, IClass, IAssignable):
 	def getName( self ):
 		return self._name
 
-class Module(Context, IModule, IAssignable):
+class Module(Context, IModule, IAssignable, IReferencable):
 
 	def __init__( self, name=None ):
 		Context.__init__(self, name=name)
@@ -474,6 +483,9 @@ class Reference(Value, IReference):
 		assert type(refname) in (str, unicode), "Expected string: " +repr(refname)
 		self._refname = refname
 		assertImplements(self, IReference)
+
+	def getName( self ):
+		return self._refname
 
 	def getReferenceName( self ):
 		return self._refname
