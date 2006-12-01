@@ -115,6 +115,7 @@ class AbstractWriter:
 			if not res:
 				print "Unresolved symbol:", name
 				print "in ", self._getContextsAsString()
+			return res
 		else:
 			raise Exception("No dataflow available")
 

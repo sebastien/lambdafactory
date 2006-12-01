@@ -101,8 +101,10 @@ class AbstractResolver:
 		dataflow = DataFlow(element)
 		for name, value in element.getSlots():
 			dataflow.declareVariable(name, value, element)
+		for name, value in element.getSlots():
 			child_flow = self.flow(value)
-			if child_flow: child_flow.setParent(dataflow)
+			if child_flow:
+				child_flow.setParent(dataflow)
 		return dataflow
 
 	# TODO: Flow class defines this

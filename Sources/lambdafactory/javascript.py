@@ -21,7 +21,8 @@ class Writer(AbstractWriter):
 	def writeModule( self, moduleElement ):
 		"""Writes a Module element."""
 		return self._format("var %s = {" % (moduleElement.getName()),
-			[self.write(s[1]) for s in moduleElement.getSlots()],
+			[self.write(s[1]) + "," for s in moduleElement.getSlots()],
+			"MODULE:{name:'%s'}" % (moduleElement.getName()),
 			"}"
 		)
 
@@ -30,11 +31,11 @@ class Writer(AbstractWriter):
 		return self._format(
 			self._document(classElement),
 			"%s: Class.create({" % (classElement.getName()),
-			flatten([self.write(m) for m in classElement.getAttributes()]),
-			flatten([self.write(m) for m in classElement.getClassAttributes()]),
-			flatten([self.write(m) for m in classElement.getMethods()]),
+			flatten([self.write(m) +"," for m in classElement.getAttributes()]),
+			flatten([self.write(m) +"," for m in classElement.getClassAttributes()]),
+			flatten([self.write(m) +"," for m in classElement.getMethods()]),
 			# FIXME
-			flatten([self.write(m) for m in classElement.getClassMethods()]),
+			flatten([self.write(m) +"," for m in classElement.getClassMethods()]),
 			"\n\tCLASSDEF:{name:'%s'}" % (classElement.getName()),
 			"})"
 		)
@@ -48,7 +49,7 @@ class Writer(AbstractWriter):
 				", ".join(map(self.write, methodElement.getArguments()))
 			),
 			map(self.write, methodElement.getOperations()),
-			"},"
+			"}"
 		)
 
 	def writeClassMethod( self, methodElement ):
@@ -111,7 +112,7 @@ class Writer(AbstractWriter):
 
 	def writeAttribute( self, element ):
 		"""Writes an argument element."""
-		return "%s: undefined," % (
+		return "%s: undefined" % (
 			element.getReferenceName(),
 		)
 
@@ -128,7 +129,6 @@ class Writer(AbstractWriter):
 		if symbol_name == "self":
 			return "this"
 		if not target:
-			# TODO: Warning
 			return symbol_name
 		elif self.getCurrentClass() == target:
 			return "this." + symbol_name
