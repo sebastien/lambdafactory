@@ -175,7 +175,6 @@ class Writer(AbstractWriter):
 	def writeAllocation( self, allocation ):
 		"""Writes an allocation operation."""
 		s = allocation.getSlotToAllocate()
-		if s.getTypeInformation() is None: return None
 		return "var %s" % (
 			s.getReferenceName(),
 		)

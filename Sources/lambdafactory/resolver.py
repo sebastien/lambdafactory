@@ -132,7 +132,7 @@ class AbstractResolver:
 
 	def flowAllocation( self, operation, dataflow ):
 		name = operation.getSlotToAllocate().getReferenceName()
-		dataflow.declareVariable(name, None, element)
+		dataflow.declareVariable(name, None, operation)
 		return None
 
 	def flowIteration( self, operation, dataflow ):
