@@ -71,6 +71,7 @@ class AbstractResolver:
 	INTERFACES = (
 		"Method",
 		"Closure",
+		"Class",
 		"Context",
 		"Process",
 		"Allocation",
@@ -97,6 +98,11 @@ class AbstractResolver:
 				return getattr(self, "flow" + name)(element)
 		return None
 
+	def flowClass( self, element ):
+		dataflow = self.flowContext(element)
+		dataflow.declareEnvironment("self", None)
+		return dataflow
+
 	def flowContext( self, element ):
 		dataflow = DataFlow(element)
 		for name, value in element.getSlots():
@@ -107,11 +113,10 @@ class AbstractResolver:
 				child_flow.setParent(dataflow)
 		return dataflow
 
-	# TODO: Flow class defines this
-
 	def flowMethod( self, element ):
 		dataflow  = self.flowClosure(element)
 		dataflow.declareEnvironment("self", None)
+		dataflow.declareEnvironment("super", None)
 		return dataflow
 
 	def flowClosure( self, element ):

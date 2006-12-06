@@ -28,6 +28,12 @@ class Writer(AbstractWriter):
 
 	def writeClass( self, classElement ):
 		"""Writes a class element."""
+		parents = classElement.getSuperClasses()
+		parent  = "undefined"
+		if len(parents) == 1:
+			parent = self.write(parents[0])
+		elif len(parents) > 1:
+			raise Exception("JavaScript back-end only supports single inheritance")
 		return self._format(
 			self._document(classElement),
 			"%s: Class.create({" % (classElement.getName()),
@@ -36,7 +42,7 @@ class Writer(AbstractWriter):
 			flatten([self.write(m) +"," for m in classElement.getMethods()]),
 			# FIXME
 			flatten([self.write(m) +"," for m in classElement.getClassMethods()]),
-			"\n\tCLASSDEF:{name:'%s'}" % (classElement.getName()),
+			"\n\tCLASSDEF:{name:'%s', parent:%s}" % (classElement.getName(), parent),
 			"})"
 		)
 
@@ -128,6 +134,10 @@ class Writer(AbstractWriter):
 		target      = self.resolve(symbol_name)
 		if symbol_name == "self":
 			return "this"
+		elif symbol_name == "super":
+			assert self.resolve("self"), "Super must be used inside method"
+			# FIXME: Should check that the element has a method in parent scope
+			return "this._super"
 		if not target:
 			return symbol_name
 		elif self.getCurrentClass() == target:
