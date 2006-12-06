@@ -273,6 +273,10 @@ class Writer(AbstractWriter):
 			"%s[%s]" % (self.write(operation.getTarget()), self.write(operation.getSlice()))
 		)
 
+	def writeEvaluation( self, operation ):
+		"""Writes an evaluation operation."""
+		return "%s" % ( self.write(operation.getEvaluable()) )
+
 	def writeTermination( self, termination ):
 		"""Writes a termination operation."""
 		return "return %s" % ( self.write(termination.getReturnedEvaluable()) )

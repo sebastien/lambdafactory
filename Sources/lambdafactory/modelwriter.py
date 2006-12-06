@@ -56,7 +56,8 @@ class AbstractWriter:
 		"Enumeration",
 		"Allocation", "Assignation", "Computation",
 		"Invocation", "Resolution", "Selection",
-		"Repetition", "Iteration",  "SliceOperation", "Termination"
+		"Repetition", "Iteration",  "SliceOperation",
+		"Evaluation", "Termination"
 	)
 
 	def __init__( self ):
@@ -406,6 +407,10 @@ class Writer(AbstractWriter):
 			self.write(iteration.getProcess()),
 			"end"
 		)
+
+	def writeEvaluation( self, operation ):
+		"""Writes an evaluation operation."""
+		return "%s" % ( self.write(operation.getEvaluable()) )
 
 	def writeTermination( self, termination ):
 		"""Writes a termination operation."""

@@ -263,6 +263,10 @@ class IClass(IContext):
 	def getName( self ):
 		"""Returns this class name. It can be `None` if the class is anonymous."""
 
+	@abstract
+	def getSuperClasses( self ):
+		"""Returns the list of inherited classes references."""
+
 class IModule(IContext):
 	pass
 
@@ -343,6 +347,12 @@ class IOperation:
 		typically the list of interfaces or classes that the arguments must
 		comply to."""
 
+class IEvaluation(IOperation):
+	ARGS = [ IEvaluable, IEvaluable ]
+
+	def getEvaluable( self ):
+		return self.getOpArgument(0)
+
 class IAssignation(IOperation):
 	ARGS = [ IEvaluable, IEvaluable ]
 
@@ -371,7 +381,7 @@ class IAllocation(IOperation):
 
 class IResolution(IOperation):
 	"""A resolution resolves a reference into a value."""
-	ARGS = [ IReferencable, IReferencable ]
+	ARGS = [ IReferencable, IEvaluable ]
 
 	@abstract
 	def getReference( self ):

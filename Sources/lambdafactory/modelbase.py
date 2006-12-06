@@ -8,7 +8,7 @@
 # License   : Revised BSD License
 # -----------------------------------------------------------------------------
 # Creation  : 02-Nov-2006
-# Last mod  : 17-Nov-2006
+# Last mod  : 02-Dev-2006
 # -----------------------------------------------------------------------------
 
 # FIXME: Evaluable == Expression ?
@@ -131,9 +131,10 @@ class Context(Element, IContext):
 
 class Class(Context, IClass, IReferencable, IAssignable):
 
-	def __init__( self, name=None ):
+	def __init__( self, name=None, inherited=None ):
 		Context.__init__(self, name=name)
 		assertImplements(self, IClass)
+		self.setSuperClasses(inherited)
 
 	def getAttributes( self ):
 		return [value for name,value in self.getSlots()
@@ -158,6 +159,16 @@ class Class(Context, IClass, IReferencable, IAssignable):
 
 	def getName( self ):
 		return self._name
+
+	def setSuperClasses( self, classes ) :
+		self._inherited = []
+		if not classes: return
+		for cl in classes:
+			assert isinstance(cl, IReference)
+			self._inherited.append(cl)
+
+	def getSuperClasses( self ):
+		return self._inherited
 
 class Module(Context, IModule, IAssignable, IReferencable):
 
@@ -404,6 +415,9 @@ class Selection(Operation, ISelection):
 	def getRules( self ):
 		return self.getOpArgument(0)
 
+class Evaluation( Operation, IEvaluation ):
+	pass
+
 class SliceOperation(Operation, ISliceOperation):
 	pass
 
@@ -564,11 +578,14 @@ class Factory:
 	def createClassMethod( self, name, arguments=() ):
 		return self._getImplementation("ClassMethod")(name, arguments)
 
-	def createClass( self, name ):
-		return self._getImplementation("Class")(name)
+	def createClass( self, name, inherited=() ):
+		return self._getImplementation("Class")(name, inherited)
 
 	def createModule( self, name ):
 		return self._getImplementation("Module")(name)
+
+	def evaluate( self, evaluable ):
+		return self._getImplementation("Evaluation")(evaluable)
 
 	def allocate( self, slot ):
 		return self._getImplementation("Allocation")(slot)

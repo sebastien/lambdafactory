@@ -64,7 +64,6 @@ class DataFlow:
 				return slot
 		return None
 
-
 class AbstractResolver:
 	# This defines an ordered set of interfaces names (without the leading I).
 	# This list is used in the the write method
@@ -76,6 +75,7 @@ class AbstractResolver:
 		"Process",
 		"Allocation",
 		"Iteration",
+		"Evaluation"
 	)
 
 	def __init__( self ):
@@ -144,61 +144,8 @@ class AbstractResolver:
 		)
 		return self.flow(operation.getProcess())
 
-class Pouet:
+	def flowEvaluation( self, operation, dataflow ):
+		return self.flow(operation.getEvaluable())
 
-	def evaluate( self, element ):
-		res = None
-		if element is None: return ""
-		this_interfaces = [(i,getattr(interfaces,"I" + i)) for i in self.INTERFACES]
-		for name, the_interface in this_interfaces:
-			if isinstance(element, the_interface):
-				if not hasattr(self, "evaluate" + name ):
-					raise Exception("Resolve does not define evaluate method for: "
-					+ name)
-				else:
-					return getattr(self, "evaluate" + name)(element)
-		return self.nop
-		#print ("[!] Element not supported by resolver: " + str(element))
-
-	def nop( self ):
-		pass
-
-	def evaluateContext( self, element ):
-		self.pushContext(element)
-		for name, value in element.getSlots():
-			self.declareSlot(name, element)
-		return self.popContext
-
-	def evaluateMethod( self, element ):
-		self.pushContext(element)
-		for arg in element.getArguments():
-			self.declareSlot(arg.getReferenceName(), element)
-		self.declareSlot("self", element)
-		return self.popContext
-
-	def evaluateClosure( self, element ):
-		self.pushContext(element)
-		for arg in element.getArguments():
-			self.declareSlot(arg.getReferenceName(), element)
-		return self.popContext
-
-	def evaluateBlock( self, element ):
-		self.pushContext(element)
-		return self.popContext
-
-	def evaluateProcess( self, element ):
-		if not isinstance(element, interfaces.IProcess):
-			return self.nop
-		return self.nop
-
-	def evaluateAllocation( self, operation ):
-		name = operation.getSlotToAllocate().getReferenceName()
-		self.declareSlot(name, self.getContext())
-		return self.nop
-
-	def evaluateIteration( self, operation ):
-		self.pushContext(operation)
-		self.declareSlot(operation.getIteratedSlot().getReferenceName(), operation)
-		return self.popContext
 
 # EOF
