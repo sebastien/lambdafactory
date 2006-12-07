@@ -1,4 +1,17 @@
-import interfaces
+#!/usr/bin/env python
+# Encoding: iso-8859-1
+# vim: tw=80 ts=4 sw=4 noet
+# -----------------------------------------------------------------------------
+# Project   : XXX
+# -----------------------------------------------------------------------------
+# Author    : Sebastien Pierre                               <sebastien@ivy.fr>
+# License   : Revised BSD License
+# -----------------------------------------------------------------------------
+# Creation  : 02-Nov-2006
+# Last mod  : 06-Dec-2006
+# -----------------------------------------------------------------------------
+
+import interfaces, reporter
 
 __doc__ = """
 The *model writer* modules define a default program model to text conversion
@@ -55,15 +68,15 @@ class AbstractWriter:
 		"Operator", "Number", "String", "List", "Dict",
 		"Enumeration",
 		"Allocation", "Assignation", "Computation",
-		"Invocation", "Resolution", "Selection",
+		"Invocation", "Instanciation", "Resolution", "Selection",
 		"Repetition", "Iteration",  "SliceOperation",
 		"Evaluation", "Termination"
 	)
 
-	def __init__( self ):
-		self.resolver = None
+	def __init__( self, reporter=reporter.DefaultReporter ):
 		self._generatedSymbols = {}
 		self.contexts = []
+		self.report   = reporter
 
 	def _filterContext( self, interface ):
 		return filter(lambda x:isinstance(x,interface), self.contexts)
@@ -114,11 +127,10 @@ class AbstractWriter:
 		if dataflow:
 			res = dataflow.resolve(name)
 			if not res:
-				print "Unresolved symbol:", name
-				print "in ", self._getContextsAsString()
+				self.report.error("Unresolved symbol:" + name, self.contexts[-1])
 			return res
 		else:
-			raise Exception("No dataflow available")
+			self.report.failure("Not dataflow available", self.contexts[-1])
 
 	def write( self, element ):
 		res = None
@@ -415,6 +427,5 @@ class Writer(AbstractWriter):
 	def writeTermination( self, termination ):
 		"""Writes a termination operation."""
 		return "return %s" % ( self.write(termination.getReturnedEvaluable()) )
-
 
 # EOF

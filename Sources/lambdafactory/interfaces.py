@@ -1,3 +1,14 @@
+# Encoding: iso-8859-1
+# vim: tw=80 ts=4 sw=4 noet
+# -----------------------------------------------------------------------------
+# Project   : XXX
+# -----------------------------------------------------------------------------
+# Author    : Sebastien Pierre                               <sebastien@ivy.fr>
+# License   : Revised BSD License
+# -----------------------------------------------------------------------------
+# Creation  : 02-Nov-2006
+# Last mod  : 06-Dec-2006
+# -----------------------------------------------------------------------------
 
 def abstract(f):
 	def decorator(self, *args, **kwargs):
@@ -365,13 +376,6 @@ class IAssignation(IOperation):
 	def getAssignedValue( self ):
 		"""Returns this assigned evaluable."""
 
-class IInstanciation(IOperation):
-	ARGS = [ IInstanciable ]
-
-	@abstract
-	def getInstanciable( self ):
-		"""Returns the instanciable used in this operation."""
-
 class IAllocation(IOperation):
 	ARGS = [ ISlot ]
 
@@ -417,13 +421,24 @@ class IComputation(IOperation):
 class IInvocation(IOperation):
 	ARGS = [ IEvaluable, [IEvaluable] ]
 
-	@abstract
 	def getTarget( self ):
 		"""Returns the invocation target reference."""
+		return self.getOpArgument(0)
 
-	@abstract
 	def getArguments( self ):
 		"""Returns evaluable arguments."""
+		return self.getOpArgument(1) or ()
+
+class IInstanciation(IOperation):
+	ARGS = [ IEvaluable, [IEvaluable] ]
+
+	def getInstanciable( self ):
+		"""Returns the instanciable used in this operation."""
+		return self.getOpArgument(0)
+
+	def getArguments( self ):
+		"""Returns evaluable arguments."""
+		return self.getOpArgument(1) or ()
 
 class ISliceOperation(IOperation):
 	ARGS = [ IEvaluable, IEvaluable ]

@@ -1,6 +1,6 @@
 from modelwriter import AbstractWriter, flatten
 from resolver import AbstractResolver
-import interfaces
+import interfaces, reporter
 
 class Resolver(AbstractResolver):
 
@@ -14,9 +14,9 @@ class Resolver(AbstractResolver):
 
 class Writer(AbstractWriter):
 
-	def __init__( self ):
-		AbstractWriter.__init__(self)
-		self.resolver = Resolver()
+	def __init__( self, reporter=reporter.DefaultReporter ):
+		AbstractWriter.__init__(self, reporter)
+		self.resolver = Resolver(reporter=reporter)
 
 	def writeModule( self, moduleElement ):
 		"""Writes a Module element."""
@@ -92,15 +92,27 @@ class Writer(AbstractWriter):
 
 	def writeFunction( self, function ):
 		"""Writes a function element."""
-		return self._format(
-			self._document(function),
-			"function %s ( %s ) {" % (
-				function.getName(),
-				", ".join(map(self.write, function.getArguments()))
-			),
-			map(self.write, function.getOperations()),
-			"}"
-		)
+		parent = function.getParent()
+		if parent and isinstance(parent, interfaces.IModule):
+			return self._format(
+				self._document(function),
+				"%s: function ( %s ) {" % (
+					function.getName(),
+					", ".join(map(self.write, function.getArguments()))
+				),
+				map(self.write, function.getOperations()),
+				"}"
+			)
+		else:
+			return self._format(
+				self._document(function),
+				"function %s ( %s ) {" % (
+					function.getName(),
+					", ".join(map(self.write, function.getArguments()))
+				),
+				map(self.write, function.getOperations()),
+				"}"
+			)
 
 	def writeBlock( self, block ):
 		"""Writes a block element."""
@@ -156,7 +168,6 @@ class Writer(AbstractWriter):
 			return symbol_name
 		else:
 			raise Exception("Unsupported scope:" + str(target))
-
 
 	def writeOperator( self, operator ):
 		"""Writes an operator element."""
@@ -238,6 +249,13 @@ class Writer(AbstractWriter):
 		return "%s(%s)" % (
 			self.write(invocation.getTarget()),
 			", ".join(map(self.write, invocation.getArguments()))
+		)
+
+	def writeInstanciation( self, operation ):
+		"""Writes an invocation operation."""
+		return "new %s(%s)" % (
+			self.write(operation.getInstanciable()),
+			", ".join(map(self.write, operation.getArguments()))
 		)
 
 	def writeSelection( self, selection ):

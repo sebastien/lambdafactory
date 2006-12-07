@@ -1,4 +1,16 @@
-import interfaces
+# Encoding: iso-8859-1
+# vim: tw=80 ts=4 sw=4 noet
+# -----------------------------------------------------------------------------
+# Project   : XXX
+# -----------------------------------------------------------------------------
+# Author    : Sebastien Pierre                               <sebastien@ivy.fr>
+# License   : Revised BSD License
+# -----------------------------------------------------------------------------
+# Creation  : 02-Nov-2006
+# Last mod  : 06-Dec-2006
+# -----------------------------------------------------------------------------
+
+import interfaces, reporter
 
 class DataFlow:
 
@@ -79,8 +91,8 @@ class AbstractResolver:
 		"Evaluation"
 	)
 
-	def __init__( self ):
-		pass
+	def __init__( self, reporter=reporter.DefaultReporter ):
+		self.report = reporter
 
 	def flow( self, element, dataflow=None ):
 		"""Creates flow information for the given element."""

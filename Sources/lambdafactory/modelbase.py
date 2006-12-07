@@ -8,7 +8,7 @@
 # License   : Revised BSD License
 # -----------------------------------------------------------------------------
 # Creation  : 02-Nov-2006
-# Last mod  : 02-Dev-2006
+# Last mod  : 06-Dec-2006
 # -----------------------------------------------------------------------------
 
 # FIXME: Evaluable == Expression ?
@@ -350,10 +350,6 @@ class Operation(Element, IEvaluable, IOperation):
 		else:
 			return isinstance(arg, argtype)
 
-class Instanciation(Operation, IInstanciation, IEvaluable):
-
-	def getInstanciable( self ):
-		return self.getOpArgument(0)
 
 class Assignation(Operation, IAssignation, IEvaluable):
 
@@ -394,12 +390,10 @@ class Computation(Operation, IComputation, IEvaluable):
 		return self.getOpArgument(2)
 
 class Invocation(Operation, IInvocation, IEvaluable):
+	pass
 
-	def getTarget( self ):
-		return self.getOpArgument(0)
-
-	def getArguments( self ):
-		return self.getOpArgument(1) or ()
+class Instanciation(Operation, IInstanciation, IEvaluable):
+	pass
 
 class Selection(Operation, ISelection):
 
@@ -598,6 +592,9 @@ class Factory:
 
 	def invoke( self, evaluable, *arguments ):
 		return self._getImplementation("Invocation")(evaluable, arguments)
+
+	def instanciate( self, evaluable, *arguments ):
+		return self._getImplementation("Instanciation")(evaluable, arguments)
 
 	def resolve( self, reference, context=None ):
 		return self._getImplementation("Resolution")(reference, context)
