@@ -97,6 +97,16 @@ class AbstractWriter:
 		res = self._filterContext(interfaces.IClass)
 		return res and res[-1] or None
 
+	def getCurrentClassParents( self ):
+		res = []
+		cur = self.getCurrentClass()
+		for ref in cur.getSuperClasses():
+			ref = ref.getReferenceName()
+			tar = self.resolve(ref, cur.getDataFlow())
+			par = tar.getSlot(ref)
+			res.append(par)
+		return res
+		
 	def getCurrentModule( self ):
 		res = self._filterContext(interfaces.IModule)
 		return res and res[-1] or None
@@ -122,8 +132,9 @@ class AbstractWriter:
 			res.append(v)
 		return ".".join(res)
 
-	def resolve( self, name ):
-		dataflow = self.getCurrentDataFlow()
+	def resolve( self, name, dataflow=None ):
+		if not dataflow: 
+			dataflow = self.getCurrentDataFlow()
 		if dataflow:
 			res = dataflow.resolve(name)
 			if not res:

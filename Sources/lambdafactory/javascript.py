@@ -178,6 +178,19 @@ class Writer(AbstractWriter):
 				target = target.getParent()
 				names.insert(0, target.getName())
 			return ".".join(names)
+		# Target is a class
+		elif isinstance(target, interfaces.IClass):
+			# And the class is one of the parent class
+			if target in self.getCurrentClassParents():
+				return "this." + symbol_name
+			# Otherwise it is an outside class, and we have to check that the
+			# value is not an instance slot
+			else:
+				names = [target.getName(), symbol_name]
+				while target.getParent():
+					target = target.getParent()
+					names.insert(0, target.getName())
+				return ".".join(names)
 		# FIXME: This is an exception... iteration being an operation, not a
 		# context...
 		elif isinstance(target, interfaces.IIteration):
