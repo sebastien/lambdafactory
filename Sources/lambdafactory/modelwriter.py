@@ -130,7 +130,7 @@ class AbstractWriter:
 				self.report.error("Unresolved symbol:" + name, self.contexts[-1])
 			return res
 		else:
-			self.report.failure("Not dataflow available", self.contexts[-1])
+			self.report.error("Not dataflow available", self.contexts[-1])
 
 	def write( self, element ):
 		res = None
@@ -321,11 +321,13 @@ class Writer(AbstractWriter):
 	def writeAllocation( self, allocation ):
 		"""Writes an allocation operation."""
 		s = allocation.getSlotToAllocate()
-		if s.getTypeInformation() is None: return None
-		return "%s %s" % (
+		v = allocation.getDefaultValue()
+		res = "%s %s" % (
 			s.getTypeInformation(),
 			s.getReferenceName(),
 		)
+		if v: res += " = " + self._write(v)
+		return res
 
 	def writeAssignation( self, assignation ):
 		"""Writes an assignation operation."""

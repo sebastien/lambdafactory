@@ -182,6 +182,9 @@ class Module(Context, IModule, IAssignable, IReferencable):
 	def getName( self ):
 		return self._name
 
+	def setName( self, name ):
+		self._name = name
+		
 # ------------------------------------------------------------------------------
 #
 # PROCESSES
@@ -203,7 +206,7 @@ class Process( Context, IContext, IProcess ):
 
 	def addOperations( self, *operations ):
 		map( self.addOperation, operations )
-
+		
 	def getOperations( self ):
 		return self._operations
 
@@ -364,7 +367,10 @@ class Allocation(Operation, IAllocation, IEvaluable):
 	def getSlotToAllocate( self ):
 		return self.getOpArgument(0)
 
-class Resolution(Operation, IResolution, IEvaluable):
+	def getDefaultValue( self ):
+		return self.getOpArgument(1)
+		
+class Resolution(Operation, IResolution, IEvaluable, IReferencable):
 
 	def getReference( self ):
 		return self.getOpArgument(0)
@@ -541,6 +547,11 @@ class Factory:
 	`Invocation`, `Function`, etc. you just have to give this module to the
 	factory constructor and it will be used to generate the given element."""
 
+	MainFunction  = "__main__"
+	CurrentModule = "__current__"
+	Constructor   = "__init__"
+	ModuleInit    = "__moduleinit__"
+	
 	def __init__( self, module ):
 		self._module = module
 
@@ -581,8 +592,8 @@ class Factory:
 	def evaluate( self, evaluable ):
 		return self._getImplementation("Evaluation")(evaluable)
 
-	def allocate( self, slot ):
-		return self._getImplementation("Allocation")(slot)
+	def allocate( self, slot, value=None ):
+		return self._getImplementation("Allocation")(slot, value)
 
 	def assign( self, name, evaluable ):
 		return self._getImplementation("Assignation")(name, evaluable)
@@ -647,8 +658,10 @@ class Factory:
 	def _string( self, value ):
 		return self._getImplementation("String")(value)
 
-	def _list( self ):
-		return self._getImplementation("List")()
+	def _list( self, *args ):
+		r = self._getImplementation("List")()
+		map(lambda a:r.addValue(a), args)
+		return r
 
 	def _dict( self ):
 		return self._getImplementation("Dict")()

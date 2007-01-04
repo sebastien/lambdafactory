@@ -377,12 +377,16 @@ class IAssignation(IOperation):
 		"""Returns this assigned evaluable."""
 
 class IAllocation(IOperation):
-	ARGS = [ ISlot ]
+	ARGS = [ ISlot, IEvaluable ]
 
 	@abstract
 	def getSlotToAllocate( self ):
 		"""Returns slot to be allocated by this operation."""
 
+	@abstract
+	def getDefaultValue( self ):
+		"""Returns the expression that assigns the default value."""
+		
 class IResolution(IOperation):
 	"""A resolution resolves a reference into a value."""
 	ARGS = [ IReferencable, IEvaluable ]

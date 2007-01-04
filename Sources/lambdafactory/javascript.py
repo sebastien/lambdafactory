@@ -193,12 +193,15 @@ class Writer(AbstractWriter):
 			for k,v in element.getItems()
 			])
 		)
+		
 	def writeAllocation( self, allocation ):
 		"""Writes an allocation operation."""
 		s = allocation.getSlotToAllocate()
-		return "var %s" % (
-			s.getReferenceName(),
-		)
+		v = allocation.getDefaultValue()
+		if v:
+			return "var %s = %s" % (s.getReferenceName(), self.write(v))
+		else:
+			return "var %s" % (s.getReferenceName())
 
 	def writeAssignation( self, assignation ):
 		"""Writes an assignation operation."""
