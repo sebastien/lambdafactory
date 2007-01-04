@@ -22,7 +22,7 @@ class DataFlow:
 	def __init__( self, element ):
 		self.element  = element
 		self.slots    = []
-		self.parent   = None
+		self.parents  = []
 		self.children = []
 		element.setDataFlow(self)
 
@@ -33,13 +33,14 @@ class DataFlow:
 		self.slots.append([name, value,[None], self.ENVIRONMENT])
 
 	def declareVariable( self, name, value, origin ):
+		print "SLOT", name, value.__class__.__name__, "in", self.element
 		self.slots.append([name, value, [origin], self.VARIABLE])
 
-	def getParent( self ):
-		return self.parent
+	def getParents( self ):
+		return self.parents
 
-	def setParent( self, parent ):
-		self.parent = parent
+	def addParent( self, parent ):
+		self.parents.append(parent)
 		parent.addChild(self)
 	
 	def addChild( self, child ):
@@ -50,12 +51,15 @@ class DataFlow:
 		return self.children
 
 	def resolve( self, name ):
+		# FIXME: For the moment, resolve returns the scope in which the
+		# given slot is defined... this is very confusing
 		slot = self.getSlot(name)
 		if slot:
 			return self.element
-		elif self.getParent():
-			return self.getParent().resolve(name)
 		else:
+			for p in self.getParents():
+				r = p.resolve(name)
+				if r: return r
 			return None
 
 	def defines( self, name ):
@@ -93,36 +97,53 @@ class AbstractResolver:
 
 	def __init__( self, reporter=reporter.DefaultReporter ):
 		self.report = reporter
-
-	def flow( self, element, dataflow=None ):
+		self.stage2 = []
+		
+	def flow( self, module, program=None):
+		if program == None: program = module
+		self._flow(module)
+		while self.stage2:
+			f, a = self.stage2.pop()
+			f(program, *a)
+	
+	def _flow( self, element, dataflow=None ):
 		"""Creates flow information for the given element."""
+		res = None
 		if element.hasDataFlow():
-			return element.getDataFlow()
-		# We iterate through the defined interfaces
-		this_interfaces = [(i,getattr(interfaces,"I" + i)) for i in self.INTERFACES]
-		for name, the_interface in this_interfaces:
-			if not isinstance(element, the_interface): continue
-			if not hasattr(self, "flow" + name ):
-				raise Exception("Resolver does not define flow method for: " + name)
-			if dataflow:
-				return getattr(self, "flow" + name)(element, dataflow)
-			else:
-				return getattr(self, "flow" + name)(element)
-		return None
+			res = element.getDataFlow()
+		else:
+			# We iterate through the defined interfaces
+			this_interfaces = [(i,getattr(interfaces,"I" + i)) for i in self.INTERFACES]
+			for name, the_interface in this_interfaces:
+				if not isinstance(element, the_interface): continue
+				if not hasattr(self, "flow" + name ):
+					raise Exception("Resolver does not define flow method for: " + name)
+				if dataflow:
+					res = getattr(self, "flow" + name)(element, dataflow)
+				else:
+					res = getattr(self, "flow" + name)(element)
+		return res
 
 	def flowClass( self, element ):
 		dataflow = self.flowContext(element)
+		self.stage2.append((self._flowClassStage2, (element, dataflow)))	
 		dataflow.declareEnvironment("self", None)
 		return dataflow
-
+	
+	def _flowClassStage2( self, program, element, dataflow ):
+		# TODO: Multiple inheritance is too complicated right now
+		for p in element.getSuperClasses():
+			module = program.getDataFlow().resolve(p.getReferenceName())
+			parent = module.getSlot(p.getReferenceName())
+			
 	def flowContext( self, element ):
 		dataflow = DataFlow(element)
 		for name, value in element.getSlots():
 			dataflow.declareVariable(name, value, element)
 		for name, value in element.getSlots():
-			child_flow = self.flow(value)
+			child_flow = self._flow(value)
 			if child_flow:
-				child_flow.setParent(dataflow)
+				child_flow.addParent(dataflow)
 		return dataflow
 
 	def flowMethod( self, element ):
@@ -136,15 +157,15 @@ class AbstractResolver:
 		for arg in element.getArguments():
 			dataflow.declareArgument(arg.getReferenceName(), None)
 		for op in element.getOperations():
-			flow = self.flow(op, dataflow)
-			if flow: flow.setParent(dataflow)
+			flow = self._flow(op, dataflow)
+			if flow: flow.addParent(dataflow)
 		return dataflow
 
 	def flowProcess( self, element ):
 		dataflow = DataFlow(element)
 		for op in element.getOperations():
-			flow = self.flow(op, dataflow)
-			if flow: flow.setParent(dataflow)
+			flow = self._flow(op, dataflow)
+			if flow: flow.addParent(dataflow)
 		return dataflow
 
 	def flowAllocation( self, operation, dataflow ):
@@ -159,10 +180,10 @@ class AbstractResolver:
 			None,
 			operation
 		)
-		return self.flow(operation.getProcess())
+		return self._flow(operation.getProcess())
 
 	def flowEvaluation( self, operation, dataflow ):
-		return self.flow(operation.getEvaluable())
+		return self._flow(operation.getEvaluable())
 
 
 # EOF

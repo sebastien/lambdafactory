@@ -159,7 +159,7 @@ class Class(Context, IClass, IReferencable, IAssignable):
 
 	def getName( self ):
 		return self._name
-
+		
 	def setSuperClasses( self, classes ) :
 		self._inherited = []
 		if not classes: return

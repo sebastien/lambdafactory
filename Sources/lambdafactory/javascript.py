@@ -1,3 +1,17 @@
+#!/usr/bin/env python
+# Encoding: iso-8859-1
+# vim: tw=80 ts=4 sw=4 noet
+# -----------------------------------------------------------------------------
+# Project   : XXX
+# -----------------------------------------------------------------------------
+# Author    : Sebastien Pierre                               <sebastien@ivy.fr>
+# License   : Revised BSD License
+# -----------------------------------------------------------------------------
+# Creation  : 02-Nov-2006
+# Last mod  : 04-jan-2007
+# -----------------------------------------------------------------------------
+
+
 from modelwriter import AbstractWriter, flatten
 from resolver import AbstractResolver
 import interfaces, reporter
@@ -17,6 +31,8 @@ class Writer(AbstractWriter):
 	def __init__( self, reporter=reporter.DefaultReporter ):
 		AbstractWriter.__init__(self, reporter)
 		self.resolver = Resolver(reporter=reporter)
+		self.jsPrefix = "S."
+		self.jsCore   = "Core."
 
 	def writeModule( self, moduleElement ):
 		"""Writes a Module element."""
@@ -213,12 +229,12 @@ class Writer(AbstractWriter):
 	def writeEnumeration( self, operation ):
 		"""Writes an enumeration operation."""
 		start = operation.getStart() 
-		end   = operation.getStart() 
+		end   = operation.getEnd() 
 		if isinstance(start, interfaces.ILitteral): start = self.write(start)
 		else: start = "(%s)" % (self.write(start))
 		if isinstance(end, interfaces.ILitteral): end = self.write(end)
 		else: end = "(%s)" % (self.write(end))
-		res = "%s..%s" % (start, end)
+		res = self.jsPrefix + self.jsCore + "range(%s,%s)" % (start, end)
 		step = operation.getStep()
 		if step: res += " step " + self._write(step)
 		return res
