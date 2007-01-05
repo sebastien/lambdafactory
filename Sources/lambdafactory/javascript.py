@@ -64,10 +64,13 @@ class Writer(AbstractWriter):
 
 	def writeMethod( self, methodElement ):
 		"""Writes a method element."""
+		method_name = methodElement.getName()
+		if method_name == interfaces.Constants.Constructor: method_name = "initialize"
+		if method_name == interfaces.Constants.Destructor:  method_name = "destroy"
 		return self._format(
 			self._document(methodElement),
-			"%s: function ( %s ) {" % (
-				methodElement.getName(),
+			"%s:function(%s){" % (
+				method_name,
 				", ".join(map(self.write, methodElement.getArguments()))
 			),
 			map(self.write, methodElement.getOperations()),
@@ -76,10 +79,12 @@ class Writer(AbstractWriter):
 
 	def writeClassMethod( self, methodElement ):
 		"""Writes a class method element."""
+		method_name = methodElement.getName()
+		if method_name == interfaces.Constants.ModuleInit:  method_name = "initializeModule"
 		return self._format(
 			self._document(methodElement),
-			"%s: function ( %s ){" % (
-				methodElement.getName(),
+			"%s:function(%s){" % (
+				method_name,
 				", ".join(map(self.write, methodElement.getArguments()))
 			),
 			map(self.write, methodElement.getOperations()),
@@ -90,7 +95,7 @@ class Writer(AbstractWriter):
 		"""Writes a method element."""
 		return self._format(
 			self._document(element),
-			"initialize: function ( %s ) {" % (
+			"initialize:function(%s){" % (
 				", ".join(map(self.write, element.getArguments()))
 			),
 			map(self.write, element.getOperations()),

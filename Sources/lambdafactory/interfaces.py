@@ -40,6 +40,14 @@ def assertImplements( instance, interface ):
 	else:
 		raise Exception("Operations not implemented: %s from %s in %s" % (res, interface, instance.__class__))
 
+class Constants:
+
+	MainFunction  = "__main__"
+	CurrentModule = "__current__"
+	Constructor   = "__init__"
+	Destructor    = "__destroy__"
+	ModuleInit    = "__moduleinit__"
+	
 #------------------------------------------------------------------------------
 #
 #  Element Interfaces

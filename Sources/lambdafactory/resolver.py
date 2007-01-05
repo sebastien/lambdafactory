@@ -33,7 +33,6 @@ class DataFlow:
 		self.slots.append([name, value,[None], self.ENVIRONMENT])
 
 	def declareVariable( self, name, value, origin ):
-		print "SLOT", name, value.__class__.__name__, "in", self.element
 		self.slots.append([name, value, [origin], self.VARIABLE])
 
 	def getParents( self ):
@@ -42,11 +41,11 @@ class DataFlow:
 	def addParent( self, parent ):
 		self.parents.append(parent)
 		parent.addChild(self)
-	
+
 	def addChild( self, child ):
 		assert child not in self.children
 		self.children.append(child)
-	
+
 	def getChildren( self ):
 		return self.children
 

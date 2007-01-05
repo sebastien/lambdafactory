@@ -547,10 +547,11 @@ class Factory:
 	`Invocation`, `Function`, etc. you just have to give this module to the
 	factory constructor and it will be used to generate the given element."""
 
-	MainFunction  = "__main__"
-	CurrentModule = "__current__"
-	Constructor   = "__init__"
-	ModuleInit    = "__moduleinit__"
+	MainFunction  = Constants.MainFunction
+	CurrentModule = Constants.CurrentModule
+	Constructor   = Constants.Constructor
+	Destructor    = Constants.Destructor
+	ModuleInit    = Constants.ModuleInit
 	
 	def __init__( self, module ):
 		self._module = module
