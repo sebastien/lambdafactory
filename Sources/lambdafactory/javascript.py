@@ -34,12 +34,22 @@ class Writer(AbstractWriter):
 		self.jsPrefix = "S."
 		self.jsCore   = "Core."
 
+	def getAbsoluteName( self, element ):
+		"""Returns the absolute name for the given element. This is the '.'
+		concatenation of the individual names of the parents."""
+		names = [element.getName()]
+		while element.getParent():
+			element = element.getParent()
+			names.insert(0, element.getName())
+		return ".".join(names)
+
 	def writeModule( self, moduleElement ):
 		"""Writes a Module element."""
 		return self._format("var %s = {" % (moduleElement.getName()),
 			[self.write(s[1]) + "," for s in moduleElement.getSlots()],
 			"MODULE:{name:'%s'}" % (moduleElement.getName()),
-			"}"
+			"}",
+			"%s.initialize()" % (moduleElement.getName())
 		)
 
 	def writeClass( self, classElement ):
@@ -80,7 +90,6 @@ class Writer(AbstractWriter):
 	def writeClassMethod( self, methodElement ):
 		"""Writes a class method element."""
 		method_name = methodElement.getName()
-		if method_name == interfaces.Constants.ModuleInit:  method_name = "initializeModule"
 		return self._format(
 			self._document(methodElement),
 			"%s:function(%s){" % (
@@ -114,11 +123,14 @@ class Writer(AbstractWriter):
 	def writeFunction( self, function ):
 		"""Writes a function element."""
 		parent = function.getParent()
+		name   = function.getName()
+		if name == interfaces.Constants.ModuleInit: name = "initialize"
+		if name == interfaces.Constants.MainFunction: name = "main"
 		if parent and isinstance(parent, interfaces.IModule):
 			return self._format(
 				self._document(function),
-				"%s: function ( %s ) {" % (
-					function.getName(),
+				"%s:function(%s){" % (
+					name,
 					", ".join(map(self.write, function.getArguments()))
 				),
 				map(self.write, function.getOperations()),
@@ -127,8 +139,8 @@ class Writer(AbstractWriter):
 		else:
 			return self._format(
 				self._document(function),
-				"function %s ( %s ) {" % (
-					function.getName(),
+				"function%s(%s){" % (
+					name,
 					", ".join(map(self.write, function.getArguments()))
 				),
 				map(self.write, function.getOperations()),
@@ -170,7 +182,9 @@ class Writer(AbstractWriter):
 		elif symbol_name == "super":
 			assert self.resolve("self"), "Super must be used inside method"
 			# FIXME: Should check that the element has a method in parent scope
-			return "this._super"
+			return self.jsPrefix + self.jsCore + "superFor(%s, this)" % (
+				self.getAbsoluteName(self.getCurrentClass())
+			)
 		if not target:
 			return symbol_name
 		elif self.getCurrentClass() == target:
@@ -351,3 +365,4 @@ class Writer(AbstractWriter):
 		else:
 			return None
 
+# EOF

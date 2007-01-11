@@ -133,10 +133,14 @@ class AbstractResolver:
 		# TODO: Multiple inheritance is too complicated right now
 		for p in element.getSuperClasses():
 			module = program.getDataFlow().resolve(p.getReferenceName())
-			parent = module.getSlot(p.getReferenceName())
-			flow   = parent.getDataFlow()
-			dataflow.addParent(flow)
-			
+			if not module:
+				self.report.error("Undefined parent class:" + p.getReferenceName(), element)
+				self.report = reporter
+			else:
+				parent = module.getSlot(p.getReferenceName())
+				flow   = parent.getDataFlow()
+				dataflow.addParent(flow)
+
 	def flowContext( self, element ):
 		dataflow = DataFlow(element)
 		for name, value in element.getSlots():
