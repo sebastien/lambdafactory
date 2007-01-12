@@ -34,6 +34,7 @@ def _format( value, level=-1 ):
 			res.extend(_format(v, level+1))
 		return res
 	else:
+		if value is None: return ""
 		assert type(value) in (str, unicode), "Unsupported type: %s" % (value)
 		return ["\n".join((level*PREFIX)+v for v in value.split("\n"))]
 
@@ -55,6 +56,9 @@ def flatten( *lists ):
 	res = [] ; _flatten(lists, res)
 	return res
 
+def notEmpty( p ):
+	"""Returns None if the given parameter is empty."""
+	return p and p or None
 
 class AbstractWriter:
 
@@ -203,7 +207,7 @@ class Writer(AbstractWriter):
 			"class %s:" % (classElement.getName()),
 			flatten([self.write(m) for m in classElement.getAttributes()]),
 			flatten([self.write(m) for m in classElement.getClassAttributes()]),
-			flatten([self.write(m) for m in classElement.getMethods()]),
+			flatten([self.write(m) for m in classElement.getInstanceMethods()]),
 			flatten([self.write(m) for m in classElement.getClassMethods()]),
 			"end"
 		)

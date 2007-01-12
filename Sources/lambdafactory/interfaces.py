@@ -274,6 +274,21 @@ class IClass(IContext):
 		pass
 
 	@abstract
+	def getConstructors(self):
+		"""Returns the constructors for this class"""
+		pass
+	
+	@abstract
+	def getDestructors(self):
+		"""Returns the destructors for this class"""
+		pass
+	
+	@abstract
+	def getInstanceMethods( self ):
+		"""Returns the instance methods defined within this class."""
+		pass
+	
+	@abstract
 	def getClassMethods( self ):
 		"""Returns the class method defined within this class."""
 		pass
@@ -334,6 +349,9 @@ class IConstructor(IMethod):
 	pass
 
 class IDestructor(IMethod):
+	pass
+
+class IInstanceMethod(IMethod):
 	pass
 
 class IClassMethod(IMethod):

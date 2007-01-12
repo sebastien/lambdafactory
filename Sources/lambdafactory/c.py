@@ -7,12 +7,11 @@
 # Author    : Sebastien Pierre                               <sebastien@ivy.fr>
 # License   : Revised BSD License
 # -----------------------------------------------------------------------------
-# Creation  : 02-Nov-2006
-# Last mod  : 04-jan-2007
+# Creation  : 09-Jan-2007
+# Last mod  : 09-jan-2007
 # -----------------------------------------------------------------------------
 
-
-from modelwriter import AbstractWriter, flatten, notEmpty
+from modelwriter import AbstractWriter, flatten
 from resolver import AbstractResolver
 import interfaces, reporter
 
@@ -21,19 +20,30 @@ class Resolver(AbstractResolver):
 
 #------------------------------------------------------------------------------
 #
-#  JavaScript Writer
+#  C Writer
 #
 #------------------------------------------------------------------------------
 
+class CLib:
+	
+	def __init__(self, prefix="sugar"):
+		self.p = prefix
+		
+	def resolve(self, name, context=None):
+		if context:
+			return "%s_resolve(%s)" % (self.p, name)
+		else:
+			return "%s_resolve(%s, context)" % (self.p, context)
+			
 class Writer(AbstractWriter):
 
 	def __init__( self, reporter=reporter.DefaultReporter ):
 		AbstractWriter.__init__(self, reporter)
 		self.resolver = Resolver(reporter=reporter)
-		self.jsPrefix = "S."
-		self.jsCore   = "Core."
-		self.inInvocation = False
-
+		self.c     = CLib()
+		self.jsPrefix = "XXX"
+		self.jsCore = "XXX"
+		
 	def getAbsoluteName( self, element ):
 		"""Returns the absolute name for the given element. This is the '.'
 		concatenation of the individual names of the parents."""
@@ -41,15 +51,17 @@ class Writer(AbstractWriter):
 		while element.getParent():
 			element = element.getParent()
 			names.insert(0, element.getName())
-		return ".".join(names)
+		res = self.c.resolve(names[0])	
+		for name in names[1:]:
+			res = self.c.resolve(name, res)	
+		return res
 
 	def writeModule( self, moduleElement ):
 		"""Writes a Module element."""
 		return self._format("var %s = {" % (moduleElement.getName()),
 			[self.write(s[1]) + "," for s in moduleElement.getSlots()],
 			"MODULE:{name:'%s'}" % (moduleElement.getName()),
-			"}",
-			"%s.initialize()" % (moduleElement.getName())
+			"}"
 		)
 
 	def writeClass( self, classElement ):
@@ -63,14 +75,12 @@ class Writer(AbstractWriter):
 		return self._format(
 			self._document(classElement),
 			"%s: Class.create({" % (classElement.getName()),
-			notEmpty(flatten([self.write(m) +"," for m in classElement.getAttributes()])),
-			notEmpty(flatten([self.write(m) +"," for m in classElement.getConstructors()])),
-			notEmpty(flatten([self.write(m) +"," for m in classElement.getDestructors()])),		
-			notEmpty(flatten([self.write(m) +"," for m in classElement.getInstanceMethods()])),
+			flatten([self.write(m) +"," for m in classElement.getAttributes()]),
+			flatten([self.write(m) +"," for m in classElement.getClassAttributes()]),
+			flatten([self.write(m) +"," for m in classElement.getMethods()]),
+			# FIXME
+			flatten([self.write(m) +"," for m in classElement.getClassMethods()]),
 			"\n\tCLASSDEF:{name:'%s', parent:%s}" % (classElement.getName(), parent),
-			"}, {",
-			notEmpty([", ".join(flatten([self.write(m) for m in classElement.getClassAttributes()]))]),
-			notEmpty([", ".join(flatten([self.write(m) for m in classElement.getClassMethods()]))]),
 			"})"
 		)
 
@@ -85,7 +95,6 @@ class Writer(AbstractWriter):
 				method_name,
 				", ".join(map(self.write, methodElement.getArguments()))
 			),
-			["var __this__ = this"],
 			map(self.write, methodElement.getOperations()),
 			"}"
 		)
@@ -93,6 +102,7 @@ class Writer(AbstractWriter):
 	def writeClassMethod( self, methodElement ):
 		"""Writes a class method element."""
 		method_name = methodElement.getName()
+		if method_name == interfaces.Constants.ModuleInit:  method_name = "initializeModule"
 		return self._format(
 			self._document(methodElement),
 			"%s:function(%s){" % (
@@ -110,7 +120,6 @@ class Writer(AbstractWriter):
 			"initialize:function(%s){" % (
 				", ".join(map(self.write, element.getArguments()))
 			),
-			["var __this__ = this"],
 			map(self.write, element.getOperations()),
 			"}"
 		)
@@ -128,7 +137,7 @@ class Writer(AbstractWriter):
 		"""Writes a function element."""
 		parent = function.getParent()
 		name   = function.getName()
-		if name == interfaces.Constants.ModuleInit: name = "initialize"
+		if name == interfaces.Constants.ModuleInit: name = "initializeModule"
 		if name == interfaces.Constants.MainFunction: name = "main"
 		if parent and isinstance(parent, interfaces.IModule):
 			return self._format(
@@ -181,9 +190,6 @@ class Writer(AbstractWriter):
 		"""Writes an argument element."""
 		symbol_name = element.getReferenceName()
 		target      = self.resolve(symbol_name)
-		value       = None
-		if target and target.hasSlot(symbol_name):
-			value = target.getSlot(symbol_name)
 		if symbol_name == "self":
 			return "this"
 		elif symbol_name == "super":
@@ -194,31 +200,17 @@ class Writer(AbstractWriter):
 			)
 		if not target:
 			return symbol_name
-		# It is a method of the current class
 		elif self.getCurrentClass() == target:
-			if isinstance(value, interfaces.IInstanceMethod):
-				# Here we need to wrap the method if they are given as values (
-				# that means used outside of direct invocations), because when
-				# giving a method as a callback, the 'this' pointer is not carried.
-				if self.inInvocation:
-					return "this.%s" % (symbol_name)
-				else:
-					return self.jsPrefix + self.jsCore + "wrapMethod(__this__,'%s') " % (symbol_name)
-			elif isinstance(value, interfaces.IClassMethod):
-				return "%s.%s" % (self.getAbsoluteName(self.getCurrentClass()), symbol_name)
-			else:
-				return "this." + symbol_name
-		# It is a local variable
+			return "this." + symbol_name
 		elif self.getCurrentFunction() == target:
 			return symbol_name
-		# It is a property of a module
 		elif isinstance(target, interfaces.IModule):
 			names = [target.getName(), symbol_name]
 			while target.getParent():
 				target = target.getParent()
 				names.insert(0, target.getName())
 			return ".".join(names)
-		# It is a property of a class
+		# Target is a class
 		elif isinstance(target, interfaces.IClass):
 			# And the class is one of the parent class
 			if target in self.getCurrentClassParents():
@@ -318,14 +310,10 @@ class Writer(AbstractWriter):
 
 	def writeInvocation( self, invocation ):
 		"""Writes an invocation operation."""
-		self.inInvocation = True
-		t = self.write(invocation.getTarget())
-		self.inInvocation = False
 		return "%s(%s)" % (
-			t,
+			self.write(invocation.getTarget()),
 			", ".join(map(self.write, invocation.getArguments()))
 		)
-	
 
 	def writeInstanciation( self, operation ):
 		"""Writes an invocation operation."""

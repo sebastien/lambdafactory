@@ -34,6 +34,11 @@ class DataFlow:
 
 	def declareVariable( self, name, value, origin ):
 		self.slots.append([name, value, [origin], self.VARIABLE])
+		#print "declare", name, value, self.hasSlot(name)
+		#self.element.setSlot(name, value, False)
+
+	def hasSlot( self, name ):
+		return len(filter(lambda s:s[0]==name, self.slots)) > 0
 
 	def getParents( self ):
 		return self.parents
@@ -78,7 +83,7 @@ class DataFlow:
 			if slot[0] == name: 
 				return slot
 		return None
-
+		
 class AbstractResolver:
 	# This defines an ordered set of interfaces names (without the leading I).
 	# This list is used in the the write method

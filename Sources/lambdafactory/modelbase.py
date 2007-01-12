@@ -89,6 +89,10 @@ class Annotation(IAnnotation):
 class Comment(Annotation, IComment):
 	pass
 
+
+class Documentation(Annotation, IDocumentation):
+	pass
+
 # ------------------------------------------------------------------------------
 #
 # STRUCTURAL AND COMPILE/RUN TIME ELEMENTS
@@ -103,10 +107,12 @@ class Context(Element, IContext):
 		self._slots = []
 		self._parent = None
 
-	def setSlot( self, name, evaluable ):
+	# FIXME: AssignParent is used when the value assigned to the
+	# slot is "owned" by the slot (like methods in classes)
+	def setSlot( self, name, evaluable, assignParent = True ):
 		if not isinstance(evaluable, IAssignable):
 			raise ModelBadArgument(self, IAssignable, evaluable)
-		if isinstance(evaluable, IContext):
+		if assignParent and isinstance(evaluable, IContext):
 			evaluable.setParent(self)
 		self._slots.append([name, evaluable])
 
@@ -149,10 +155,17 @@ class Class(Context, IClass, IReferencable, IAssignable):
 	def getOperations( self ):
 		return [value for name, value in self.getSlots() if isinstance(value, IInvocable)]
 
+	def getConstructors( self ):
+		return [value for name, value in self.getSlots() if isinstance(value, IConstructor)]
+
+	def getDestructors( self ):
+		return [value for name, value in self.getSlots() if isinstance(value, IDestructor)]
+		
 	def getMethods( self ):
-		return [value for name, value in self.getSlots()
-			if isinstance(value, IMethod) and not isinstance(value, IClassMethod)
-		]
+		return [value for name, value in self.getSlots() if isinstance(value, IMethod)]
+	
+	def getInstanceMethods( self ):
+		return [value for name, value in self.getSlots() if isinstance(value, IInstanceMethod)]
 
 	def getClassMethods( self ):
 		return [value for name, value in self.getSlots() if isinstance(value, IClassMethod)]
@@ -273,6 +286,10 @@ class Destructor(Method, IDestructor):
 class ClassMethod(Method, IClassMethod):
 	pass
 
+
+class InstanceMethod(Method, IInstanceMethod):
+	pass
+
 # ------------------------------------------------------------------------------
 #
 # OPERATIONS
@@ -310,7 +327,6 @@ class Operation(Element, IEvaluable, IOperation):
 			raise ModelException("Too many arguments: %s expected args %s as %s, got %s" \
 			% (self, offset, len(self.ARGS), offset + 1))
 		if not self._isInstance(argument, self.ARGS[offset]):
-			print argument, self.ARGS[offset]
 			raise ModelException("Incompatible argument:  %s expected arg %s as  %s, got %s" \
 			% (self, offset, self.ARGS[offset], argument))
 		self._oparguments.append(argument)
@@ -573,7 +589,7 @@ class Factory:
 		return self._getImplementation("Function")(name, arguments)
 
 	def createMethod( self, name, arguments=None ):
-		return self._getImplementation("Method")(name, arguments)
+		return self._getImplementation("InstanceMethod")(name, arguments)
 
 	def createConstructor( self, arguments=None ):
 		return self._getImplementation("Constructor")(arguments)
