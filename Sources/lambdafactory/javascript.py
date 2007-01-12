@@ -337,17 +337,18 @@ class Writer(AbstractWriter):
 	def writeSelection( self, selection ):
 		rules = selection.getRules()
 		result = []
+	
 		for i in range(0,len(rules)):
 			rule = rules[i]
 			if i==0:
 				rule_code = (
 					"if ( %s )" % (self.write(rule.getPredicate())),
-					self.write(rule.getProcess()),
+					self.write(rule.getProcess() or "{}"),
 				)
 			else:
 				rule_code = (
 					"else if ( %s )" % (self.write(rule.getPredicate())),
-					self.write(rule.getProcess()),
+					self.write(rule.getProcess() or "{}"),
 				)
 			result.extend(rule_code)
 		return self._format(*result)
