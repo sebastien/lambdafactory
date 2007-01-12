@@ -238,9 +238,17 @@ class Writer(AbstractWriter):
 		else:
 			raise Exception("Unsupported scope:" + str(target))
 
+	JS_OPERATORS = {
+				"and":"&&",
+				"is":"==",
+				"is not":"!=",
+				"not":"!"
+	}
 	def writeOperator( self, operator ):
 		"""Writes an operator element."""
-		return "%s" % (operator.getReferenceName())
+		o = operator.getReferenceName()
+		o = self.JS_OPERATORS.get(o) or o
+		return "%s" % (o)
 
 	def writeNumber( self, number ):
 		"""Writes a number element."""
@@ -326,7 +334,6 @@ class Writer(AbstractWriter):
 			", ".join(map(self.write, invocation.getArguments()))
 		)
 	
-
 	def writeInstanciation( self, operation ):
 		"""Writes an invocation operation."""
 		return "new %s(%s)" % (
@@ -337,7 +344,6 @@ class Writer(AbstractWriter):
 	def writeSelection( self, selection ):
 		rules = selection.getRules()
 		result = []
-	
 		for i in range(0,len(rules)):
 			rule = rules[i]
 			if i==0:

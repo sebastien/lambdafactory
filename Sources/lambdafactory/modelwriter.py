@@ -68,8 +68,8 @@ class AbstractWriter:
 	INTERFACES = (
 		"Module", "Class",
 		"Destructor", "Constructor","ClassMethod", "Method", "Function", "Closure", "Block",
-		"ClassAttribute", "Attribute", "Argument", "Reference",
-		"Operator", "Number", "String", "List", "Dict",
+		"ClassAttribute", "Attribute", "Argument", "Operator", "Reference",
+		"Number", "String", "List", "Dict",
 		"Enumeration",
 		"Allocation", "Assignation", "Computation",
 		"Invocation", "Instanciation", "Resolution", "Selection",
