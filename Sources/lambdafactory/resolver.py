@@ -184,13 +184,7 @@ class AbstractResolver:
 		return None
 
 	def flowIteration( self, operation, dataflow ):
-		dataflow.declareVariable(
-			operation.getIteratedSlot().getReferenceName(), 
-			# FIXME: Should give iterator...
-			None,
-			operation
-		)
-		return self._flow(operation.getProcess())
+		return self._flow(operation.getClosure())
 
 	def flowEvaluation( self, operation, dataflow ):
 		return self._flow(operation.getEvaluable())

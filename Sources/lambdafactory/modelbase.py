@@ -37,6 +37,7 @@ class Element:
 		self._id     = self.COUNT
 		self._name   = name
 		self._source = None
+		self._annotations = []
 		self.meta    = {}
 		self.COUNT  += 1
 
@@ -73,18 +74,27 @@ class Element:
 
 	def setDataFlow( self, df ):
 		self._dataflow = df
+	
+	def annotate(self, annotation):
+		self._annotations.append(annotation)
+	
+	def annotations(self, withName):
+		return [a for a in self._annotations if a.getName() == withName]
 
 class Annotation(IAnnotation):
 
-	def __init__( self, content = None ):
-		assert content is None or type(content) in (str, unicode)
-		self._content = None
+	def __init__( self, name=None, content=None ):
+		self._content = content
+		self._name    = name
 
 	def setContent( self, content ):
 		self._content = content
 
 	def getContent( self ):
 		return self._content
+
+	def getName(self):
+		return self._name
 
 class Comment(Annotation, IComment):
 	pass
@@ -578,6 +588,7 @@ class Factory:
 	Constructor   = Constants.Constructor
 	Destructor    = Constants.Destructor
 	ModuleInit    = Constants.ModuleInit
+	CurrentValue  = Constants.CurrentValue
 	
 	def __init__( self, module ):
 		self._module = module
@@ -643,8 +654,8 @@ class Factory:
 	def match( self, evaluable, process ):
 		return self._getImplementation("MatchOperation")(evaluable, process)
 
-	def iterate( self, slot, evaluable, process ):
-		return self._getImplementation("Iteration")(slot, evaluable, process)
+	def iterate( self, evaluable, process ):
+		return self._getImplementation("Iteration")(evaluable, process)
 
 	def repeat( self, condition, process ):
 		return self._getImplementation("Repetition")(condition, process)
@@ -660,7 +671,10 @@ class Factory:
 
 	def comment( self, content ):
 		return self._getImplementation("Comment")(content)
-
+	
+	def annotation( self, name, content ):
+		return self._getImplementation("Annotation")(name, content)
+	
 	def _ref( self, name ):
 		return self._getImplementation("Reference")(name)
 

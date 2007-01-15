@@ -86,6 +86,7 @@ class Writer(AbstractWriter):
 				", ".join(map(self.write, methodElement.getArguments()))
 			),
 			["var __this__ = this"],
+			self.writeFunctionWhen(methodElement),
 			map(self.write, methodElement.getOperations()),
 			"}"
 		)
@@ -99,6 +100,7 @@ class Writer(AbstractWriter):
 				method_name,
 				", ".join(map(self.write, methodElement.getArguments()))
 			),
+			self.writeFunctionWhen(methodElement),
 			map(self.write, methodElement.getOperations()),
 			"}"
 		)
@@ -130,6 +132,12 @@ class Writer(AbstractWriter):
 			"}"
 		)
 
+	def writeFunctionWhen(self, function ):
+		res = []
+		for a in function.annotations(withName="when"):
+			res.append("if (!(%s)) { return }" % (self.write(a.getContent())))
+		return self._format(res) or None
+
 	def writeFunction( self, function ):
 		"""Writes a function element."""
 		parent = function.getParent()
@@ -143,6 +151,7 @@ class Writer(AbstractWriter):
 					name,
 					", ".join(map(self.write, function.getArguments()))
 				),
+				self.writeFunctionWhen(function),
 				map(self.write, function.getOperations()),
 				"}"
 			)
@@ -153,6 +162,7 @@ class Writer(AbstractWriter):
 					name,
 					", ".join(map(self.write, function.getArguments()))
 				),
+				self.writeFunctionWhen(function),
 				map(self.write, function.getOperations()),
 				"}"
 			)
@@ -373,19 +383,11 @@ class Writer(AbstractWriter):
 		"""Writes a iteration operation."""
 		it_name = self._unique("_iterator")
 		return self._format(
-			"var %s = %s" % (
-				it_name,
-				self.write(iteration.getIterator())
-			),
-			"while ( %s.hasNext() ) {" % ( it_name),
-			(
-				"var %s = %s.next()" % (
-					self.write(iteration.getIteratedSlot()),
-					it_name
-				),
-				self.write(iteration.getProcess())
-			),
-			"}"
+			"%siterate(%s, %s, __this__)" % (
+				self.jsPrefix + self.jsCore,
+				self.write(iteration.getIterator()),
+				self.write(iteration.getClosure())
+			)
 		)
 
 	def writeSliceOperation( self, operation ):

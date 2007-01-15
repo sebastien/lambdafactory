@@ -47,7 +47,7 @@ class Constants:
 	Constructor   = "__init__"
 	Destructor    = "__destroy__"
 	ModuleInit    = "__moduleinit__"
-	
+	CurrentValue  = "__currentvalue__"
 #------------------------------------------------------------------------------
 #
 #  Element Interfaces
@@ -132,6 +132,10 @@ class IAnnotation:
 	def getContent( self ):
 		"""Returns the content of this annotation."""
 
+	@abstract
+	def getName( self ):
+		"""Returns the name of this annotation."""
+		
 class IComment(IAnnotation):
 	"""A comment is an annotation that can occur anywhere in a source file."""
 
@@ -518,19 +522,15 @@ class ISelection(IOperation):
 class IIteration( IOperation ):
 	"""An iteration is the multiple application of a process given a set of
 	values produced by an iterator."""
-	ARGS = [ ISlot, IEvaluable, IProcess ]
-
-	def getIteratedSlot( self ):
-		"""Returns the slot that will contain the iterated value."""
-		return self.getOpArgument(0)
+	ARGS = [IEvaluable, IEvaluable ]
 
 	def getIterator( self ):
 		"""Returns this iteration iterator."""
-		return self.getOpArgument(1)
+		return self.getOpArgument(0)
 
-	def getProcess( self ):
-		"""Returns the iterated process."""
-		return self.getOpArgument(2)
+	def getClosure( self ):
+		"""Returns the closure that will be applied to the iterator."""
+		return self.getOpArgument(1)
 
 class IEnumeration( IOperation ):
 	"""An enumeration produces values between a start and an end value, with the
