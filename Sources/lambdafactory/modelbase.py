@@ -543,9 +543,19 @@ class Argument(Slot, IArgument):
 		assertImplements(self, IArgument)
 
 class Attribute(Slot, IAttribute):
-	pass
 
-class ClassAttribute(Slot, IClassAttribute):
+	def __init__( self, refname, typeinfo, value=None ):
+		Slot.__init__(self, refname, typeinfo)
+		assertImplements(self, IAttribute)
+		self._defaultValue = value
+		
+	def setDefaultValue(self, value ):
+		self._defaultValue = value
+
+	def getDefaultValue(self):
+		return self._defaultValue
+
+class ClassAttribute(Attribute, IClassAttribute):
 	pass
 
 
@@ -660,11 +670,11 @@ class Factory:
 	def _arg( self, name, typeinfo=None ):
 		return self._getImplementation("Argument")(name, typeinfo)
 
-	def _attr( self, name, typeinfo=None):
-		return self._getImplementation("Attribute")(name, typeinfo)
+	def _attr( self, name, typeinfo=None, value=None):
+		return self._getImplementation("Attribute")(name, typeinfo, value)
 
-	def _classattr( self, name, typeinfo=None):
-		return self._getImplementation("ClassAttribute")(name, typeinfo)
+	def _classattr( self, name, typeinfo=None, value=None):
+		return self._getImplementation("ClassAttribute")(name, typeinfo, value)
 
 	def _op( self, symbol ):
 		return self._getImplementation("Operator")(symbol)

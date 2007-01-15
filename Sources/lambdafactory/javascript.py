@@ -173,9 +173,11 @@ class Writer(AbstractWriter):
 
 	def writeClassAttribute( self, element ):
 		"""Writes an argument element."""
-		return "%s: undefined" % (
-			element.getReferenceName(),
-		)
+		default_value = element.getDefaultValue()
+		if default_value:
+			return "%s: %s" % (element.getReferenceName(), self.write(default_value))
+		else:
+			return "%s: undefined" % (element.getReferenceName())
 
 	def writeReference( self, element ):
 		"""Writes an argument element."""
@@ -205,6 +207,8 @@ class Writer(AbstractWriter):
 				else:
 					return self.jsPrefix + self.jsCore + "wrapMethod(__this__,'%s') " % (symbol_name)
 			elif isinstance(value, interfaces.IClassMethod):
+				return "%s.%s" % (self.getAbsoluteName(self.getCurrentClass()), symbol_name)
+			elif isinstance(value, interfaces.IClassAttribute):
 				return "%s.%s" % (self.getAbsoluteName(self.getCurrentClass()), symbol_name)
 			else:
 				return "this." + symbol_name

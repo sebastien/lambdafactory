@@ -202,6 +202,7 @@ class IOperator(IReference):
 class ISlot(IReference, IAssignable):
 	"""An argument is a reference with additional type information."""
 
+	@abstract
 	def getTypeInformation( self ):
 		"""Returns type information (constraints) that are associated to this
 		argument."""
@@ -210,7 +211,14 @@ class IArgument(ISlot):
 	pass
 
 class IAttribute(ISlot):
-	pass
+	
+	@abstract
+	def setDefaultValue(self):
+		"""Sets the default value for this attribute"""
+
+	@abstract
+	def getDefaultValue(self):
+		"""Gets the default value for this attribute"""
 
 class IClassAttribute(IAttribute):
 	pass
