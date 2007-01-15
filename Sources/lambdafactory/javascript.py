@@ -105,12 +105,18 @@ class Writer(AbstractWriter):
 
 	def writeConstructor( self, element ):
 		"""Writes a method element."""
+		current_class = self.getCurrentClass()
+		attributes    = []
+		for a in current_class.getAttributes():
+			if not a.getDefaultValue(): continue
+			attributes.append("this.%s = %s" % (a.getReferenceName(), self.write(a.getDefaultValue())))
 		return self._format(
 			self._document(element),
 			"initialize:function(%s){" % (
 				", ".join(map(self.write, element.getArguments()))
 			),
 			["var __this__ = this"],
+			attributes or None,
 			map(self.write, element.getOperations()),
 			"}"
 		)
