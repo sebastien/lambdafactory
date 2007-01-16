@@ -62,9 +62,9 @@ class Element:
 		"""Gets the documentation attached to this element."""
 		return self.meta.get("doc")
 
-	def setDocumentation( self, text ):
+	def setDocumentation( self, doc ):
 		"""Sets the documentation for this element."""
-		self.meta["doc"] = text
+		self.meta["doc"] = doc
 
 	def hasDataFlow( self ):
 		return hasattr(self, "_dataflow")
@@ -97,11 +97,14 @@ class Annotation(IAnnotation):
 		return self._name
 
 class Comment(Annotation, IComment):
-	pass
 
+	def __init__( self, content ):
+		Annotation.__init__(self, "comment", content)
 
 class Documentation(Annotation, IDocumentation):
-	pass
+
+	def __init__( self, content ):
+		Annotation.__init__(self, "doc", content)
 
 # ------------------------------------------------------------------------------
 #
@@ -671,6 +674,9 @@ class Factory:
 
 	def comment( self, content ):
 		return self._getImplementation("Comment")(content)
+	
+	def doc( self, content ):
+		return self._getImplementation("Documentation")(content)
 	
 	def annotation( self, name, content ):
 		return self._getImplementation("Annotation")(name, content)

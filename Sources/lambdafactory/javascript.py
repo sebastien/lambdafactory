@@ -287,9 +287,16 @@ class Writer(AbstractWriter):
 			self.write(e) for e in element.getValues()
 		]))
 
+	def writeDictKey( self, key ):
+		if isinstance(key, interfaces.IString):
+			return self.write(key)
+		else:
+			# FIXME: Raise an error, because JavaScript only allow strings as keys
+			return "(%s)" % (self.write(key))
+		
 	def writeDict( self, element ):
 		return '{%s}' % (", ".join([
-			"%s:%s" % ( self.write(k),self.write(v))
+			"%s:%s" % ( self.writeDictKey(k),self.write(v))
 			for k,v in element.getItems()
 			])
 		)
@@ -421,7 +428,11 @@ class Writer(AbstractWriter):
 
 	def _document( self, element ):
 		if element.hasDocumentation():
-			return "# " + element.getDocumentation()
+			doc = element.getDocumentation()
+			res = []
+			for line in doc.getContent().split("\n"):
+				res.append("// " + line)
+			return "\n".join(res)
 		else:
 			return None
 
