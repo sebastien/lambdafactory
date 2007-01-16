@@ -495,7 +495,7 @@ class ISliceOperation(IOperation):
 
 class IMatchOperation(IOperation):
 	"""A match operation is the binding of an expression and a process."""
-	ARGS = [ IEvaluable, IProcess ]
+	ARGS = [ IEvaluable, IEvaluable ]
 
 	def getPredicate( self ):
 		"""Returns the evaluable that acts as a predicate for this operation."""

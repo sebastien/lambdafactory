@@ -131,6 +131,9 @@ class Writer(AbstractWriter):
 			map(self.write, closure.getOperations()),
 			"}"
 		)
+	
+	def writeClosureBody(self, closure):
+		return self._format('{', map(self.write, closure.getOperations()), '}')
 
 	def writeFunctionWhen(self, function ):
 		res = []
@@ -330,9 +333,10 @@ class Writer(AbstractWriter):
 	def writeComputation( self, computation ):
 		"""Writes a computation operation."""
 		# FIXME: For now, we supposed operator is prefix or infix
-		operands = computation.getOperands()
+		operands = filter(lambda x:x!=None,computation.getOperands())
 		operator = computation.getOperator()
 		if len(operands) == 1:
+			
 			return "%s %s" % (
 				self.write(operator),
 				self.write(operands[0])
@@ -366,15 +370,27 @@ class Writer(AbstractWriter):
 		result = []
 		for i in range(0,len(rules)):
 			rule = rules[i]
+			process = rule.getProcess() 
+			# If the rule process is a block/closure, we simply expand the
+			# closure. So we have
+			# if (...) { code }
+			# instead of
+			# if (...) { (function(){code})() }
+			if process and isinstance(process, interfaces.IClosure):
+				process = self.writeClosureBody(process)
+			elif process:
+				process = "{(%s)()}" % (self.write(process))
+			else:
+				process = '{}'
 			if i==0:
 				rule_code = (
 					"if ( %s )" % (self.write(rule.getPredicate())),
-					self.write(rule.getProcess() or "{}"),
+					process,
 				)
 			else:
 				rule_code = (
 					"else if ( %s )" % (self.write(rule.getPredicate())),
-					self.write(rule.getProcess() or "{}"),
+					process,
 				)
 			result.extend(rule_code)
 		return self._format(*result)
