@@ -43,7 +43,7 @@ class Writer(AbstractWriter):
 			names.insert(0, element.getName())
 		return ".".join(names)
 
-	def writeModule( self, moduleElement ):
+	def writeModule( self, moduleElement, contentOnly=False ):
 		"""Writes a Module element."""
 		return self._format("var %s = {" % (moduleElement.getName()),
 			[self.write(s[1]) + "," for s in moduleElement.getSlots()],
@@ -213,8 +213,10 @@ class Writer(AbstractWriter):
 			return self.jsPrefix + self.jsCore + "superFor(%s, this)" % (
 				self.getAbsoluteName(self.getCurrentClass())
 			)
+		# If there is no target, then the symmbol is undefined
 		if not target:
-			return symbol_name
+			if symbol_name == "print": return "console.log"
+			else: return symbol_name
 		# It is a method of the current class
 		elif self.getCurrentClass() == target:
 			if isinstance(value, interfaces.IInstanceMethod):
@@ -265,7 +267,8 @@ class Writer(AbstractWriter):
 				"and":"&&",
 				"is":"==",
 				"is not":"!=",
-				"not":"!"
+				"not":"!",
+				"or":"||"
 	}
 	def writeOperator( self, operator ):
 		"""Writes an operator element."""
