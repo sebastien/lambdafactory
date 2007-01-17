@@ -154,6 +154,7 @@ class Writer(AbstractWriter):
 					name,
 					", ".join(map(self.write, function.getArguments()))
 				),
+				'var __this__ = %s' % (self.getAbsoluteName(parent)),
 				self.writeFunctionWhen(function),
 				map(self.write, function.getOperations()),
 				"}"
@@ -215,7 +216,7 @@ class Writer(AbstractWriter):
 			)
 		# If there is no target, then the symmbol is undefined
 		if not target:
-			if symbol_name == "print": return "console.log"
+			if symbol_name == "print": return self.jsPrefix + self.jsCore + "print"
 			else: return symbol_name
 		# It is a method of the current class
 		elif self.getCurrentClass() == target:
@@ -259,6 +260,8 @@ class Writer(AbstractWriter):
 		# FIXME: This is an exception... iteration being an operation, not a
 		# context...
 		elif isinstance(target, interfaces.IIteration):
+			return symbol_name
+		elif isinstance(target, interfaces.IClosure):
 			return symbol_name
 		else:
 			raise Exception("Unsupported scope:" + str(target))
