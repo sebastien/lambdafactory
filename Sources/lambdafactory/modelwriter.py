@@ -150,6 +150,7 @@ class AbstractWriter:
 	def write( self, element ):
 		res = None
 		if element is None: return ""
+		if type(element) in (str, unicode): return element
 		this_interfaces = [(i,getattr(interfaces,"I" + i)) for i in self.INTERFACES]
 		for name, the_interface in this_interfaces:
 			if isinstance(element, the_interface):
