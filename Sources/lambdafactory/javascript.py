@@ -157,10 +157,11 @@ class Writer(AbstractWriter):
 		name   = function.getName()
 		if parent and isinstance(parent, interfaces.IModule):
 			return self._format(
-				self._document(function),
+
 				"function (%s){" % (
 					", ".join(map(self.write, function.getArguments()))
 				),
+				[self._document(function)],
 				['var __this__=%s' % (self.getAbsoluteName(parent))],
 				self.writeFunctionWhen(function),
 				map(self.write, function.getOperations()),
@@ -401,7 +402,7 @@ class Writer(AbstractWriter):
 			if process and isinstance(process, interfaces.IClosure):
 				process = self.writeClosureBody(process)
 			elif process:
-				process = "{(%s)()}" % (self.write(process))
+				process = "%s" % (self.write(process))
 			else:
 				process = '{}'
 			if i==0:
