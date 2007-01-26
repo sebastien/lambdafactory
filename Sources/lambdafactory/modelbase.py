@@ -290,11 +290,17 @@ class Constructor(Method, IConstructor):
 		Method.__init__(self, None, arguments)
 		assertImplements(self, IConstructor)
 
+	def getName( self ):
+		return Constants.Constructor
+	
 class Destructor(Method, IDestructor):
 
 	def __init__(self  ):
 		Method.__init__(self, None, ())
 		assertImplements(self, IDestructor)
+
+	def getName( self ):
+		return Constants.Destructor
 
 class ClassMethod(Method, IClassMethod):
 	pass

@@ -232,7 +232,7 @@ class Writer(AbstractWriter):
 				# that means used outside of direct invocations), because when
 				# giving a method as a callback, the 'this' pointer is not carried.
 				if self.inInvocation:
-					return "this.%s" % (symbol_name)
+					return "__this__.%s" % (symbol_name)
 				else:
 					return self.jsPrefix + self.jsCore + "wrapMethod(__this__,'%s') " % (symbol_name)
 			elif isinstance(value, interfaces.IClassMethod):
@@ -240,7 +240,7 @@ class Writer(AbstractWriter):
 			elif isinstance(value, interfaces.IClassAttribute):
 				return "%s.%s" % (self.getAbsoluteName(self.getCurrentClass()), symbol_name)
 			else:
-				return "this." + symbol_name
+				return "__this__." + symbol_name
 		# It is a local variable
 		elif self.getCurrentFunction() == scope:
 			return symbol_name

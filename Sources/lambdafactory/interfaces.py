@@ -48,6 +48,7 @@ class Constants:
 	Destructor    = "__destroy__"
 	ModuleInit    = "__moduleinit__"
 	CurrentValue  = "__currentvalue__"
+	
 #------------------------------------------------------------------------------
 #
 #  Element Interfaces
