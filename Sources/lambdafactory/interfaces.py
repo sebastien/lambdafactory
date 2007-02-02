@@ -502,9 +502,16 @@ class IMatchOperation(IOperation):
 		"""Returns the evaluable that acts as a predicate for this operation."""
 		return self.getOpArgument(0)
 
+	def setPredicate( self, v ):
+		return self.setOpArgument(0, v)
+
 	def getProcess( self ):
 		"""Returns the process that will be executed if the rule matches."""
 		return self.getOpArgument(1)
+
+	def setProcess( self, v ):
+		return self.setOpArgument(1, v)
+
 
 class ISelection(IOperation):
 	"""Selections are the abstract objects behind `if`, `select` or

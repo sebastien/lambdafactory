@@ -8,7 +8,7 @@
 # License   : Revised BSD License
 # -----------------------------------------------------------------------------
 # Creation  : 02-Nov-2006
-# Last mod  : 04-jan-2007
+# Last mod  : 01-Feb-2007
 # -----------------------------------------------------------------------------
 
 
@@ -50,7 +50,7 @@ class Writer(AbstractWriter):
 	
 	def writeModule( self, moduleElement, contentOnly=False ):
 		"""Writes a Module element."""
-		code = ["var %s={}" % (moduleElement.getName())]
+		code = [self._document(moduleElement),"var %s={}" % (moduleElement.getName())]
 		code.extend(["%s.%s=%s" % (moduleElement.getName(), self.renameModuleSlot(s[0]), self.write(s[1])) for s in moduleElement.getSlots()])
 		code.append("%s.initialize()" % (moduleElement.getName()))
 		return self._format(
@@ -157,7 +157,6 @@ class Writer(AbstractWriter):
 		name   = function.getName()
 		if parent and isinstance(parent, interfaces.IModule):
 			return self._format(
-
 				"function (%s){" % (
 					", ".join(map(self.write, function.getArguments()))
 				),
