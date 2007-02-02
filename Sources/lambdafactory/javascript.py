@@ -66,10 +66,10 @@ class Writer(AbstractWriter):
 		elif len(parents) > 1:
 			raise Exception("JavaScript back-end only supports single inheritance")
 		return self._format(
-			self._document(classElement),
 			"Class.create({",
-				[",\n".join(map(self.write, flatten(
-					"CLASSDEF:{name:'%s', parent:%s}" % (classElement.getName(), parent),
+				[	self._document(classElement),
+					",\n".join(map(self.write, flatten(
+					"CLASSDEF:{name:'%s', parent:%s}" % (self.getAbsoluteName(classElement), parent),
 					classElement.getAttributes(),
 					classElement.getConstructors(),
 					classElement.getDestructors(),		
@@ -193,8 +193,9 @@ class Writer(AbstractWriter):
 
 	def writeAttribute( self, element ):
 		"""Writes an argument element."""
-		return "%s:undefined" % (
-			element.getReferenceName(),
+		return self._format(
+			self._document(element),
+			"%s:undefined" % (element.getReferenceName())
 		)
 
 	def writeClassAttribute( self, element ):
