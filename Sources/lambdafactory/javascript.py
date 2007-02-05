@@ -151,12 +151,18 @@ class Writer(AbstractWriter):
 			res.append("if (!(%s)) {return}" % (self.write(a.getContent())))
 		return self._format(res) or None
 
+	def writeFunctionPost(self, function ):
+		res = []
+		for a in function.annotations(withName="post"):
+			res.append("if (!(%s)) {throw new Exception('Assertion failed')}" % (self.write(a.getContent())))
+		return self._format(res) or None
+	
 	def writeFunction( self, function ):
 		"""Writes a function element."""
 		parent = function.getParent()
 		name   = function.getName()
 		if parent and isinstance(parent, interfaces.IModule):
-			return self._format(
+			res = [
 				"function (%s){" % (
 					", ".join(map(self.write, function.getArguments()))
 				),
@@ -165,9 +171,9 @@ class Writer(AbstractWriter):
 				self.writeFunctionWhen(function),
 				map(self.write, function.getOperations()),
 				"}"
-			)
+			]
 		else:
-			return self._format(
+			res = [
 				self._document(function),
 				"function %s){" % (
 					", ".join(map(self.write, function.getArguments()))
@@ -175,7 +181,15 @@ class Writer(AbstractWriter):
 				self.writeFunctionWhen(function),
 				map(self.write, function.getOperations()),
 				"}"
-			)
+			]
+		if function.annotations(withName="post"):
+			res[0] = "var __wrapped__ = " + res[0] + ";"
+			if parent and isinstance(parent, interfaces.IModule):
+				res.insert(0, 'var __this__=%s;' % (self.getAbsoluteName(parent)))
+			res.append("var result = __wrapped__.apply(__this__, arguments);")
+			res.append(self.writeFunctionPost(function))
+			res.append("return result;")
+		return self._format(res)
 
 	def writeBlock( self, block ):
 		"""Writes a block element."""
@@ -319,13 +333,13 @@ class Writer(AbstractWriter):
 		s = allocation.getSlotToAllocate()
 		v = allocation.getDefaultValue()
 		if v:
-			return "var %s=%s" % (s.getReferenceName(), self.write(v))
+			return "var %s=%s;" % (s.getReferenceName(), self.write(v))
 		else:
-			return "var %s" % (s.getReferenceName())
+			return "var %s;" % (s.getReferenceName())
 
 	def writeAssignation( self, assignation ):
 		"""Writes an assignation operation."""
-		return "%s = %s" % (
+		return "%s = %s;" % (
 			self.write(assignation.getTarget()),
 			self.write(assignation.getAssignedValue())
 		)
