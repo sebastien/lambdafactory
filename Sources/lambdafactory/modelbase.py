@@ -125,7 +125,7 @@ class Context(Element, IContext):
 	def setSlot( self, name, evaluable, assignParent = True ):
 		if not isinstance(evaluable, IAssignable):
 			raise ModelBadArgument(self, IAssignable, evaluable)
-		if assignParent and isinstance(evaluable, IContext):
+		if assignParent and isinstance(evaluable, IContext) or hasattr(evaluable,"setParent"):
 			evaluable.setParent(self)
 		self._slots.append([name, evaluable])
 

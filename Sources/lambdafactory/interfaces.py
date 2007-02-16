@@ -263,7 +263,7 @@ class IContext:
 	def getParent( self ): 
 		"""Returns the parent context for this context (if any)"""
 
-class IClass(IContext):
+class IClass(IContext, IReferencable):
 	pass
 
 	@abstract
@@ -349,7 +349,7 @@ class IClosure(IProcess):
 	def setArguments( self ):
 		pass
 
-class IFunction(IClosure):
+class IFunction(IClosure, IReferencable):
 
 	@abstract
 	def getName( self ):
