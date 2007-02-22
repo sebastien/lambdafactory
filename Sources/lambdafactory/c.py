@@ -32,11 +32,11 @@ class RuntimeWriter:
 		self.writer = writer
 		self.write  = self.writer.write
 	
-	def op(self, name):
-		return "Sugar_Core_" + name
+	def op(self, name, module="Core"):
+		return "Sugar_%s_%s"  % (module, name)
 	
 	def new(self, classElement):
-		return self.op("new(%s)" % (self.writer.getAbsoluteName(classElement))) 
+		return "NEW0(%s)" % (self.writer.getAbsoluteName(classElement)) 
 	
 	def newClass(self, classElement):
 		parents = classElement.getSuperClasses()
@@ -60,11 +60,11 @@ class RuntimeWriter:
 
 	def typeFor(self, element):
 		if isinstance(element, interfaces.IModule):
-			return "PModule*"
+			return "SgModule*"
 		elif isinstance(element, interfaces.IClass):
-			return "PClass*"
+			return "SgClass*"
 		else:
-			return "PValue*"
+			return "SgValue"
 
 	def slice(self, target, slice):
 		return self.op("slice(%s,%s)" % (
@@ -82,6 +82,20 @@ class Writer(AbstractWriter):
 		self.inInvocation = False
 		self.runtime = RuntimeWriter(self)
 		self.closureCounter = 0
+		self.accumulator = []
+	
+	def accumulate(self, code):
+		"""Accumulates code that will be dumped and flush when the 'dump' method
+		is called. This is specific to the C back-end and allows doing all kind
+		of stuff in the module initialization phase"""
+		self.accumulator.append(code)
+	
+	def dump(self):
+		"""Returns the content of the accummulator (as a list) and empties
+		it."""
+		res = self.accumulator
+		self.accumulator=[]
+		return res
 		
 	def generateClosureName(self, closure):
 		parent = closure.getParent()
@@ -110,12 +124,16 @@ class Writer(AbstractWriter):
 		"""Writes a Module element."""
 		code = [
 			"// TODO: Add reflexion support",
-			self._document(moduleElement),"SModule* %s;\n" % (moduleElement.getName())
 		]
 		code.extend(["%s" % (self.write(s[1])) for s in moduleElement.getSlots()])
 		code = [
-			"DECLARE_MODULE(%s)\n" % (self.getAbsoluteName(moduleElement)),
+			"#include <sugar.h>",
+			'DECLARE_MODULE(%s)\n' % (self.getAbsoluteName(moduleElement)),
 			code,
+			["MODULE_INIT(%s)" % (self.getAbsoluteName(moduleElement)),
+			self.dump(),
+			"END_MODULE_INIT"
+			],
 			"\nEND_MODULE"
 		]
 		return self._format(
@@ -135,16 +153,12 @@ class Writer(AbstractWriter):
 			"DECLARE_CLASS(%s)" % (class_name),
 				[	self._document(classElement),
 					"\n".join(map(self.write, flatten(
-					"SClass* %s=%s;\n" % (class_name, self.runtime.newClass(classElement)),
+					classElement.getClassAttributes(),
 					classElement.getAttributes(),
 					classElement.getConstructors(),
-					classElement.getDestructors(),		
+					classElement.getDestructors(),
+					classElement.getClassMethods(),
 					classElement.getInstanceMethods()
-				)))],
-			
-				["\n".join(map(self.write, flatten(
-					classElement.getClassAttributes(),
-					classElement.getClassMethods()
 				)))],
 			"END_CLASS\n"
 		)
@@ -157,7 +171,7 @@ class Writer(AbstractWriter):
 		full_name = self.getAbsoluteName(methodElement, method_name)
 		return self._format(
 			self._document(methodElement),
-			"SValue* %s(SObject* this, %s){" % (
+			"SgValue %s(SgObject* self, %s){" % (
 				full_name,
 				", ".join(map(self.write, methodElement.getArguments()))
 			),
@@ -171,11 +185,11 @@ class Writer(AbstractWriter):
 		method_name = self.getAbsoluteName(methodElement)
 		return self._format(
 			self._document(methodElement),
-			"SValue* %s(%s){" % (
+			"SgValue %s(%s){" % (
 				method_name,
 				", ".join(map(self.write, methodElement.getArguments()))
 			),
-			["SClass* this=%s;" % (self.getAbsoluteName(methodElement.getParent()))],
+			["SgObject* self=%s;" % (self.getAbsoluteName(methodElement.getParent()))],
 			self.writeFunctionWhen(methodElement),
 			map(self.writeCStatement, methodElement.getOperations()),
 			"}"
@@ -191,14 +205,14 @@ class Writer(AbstractWriter):
 			attributes.append("this.%s = %s" % (a.getReferenceName(), self.write(a.getDefaultValue())))
 		return self._format(
 			self._document(element),
-			"%s* initialize(%s){" % (
+			"SgObject* %s_initialize(%s){" % (
 				type_name,
 				", ".join(map(self.write, element.getArguments()))
 			),
-			["%s* this=%s;" % (type_name, self.runtime.new(current_class))],
+			["SgObject* self=%s;" % (self.runtime.new(current_class))],
 			attributes or None,
 			map(self.writeCStatement, element.getOperations()),
-			["return this;"],
+			["return self;"],
 			"}"
 		)
 
@@ -207,7 +221,7 @@ class Writer(AbstractWriter):
 		name = self.generateClosureName(closure)
 		return self._format(
 			self._document(closure),
-			"PValue* %s(%s){" % ( 
+			"SgValue %s(%s){" % ( 
 				name,
 				", ".join(map(self.write, closure.getArguments()))
 			),
@@ -237,12 +251,12 @@ class Writer(AbstractWriter):
 		full_name = self.getAbsoluteName(function)
 		if parent and isinstance(parent, interfaces.IModule):
 			res = [
-				"PValue* %s (%s){" % (
+				"SgValue %s (%s){" % (
 					full_name,
 					", ".join(map(self.write, function.getArguments()))
 				),
 				[self._document(function)],
-				['%s this=%s' % (self.runtime.typeFor(parent), self.getAbsoluteName(parent))],
+				['%s self=%s' % (self.runtime.typeFor(parent), self.getAbsoluteName(parent))],
 				self.writeFunctionWhen(function),
 				map(self.write, function.getOperations()),
 				"}"
@@ -284,16 +298,21 @@ class Writer(AbstractWriter):
 		"""Writes an argument element."""
 		return self._format(
 			self._document(element),
-			"%s:undefined" % (element.getReferenceName())
+			'%s(%s,%s)' % (
+				"DECLARE_ATTRIBUTE",
+				self.getAbsoluteName(self.getCurrentClass()),
+				element.getReferenceName()
+			)
 		)
 
 	def writeClassAttribute( self, element ):
 		"""Writes an argument element."""
 		default_value = element.getDefaultValue()
+		class_name = self.getAbsoluteName(self.getCurrentClass())
 		if default_value:
-			return "%s:%s" % (element.getReferenceName(), self.write(default_value))
+			return "DECLARE_CLASS_ATTRIBUTE(%s,%s)" % (class_name,element.getReferenceName(), self.write(default_value))
 		else:
-			return "%s:undefined" % (element.getReferenceName())
+			return "DECLARE_CLASS_ATTRIBUTE(%s,%s)" % (class_name,element.getReferenceName())
 
 	def writeReference( self, element ):
 		"""Writes an argument element."""
@@ -303,11 +322,11 @@ class Writer(AbstractWriter):
 		if scope and scope.hasSlot(symbol_name):
 			value = scope.getSlot(symbol_name)
 		if symbol_name == "self":
-			return "this"
+			return "self"
 		elif symbol_name == "super":
 			assert self.resolve("self"), "Super must be used inside method"
 			# FIXME: Should check that the element has a method in parent scope
-			return self.jsPrefix + self.jsCore + "superFor(%s, this)" % (
+			return self.jsPrefix + self.jsCore + "superFor(%s, self)" % (
 				self.getAbsoluteName(self.getCurrentClass())
 			)
 		# If there is no scope, then the symmbol is undefined
@@ -317,19 +336,13 @@ class Writer(AbstractWriter):
 		# It is a method of the current class
 		elif self.getCurrentClass() == scope:
 			if isinstance(value, interfaces.IInstanceMethod):
-				# Here we need to wrap the method if they are given as values (
-				# that means used outside of direct invocations), because when
-				# giving a method as a callback, the 'this' pointer is not carried.
-				if self.inInvocation:
-					return "__this__.%s" % (symbol_name)
-				else:
-					return self.jsPrefix + self.jsCore + "wrapMethod(__this__,'%s') " % (symbol_name)
+				return "$G(self,%s)" % (symbol_name)
 			elif isinstance(value, interfaces.IClassMethod):
-				return "%s.%s" % (self.getAbsoluteName(self.getCurrentClass()), symbol_name)
+				return "$G(%s,%s)" % (self.getAbsoluteName(self.getCurrentClass()), symbol_name)
 			elif isinstance(value, interfaces.IClassAttribute):
-				return "%s.%s" % (self.getAbsoluteName(self.getCurrentClass()), symbol_name)
+				return "$G(%s,%s)" % (self.getAbsoluteName(self.getCurrentClass()), symbol_name)
 			else:
-				return "__this__." + symbol_name
+				return "$G(self,%s)" % (symbol_name)
 		# It is a local variable
 		elif self.getCurrentFunction() == scope:
 			return symbol_name
@@ -344,15 +357,15 @@ class Writer(AbstractWriter):
 		elif isinstance(scope, interfaces.IClass):
 			# And the class is one of the parent class
 			if scope in self.getCurrentClassParents():
-				return "this." + symbol_name
+				return "$G(self,%s)" % (symbol_name)
 			# Otherwise it is an outside class, and we have to check that the
 			# value is not an instance slot
 			else:
-				names = [scope.getName(), symbol_name]
+				names = [scope.getName()]
 				while scope.getParent():
 					scope = scope.getParent()
 					names.insert(0, scope.getName())
-				return ".".join(names)
+				return "$G(%s,%s)" % ("_".join(names), symbol_name)
 		# FIXME: This is an exception... iteration being an operation, not a
 		# context...
 		elif isinstance(scope, interfaces.IIteration):
@@ -385,7 +398,7 @@ class Writer(AbstractWriter):
 
 	def writeList( self, element ):
 		"""Writes a list element."""
-		return '[%s]' % (", ".join([
+		return 'LIST(%s)' % (", ".join([
 			self.write(e) for e in element.getValues()
 		]))
 
@@ -435,7 +448,7 @@ class Writer(AbstractWriter):
 	def writeResolution( self, resolution ):
 		"""Writes a resolution operation."""
 		if resolution.getContext():
-			return "%s.%s" % (self.write(resolution.getContext()), resolution.getReference().getReferenceName())
+			return "$G(%s,%s)" % (self.write(resolution.getContext()), resolution.getReference().getReferenceName())
 		else:
 			return "%s" % (resolution.getReference().getReferenceName())
 
@@ -472,10 +485,15 @@ class Writer(AbstractWriter):
 	
 	def writeInstanciation( self, operation ):
 		"""Writes an invocation operation."""
-		return "new %s(%s)" % (
-			self.write(operation.getInstanciable()),
-			", ".join(map(self.write, operation.getArguments()))
-		)
+		len_args = len(operation.getArguments())
+		if len_args == 0:
+			return "NEW0(%s)" % (self.write(operation.getInstanciable()))
+		else:
+			return "NEW%d(%s, %s)" % (
+				len_args,
+				self.write(operation.getInstanciable()),
+				", ".join(map(self.write, operation.getArguments()))
+			)
 
 	def writeSelection( self, selection ):
 		rules = selection.getRules()
