@@ -8,7 +8,7 @@
 # License   : Revised BSD License
 # -----------------------------------------------------------------------------
 # Creation  : 02-Nov-2006
-# Last mod  : 01-Feb-2007
+# Last mod  : 26-Feb-2007
 # -----------------------------------------------------------------------------
 
 
@@ -65,6 +65,17 @@ class Writer(AbstractWriter):
 			parent = self.write(parents[0])
 		elif len(parents) > 1:
 			raise Exception("JavaScript back-end only supports single inheritance")
+		# We create a map of class methods, including inherited class methods
+		# so that we can copy the implementation of these
+		operations = {}
+		for name, meths in classElement.getInheritedClassMethods(self).items():
+			# FIXME: Maybe use wrapper instead
+			operations[name] = self._writeClassMethodProxy(classElement, meths[0])
+		# Here, we've got to cheat a little bit. Each class method will 
+		# generate an '_imp' suffixed method that will be invoked by the 
+		for meth in classElement.getClassMethods():
+			operations[meth.getName()] = meth
+		operations = operations.values()
 		return self._format(
 			"Class.create({",
 				[	self._document(classElement),
@@ -78,7 +89,7 @@ class Writer(AbstractWriter):
 			"},{",
 				[",\n".join(map(self.write, flatten(
 					classElement.getClassAttributes(),
-					classElement.getClassMethods()
+					operations
 				)))],
 			"})"
 		)
@@ -103,16 +114,44 @@ class Writer(AbstractWriter):
 	def writeClassMethod( self, methodElement ):
 		"""Writes a class method element."""
 		method_name = methodElement.getName()
+		args        = methodElement.getArguments()
+		if not args: imp_args    = "__this__"
+		else: imp_args = "%s, __this__" % (", ".join(map(self.write, methodElement.getArguments())))
 		return self._format(
 			self._document(methodElement),
-			"%s:function(%s){" % (
+			"%s:function(%s){" % (method_name, ", ".join(map(self.write, args))),
+			["return %s.%s_imp.apply(%s,Sugar.Core.makeArgs(arguments, %s));" % (
+				self.getAbsoluteName(methodElement.getParent()),
 				method_name,
-				", ".join(map(self.write, methodElement.getArguments()))
+				self.getAbsoluteName(methodElement.getParent()),
+				self.getAbsoluteName(methodElement.getParent())
+			)],
+			"},",
+			"%s_imp:function(%s){" % (
+				method_name,
+				imp_args
 			),
-			['var __this__=%s' % (self.getAbsoluteName(methodElement.getParent()))],
 			self.writeFunctionWhen(methodElement),
 			map(self.write, methodElement.getOperations()),
 			"}"
+		)
+		
+	def _writeClassMethodProxy(self, currentClass, inheritedMethodElement):
+		"""This function is used to wrap class methods inherited from parent
+		classes, so that inheriting operations from parent classes works
+		properly. This may look a bit dirty, but it's the only way I found to
+		implement this properly"""
+		method_name = inheritedMethodElement.getName()
+		method_args = inheritedMethodElement.getArguments()
+		return self._format(
+			"%s:function(%s){" % (method_name, ", ".join(map(self.write, method_args))),
+			["return %s.%s_imp.apply(%s, Sugar.Core.makeArgs(arguments, %s));" % (
+				self.getAbsoluteName(inheritedMethodElement.getParent()),
+				method_name,
+				self.getAbsoluteName(currentClass),
+				self.getAbsoluteName(currentClass)
+			)],
+			'}'
 		)
 
 	def writeConstructor( self, element ):
@@ -223,7 +262,7 @@ class Writer(AbstractWriter):
 	def writeReference( self, element ):
 		"""Writes an argument element."""
 		symbol_name = element.getReferenceName()
-		scope      = self.resolve(symbol_name)
+		scope       = self.resolve(symbol_name)
 		value       = None
 		if scope and scope.hasSlot(symbol_name):
 			value = scope.getSlot(symbol_name)
@@ -250,9 +289,9 @@ class Writer(AbstractWriter):
 				else:
 					return self.jsPrefix + self.jsCore + "wrapMethod(__this__,'%s') " % (symbol_name)
 			elif isinstance(value, interfaces.IClassMethod):
-				return "%s.%s" % (self.getAbsoluteName(self.getCurrentClass()), symbol_name)
+				return "__this__.%s" % (self.getAbsoluteName(self.getCurrentClass()), symbol_name)
 			elif isinstance(value, interfaces.IClassAttribute):
-				return "%s.%s" % (self.getAbsoluteName(self.getCurrentClass()), symbol_name)
+				return "__this__.%s" % (symbol_name)
 			else:
 				return "__this__." + symbol_name
 		# It is a local variable

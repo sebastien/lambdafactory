@@ -189,5 +189,4 @@ class AbstractResolver:
 	def flowEvaluation( self, operation, dataflow ):
 		return self._flow(operation.getEvaluable())
 
-
 # EOF

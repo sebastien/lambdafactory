@@ -41,6 +41,20 @@ class Element:
 		self.meta    = {}
 		self.COUNT  += 1
 
+	def _clone(self, obj):
+		"""Helper function for cloning this"""
+		obj._name   = self._name
+		obj._source = self._source
+		for a in self._annotations:
+			obj._annotations.append(a.clone())
+		for key, value in self.meta:
+			obj.meta[key] = value.clone()
+		
+	def clone(self):
+		"""Returns a clone of this object, or an exception if clone is not
+		supported"""
+		raise Exception("Cloning not supported in %s" % (self.__class__.__name__))
+	
 	def getSource( self ):
 		"""Returns the source for this element (it can be an URL, a file path,
 		etc)."""
@@ -192,6 +206,23 @@ class Class(Context, IClass, IReferencable, IAssignable):
 		for cl in classes:
 			assert isinstance(cl, IReference)
 			self._inherited.append(cl)
+	
+	def getInheritedClassMethods(self, resolver):
+		"""Returns the inherited class methods as a dict of lists. This operation
+		needs a resolver to resolve the classes from their references."""
+		res = {}
+		for class_ref in self._inherited:
+			parent = resolver.resolve(class_ref.getReferenceName())
+			cl = parent.getSlot(class_ref.getReferenceName())
+			for meth in cl.getClassMethods():
+				name = meth.getName()
+				meths = res.setdefault(name, [])
+				meths.append(meth)
+			inherited_cm = cl.getInheritedClassMethods(resolver)
+			for name, imeths in inherited_cm.items():
+				meths = res.setdefault(name, [])
+				meths.extend(imeths)
+		return res
 
 	def getSuperClasses( self ):
 		return self._inherited
