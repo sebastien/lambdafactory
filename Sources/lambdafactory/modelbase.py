@@ -224,6 +224,24 @@ class Class(Context, IClass, IReferencable, IAssignable):
 				meths.extend(imeths)
 		return res
 
+	def getInheritedClassAttributes(self, resolver):
+		"""Returns the inherited class attributes as a dict of lists. This operation
+		needs a resolver to resolve the classes from their references."""
+		res = {}
+		for class_ref in self._inherited:
+			parent = resolver.resolve(class_ref.getReferenceName())
+			cl = parent.getSlot(class_ref.getReferenceName())
+			for attr in cl.getClassAttributes():
+				name = attr.getName()
+				attrs = res.setdefault(name, [])
+				attrs.append(attr)
+			inherited_ca = cl.getInheritedClassAttributes(resolver)
+			for name, iattrs in inherited_ca.items():
+				attrs = res.setdefault(name, [])
+				attrs.extend(iattrs)
+		return res
+
+	
 	def getSuperClasses( self ):
 		return self._inherited
 

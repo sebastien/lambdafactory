@@ -67,30 +67,36 @@ class Writer(AbstractWriter):
 			raise Exception("JavaScript back-end only supports single inheritance")
 		# We create a map of class methods, including inherited class methods
 		# so that we can copy the implementation of these
-		operations = {}
+		classOperations = {}
 		for name, meths in classElement.getInheritedClassMethods(self).items():
 			# FIXME: Maybe use wrapper instead
-			operations[name] = self._writeClassMethodProxy(classElement, meths[0])
+			classOperations[name] = self._writeClassMethodProxy(classElement, meths[0])
 		# Here, we've got to cheat a little bit. Each class method will 
 		# generate an '_imp' suffixed method that will be invoked by the 
 		for meth in classElement.getClassMethods():
-			operations[meth.getName()] = meth
-		operations = operations.values()
+			classOperations[meth.getName()] = meth
+		classOperations = classOperations.values()
+		classAttributes = {}
+		for name, attributes in classElement.getInheritedClassAttributes(self).items():
+			classAttributes[name] = self.write(attributes[0])
+		for attribute in classElement.getClassAttributes():
+			classAttributes[attribute.getName()] = self.write(attribute)
+		classAttributes = classAttributes.values()
 		return self._format(
 			"Class.create({",
-				[	self._document(classElement),
-					",\n".join(map(self.write, flatten(
-					"CLASSDEF:{name:'%s', parent:%s}" % (self.getAbsoluteName(classElement), parent),
-					classElement.getAttributes(),
-					classElement.getConstructors(),
-					classElement.getDestructors(),		
-					classElement.getInstanceMethods()
-				)))],
+			[	self._document(classElement),
+				",\n".join(map(self.write, flatten(
+				"CLASSDEF:{name:'%s', parent:%s}" % (self.getAbsoluteName(classElement), parent),
+				classElement.getAttributes(),
+				classElement.getConstructors(),
+				classElement.getDestructors(),		
+				classElement.getInstanceMethods()
+			)))],
 			"},{",
-				[",\n".join(map(self.write, flatten(
-					classElement.getClassAttributes(),
-					operations
-				)))],
+			[",\n".join(map(self.write, flatten(
+				classAttributes,
+				classOperations
+			)))],
 			"})"
 		)
 
@@ -115,22 +121,10 @@ class Writer(AbstractWriter):
 		"""Writes a class method element."""
 		method_name = methodElement.getName()
 		args        = methodElement.getArguments()
-		if not args: imp_args    = "__this__"
-		else: imp_args = "%s, __this__" % (", ".join(map(self.write, methodElement.getArguments())))
 		return self._format(
 			self._document(methodElement),
 			"%s:function(%s){" % (method_name, ", ".join(map(self.write, args))),
-			["return %s.%s_imp.apply(%s,Sugar.Core.makeArgs(arguments, %s));" % (
-				self.getAbsoluteName(methodElement.getParent()),
-				method_name,
-				self.getAbsoluteName(methodElement.getParent()),
-				self.getAbsoluteName(methodElement.getParent())
-			)],
-			"},",
-			"%s_imp:function(%s){" % (
-				method_name,
-				imp_args
-			),
+			["var __this__ = this;"],
 			self.writeFunctionWhen(methodElement),
 			map(self.write, methodElement.getOperations()),
 			"}"
@@ -145,10 +139,9 @@ class Writer(AbstractWriter):
 		method_args = inheritedMethodElement.getArguments()
 		return self._format(
 			"%s:function(%s){" % (method_name, ", ".join(map(self.write, method_args))),
-			["return %s.%s_imp.apply(%s, Sugar.Core.makeArgs(arguments, %s));" % (
+			["return %s.%s.apply(%s, arguments);" % (
 				self.getAbsoluteName(inheritedMethodElement.getParent()),
 				method_name,
-				self.getAbsoluteName(currentClass),
 				self.getAbsoluteName(currentClass)
 			)],
 			'}'
