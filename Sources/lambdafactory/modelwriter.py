@@ -8,7 +8,7 @@
 # License   : Revised BSD License
 # -----------------------------------------------------------------------------
 # Creation  : 02-Nov-2006
-# Last mod  : 04-jan-2007
+# Last mod  : 13-Mar-2007
 # -----------------------------------------------------------------------------
 
 import interfaces, reporter
@@ -96,6 +96,12 @@ class AbstractWriter:
 	def getCurrentMethod( self ):
 		res = self._filterContext(interfaces.IMethod)
 		return res and res[-1] or None
+
+	def isInClassMethod(self):
+		return self._filterContext(interfaces.IClassMethod)
+	
+	def isInInstanceMethod(self):
+		return self._filterContext(interfaces.IInstanceMethod)
 
 	def getCurrentClass( self ):
 		res = self._filterContext(interfaces.IClass)

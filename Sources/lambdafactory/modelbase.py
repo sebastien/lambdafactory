@@ -561,6 +561,9 @@ class List(Value, IList):
 	def getValues( self ):
 		return self._values
 
+	def getValue(self, i):
+		return self._values[i]
+
 class Dict(Value, IDict):
 
 	def __init__(self):

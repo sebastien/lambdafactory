@@ -8,7 +8,7 @@
 # License   : Revised BSD License
 # -----------------------------------------------------------------------------
 # Creation  : 02-Nov-2006
-# Last mod  : 26-Feb-2007
+# Last mod  : 13-Mar-2007
 # -----------------------------------------------------------------------------
 
 
@@ -195,11 +195,11 @@ class Writer(AbstractWriter):
 		name   = function.getName()
 		if parent and isinstance(parent, interfaces.IModule):
 			res = [
-				"function (%s){" % (
+				"function(%s){" % (
 					", ".join(map(self.write, function.getArguments()))
 				),
 				[self._document(function)],
-				['var __this__=%s' % (self.getAbsoluteName(parent))],
+				['var __this__=%s;' % (self.getAbsoluteName(parent))],
 				self.writeFunctionWhen(function),
 				map(self.write, function.getOperations()),
 				"}"
@@ -207,7 +207,7 @@ class Writer(AbstractWriter):
 		else:
 			res = [
 				self._document(function),
-				"function %s){" % (
+				"function(%s){" % (
 					", ".join(map(self.write, function.getArguments()))
 				),
 				self.writeFunctionWhen(function),
@@ -248,9 +248,10 @@ class Writer(AbstractWriter):
 		"""Writes an argument element."""
 		default_value = element.getDefaultValue()
 		if default_value:
-			return "%s:%s" % (element.getReferenceName(), self.write(default_value))
+			res = "%s:%s" % (element.getReferenceName(), self.write(default_value))
 		else:
-			return "%s:undefined" % (element.getReferenceName())
+			res = "%s:undefined" % (element.getReferenceName())
+		return self._format(self._document(element), res)
 
 	def writeReference( self, element ):
 		"""Writes an argument element."""
@@ -261,6 +262,10 @@ class Writer(AbstractWriter):
 			value = scope.getSlot(symbol_name)
 		if symbol_name == "self":
 			return "this"
+		elif symbol_name == "Undefined":
+			return "undefined"
+		elif symbol_name == "None":
+			return "null"
 		elif symbol_name == "super":
 			assert self.resolve("self"), "Super must be used inside method"
 			# FIXME: Should check that the element has a method in parent scope
@@ -282,9 +287,15 @@ class Writer(AbstractWriter):
 				else:
 					return self.jsPrefix + self.jsCore + "wrapMethod(__this__,'%s') " % (symbol_name)
 			elif isinstance(value, interfaces.IClassMethod):
-				return "__this__.%s" % (self.getAbsoluteName(self.getCurrentClass()), symbol_name)
+				if self.isInInstanceMethod():
+					return "__this__.getClass().%s" % (symbol_name)
+				else:
+					return "__this__.%s" % (symbol_name)
 			elif isinstance(value, interfaces.IClassAttribute):
-				return "__this__.%s" % (symbol_name)
+				if self.isInClassMethod():
+					return "__this__.%s" % (symbol_name)
+				else:
+					return "__this__.getClass().%s" % (symbol_name)
 			else:
 				return "__this__." + symbol_name
 		# It is a local variable
