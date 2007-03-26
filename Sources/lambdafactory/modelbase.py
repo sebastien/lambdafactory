@@ -8,7 +8,7 @@
 # License   : Revised BSD License
 # -----------------------------------------------------------------------------
 # Creation  : 02-Nov-2006
-# Last mod  : 06-Dec-2006
+# Last mod  : 27-Mar-2007
 # -----------------------------------------------------------------------------
 
 # FIXME: Evaluable == Expression ?
@@ -464,6 +464,11 @@ class Resolution(Operation, IResolution, IEvaluable, IReferencable):
 
 class Computation(Operation, IComputation, IEvaluable):
 
+	def __init__( self, *arguments ):
+		Operation.__init__(self, *arguments)
+		assertImplements(self, IComputation)
+		assertImplements(self, IEvaluable)
+
 	def getOperator( self ):
 		return self.getOpArgument(0)
 
@@ -592,7 +597,18 @@ class Reference(Value, IReference):
 		return self._refname
 
 class Operator(Reference, IOperator):
-	pass
+
+	def __init__( self, opname, priority ):
+		Reference.__init__(self, opname)
+		self._priority = 0
+		self.setPriority(priority)
+		
+	def getPriority(self):
+		return self._priority
+	
+	def setPriority(self, priority):
+		assert int(priority) >=0
+		self._priority = priority
 
 class Slot(Reference, ISlot ):
 
@@ -754,8 +770,8 @@ class Factory:
 	def _classattr( self, name, typeinfo=None, value=None):
 		return self._getImplementation("ClassAttribute")(name, typeinfo, value)
 
-	def _op( self, symbol ):
-		return self._getImplementation("Operator")(symbol)
+	def _op( self, symbol, priority=0 ):
+		return self._getImplementation("Operator")(symbol, priority)
 
 	def _number( self, number ):
 		return self._getImplementation("Number")(number)

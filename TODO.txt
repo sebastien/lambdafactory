@@ -1,0 +1,6 @@
+Checks
+======
+
+ - Class should have a constructor
+ - Parent class not resolved
+ - Function/method redefined

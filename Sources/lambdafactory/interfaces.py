@@ -7,7 +7,7 @@
 # License   : Revised BSD License
 # -----------------------------------------------------------------------------
 # Creation  : 02-Nov-2006
-# Last mod  : 06-Dec-2006
+# Last mod  : 27-Mar-2007
 # -----------------------------------------------------------------------------
 
 def abstract(f):
@@ -48,6 +48,7 @@ class Constants:
 	Destructor    = "__destroy__"
 	ModuleInit    = "__moduleinit__"
 	CurrentValue  = "__currentvalue__"
+	PARENS_PRIORITY = 9999
 	
 #------------------------------------------------------------------------------
 #
@@ -203,6 +204,14 @@ class IReference(IValue, IReferencable):
 
 class IOperator(IReference):
 	pass
+
+	@abstract
+	def setPriority( self, priority ):
+		"""Sets the priority for this operator"""
+	
+	@abstract
+	def getPriority( self ):
+		"""Gets the priority for this operator"""
 
 class ISlot(IReference, IAssignable):
 	"""An argument is a reference with additional type information."""
@@ -444,7 +453,7 @@ class IComputation(IOperation):
 	@abstract
 	def getOperator( self ):
 		"""Returns the reference to be resolved."""
-
+		
 	@abstract
 	def getOperand( self ):
 		"""Returns the left operand of this computation."""
