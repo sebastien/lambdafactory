@@ -450,25 +450,37 @@ class IResolution(IOperation):
 class IComputation(IOperation):
 	ARGS = [ IOperator, IEvaluable, IEvaluable ]
 
-	@abstract
 	def getOperator( self ):
-		"""Returns the reference to be resolved."""
-		
-	@abstract
+		"""Gets the operator for this computation"""
+		return self.getOpArgument(0)
+
+	def setOperator( self, operator ):
+		"""Sets the operator for this computation"""
+		return self.getOpArgument(0, operator)
+	
 	def getOperand( self ):
 		"""Returns the left operand of this computation."""
-
-	@abstract
+		return self.getLeftOperand()
+	
 	def getOperands( self ):
 		"""Returns the left (and right, if any) operands of this computation."""
-
-	@abstract
+		return self.getLeftOperand(), self.getRightOperand()
+	
 	def getLeftOperand( self ):
 		"""Returns the left operand of this computation."""
+		return self.getOpArgument(1)
 
-	@abstract
 	def getRightOperand( self ):
 		"""Returns the right operand of this computation (if any)"""
+		return self.getOpArgument(2)
+	
+	def setLeftOperand( self, operand ):
+		"""Sets the left operand of this computation."""
+		return self.setOpArgument(1, operand)
+
+	def setRightOperand( self, operand ):
+		"""Sets the right operand of this computation"""
+		return self.setOpArgument(2, operand)
 
 class IInvocation(IOperation):
 	ARGS = [ IEvaluable, [IEvaluable] ]

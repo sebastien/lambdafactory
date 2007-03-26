@@ -469,21 +469,6 @@ class Computation(Operation, IComputation, IEvaluable):
 		assertImplements(self, IComputation)
 		assertImplements(self, IEvaluable)
 
-	def getOperator( self ):
-		return self.getOpArgument(0)
-
-	def getOperand( self ):
-		return self.getLeftOperand()
-
-	def getOperands( self ):
-		return self.getLeftOperand(), self.getRightOperand()
-
-	def getLeftOperand( self ):
-		return self.getOpArgument(1)
-
-	def getRightOperand( self ):
-		return self.getOpArgument(2)
-
 class Invocation(Operation, IInvocation, IEvaluable):
 	pass
 

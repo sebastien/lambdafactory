@@ -176,9 +176,14 @@ class AbstractWriter:
 	
 	def _document( self, element ):
 		if element.hasDocumentation():
-			return "# " + element.getDocumentation()
+			doc = element.getDocumentation()
+			res = []
+			for line in doc.getContent().split("\n"):
+				res.append("| " + line)
+			return "\n".join(res)
 		else:
 			return None
+
 
 	def _unique( self, name ):
 		i = 0
@@ -200,74 +205,74 @@ class Writer(AbstractWriter):
 	program representation. You can call the main @write method to get the
 	representatio of any model element."""
 
-	def writeModule( self, moduleElement ):
+	def writeModule( self, moduleElement, contentOnly=False ):
 		"""Writes a Module element."""
-		return self._format("module %s:" % (moduleElement.getName()),
+		return self._format("@module %s" % (moduleElement.getName()),
 			[self.write(s[1]) for s in moduleElement.getSlots()],
-			"end"
+			"@end"
 		)
 
 	def writeClass( self, classElement ):
 		"""Writes a class element."""
 		return self._format(
 			self._document(classElement),
-			"class %s:" % (classElement.getName()),
+			"@class %s" % (classElement.getName()),
 			flatten([self.write(m) for m in classElement.getAttributes()]),
 			flatten([self.write(m) for m in classElement.getClassAttributes()]),
 			flatten([self.write(m) for m in classElement.getInstanceMethods()]),
 			flatten([self.write(m) for m in classElement.getClassMethods()]),
-			"end"
+			"@end"
 		)
 
 	def writeDestructor( self, element ):
 		"""Writes a method element."""
 		return self._format(
 			self._document(element),
-			"destructor:",
+			"@destructor",
 			map(self.write, element.getOperations()),
-			"end"
+			"@end"
 		)
 
 	def writeConstructor( self, element ):
 		"""Writes a method element."""
 		return self._format(
 			self._document(element),
-			"constructor ( %s ):" % (
+			"@constructor %s" % (
 				", ".join(map(self.write, element.getArguments()))
 			),
 			map(self.write, element.getOperations()),
-			"end"
+			"@end"
 		)
 
 	def writeMethod( self, methodElement ):
 		"""Writes a method element."""
 		return self._format(
 			self._document(methodElement),
-			"method %s ( %s ):" % (
+			"@method %s %s" % (
 				methodElement.getName(),
 				", ".join(map(self.write, methodElement.getArguments()))
 			),
 			map(self.write, methodElement.getOperations()),
-			"end"
+			"@end"
 		)
 
 	def writeClassMethod( self, methodElement ):
 		"""Writes a class method element."""
 		return self._format(
 			self._document(methodElement),
-			"operation %s ( %s ):" % (
+			"@operation %s %s" % (
 				methodElement.getName(),
 				", ".join(map(self.write, methodElement.getArguments()))
 			),
 			map(self.write, methodElement.getOperations()),
-			"end"
+			"@end"
 		)
 
 	def writeClosure( self, closure ):
 		"""Writes a closure element."""
 		return self._format(
 			self._document(closure),
-			"( %s )->{" % ( ", ".join(map(self.write, closure.getArguments()))),
+			"{%s|" % ( ", ".join(map(self.write, closure.getArguments()))),
 			map(self.write, closure.getOperations()),
 			"}"
 		)
@@ -276,12 +281,12 @@ class Writer(AbstractWriter):
 		"""Writes a function element."""
 		return self._format(
 			self._document(function),
-			"function %s ( %s ):" % (
+			"@function %s %s" % (
 				function.getName(),
 				", ".join(map(self.write, function.getArguments()))
 			),
 			map(self.write, function.getOperations()),
-			"end"
+			"@end"
 		)
 
 	def writeBlock( self, block ):
@@ -292,23 +297,23 @@ class Writer(AbstractWriter):
 
 	def writeArgument( self, argElement ):
 		"""Writes an argument element."""
-		return "%s %s" % (
-			(argElement.getTypeInformation() or "any"),
+		return "%s:%s" % (
 			argElement.getReferenceName(),
+			(argElement.getTypeInformation() or "any")
 		)
 
 	def writeAttribute( self, element ):
 		"""Writes an argument element."""
-		return "attribute %s %s" % (
-			(element.getTypeInformation() or "any"),
+		return "@property %s:%s" % (
 			element.getReferenceName(),
+			(element.getTypeInformation() or "any")
 		)
 
 	def writeClassAttribute( self, element ):
 		"""Writes an argument element."""
-		return "class attribute %s %s" % (
-			(element.getTypeInformation() or "any"),
+		return "@shared %s:%s" % (
 			element.getReferenceName(),
+			(element.getTypeInformation() or "any")
 		)
 
 	def writeReference( self, element ):
@@ -344,11 +349,14 @@ class Writer(AbstractWriter):
 		"""Writes an allocation operation."""
 		s = allocation.getSlotToAllocate()
 		v = allocation.getDefaultValue()
-		res = "%s %s" % (
-			s.getTypeInformation(),
-			s.getReferenceName(),
-		)
-		if v: res += " = " + self._write(v)
+		if s.getTypeInformation():
+			res = "var %s:%s" % (
+				s.getReferenceName(),
+				s.getTypeInformation()
+			)
+		else:
+			res = "var %s" % (s.getReferenceName())
+		if v: res += " = " + self.write(v)
 		return res
 
 	def writeAssignation( self, assignation ):
@@ -374,7 +382,7 @@ class Writer(AbstractWriter):
 	def writeResolution( self, resolution ):
 		"""Writes a resolution operation."""
 		if resolution.getContext():
-			return "%s.%s" % (self.write(resolution.getContext()), resolution.getReference().getReferenceName())
+			return "%s %s" % (self.write(resolution.getContext()), resolution.getReference().getReferenceName())
 		else:
 			return "%s" % (resolution.getReference().getReferenceName())
 
@@ -389,7 +397,7 @@ class Writer(AbstractWriter):
 				self.write(operands[0])
 			)
 		else:
-			return "%s %s %s" % (
+			return "(%s %s %s)" % (
 				self.write(operands[0]),
 				self.write(operator),
 				self.write(operands[1])
@@ -423,7 +431,7 @@ class Writer(AbstractWriter):
 
 	def writeRepetition( self, repetition ):
 		return self._format(
-			"while %s:" % (self.write(repetition.getCondition())),
+			"while %s" % (self.write(repetition.getCondition())),
 			self.write(repetition.getProcess()),
 			"end"
 		)
@@ -436,7 +444,7 @@ class Writer(AbstractWriter):
 	def writeIteration( self, iteration ):
 		"""Writes a iteration operation."""
 		return self._format(
-			"for %s in %s:" % (
+			"for %s in %s" % (
 				self.write(iteration.getIteratedSlot()),
 				self.write(iteration.getIterator())
 			),

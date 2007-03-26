@@ -153,7 +153,7 @@ class Writer(AbstractWriter):
 		attributes    = []
 		for a in current_class.getAttributes():
 			if not a.getDefaultValue(): continue
-			attributes.append("this.%s = %s" % (a.getReferenceName(), self.write(a.getDefaultValue())))
+			attributes.append("__this__.%s = %s" % (a.getReferenceName(), self.write(a.getDefaultValue())))
 		return self._format(
 			self._document(element),
 			"initialize:function(%s){" % (
@@ -261,7 +261,7 @@ class Writer(AbstractWriter):
 		if scope and scope.hasSlot(symbol_name):
 			value = scope.getSlot(symbol_name)
 		if symbol_name == "self":
-			return "this"
+			return "__this__"
 		elif symbol_name == "Undefined":
 			return "undefined"
 		elif symbol_name == "None":
@@ -269,7 +269,7 @@ class Writer(AbstractWriter):
 		elif symbol_name == "super":
 			assert self.resolve("self"), "Super must be used inside method"
 			# FIXME: Should check that the element has a method in parent scope
-			return self.jsPrefix + self.jsCore + "superFor(%s, this)" % (
+			return self.jsPrefix + self.jsCore + "superFor(%s, __this__)" % (
 				self.getAbsoluteName(self.getCurrentClass())
 			)
 		# If there is no scope, then the symmbol is undefined
@@ -312,7 +312,7 @@ class Writer(AbstractWriter):
 		elif isinstance(scope, interfaces.IClass):
 			# And the class is one of the parent class
 			if scope in self.getCurrentClassParents():
-				return "this." + symbol_name
+				return "__this__." + symbol_name
 			# Otherwise it is an outside class, and we have to check that the
 			# value is not an instance slot
 			else:
@@ -419,11 +419,17 @@ class Writer(AbstractWriter):
 				self.write(operands[0])
 			)
 		else:
-			res = "%s %s %s" % (
-				self.write(operands[0]),
-				self.write(operator),
-				self.write(operands[1])
-			)
+			if operator.getReferenceName() == "has":
+					res = '(typeof(%s.%s)!="undefined")' % (
+					self.write(operands[0]),
+					self.write(operands[1])
+				)
+			else:
+				res = "%s %s %s" % (
+					self.write(operands[0]),
+					self.write(operator),
+					self.write(operands[1])
+				)
 		if filter(lambda x:isinstance(x, interfaces.IComputation), self.contexts[:-1]):
 			res = "(%s)" % (res)
 		return res
@@ -484,6 +490,12 @@ class Writer(AbstractWriter):
 				self.write(iteration.getIterator()),
 				self.write(iteration.getClosure())
 			)
+		)
+
+	def writeRepetition( self, repetition ):
+		return self._format(
+			"while (%s)" % (self.write(repetition.getCondition())),
+			self.write(repetition.getProcess())
 		)
 
 	def writeSliceOperation( self, operation ):
