@@ -264,6 +264,10 @@ class Writer(AbstractWriter):
 			return "__this__"
 		elif symbol_name == "Undefined":
 			return "undefined"
+		elif symbol_name == "True":
+			return "true"
+		elif symbol_name == "False":
+			return "false"
 		elif symbol_name == "None":
 			return "null"
 		elif symbol_name == "super":
