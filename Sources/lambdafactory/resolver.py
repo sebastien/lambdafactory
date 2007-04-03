@@ -7,7 +7,7 @@
 # License   : Revised BSD License
 # -----------------------------------------------------------------------------
 # Creation  : 02-Nov-2006
-# Last mod  : 06-Dec-2006
+# Last mod  : 02-Apr-2007
 # -----------------------------------------------------------------------------
 
 import interfaces, reporter
@@ -135,6 +135,9 @@ class AbstractResolver:
 		return dataflow
 	
 	def _flowClassStage2( self, program, element, dataflow ):
+		"""Utility function that resolves the parents for a class. This must
+		happen at stage 2 because we have to wait for every class to be
+		registered properly."""
 		# TODO: Multiple inheritance is too complicated right now
 		for p in element.getSuperClasses():
 			module = program.getDataFlow().resolve(p.getReferenceName())

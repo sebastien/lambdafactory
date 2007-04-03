@@ -8,7 +8,7 @@
 # License   : Revised BSD License
 # -----------------------------------------------------------------------------
 # Creation  : 02-Nov-2006
-# Last mod  : 27-Mar-2007
+# Last mod  : 03-Apr-2007
 # -----------------------------------------------------------------------------
 
 # FIXME: Evaluable == Expression ?
@@ -94,6 +94,11 @@ class Element:
 	
 	def annotations(self, withName):
 		return [a for a in self._annotations if a.getName() == withName]
+
+	def getAnnotation(self, withName):
+		res = self.annotations(withName)
+		if res: return res[0]
+		else: return None
 
 class Annotation(IAnnotation):
 
@@ -204,7 +209,7 @@ class Class(Context, IClass, IReferencable, IAssignable):
 		self._inherited = []
 		if not classes: return
 		for cl in classes:
-			assert isinstance(cl, IReference)
+			assert isinstance(cl, IReference) or isinstance(cl, IResolution)
 			self._inherited.append(cl)
 	
 	def getInheritedClassMethods(self, resolver):
