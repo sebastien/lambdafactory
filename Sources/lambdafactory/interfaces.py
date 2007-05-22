@@ -7,7 +7,7 @@
 # License   : Revised BSD License
 # -----------------------------------------------------------------------------
 # Creation  : 02-Nov-2006
-# Last mod  : 27-Mar-2007
+# Last mod  : 22-May-2007
 # -----------------------------------------------------------------------------
 
 def abstract(f):
@@ -49,7 +49,7 @@ class Constants:
 	ModuleInit    = "__moduleinit__"
 	CurrentValue  = "__currentvalue__"
 	PARENS_PRIORITY = 9999
-	
+
 #------------------------------------------------------------------------------
 #
 #  Element Interfaces
@@ -152,20 +152,19 @@ class IDocumentation(IAnnotation):
 #
 #------------------------------------------------------------------------------
 
-
 class IValue(IEvaluable):
 	"""A value represents an atomic element of the language, like a number, a
 	string, or a name (that can resolved by the language, acts as key for data
 	structures, etc.)."""
 
-class ILitteral(IValue):
-	"""A litteral is a value that does not need a context to be evaluated. The
+class ILiteral(IValue):
+	"""A literal is a value that does not need a context to be evaluated. The
 	evaluation is direct."""
 
-class INumber(ILitteral):
+class INumber(ILiteral):
 	pass
 
-class IString(ILitteral):
+class IString(ILiteral):
 	pass
 
 class IList(IValue):
@@ -330,6 +329,11 @@ class IModule(IContext):
 	def getClasses( self ):
 		pass
 
+class IProgram(IContext):
+	"""The program is the core context and entry point for almost every
+	operation offered by LambdaFactory."""
+	pass
+
 class IProcess:
 	"""A process is a sequence of operations."""
 
@@ -348,7 +352,7 @@ class IProcess:
 class IBlock(IProcess):
 	"""A block is a specific type of (sub) process."""
 
-class IClosure(IProcess):
+class IClosure(IProcess, IContext):
 
 	@abstract
 	def getArguments( self ):

@@ -147,7 +147,7 @@ class Unresolved(Symbolic):
 
 class Cell(Type):
 	"""A cell type represents a memory unit. It has a size (in bytes) the
-	represents in lenght in memory."""
+	represents the length in memory."""
 
 	def __init__( self, length, name=None ):
 		Type.__init__(self, name)

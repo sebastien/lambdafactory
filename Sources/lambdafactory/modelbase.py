@@ -8,7 +8,7 @@
 # License   : Revised BSD License
 # -----------------------------------------------------------------------------
 # Creation  : 02-Nov-2006
-# Last mod  : 03-Apr-2007
+# Last mod  : 22-May-2007
 # -----------------------------------------------------------------------------
 
 # FIXME: Evaluable == Expression ?
@@ -30,6 +30,8 @@ class Element:
 	
 	Each element has a `meta` attribute that can be used to store some things
 	like documentation."""
+
+	# Global counter for elements (auto-incremental id)
 	COUNT = 0
 
 	def __init__( self, name=None ):
@@ -217,7 +219,7 @@ class Class(Context, IClass, IReferencable, IAssignable):
 		needs a resolver to resolve the classes from their references."""
 		res = {}
 		for class_ref in self._inherited:
-			parent = resolver.resolve(class_ref.getReferenceName())
+			slot, parent = resolver.resolve(class_ref.getReferenceName())
 			cl = parent.getSlot(class_ref.getReferenceName())
 			for meth in cl.getClassMethods():
 				name = meth.getName()
@@ -234,7 +236,7 @@ class Class(Context, IClass, IReferencable, IAssignable):
 		needs a resolver to resolve the classes from their references."""
 		res = {}
 		for class_ref in self._inherited:
-			parent = resolver.resolve(class_ref.getReferenceName())
+			slot, parent = resolver.resolve(class_ref.getReferenceName())
 			cl = parent.getSlot(class_ref.getReferenceName())
 			for attr in cl.getClassAttributes():
 				name = attr.getName()
@@ -264,7 +266,10 @@ class Module(Context, IModule, IAssignable, IReferencable):
 
 	def setName( self, name ):
 		self._name = name
-		
+
+class Program(Context, IProgram):
+	pass
+
 # ------------------------------------------------------------------------------
 #
 # PROCESSES
@@ -301,7 +306,7 @@ class Closure(Process, IAssignable, IClosure, IEvaluable):
 
 	def __init__(self, arguments, name=None ):
 		Process.__init__(self, name=name)
-		self._arguments = arguments
+		self.setArguments(arguments)
 		assertImplements(self, IInvocable)
 		assertImplements(self, IClosure)
 		assertImplements(self, IEvaluable)
@@ -328,7 +333,6 @@ class Function( Closure, IFunction, IReferencable ):
 
 	def __init__(self, name, arguments ):
 		Closure.__init__(self, arguments, name)
-		self._arguments = arguments
 		assertImplements(self, IFunction)
 		assertImplements(self, IReferencable)
 
@@ -526,21 +530,21 @@ class Termination(Operation, ITermination):
 class Value(Element, IValue, IEvaluable, IAssignable):
 	pass
 
-class Litteral(Value, ILitteral):
+class Literal(Value, ILiteral):
 
 	def __init__( self, actualValue ):
 		Value.__init__(self)
-		self._litteralValue = actualValue
-		assertImplements(self, ILitteral)
+		self._literalValue = actualValue
+		assertImplements(self, ILiteral)
 
 	def getActualValue( self ):
-		"""Returns the (python) value for this litteral."""
-		return self._litteralValue
+		"""Returns the (python) value for this literal."""
+		return self._literalValue
 
-class Number(Litteral, INumber):
+class Number(Literal, INumber):
 	pass
 
-class String(Litteral, IString):
+class String(Literal, IString):
 	pass
 
 class List(Value, IList):
@@ -646,7 +650,7 @@ class Factory:
 	"""This class takes a module and look for classes with the same name as the
 	`createXXX` methods and instanciates them.
 
-	For instance, if you define a module with classes like `Value`, `Litteral`,
+	For instance, if you define a module with classes like `Value`, `Literal`,
 	`Invocation`, `Function`, etc. you just have to give this module to the
 	factory constructor and it will be used to generate the given element."""
 
@@ -656,7 +660,7 @@ class Factory:
 	Destructor    = Constants.Destructor
 	ModuleInit    = Constants.ModuleInit
 	CurrentValue  = Constants.CurrentValue
-	
+
 	def __init__( self, module ):
 		self._module = module
 
@@ -666,6 +670,9 @@ class Factory:
 			(self._module, name))
 		else:
 			return getattr(self._module, name)
+
+	def createProgram( self ):
+		return self._getImplementation("Program")()
 
 	def createBlock( self ):
 		return self._getImplementation("Block")()

@@ -40,7 +40,9 @@ class Writer(AbstractWriter):
 		names = [element.getName()]
 		while element.getParent():
 			element = element.getParent()
-			names.insert(0, element.getName())
+			# FIXME: Some elements may not have a name
+			if not isinstance(element, interfaces.IProgram):
+				names.insert(0, element.getName())
 		return ".".join(names)
 
 	def renameModuleSlot(self, name):
@@ -255,9 +257,8 @@ class Writer(AbstractWriter):
 
 	def writeReference( self, element ):
 		"""Writes an argument element."""
-		symbol_name = element.getReferenceName()
-		scope       = self.resolve(symbol_name)
-		value       = None
+		symbol_name  = element.getReferenceName()
+		value, scope = self.resolve(symbol_name)
 		if scope and scope.hasSlot(symbol_name):
 			value = scope.getSlot(symbol_name)
 		if symbol_name == "self":
@@ -310,6 +311,7 @@ class Writer(AbstractWriter):
 			names = [scope.getName(), symbol_name]
 			while scope.getParent():
 				scope = scope.getParent()
+				# FIXME: Some scopes (Program) may be unnamed
 				names.insert(0, scope.getName())
 			return ".".join(names)
 		# It is a property of a class
@@ -395,9 +397,9 @@ class Writer(AbstractWriter):
 		"""Writes an enumeration operation."""
 		start = operation.getStart() 
 		end   = operation.getEnd() 
-		if isinstance(start, interfaces.ILitteral): start = self.write(start)
+		if isinstance(start, interfaces.ILiteral): start = self.write(start)
 		else: start = "(%s)" % (self.write(start))
-		if isinstance(end, interfaces.ILitteral): end = self.write(end)
+		if isinstance(end, interfaces.ILiteral): end = self.write(end)
 		else: end = "(%s)" % (self.write(end))
 		res = self.jsPrefix + self.jsCore + "range(%s,%s)" % (start, end)
 		step = operation.getStep()
@@ -434,7 +436,7 @@ class Writer(AbstractWriter):
 					self.write(operator),
 					self.write(operands[1])
 				)
-		if filter(lambda x:isinstance(x, interfaces.IComputation), self.contexts[:-1]):
+		if self._filterContext(interfaces.IComputation):
 			res = "(%s)" % (res)
 		return res
 

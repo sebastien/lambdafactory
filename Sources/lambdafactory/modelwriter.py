@@ -370,9 +370,9 @@ class Writer(AbstractWriter):
 		"""Writes an enumeration operation."""
 		start = operation.getStart() 
 		end   = operation.getStart() 
-		if isinstance(start, interfaces.ILitteral): start = self.write(start)
+		if isinstance(start, interfaces.ILiteral): start = self.write(start)
 		else: start = "(%s)" % (self.write(start))
-		if isinstance(end, interfaces.ILitteral): end = self.write(end)
+		if isinstance(end, interfaces.ILiteral): end = self.write(end)
 		else: end = "(%s)" % (self.write(end))
 		res = "%s..%s" % (start, end)
 		step = operation.getStep()

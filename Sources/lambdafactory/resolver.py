@@ -7,35 +7,57 @@
 # License   : Revised BSD License
 # -----------------------------------------------------------------------------
 # Creation  : 02-Nov-2006
-# Last mod  : 02-Apr-2007
+# Last mod  : 22-May-2007
 # -----------------------------------------------------------------------------
 
 import interfaces, reporter
 
+# ------------------------------------------------------------------------------
+#
+# DATAFLOW
+#
+# ------------------------------------------------------------------------------
+
 class DataFlow:
+	"""The DataFlow are ''dynamic contexts'' bound to the various program model
+	elements. DataFlows are typically owned by elements which implement
+	'IContext', and are linked together by rules defined in the 'Resolver'
+	class.
+
+	The dataflow bound to most expressions is the one of the enclosing closure
+	(wether it is a function, or method. The dataflow of a method is bound to
+	its parent class, which dataflow is also bound to the parent class dataflow.
+
+	While 'DataFlow' and 'Context' may appear very similar, they are not the
+	same: contexts are elements that keep track of declared slots, while the
+	dataflow make use of the context to weave the elements togeher.
+	"""
 
 	ARGUMENT    = "Argument"
 	ENVIRONMENT = "Environment"
-	# FIXME: Rename to local
-	VARIABLE    = "Variable"
+	LOCAL       = "Local"
 
-	def __init__( self, element ):
+	def __init__( self, element, parent=None ):
 		self.element  = element
 		self.slots    = []
 		self.parents  = []
 		self.children = []
+		if parent != None: self.addParent(parent)
 		element.setDataFlow(self)
 
 	def declareArgument( self, name, value ):
-		self.slots.append([name, value, [None], self.ARGUMENT])
+		self._declare(name, value, None, self.ARGUMENT)
 
 	def declareEnvironment( self, name, value ):
-		self.slots.append([name, value,[None], self.ENVIRONMENT])
+		self._declare(name, value, None, self.ENVIRONMENT)
 
 	def declareVariable( self, name, value, origin ):
-		self.slots.append([name, value, [origin], self.VARIABLE])
-		#print "declare", name, value, self.hasSlot(name)
-		#self.element.setSlot(name, value, False)
+		self._declare(name, value, origin, self.LOCAL)
+
+	def _declare( self, name, value, origin, slottype ):
+		"""Declares the given slot with the given name, value, origin
+		and type. This is used internaly by the other 'declare' methods."""
+		self.slots.append([name, value, [origin], slottype])
 
 	def hasSlot( self, name ):
 		return len(filter(lambda s:s[0]==name, self.slots)) > 0
@@ -55,16 +77,16 @@ class DataFlow:
 		return self.children
 
 	def resolve( self, name ):
-		# FIXME: For the moment, resolve returns the scope in which the
-		# given slot is defined... this is very confusing
+		"""Returns a couple '(DataFlow slot, IElement)' or '(None,None)'
+		corresponding to the resolution of the given 'name' in this dataflow."""
 		slot = self.getSlot(name)
 		if slot:
-			return self.element
+			return (slot, self.element)
 		else:
 			for p in self.getParents():
 				r = p.resolve(name)
 				if r: return r
-			return None
+			return (None,None)
 
 	def defines( self, name ):
 		slot = self.getSlot(name)
@@ -83,7 +105,13 @@ class DataFlow:
 			if slot[0] == name: 
 				return slot
 		return None
-		
+
+# ------------------------------------------------------------------------------
+#
+# ABSTRACT RESOLVER
+#
+# ------------------------------------------------------------------------------
+
 class AbstractResolver:
 	# This defines an ordered set of interfaces names (without the leading I).
 	# This list is used in the the write method
@@ -94,22 +122,37 @@ class AbstractResolver:
 		"Class",
 		"Context",
 		"Process",
-		"Allocation",
+		"Closure",
 		"Iteration",
-		"Evaluation"
+		"Evaluation",
+		"Allocation"
 	)
 
 	def __init__( self, reporter=reporter.DefaultReporter ):
 		self.report = reporter
 		self.stage2 = []
+
+	def flow( self, program ):
+		"""This is the main method of the resolver. Basically, you give a
+		program, and it will either flow the whole program, or flow the given
+		module (that should belong to the program).
 		
-	def flow( self, module, program=None):
-		if program == None: program = module
-		self._flow(module)
+		Flowing happens in two stages:
+		
+		 - During first stage, individual elements will have a dataflow bound to
+		   them
+		 - During the second stage, dataflows of all elements are linked
+		   together
+		
+		Separating the flows allows to avoid loops (where A asks the dataflow of
+		B, which cannot be created before A has a dataflow), and making the
+		flowing process simpler.
+		"""
+		self._flow(program)
 		while self.stage2:
 			f, a = self.stage2.pop()
-			f(program, *a)
-	
+			f(module, *a)
+
 	def _flow( self, element, dataflow=None ):
 		"""Creates flow information for the given element."""
 		res = None
@@ -140,7 +183,7 @@ class AbstractResolver:
 		registered properly."""
 		# TODO: Multiple inheritance is too complicated right now
 		for p in element.getSuperClasses():
-			module = program.getDataFlow().resolve(p.getReferenceName())
+			slot, module = program.getDataFlow().resolve(p.getReferenceName())
 			if not module:
 				self.report.error("Undefined parent class:" + p.getReferenceName(), element)
 				self.report = reporter
