@@ -120,6 +120,19 @@ class IInvocable:
 		"""Returns a list of arguments (which are names associated with optional
 		type information."""
 
+class IAbstractable:
+	"""An abstractable element is an element that is allow to have
+	no underlying implementation.  Abstract element are typically interfaces,
+	methods, functions, operations, and sometimes modules and classes."""
+
+	@abstract
+	def isAbstract( self ):
+		"""Tells wether the given abstractable is abstract or not."""
+
+	@abstract
+	def setAbstract( self, isAbstract=True ):
+		"""Sets wether the given abstractable is abstract or not."""
+
 #------------------------------------------------------------------------------
 #
 #  Annotation Elements
@@ -321,6 +334,12 @@ class IClass(IContext, IReferencable):
 	@abstract
 	def getSuperClasses( self ):
 		"""Returns the list of inherited classes references."""
+
+class IAbstractClass(IClass, IAbstractable):
+	"""An abstract class is a class that has at least one abstract element."""
+
+class IInterface(IAbstractClass, IAbstractable):
+	"""An interface is an abstract class that only has abstract elements."""
 
 class IModule(IContext):
 	pass

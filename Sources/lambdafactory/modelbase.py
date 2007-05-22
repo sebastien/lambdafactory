@@ -133,13 +133,21 @@ class Documentation(Annotation, IDocumentation):
 #
 # ------------------------------------------------------------------------------
 
-class Context(Element, IContext):
+class Context(Element, IContext, IAbstractable):
+	"""A context is an element that is also abstractable. A context is abstract
+	if every declared slot is either empty or have an abstract process."""
 
 	def __init__( self, name=None ):
 		Element.__init__(self, name=name)
 		assertImplements(self, IContext)
 		self._slots = []
 		self._parent = None
+
+	def isAbstract( self ):
+		raise Exception("Not implemented")
+
+	def setAbstract( self, isAbstract=True ):
+		raise Exception("You cannot explicitely set a context as abstract")
 
 	# FIXME: AssignParent is used when the value assigned to the
 	# slot is "owned" by the slot (like methods in classes)
@@ -206,14 +214,14 @@ class Class(Context, IClass, IReferencable, IAssignable):
 
 	def getName( self ):
 		return self._name
-		
+
 	def setSuperClasses( self, classes ) :
 		self._inherited = []
 		if not classes: return
 		for cl in classes:
 			assert isinstance(cl, IReference) or isinstance(cl, IResolution)
 			self._inherited.append(cl)
-	
+
 	def getInheritedClassMethods(self, resolver):
 		"""Returns the inherited class methods as a dict of lists. This operation
 		needs a resolver to resolve the classes from their references."""
@@ -248,9 +256,12 @@ class Class(Context, IClass, IReferencable, IAssignable):
 				attrs.extend(iattrs)
 		return res
 
-	
 	def getSuperClasses( self ):
 		return self._inherited
+
+class Interface(Class, IInterface):
+	# TODO: Check that only abstract things are put into an interface
+	pass
 
 class Module(Context, IModule, IAssignable, IReferencable):
 
@@ -276,14 +287,23 @@ class Program(Context, IProgram):
 #
 # ------------------------------------------------------------------------------
 
-class Process( Context, IContext, IProcess ):
+class Process( Context, IContext, IProcess, IAbstractable ):
+	"""The default process is a _context_ that is _abstractable_"""
 
 	def __init__(self, name=None ):
 		Context.__init__(self, name)
 		self._operations = []
+		self._isAbstract = False
 		assertImplements(self, IEvaluable)
 
+	def setAbstract( self, value=True ):
+		self._isAbstract = value and True
+
+	def isAbstract( self ):
+		return self._isAbstract
+
 	def addOperation( self, operation ):
+		assert not self._isAbstract, "An abstract process cannot have operations"
 		if not isinstance(operation, IOperation):
 			raise ModelException("%s expected %s, got %s" \
 			% (self, IOperation, operation.__class__))
@@ -291,7 +311,7 @@ class Process( Context, IContext, IProcess ):
 
 	def addOperations( self, *operations ):
 		map( self.addOperation, operations )
-		
+
 	def getOperations( self ):
 		return self._operations
 
