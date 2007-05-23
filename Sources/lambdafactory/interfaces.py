@@ -338,7 +338,7 @@ class IClass(IContext, IReferencable):
 class IAbstractClass(IClass, IAbstractable):
 	"""An abstract class is a class that has at least one abstract element."""
 
-class IInterface(IAbstractClass, IAbstractable):
+class IInterface(IAbstractClass):
 	"""An interface is an abstract class that only has abstract elements."""
 
 class IModule(IContext):

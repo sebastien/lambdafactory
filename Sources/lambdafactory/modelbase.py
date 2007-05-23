@@ -694,6 +694,9 @@ class Factory:
 	def createProgram( self ):
 		return self._getImplementation("Program")()
 
+	def createInterface( self ):
+		return self._getImplementation("Interface")()
+
 	def createBlock( self ):
 		return self._getImplementation("Block")()
 
