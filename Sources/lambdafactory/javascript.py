@@ -59,6 +59,9 @@ class Writer(AbstractWriter):
 			*code
 		)
 
+	def writeImportOperation( self, importElement):
+		return self._format("")
+
 	def writeClass( self, classElement ):
 		"""Writes a class element."""
 		parents = classElement.getSuperClasses()
@@ -311,8 +314,7 @@ class Writer(AbstractWriter):
 			names = [scope.getName(), symbol_name]
 			while scope.getParent():
 				scope = scope.getParent()
-				# FIXME: Some scopes (Program) may be unnamed
-				names.insert(0, scope.getName())
+				if hasattr( scope, "getName" ): names.insert(0, scope.getName())
 			return ".".join(names)
 		# It is a property of a class
 		elif isinstance(scope, interfaces.IClass):
@@ -332,6 +334,8 @@ class Writer(AbstractWriter):
 		elif isinstance(scope, interfaces.IIteration):
 			return symbol_name
 		elif isinstance(scope, interfaces.IClosure):
+			return symbol_name
+		elif isinstance(scope, interfaces.IProgram):
 			return symbol_name
 		else:
 			raise Exception("Unsupported scope:" + str(scope))

@@ -91,14 +91,14 @@ class DataFlow:
 	def defines( self, name ):
 		slot = self.getSlot(name)
 		if slot:
-			return self.element
+			return (slot, self.element)
 		elif self.getChildren():
 			for child in self.getChildren():
 				res = child.defines(name)
 				if res: return child
-			return None
+			return (None,None)
 		else:
-			return None
+			return (None,None)
 
 	def getSlot( self, name ):
 		for slot in self.slots:
@@ -125,7 +125,8 @@ class AbstractResolver:
 		"Closure",
 		"Iteration",
 		"Evaluation",
-		"Allocation"
+		"Allocation",
+		"ImportOperation"
 	)
 
 	def __init__( self, reporter=reporter.DefaultReporter ):
@@ -148,14 +149,17 @@ class AbstractResolver:
 		B, which cannot be created before A has a dataflow), and making the
 		flowing process simpler.
 		"""
+		print "STAGE 1"
 		self._flow(program)
+		print "STAGE 2"
 		while self.stage2:
 			f, a = self.stage2.pop()
-			f(module, *a)
+			f(program, *a)
 
 	def _flow( self, element, dataflow=None ):
 		"""Creates flow information for the given element."""
 		res = None
+		print "flowing", element
 		if element.hasDataFlow():
 			res = element.getDataFlow()
 		else:
@@ -167,8 +171,10 @@ class AbstractResolver:
 					raise Exception("Resolver does not define flow method for: " + name)
 				if dataflow:
 					res = getattr(self, "flow" + name)(element, dataflow)
+					break
 				else:
 					res = getattr(self, "flow" + name)(element)
+					break
 		return res
 
 	def flowClass( self, element ):
@@ -186,7 +192,6 @@ class AbstractResolver:
 			slot, module = program.getDataFlow().resolve(p.getReferenceName())
 			if not module:
 				self.report.error("Undefined parent class:" + p.getReferenceName(), element)
-				self.report = reporter
 			else:
 				parent = module.getSlot(p.getReferenceName())
 				flow   = parent.getDataFlow()
@@ -220,6 +225,7 @@ class AbstractResolver:
 	def flowProcess( self, element ):
 		dataflow = DataFlow(element)
 		for op in element.getOperations():
+			print " +++", op
 			flow = self._flow(op, dataflow)
 			if flow: flow.addParent(dataflow)
 		return dataflow
@@ -234,5 +240,13 @@ class AbstractResolver:
 
 	def flowEvaluation( self, operation, dataflow ):
 		return self._flow(operation.getEvaluable())
+
+	def flowImportOperation( self, operation, dataflow):
+		self.stage2.append((self._flowImportOperationStage2, (operation, dataflow)))	
+		print operation.getTarget().getName()
+		return dataflow
+
+	def _flowImportOperationStage2( self, program, operation, dataflow):
+		program.getDataFlow().declareVariable(operation.getTarget().getName(),operation.getName(),operation)
 
 # EOF

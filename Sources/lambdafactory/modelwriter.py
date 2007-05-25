@@ -74,7 +74,7 @@ class AbstractWriter:
 		"Allocation", "Assignation", "Computation",
 		"Invocation", "Instanciation", "Resolution", "Selection",
 		"Repetition", "Iteration",  "SliceOperation",
-		"Evaluation", "Termination"
+		"Evaluation", "Termination", "ImportOperation"
 	)
 
 	def __init__( self, reporter=reporter.DefaultReporter ):
@@ -147,11 +147,13 @@ class AbstractWriter:
 			dataflow = self.getCurrentDataFlow()
 		if dataflow:
 			res = dataflow.resolve(name)
-			if not res:
+			if not res[0] or not res[1]:
+				#raise Exception("Unresolved symbol:" + name )
 				self.report.error("Unresolved symbol:" + name, self.contexts[-1])
 			return res
 		else:
 			self.report.error("Not dataflow available", self.contexts[-1])
+			return (None,None)
 
 	def write( self, element ):
 		res = None
@@ -161,15 +163,13 @@ class AbstractWriter:
 		for name, the_interface in this_interfaces:
 			if isinstance(element, the_interface):
 				if not hasattr(self, "write" + name ):
-					raise Exception("Writer does not define write method for: "
-					+ name)
+					raise Exception("Writer does not define write method for: "	+ name)
 				else:
 					self.contexts.append(element)
 					result = getattr(self, "write" + name)(element)
 					self.contexts.pop()
 					return result
-		raise Exception("Element implements unsupported interface: "
-		+ str(element))
+		raise Exception("Element implements unsupported interface: " + str(element))
 
 	def _format( self, *values ):
 		return format(*values)

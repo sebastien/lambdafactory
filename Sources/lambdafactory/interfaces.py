@@ -381,7 +381,7 @@ class IClosure(IProcess, IContext):
 	def setArguments( self ):
 		pass
 
-class IFunction(IClosure, IReferencable):
+class IFunction(IClosure, IReferencable, IAbstractable):
 
 	@abstract
 	def getName( self ):
@@ -428,6 +428,20 @@ class IOperation:
 		"""Returns the *internal types* for this operations arguments. This is
 		typically the list of interfaces or classes that the arguments must
 		comply to."""
+
+class IImportOperation(IOperation):
+	ARGS = [ IEvaluable, IEvaluable ]
+	
+	def getTarget( self ):
+		if self.getAlias():
+			return self.getAlias()
+		return self.getName()
+
+	def getName( self ):
+		return self.getOpArgument(0)
+
+	def getAlias( self ):
+		return self.getOpArgument(1)
 
 class IEvaluation(IOperation):
 	ARGS = [ IEvaluable, IEvaluable ]
