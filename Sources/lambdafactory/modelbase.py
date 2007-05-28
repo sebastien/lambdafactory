@@ -142,12 +142,13 @@ class Context(Element, IContext, IAbstractable):
 		assertImplements(self, IContext)
 		self._slots = []
 		self._parent = None
+		self._isAbstract = False
+
+	def setAbstract( self, value=True ):
+		self._isAbstract = value and True
 
 	def isAbstract( self ):
-		raise Exception("Not implemented")
-
-	def setAbstract( self, isAbstract=True ):
-		raise Exception("You cannot explicitely set a context as abstract")
+		return self._isAbstract
 
 	# FIXME: AssignParent is used when the value assigned to the
 	# slot is "owned" by the slot (like methods in classes)
@@ -293,14 +294,7 @@ class Process( Context, IContext, IProcess, IAbstractable ):
 	def __init__(self, name=None ):
 		Context.__init__(self, name)
 		self._operations = []
-		self._isAbstract = False
 		assertImplements(self, IEvaluable)
-
-	def setAbstract( self, value=True ):
-		self._isAbstract = value and True
-
-	def isAbstract( self ):
-		return self._isAbstract
 
 	def addOperation( self, operation ):
 		assert not self._isAbstract, "An abstract process cannot have operations"
@@ -541,6 +535,12 @@ class Termination(Operation, ITermination):
 	def getReturnedEvaluable( self ):
 		return self.getOpArgument(0)
 
+class ImportOperation(Operation, IImportOperation):
+	
+	def __init__( self, *arguments):
+		Operation.__init__(self, *arguments)
+		assertImplements(self, IImportOperation)
+
 # ------------------------------------------------------------------------------
 #
 # VALUES
@@ -723,6 +723,9 @@ class Factory:
 
 	def createModule( self, name ):
 		return self._getImplementation("Module")(name)
+
+	def imports( self, name, alias ):
+		return self._getImplementation("ImportOperation")(name, alias)
 
 	def evaluate( self, evaluable ):
 		return self._getImplementation("Evaluation")(evaluable)

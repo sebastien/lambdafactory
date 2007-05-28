@@ -91,14 +91,14 @@ class DataFlow:
 	def defines( self, name ):
 		slot = self.getSlot(name)
 		if slot:
-			return self.element
+			return (slot, self.element)
 		elif self.getChildren():
 			for child in self.getChildren():
 				res = child.defines(name)
 				if res: return child
-			return None
+			return (None,None)
 		else:
-			return None
+			return (None,None)
 
 	def getSlot( self, name ):
 		for slot in self.slots:
@@ -125,7 +125,8 @@ class AbstractResolver:
 		"Closure",
 		"Iteration",
 		"Evaluation",
-		"Allocation"
+		"Allocation",
+		"ImportOperation"
 	)
 
 	def __init__( self, reporter=reporter.DefaultReporter ):
@@ -174,8 +175,10 @@ class AbstractResolver:
 					raise Exception("Resolver does not define flow method for: " + name)
 				if dataflow:
 					res = getattr(self, "flow" + name)(element, dataflow)
+					break
 				else:
 					res = getattr(self, "flow" + name)(element)
+					break
 		return res
 
 	def flowClass( self, element ):
@@ -188,13 +191,11 @@ class AbstractResolver:
 		"""Utility function that resolves the parents for a class. This must
 		happen at stage 2 because we have to wait for every class to be
 		registered properly."""
-		module = self._findParentModule(element)
 		# TODO: Multiple inheritance is too complicated right now
 		for p in element.getSuperClasses():
-			slot, module = module.getDataFlow().resolve(p.getReferenceName())
+			slot, module = program.getDataFlow().resolve(p.getReferenceName())
 			if not module:
 				self.report.error("Undefined parent class:" + p.getReferenceName(), element)
-				assert None
 			else:
 				parent = module.getSlot(p.getReferenceName())
 				flow   = parent.getDataFlow()
@@ -242,5 +243,13 @@ class AbstractResolver:
 
 	def flowEvaluation( self, operation, dataflow ):
 		return self._flow(operation.getEvaluable())
+
+	def flowImportOperation( self, operation, dataflow):
+		self.stage2.append((self._flowImportOperationStage2, (operation, dataflow)))	
+		print operation.getTarget().getName()
+		return dataflow
+
+	def _flowImportOperationStage2( self, program, operation, dataflow):
+		program.getDataFlow().declareVariable(operation.getTarget().getName(),operation.getName(),operation)
 
 # EOF
