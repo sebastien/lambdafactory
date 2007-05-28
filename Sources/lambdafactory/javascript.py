@@ -311,8 +311,8 @@ class Writer(AbstractWriter):
 			names = [scope.getName(), symbol_name]
 			while scope.getParent():
 				scope = scope.getParent()
-				# FIXME: Some scopes (Program) may be unnamed
-				names.insert(0, scope.getName())
+				if not isinstance(scope, interfaces.IProgram):
+					names.insert(0, scope.getName())
 			return ".".join(names)
 		# It is a property of a class
 		elif isinstance(scope, interfaces.IClass):

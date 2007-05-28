@@ -151,7 +151,7 @@ class AbstractResolver:
 		self._flow(program)
 		while self.stage2:
 			f, a = self.stage2.pop()
-			f(module, *a)
+			f(program, *a)
 
 	def _flow( self, element, dataflow=None ):
 		"""Creates flow information for the given element."""
@@ -186,7 +186,6 @@ class AbstractResolver:
 			slot, module = program.getDataFlow().resolve(p.getReferenceName())
 			if not module:
 				self.report.error("Undefined parent class:" + p.getReferenceName(), element)
-				self.report = reporter
 			else:
 				parent = module.getSlot(p.getReferenceName())
 				flow   = parent.getDataFlow()
