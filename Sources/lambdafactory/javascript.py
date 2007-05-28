@@ -8,9 +8,8 @@
 # License   : Revised BSD License
 # -----------------------------------------------------------------------------
 # Creation  : 02-Nov-2006
-# Last mod  : 13-Mar-2007
+# Last mod  : 28-May-2007
 # -----------------------------------------------------------------------------
-
 
 from modelwriter import AbstractWriter, flatten
 from resolver import AbstractResolver

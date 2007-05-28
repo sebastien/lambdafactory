@@ -132,6 +132,13 @@ class AbstractResolver:
 		self.report = reporter
 		self.stage2 = []
 
+	def _findParentModule( self, element ):
+		"""Finds the parent module for the given context element."""
+		assert isinstance(element, interfaces.IContext)
+		while element.getParent() and not isinstance(element.getParent(), interfaces.IModule):
+			parent = element.getParent()
+		return element.getParent()
+		
 	def flow( self, program ):
 		"""This is the main method of the resolver. Basically, you give a
 		program, and it will either flow the whole program, or flow the given
@@ -173,7 +180,7 @@ class AbstractResolver:
 
 	def flowClass( self, element ):
 		dataflow = self.flowContext(element)
-		self.stage2.append((self._flowClassStage2, (element, dataflow)))	
+		self.stage2.append((self._flowClassStage2, (element, dataflow)))
 		dataflow.declareEnvironment("self", None)
 		return dataflow
 	
@@ -181,11 +188,13 @@ class AbstractResolver:
 		"""Utility function that resolves the parents for a class. This must
 		happen at stage 2 because we have to wait for every class to be
 		registered properly."""
+		module = self._findParentModule(element)
 		# TODO: Multiple inheritance is too complicated right now
 		for p in element.getSuperClasses():
-			slot, module = program.getDataFlow().resolve(p.getReferenceName())
+			slot, module = module.getDataFlow().resolve(p.getReferenceName())
 			if not module:
 				self.report.error("Undefined parent class:" + p.getReferenceName(), element)
+				assert None
 			else:
 				parent = module.getSlot(p.getReferenceName())
 				flow   = parent.getDataFlow()
