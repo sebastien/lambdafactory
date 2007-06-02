@@ -177,4 +177,20 @@ public class Runtime {
 			return null;
 		}
 	}
+	public static final java.lang.Object computeMultiply( java.lang.Object a, java.lang.Object b ) {
+		if (a instanceof Number && b instanceof Number ) {
+			if (a instanceof Double || b instanceof Double) {
+				return new Double(((Number)a).doubleValue() * ((Number)b).doubleValue());
+			}
+			else if (a instanceof Float || b instanceof Float) {
+				return new Float(((Number)a).floatValue() * ((Number)b).floatValue());
+			}
+			else {
+				return new Integer(((Number)a).intValue() * ((Number)b).intValue());
+			}
+		} else {
+			print("Unsupported operand types: ", a, b);
+			return null;
+		}
+	}
 }

@@ -94,12 +94,6 @@ class RuntimeWriter:
 	def superFor(self):
 		pass
 
-	def iterate(self, iterator, closure):
-		return self.op("iterate(%s,{%s;})" %(
-			self.write(iterator),
-			self.write(closure)
-		))
-
 	def typeFor(self, element):
 		if isinstance(element, interfaces.IModule):
 			return "SgModule*"
@@ -202,6 +196,7 @@ class Writer(AbstractWriter):
 		class_name = self.rt.className(classElement.getName())
 		if len(parents) == 1:
 			parent = self.write(parents[0])
+			parent = parent[:-len(".class")]
 		elif len(parents) > 1:
 			raise Exception("Java back-end only supports single inheritance")
 		return self._format(
@@ -337,7 +332,22 @@ class Writer(AbstractWriter):
 			]
 			return res
 		else:
-			assert None, "Not implemented"
+			args = []
+			i    = 0
+			for a in function.getArguments():
+				args.append("java.lang.Object %s=%s(args[%s]);" % (
+					a.getReferenceName(),
+					self.rt.op("box"),
+					i
+				))
+				i += 1
+			res = [
+				"new %s() { public java.lang.Object do(java.lang.Object[] args) {" % (self.rt.op("Closure")),
+				args,
+				map(self.writeStatement, function.getOperations()),
+				"}}"
+			]
+			return res
 
 	def writeBlock( self, block ):
 		"""Writes a block element."""
@@ -391,11 +401,9 @@ class Writer(AbstractWriter):
 		if symbol_name == "self":
 			return "this"
 		elif symbol_name == "super":
-			assert self.resolve("self"), "Super must be used inside method"
+			assert self.resolve("this"), "Super must be used inside method"
 			# FIXME: Should check that the element has a method in parent scope
-			return "org.sugarlang.runtinme.Core.superFor(%s, self)" % (
-				self.getAbsoluteName(self.getCurrentClass())
-			)
+			return "super"
 		# If there is no scope, then the symmbol is undefined
 		if not scope:
 			if symbol_name == "print":
@@ -589,11 +597,16 @@ class Writer(AbstractWriter):
 		self.inInvocation = True
 		t = self.write(invocation.getTarget())
 		self.inInvocation = False
-		return "%s(%s, new Object[]{%s})" % (
-			self.rt.op("invoke"),
-			t,
-			", ".join(map(self.write, invocation.getArguments()))
-		)
+		if t == "super":
+			return "super(%s)" % (
+				", ".join(map(self.write, invocation.getArguments()))
+			)
+		else:
+			return "%s(%s, new Object[]{%s})" % (
+				self.rt.op("invoke"),
+				t,
+				", ".join(map(self.write, invocation.getArguments()))
+			)
 	
 	def writeInstanciation( self, operation ):
 		"""Writes an invocation operation."""
@@ -605,9 +618,8 @@ class Writer(AbstractWriter):
 			return "new %s()" % (class_name)
 		else:
 			return "new %s(%s)" % (
-				len_args,
 				class_name,
-				", ".join(map(self.write, operation.getArguments()))
+				", ".join("%s(%s)" % (self.rt.op("box"),self.write(a)) for a in operation.getArguments())
 			)
 
 	def writeSelection( self, selection ):
@@ -644,10 +656,9 @@ class Writer(AbstractWriter):
 		"""Writes a iteration operation."""
 		it_name = self._unique("_iterator")
 		return self._format(
-			self.runtime.iterate(
-				iteration.getIterator(),
-				iteration.getClosure()
-			)
+			self.rt.op("iterate(%s,") % (self.write(iteration.getIterator())),
+			self.write(iteration.getClosure()),
+			")"
 		)
 
 	def writeSliceOperation( self, operation ):
