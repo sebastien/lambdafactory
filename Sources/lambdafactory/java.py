@@ -56,12 +56,26 @@ class RuntimeWriter:
 	def valueClass( self ):
 		return "java.lang.Object" 
 
+	def op( self, name ):
+		return "%s.Runtime.%s"  % (self.prefix, name)
+
+	def compute( self, operator ):
+		if operator == "+":
+			op = "Add"
+		elif operator == "-":
+			op = "Substract"
+		elif operator == "/":
+			op = "Divide"
+		elif operator == "*":
+			op = "Multiply"
+		else:
+			raise Exception("Unsupported operator for the Java back-end: %s" % (operator))
+		return self.op("compute" + op)
+
 	#--------------------------------------------------------------------------
 	# RUNTIME OPERATION
 	#--------------------------------------------------------------------------
 
-	def op( self, name ):
-		return "%s.Runtime.%s"  % (self.prefix, name)
 	
 	def new(self, classElement):
 		return "NEW0(%s)" % (self.writer.getAbsoluteName(classElement)) 
@@ -160,7 +174,6 @@ class Writer(AbstractWriter):
 	def writeModule( self, moduleElement, contentOnly=False ):
 		"""Writes a Module element."""
 		code = [
-			"// TODO: Add reflexion support",
 		]
 		for slot, value in moduleElement.getSlots():
 			res = self.write(value)	
@@ -245,7 +258,11 @@ class Writer(AbstractWriter):
 		attributes    = []
 		for a in current_class.getAttributes():
 			if not a.getDefaultValue(): continue
-			attributes.append("this.%s = %s" % (a.getReferenceName(), self.write(a.getDefaultValue())))
+			attributes.append("this.%s = %s(%s);" % (
+				a.getReferenceName(),
+				self.rt.op("box"),
+				self.write(a.getDefaultValue()))
+			)
 		return self._format(
 			self._document(element),
 			"public %s(%s){" % (
@@ -332,7 +349,8 @@ class Writer(AbstractWriter):
 
 	def writeArgument( self, argElement ):
 		"""Writes an argument element."""
-		return "%s" % (
+		return "%s %s" % (
+			self.rt.valueClass(),
 			argElement.getReferenceName(),
 		)
 
@@ -351,10 +369,11 @@ class Writer(AbstractWriter):
 		default_value = element.getDefaultValue()
 		class_name = self.getAbsoluteName(self.getCurrentClass())
 		if default_value:
-			return "public static %s %s = (%s)%s;" % (
+			return "public static %s %s = (%s)%s(%s);" % (
 				self.rt.valueClass(),
 				element.getReferenceName(),
 				self.rt.valueClass(),
+				self.rt.op("box"),
 				self.write(default_value)
 			)
 		else:
@@ -370,7 +389,7 @@ class Writer(AbstractWriter):
 		if scope and scope.hasSlot(symbol_name):
 			value = scope.getSlot(symbol_name)
 		if symbol_name == "self":
-			return "self"
+			return "this"
 		elif symbol_name == "super":
 			assert self.resolve("self"), "Super must be used inside method"
 			# FIXME: Should check that the element has a method in parent scope
@@ -379,9 +398,11 @@ class Writer(AbstractWriter):
 			)
 		# If there is no scope, then the symmbol is undefined
 		if not scope:
-			if symbol_name == "print": return self.rt.op("print")
-			else: return symbol_name
-		# It is a method of the current class
+			if symbol_name == "print":
+				return '%s(lambdafactory.Runtime.class,"print")' % (self.rt.op("resolve"))
+			else:
+				return symbol_name
+		# It is a method/property of the current class
 		elif self.getCurrentClass() == scope:
 			if isinstance(value, interfaces.IInstanceMethod):
 				return "Runtime.resolveMethod(this,'%s')" % (symbol_name)
@@ -390,6 +411,7 @@ class Writer(AbstractWriter):
 			elif isinstance(value, interfaces.IClassAttribute):
 				return "%s" % (symbol_name)
 			else:
+				assert isinstance(value, interfaces.IAttribute)
 				return "%s" % (symbol_name)
 		# It is a local variable
 		elif self.getCurrentFunction() == scope:
@@ -401,6 +423,11 @@ class Writer(AbstractWriter):
 				scope = scope.getParent()
 				if not isinstance(scope, interfaces.IProgram):
 					names.insert(0, scope.getName())
+			# In Java, you cannot reference classes directly, so if you have
+			# class 'org.pouet.MyClass' you have to reference it by using
+			# 'org.pouet.MyClass.class'
+			if isinstance(value, interfaces.IClass):
+				names.append("class")
 			return ".".join(names)
 		# It is a property of a class
 		elif isinstance(scope, interfaces.IClass):
@@ -470,23 +497,23 @@ class Writer(AbstractWriter):
 		s = allocation.getSlotToAllocate()
 		v = allocation.getDefaultValue()
 		if v:
-			return "%s %s=(%s)%s;" % (
+			return "%s %s=%s(%s)" % (
 				self.rt.valueClass(),
 				s.getReferenceName(),
-				self.rt.valueClass(),
+				self.rt.op("box"),
 				self.write(v)
 			)
 		else:
-			return "%s %s;" % (
+			return "%s %s" % (
 				self.rt.valueClass(),
 				s.getReferenceName()
 			)
 
 	def writeAssignation( self, assignation ):
 		"""Writes an assignation operation."""
-		return "%s = (%s)%s;" % (
+		return "%s = %s(%s)" % (
 			self.write(assignation.getTarget()),
-			self.rt.valueClass(),
+			self.rt.op("box"),
 			self.write(assignation.getAssignedValue())
 		)
 
@@ -506,9 +533,18 @@ class Writer(AbstractWriter):
 	def writeResolution( self, resolution ):
 		"""Writes a resolution operation."""
 		if resolution.getContext():
-			return '%s.%s' % (self.write(resolution.getContext()), resolution.getReference().getReferenceName())
+			return '%s(%s,"%s")' % (self.rt.op("resolve"),self.write(resolution.getContext()), resolution.getReference().getReferenceName())
 		else:
 			return "%s" % (resolution.getReference().getReferenceName())
+
+	def isLiteral( self, element ):
+		if isinstance( element, interfaces.IComputation ):
+			for o in element.getOperands():
+				if not self.isLiteral(o):
+					return False
+			return True
+		else:
+			return isinstance(element, interfaces.ILiteral)
 
 	def writeComputation( self, computation ):
 		"""Writes a computation operation."""
@@ -517,16 +553,33 @@ class Writer(AbstractWriter):
 		operator = computation.getOperator()
 		# FIXME: Add rules to remove unnecessary parens
 		if len(operands) == 1:
-			res = "%s %s" % (
-				self.write(operator),
-				self.write(operands[0])
-			)
+			operand = operands[0]
+			if self.isLiteral(operand):
+				res = "%s %s" % (
+					self.write(operator),
+					self.write(operand)
+				)
+			else:
+				res = "%s(%s)" % (
+					self.rt.compute(self.write(operator)),
+					self.write(operand)
+				)
 		else:
-			res = "%s %s %s" % (
-				self.write(operands[0]),
-				self.write(operator),
-				self.write(operands[1])
-			)
+			a = operands[0]
+			b = operands[1]
+			if self.isLiteral(computation):
+				res = "%s %s %s" % (
+					self.write(operands[0]),
+					self.write(operator),
+					self.write(operands[1])
+				)
+			else:
+				res = '%s(%s,%s)' % (
+					self.rt.compute(self.write(operator)),
+					self.write(operands[0]),
+					self.write(operands[1])
+				)
+
 		if filter(lambda x:isinstance(x, interfaces.IComputation), self.contexts[:-1]):
 			res = "(%s)" % (res)
 		return res
@@ -536,7 +589,8 @@ class Writer(AbstractWriter):
 		self.inInvocation = True
 		t = self.write(invocation.getTarget())
 		self.inInvocation = False
-		return "%s(%s)" % (
+		return "%s(%s, new Object[]{%s})" % (
+			self.rt.op("invoke"),
 			t,
 			", ".join(map(self.write, invocation.getArguments()))
 		)
@@ -544,12 +598,15 @@ class Writer(AbstractWriter):
 	def writeInstanciation( self, operation ):
 		"""Writes an invocation operation."""
 		len_args = len(operation.getArguments())
+		class_name = self.write(operation.getInstanciable())
+		assert class_name.endswith(".class")
+		class_name = class_name[:-len(".class")]
 		if len_args == 0:
-			return "new %s()" % (self.write(operation.getInstanciable()))
+			return "new %s()" % (class_name)
 		else:
 			return "new %s(%s)" % (
 				len_args,
-				self.write(operation.getInstanciable()),
+				class_name,
 				", ".join(map(self.write, operation.getArguments()))
 			)
 
@@ -604,7 +661,10 @@ class Writer(AbstractWriter):
 
 	def writeTermination( self, termination ):
 		"""Writes a termination operation."""
-		return "return %s" % ( self.write(termination.getReturnedEvaluable()) )
+		return "return %s(%s)" % (
+			self.rt.op("box"),
+			self.write(termination.getReturnedEvaluable())
+		)
 
 	def writeStatement(self, *args):
 		return self.write(*args) + ";"
