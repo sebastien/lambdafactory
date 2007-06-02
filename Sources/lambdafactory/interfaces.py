@@ -7,7 +7,7 @@
 # License   : Revised BSD License
 # -----------------------------------------------------------------------------
 # Creation  : 02-Nov-2006
-# Last mod  : 22-May-2007
+# Last mod  : 02-Jun-2007
 # -----------------------------------------------------------------------------
 
 def abstract(f):
@@ -386,6 +386,23 @@ class IFunction(IClosure, IReferencable, IAbstractable):
 	@abstract
 	def getName( self ):
 		"""Returns this class name. It can be `None` if the class is anonymous."""
+
+	def hasExplicitTermination( self ):
+		"""Returns true if this function has an operation with a termination,
+		otherwise return false."""
+		for o in self.getOperations():
+			if isinstance(o, ITermination):
+				return True
+		return False
+
+	def endsWithTermination( self ):
+		"""Returns true if this function ends with a termination operation. This
+		is especially useful for back-ends which want to know if they have to
+		insert an explicit 'return' at the end (like Java)."""
+		ops = self.getOperations()
+		if not ops: return False
+		return isinstance(ops[-1], ITermination)
+
 
 class IMethod(IFunction):
 	pass
