@@ -515,6 +515,9 @@ class Selection(Operation, ISelection):
 class Evaluation( Operation, IEvaluation ):
 	pass
 
+class AccessOperation(Operation, IAccessOperation):
+	pass
+
 class SliceOperation(Operation, ISliceOperation):
 	pass
 
@@ -766,8 +769,11 @@ class Factory:
 	def repeat( self, condition, process ):
 		return self._getImplementation("Repetition")(condition, process)
 
-	def slice( self, target, _slice ):
-		return self._getImplementation("SliceOperation")(target, _slice)
+	def access( self, target, _index ):
+		return self._getImplementation("AccessOperation")(target, _index)
+	
+	def slice( self, target, _start, _end=None ):
+		return self._getImplementation("SliceOperation")(target, _start, _end)
 
 	def enumerate( self, start, end, step=None ):
 		return self._getImplementation("Enumeration")(start, end, step)
@@ -815,5 +821,6 @@ class Factory:
 
 	def _dict( self ):
 		return self._getImplementation("Dict")()
+	
 
 # EOF

@@ -73,7 +73,7 @@ class AbstractWriter:
 		"Enumeration",
 		"Allocation", "Assignation", "Computation",
 		"Invocation", "Instanciation", "Resolution", "Selection",
-		"Repetition", "Iteration",  "SliceOperation",
+		"Repetition", "Iteration", "AccessOperation", "SliceOperation",
 		"Evaluation", "Termination", "ImportOperation"
 	)
 

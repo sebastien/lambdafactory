@@ -528,10 +528,24 @@ class Writer(AbstractWriter):
 			self.write(repetition.getProcess())
 		)
 
-	def writeSliceOperation( self, operation ):
+	def writeAccessOperation( self, operation ):
 		return self._format(
-			"%s[%s]" % (self.write(operation.getTarget()), self.write(operation.getSlice()))
+			"%s[%s]" % (self.write(operation.getTarget()), self.write(operation.getIndex()))
 		)
+
+	def writeSliceOperation( self, operation ):
+		start = operation.getSliceStart()
+		end   = operation.getSliceEnd()
+		if start: start = self.write(start)
+		else: start = "0"
+		if end: end = self.write(end)
+		else: end = "undefined"
+		return self._format(
+			"S.Core.slice(%s,%s,%s)" % (
+				self.write(operation.getTarget()),
+				start,
+				end
+		))
 
 	def writeEvaluation( self, operation ):
 		"""Writes an evaluation operation."""

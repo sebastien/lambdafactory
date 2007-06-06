@@ -7,8 +7,11 @@
 # License   : Revised BSD License
 # -----------------------------------------------------------------------------
 # Creation  : 02-Nov-2006
-# Last mod  : 22-May-2007
+# Last mod  : 06-Jun-2007
 # -----------------------------------------------------------------------------
+
+# TODO: ADd a Flowable interface that tells that the element can have
+# a dataflow
 
 def abstract(f):
 	def decorator(self, *args, **kwargs):
@@ -541,16 +544,30 @@ class IInstanciation(IOperation):
 		"""Returns evaluable arguments."""
 		return self.getOpArgument(1) or ()
 
-class ISliceOperation(IOperation):
-	ARGS = [ IEvaluable, IEvaluable ]
-
+class ISubsetOperation(IOperation):
+	
 	def getTarget( self ):
 		"""Returns the operation target."""
 		return self.getOpArgument(0)
-
-	def getSlice( self ):
-		"""Returns evaluable that will return the slice."""
+	
+class IAccessOperation(ISubsetOperation):
+	ARGS = [ IEvaluable, IEvaluable]
+	
+	def getIndex( self ):
+		"""Returns evaluable that will return the access index"""
 		return self.getOpArgument(1)
+	
+class ISliceOperation(ISubsetOperation):
+	
+	ARGS = [ IEvaluable, IEvaluable, IEvaluable ]
+		
+	def getSliceStart( self ):
+		"""Returns evaluable that will return the slice start"""
+		return self.getOpArgument(1)
+	
+	def getSliceEnd( self ):
+		"""Returns evaluable that will return the slice end"""
+		return self.getOpArgument(2)
 
 # TODO: Rename this to RULE
 class IMatchOperation(IOperation):
