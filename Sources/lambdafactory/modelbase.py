@@ -510,7 +510,10 @@ class Selection(Operation, ISelection):
 		res.append(evaluable)
 
 	def getRules( self ):
-		return self.getOpArgument(0)
+		if self._oparguments:
+			return self.getOpArgument(0)
+		else:
+			return ()
 
 class Evaluation( Operation, IEvaluation ):
 	pass

@@ -485,8 +485,11 @@ class Writer(AbstractWriter):
 		result = []
 		for i in range(0,len(rules)):
 			rule = rules[i]
-			assert isinstance(rule, interfaces.IMatchProcessOperation)
-			process = rule.getProcess() 
+			if isinstance(rule, interfaces.IMatchProcessOperation):	
+				process = self.write(rule.getProcess()) 
+			else:
+				assert isinstance(rule, interfaces.IMatchExpressionOperation)
+				process = "{%s}" % (self.write(rule.getExpression()))
 			# If the rule process is a block/closure, we simply expand the
 			# closure. So we have
 			# if (...) { code }
