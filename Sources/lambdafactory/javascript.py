@@ -337,6 +337,8 @@ class Writer(AbstractWriter):
 			return symbol_name
 		elif isinstance(scope, interfaces.IProgram):
 			return symbol_name
+		elif isinstance(scope, interfaces.IBlock):
+			return symbol_name
 		else:
 			raise Exception("Unsupported scope:" + str(scope))
 
@@ -461,11 +463,29 @@ class Writer(AbstractWriter):
 			", ".join(map(self.write, operation.getArguments()))
 		)
 
+	def writeSelectionInExpression( self, selection ):
+		rules  = selection.getRules()
+		result = []
+		text   = ""
+		for rule in rules:
+			assert isinstance(rule, interfaces.IMatchExpressionOperation)
+			text += "((%s) ? (%s) : " % (
+				self.write(rule.getPredicate()),
+				self.write(rule.getExpression())
+			)
+		text += "undefined"
+		for r in rules:
+			text += ")"
+		return text
+	
 	def writeSelection( self, selection ):
+		if self.isIn(interfaces.IAssignation) or self.isIn(interfaces.IAllocation):
+			return self.writeSelectionInExpression(selection)
 		rules = selection.getRules()
 		result = []
 		for i in range(0,len(rules)):
 			rule = rules[i]
+			assert isinstance(rule, interfaces.IMatchProcessOperation)
 			process = rule.getProcess() 
 			# If the rule process is a block/closure, we simply expand the
 			# closure. So we have
@@ -508,10 +528,24 @@ class Writer(AbstractWriter):
 			self.write(repetition.getProcess())
 		)
 
-	def writeSliceOperation( self, operation ):
+	def writeAccessOperation( self, operation ):
 		return self._format(
-			"%s[%s]" % (self.write(operation.getTarget()), self.write(operation.getSlice()))
+			"%s[%s]" % (self.write(operation.getTarget()), self.write(operation.getIndex()))
 		)
+
+	def writeSliceOperation( self, operation ):
+		start = operation.getSliceStart()
+		end   = operation.getSliceEnd()
+		if start: start = self.write(start)
+		else: start = "0"
+		if end: end = self.write(end)
+		else: end = "undefined"
+		return self._format(
+			"S.Core.slice(%s,%s,%s)" % (
+				self.write(operation.getTarget()),
+				start,
+				end
+		))
 
 	def writeEvaluation( self, operation ):
 		"""Writes an evaluation operation."""

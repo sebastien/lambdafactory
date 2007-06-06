@@ -8,7 +8,7 @@
 # License   : Revised BSD License
 # -----------------------------------------------------------------------------
 # Creation  : 02-Nov-2006
-# Last mod  : 22-May-2007
+# Last mod  : 06-Jun-2007
 # -----------------------------------------------------------------------------
 
 # FIXME: Evaluable == Expression ?
@@ -515,10 +515,16 @@ class Selection(Operation, ISelection):
 class Evaluation( Operation, IEvaluation ):
 	pass
 
+class AccessOperation(Operation, IAccessOperation):
+	pass
+
 class SliceOperation(Operation, ISliceOperation):
 	pass
 
-class MatchOperation(Operation, IMatchOperation):
+class MatchProcessOperation(Operation, IMatchProcessOperation):
+	pass
+
+class MatchExpressionOperation(Operation, IMatchExpressionOperation):
 	pass
 
 class Iteration( Operation, IIteration ):
@@ -751,8 +757,11 @@ class Factory:
 	def select( self ):
 		return self._getImplementation("Selection")()
 
-	def match( self, evaluable, process ):
-		return self._getImplementation("MatchOperation")(evaluable, process)
+	def matchProcess( self, evaluable, process ):
+		return self._getImplementation("MatchProcessOperation")(evaluable, process)
+
+	def matchExpression( self, evaluable, expression ):
+		return self._getImplementation("MatchExpressionOperation")(evaluable, expression)
 
 	def iterate( self, evaluable, process ):
 		return self._getImplementation("Iteration")(evaluable, process)
@@ -760,8 +769,11 @@ class Factory:
 	def repeat( self, condition, process ):
 		return self._getImplementation("Repetition")(condition, process)
 
-	def slice( self, target, _slice ):
-		return self._getImplementation("SliceOperation")(target, _slice)
+	def access( self, target, _index ):
+		return self._getImplementation("AccessOperation")(target, _index)
+	
+	def slice( self, target, _start, _end=None ):
+		return self._getImplementation("SliceOperation")(target, _start, _end)
 
 	def enumerate( self, start, end, step=None ):
 		return self._getImplementation("Enumeration")(start, end, step)
@@ -809,5 +821,6 @@ class Factory:
 
 	def _dict( self ):
 		return self._getImplementation("Dict")()
+	
 
 # EOF

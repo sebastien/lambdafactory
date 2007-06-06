@@ -73,7 +73,7 @@ class AbstractWriter:
 		"Enumeration",
 		"Allocation", "Assignation", "Computation",
 		"Invocation", "Instanciation", "Resolution", "Selection",
-		"Repetition", "Iteration",  "SliceOperation",
+		"Repetition", "Iteration", "AccessOperation", "SliceOperation",
 		"Evaluation", "Termination", "ImportOperation"
 	)
 
@@ -107,6 +107,15 @@ class AbstractWriter:
 		res = self._filterContext(interfaces.IClass)
 		return res and res[-1] or None
 
+	def isIn(self, interface):
+		"""Tells wether the current element is in a context where at least one
+		of the parent elements define the given interface.
+		
+		To know if you're currently in an assignation:
+		>	self.isIn(interfaces.IAssignation)
+		"""
+		return len(self._filterContext(interface)) > 0
+	
 	def getCurrentClassParents( self ):
 		res = []
 		cur = self.getCurrentClass()
