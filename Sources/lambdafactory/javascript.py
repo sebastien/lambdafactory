@@ -463,11 +463,29 @@ class Writer(AbstractWriter):
 			", ".join(map(self.write, operation.getArguments()))
 		)
 
+	def writeSelectionInExpression( self, selection ):
+		rules  = selection.getRules()
+		result = []
+		text   = ""
+		for rule in rules:
+			assert isinstance(rule, interfaces.IMatchExpressionOperation)
+			text += "((%s) ? (%s) : " % (
+				self.write(rule.getPredicate()),
+				self.write(rule.getExpression())
+			)
+		text += "undefined"
+		for r in rules:
+			text += ")"
+		return text
+	
 	def writeSelection( self, selection ):
+		if self.isIn(interfaces.IAssignation) or self.isIn(interfaces.IAllocation):
+			return self.writeSelectionInExpression(selection)
 		rules = selection.getRules()
 		result = []
 		for i in range(0,len(rules)):
 			rule = rules[i]
+			assert isinstance(rule, interfaces.IMatchProcessOperation)
 			process = rule.getProcess() 
 			# If the rule process is a block/closure, we simply expand the
 			# closure. So we have

@@ -8,7 +8,7 @@
 # License   : Revised BSD License
 # -----------------------------------------------------------------------------
 # Creation  : 02-Nov-2006
-# Last mod  : 22-May-2007
+# Last mod  : 06-Jun-2007
 # -----------------------------------------------------------------------------
 
 # FIXME: Evaluable == Expression ?
@@ -518,7 +518,10 @@ class Evaluation( Operation, IEvaluation ):
 class SliceOperation(Operation, ISliceOperation):
 	pass
 
-class MatchOperation(Operation, IMatchOperation):
+class MatchProcessOperation(Operation, IMatchProcessOperation):
+	pass
+
+class MatchExpressionOperation(Operation, IMatchExpressionOperation):
 	pass
 
 class Iteration( Operation, IIteration ):
@@ -751,8 +754,11 @@ class Factory:
 	def select( self ):
 		return self._getImplementation("Selection")()
 
-	def match( self, evaluable, process ):
-		return self._getImplementation("MatchOperation")(evaluable, process)
+	def matchProcess( self, evaluable, process ):
+		return self._getImplementation("MatchProcessOperation")(evaluable, process)
+
+	def matchExpression( self, evaluable, expression ):
+		return self._getImplementation("MatchExpressionOperation")(evaluable, expression)
 
 	def iterate( self, evaluable, process ):
 		return self._getImplementation("Iteration")(evaluable, process)

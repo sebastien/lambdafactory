@@ -552,9 +552,9 @@ class ISliceOperation(IOperation):
 		"""Returns evaluable that will return the slice."""
 		return self.getOpArgument(1)
 
+# TODO: Rename this to RULE
 class IMatchOperation(IOperation):
 	"""A match operation is the binding of an expression and a process."""
-	ARGS = [ IEvaluable, IProcess ]
 
 	def getPredicate( self ):
 		"""Returns the evaluable that acts as a predicate for this operation."""
@@ -563,6 +563,27 @@ class IMatchOperation(IOperation):
 	def setPredicate( self, v ):
 		return self.setOpArgument(0, v)
 
+class IMatchExpressionOperation(IMatchOperation):
+	"""A match expression is a predicate that is associated to an expression.
+	This is typically used in conditional expressions like in C:
+	
+	>	int a = ( b==2 ? 1 : 2 )
+	"""
+	ARGS = [ IEvaluable, IEvaluable ]
+		
+	def getExpression( self ):
+		"""Returns the process that will be executed if the rule matches."""
+		return self.getOpArgument(1)
+
+	def setExpression( self, v ):
+		return self.setOpArgument(1, v)
+	
+class IMatchProcessOperation(IMatchOperation):
+	"""A match process is a predicate associate to a process, which is typically
+	used for implementing 'if', 'else', etc.
+	"""
+	ARGS = [ IEvaluable, IProcess ]
+	
 	def getProcess( self ):
 		"""Returns the process that will be executed if the rule matches."""
 		return self.getOpArgument(1)
