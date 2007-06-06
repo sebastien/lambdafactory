@@ -7,7 +7,7 @@
 # License   : Revised BSD License
 # -----------------------------------------------------------------------------
 # Creation  : 02-Nov-2006
-# Last mod  : 22-May-2007
+# Last mod  : 06-Jun-2007
 # -----------------------------------------------------------------------------
 
 import interfaces, reporter
@@ -59,6 +59,10 @@ class DataFlow:
 		and type. This is used internaly by the other 'declare' methods."""
 		self.slots.append([name, value, [origin], slottype])
 
+	def getSlots( self ):
+		"""Returns the slots defiend for this dataflow."""
+		return self.slots
+	
 	def hasSlot( self, name ):
 		return len(filter(lambda s:s[0]==name, self.slots)) > 0
 
@@ -119,14 +123,18 @@ class AbstractResolver:
 	INTERFACES = (
 		"Method",
 		"Closure",
+		
 		"Class",
-		"Context",
-		"Process",
-		"Closure",
+		
 		"Iteration",
+		"Repetition",
 		"Evaluation",
 		"Allocation",
-		"ImportOperation"
+		"ImportOperation",
+	
+		"Process",
+		"Context"	
+		
 	)
 
 	def __init__( self, reporter=reporter.DefaultReporter ):
@@ -240,6 +248,9 @@ class AbstractResolver:
 
 	def flowIteration( self, operation, dataflow ):
 		return self._flow(operation.getClosure())
+	
+	def flowRepetition(self, operation, dataflow):
+		return self._flow(operation.getProcess())
 
 	def flowEvaluation( self, operation, dataflow ):
 		return self._flow(operation.getEvaluable())

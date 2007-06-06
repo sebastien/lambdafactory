@@ -22,12 +22,23 @@ class Reporter:
 		self.errors     = []
 		self._onWarning = []
 		self._onError   = []
+		self._alreadyDone = {}
 
+	def isDone(self, message, element, update=True):
+		key = "%s:%s" % (message, element)
+		if self._alreadyDone.has_key(key):
+			return True
+		if update:
+			self._alreadyDone[key] = 1
+		return False
+	
 	def warning( self, message, element=None ):
+		if self.isDone(message, element): return
 		self.warning.append(message)
 		map( lambda c:c(message, element), self._onWarning)
 
 	def error( self, message, element=None ):
+		if self.isDone(message, element): return
 		self.errors.append(message)
 		map( lambda c:c(message, element), self._onError)
 
@@ -38,10 +49,10 @@ class Reporter:
 		self._onWarning.append(callback)
 
 	def echoError( self, message, element ):
-		sys.stderr.write("[!] %s\n    at %s\n" % (message, element))
+		sys.stderr.write("[!] %s at %s\n" % (message, element))
 
 	def echoWarning( self, message, element ):
-		sys.stderr.write("[-] %s\n    at %s\n" % (message, element))
+		sys.stderr.write("[-] %s at %s\n" % (message, element))
 
 DefaultReporter = Reporter()
 DefaultReporter.onError(DefaultReporter.echoError)

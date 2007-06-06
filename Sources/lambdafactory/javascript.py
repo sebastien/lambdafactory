@@ -337,6 +337,8 @@ class Writer(AbstractWriter):
 			return symbol_name
 		elif isinstance(scope, interfaces.IProgram):
 			return symbol_name
+		elif isinstance(scope, interfaces.IBlock):
+			return symbol_name
 		else:
 			raise Exception("Unsupported scope:" + str(scope))
 
