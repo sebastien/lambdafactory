@@ -136,6 +136,94 @@ class IAbstractable:
 	def setAbstract( self, isAbstract=True ):
 		"""Sets wether the given abstractable is abstract or not."""
 
+class IDataFlow:
+	"""The DataFlow are ''dynamic contexts'' bound to the various program model
+	elements. DataFlows are typically owned by elements which implement
+	'IContext', and are linked together by rules defined in the 'Resolver'
+	class.
+
+	The dataflow bound to most expressions is the one of the enclosing closure
+	(wether it is a function, or method. The dataflow of a method is bound to
+	its parent class, which dataflow is also bound to the parent class dataflow.
+
+	While 'DataFlow' and 'Context' may appear very similar, they are not the
+	same: contexts are elements that keep track of declared slots, while the
+	dataflow make use of the context to weave the elements togeher.
+	"""
+
+	# TODO: Define what Argument, Environment, Variable are and what
+	# origin is
+	@abstract
+	def declareArgument( self, name, value ):
+		pass
+
+	@abstract
+	def declareEnvironment( self, name, value ):
+		"""Declares an environment variable with the given name, value
+		and origin."""
+	
+	@abstract
+	def declareVariable( self, name, value, origin ):
+		"""Declares a (local) variable with the given name, value and
+		origin"""
+
+	@abstract
+	def getSlots( self ):
+		"""Returns the lsit of slots defiend for this dataflow."""
+
+	@abstract
+	def hasSlot( self, name ):
+		"""Tells if this dataflow defines a slot with the given name."""
+
+	@abstract
+	def getParents( self ):
+		"""Returns the list of parent dataflows for this dataflow."""
+
+	@abstract
+	def addParent( self, parent ):
+		"""Addd the given dataflow as a parent of this dataflow."""
+
+	@abstract
+	def addChild( self, child ):
+		"""Adds the given dataflow as a child of this dataflow."""
+
+	@abstract
+	def getChildren( self ):
+		"""Returns a list of the child dataflows for this dataflow."""
+
+	@abstract
+	def resolve( self, name ):
+		"""Returns a couple '(DataFlow slot, IElement)' or '(None,None)'
+		corresponding to the resolution of the given 'name' in this dataflow."""
+
+	@abstract
+	def defines( self, name ):
+		"""Tells if this dataflow, or any of its child dataflows defines
+		the given name (symbol)."""
+		
+	@abstract
+	def getSlot( self, name ):
+		"""Returns the slot with the given name, if any."""
+		
+class IDataFlowable:
+	"""A 'DataFlowable' element can be assigned a dataflow. A dataflow
+	represents a runtime context where variables are defined, and where
+	dataflows can be linked together. DataFlowable elements are typically
+	able to resolve symbols and returns values."""
+	
+	@abstract
+	def hasDataFlow( self ):
+		"""Tells if the element has already been associated with a
+		dataflow."""
+
+	@abstract
+	def getDataFlow( self ):
+		"""Returns the IDataFlow for this element."""
+
+	@abstract
+	def setDataFlow( self, dataflow ):
+		"""Sets the dataflow for this element."""
+	 
 #------------------------------------------------------------------------------
 #
 #  Annotation Elements
@@ -258,7 +346,7 @@ class IClassAttribute(IAttribute):
 #
 #------------------------------------------------------------------------------
 
-class IContext:
+class IContext(IDataFlowable):
 	"""A context is an element that has slots, which bind evaluable elements
 	(aka values) to names."""
 
@@ -356,7 +444,8 @@ class IProgram(IContext):
 	operation offered by LambdaFactory."""
 	pass
 
-class IProcess:
+# TODO: Maybe processed are contexts as well ?
+class IProcess(IDataFlowable):
 	"""A process is a sequence of operations."""
 
 	@abstract

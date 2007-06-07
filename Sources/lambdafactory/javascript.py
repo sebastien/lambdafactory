@@ -468,10 +468,14 @@ class Writer(AbstractWriter):
 		result = []
 		text   = ""
 		for rule in rules:
-			assert isinstance(rule, interfaces.IMatchExpressionOperation)
+			#assert isinstance(rule, interfaces.IMatchExpressionOperation)
+			if isinstance(rule, interfaces.IMatchExpressionOperation):
+				expression = rule.getExpression()
+			else:
+				expression = rule.getProcess()
 			text += "((%s) ? (%s) : " % (
 				self.write(rule.getPredicate()),
-				self.write(rule.getExpression())
+				self.write(expression)
 			)
 		text += "undefined"
 		for r in rules:
@@ -479,7 +483,10 @@ class Writer(AbstractWriter):
 		return text
 	
 	def writeSelection( self, selection ):
-		if self.isIn(interfaces.IAssignation) or self.isIn(interfaces.IAllocation):
+		# If we are in an assignataion and allocation which is contained in a
+		# closure (because we can have a closure being assigned to something.)
+		if self.isIn(interfaces.IAssignation) > self.isIn(interfaces.IClosure) \
+		or self.isIn(interfaces.IAllocation) > self.isIn(interfaces.IClosure):
 			return self.writeSelectionInExpression(selection)
 		rules = selection.getRules()
 		result = []

@@ -7,7 +7,7 @@
 # License   : Revised BSD License
 # -----------------------------------------------------------------------------
 # Creation  : 02-Nov-2006
-# Last mod  : 06-Jun-2007
+# Last mod  : 07-Jun-2007
 # -----------------------------------------------------------------------------
 
 import interfaces, reporter
@@ -18,7 +18,7 @@ import interfaces, reporter
 #
 # ------------------------------------------------------------------------------
 
-class DataFlow:
+class DataFlow(interfaces.IDataFlow):
 	"""The DataFlow are ''dynamic contexts'' bound to the various program model
 	elements. DataFlows are typically owned by elements which implement
 	'IContext', and are linked together by rules defined in the 'Resolver'
@@ -99,6 +99,7 @@ class DataFlow:
 		elif self.getChildren():
 			for child in self.getChildren():
 				res = child.defines(name)
+				# FIXME: I think it should be child.getSlot(name), child
 				if res: return child
 			return (None,None)
 		else:

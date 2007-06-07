@@ -109,12 +109,19 @@ class AbstractWriter:
 
 	def isIn(self, interface):
 		"""Tells wether the current element is in a context where at least one
-		of the parent elements define the given interface.
+		of the parent elements define the given interface. It returns '-1'
+		when no element implements the interface, and otherwise returns the 
+		offset of the element, starting from the most recent context.
 		
 		To know if you're currently in an assignation:
 		>	self.isIn(interfaces.IAssignation)
 		"""
-		return len(self._filterContext(interface)) > 0
+		i = len(self.contexts) - 1
+		while i >= 0:
+			if isinstance(self.contexts[i], interface):
+				return i
+			i -= 1
+		return -1
 	
 	def getCurrentClassParents( self ):
 		res = []
@@ -152,16 +159,24 @@ class AbstractWriter:
 		return ".".join(res)
 
 	def resolve( self, name, dataflow=None ):
+		current_context = self.contexts[-1]
 		if not dataflow: 
 			dataflow = self.getCurrentDataFlow()
 		if dataflow:
 			res = dataflow.resolve(name)
 			if not res[0] or not res[1]:
 				#raise Exception("Unresolved symbol:" + name )
-				self.report.error("Unresolved symbol:" + name, self.contexts[-1])
+				self.report.error("Unresolved symbol:" + name, current_context)
 			return res
 		else:
-			self.report.error("Not dataflow available", self.contexts[-1])
+			i = len(self.contexts) - 2
+			while i >= 0:
+				element = self.contexts[i]
+				if isinstance(element, interfaces.IDataFlowable) and \
+				element.hasDataFlow():
+					return self.resolve(name, element.getDataFlow())
+				i -= 1
+			raise Exception("No dataflow available in: %s" % (self.contexts))
 			return (None,None)
 
 	def write( self, element ):
