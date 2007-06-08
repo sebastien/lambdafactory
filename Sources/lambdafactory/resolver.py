@@ -7,7 +7,7 @@
 # License   : Revised BSD License
 # -----------------------------------------------------------------------------
 # Creation  : 02-Nov-2006
-# Last mod  : 07-Jun-2007
+# Last mod  : 08-Jun-2007
 # -----------------------------------------------------------------------------
 
 import interfaces, reporter
@@ -17,6 +17,14 @@ import interfaces, reporter
 # DATAFLOW
 #
 # ------------------------------------------------------------------------------
+
+class DataFlowSlot:
+	
+	def __init__(self, name, value, origin, type):
+		self.name = name
+		self.value = value
+		self.origin = origin
+		self.type = type
 
 class DataFlow(interfaces.IDataFlow):
 	"""The DataFlow are ''dynamic contexts'' bound to the various program model
@@ -57,7 +65,7 @@ class DataFlow(interfaces.IDataFlow):
 	def _declare( self, name, value, origin, slottype ):
 		"""Declares the given slot with the given name, value, origin
 		and type. This is used internaly by the other 'declare' methods."""
-		self.slots.append([name, value, [origin], slottype])
+		self.slots.append(DataFlowSlot(name, value, [origin], slottype))
 
 	def getSlots( self ):
 		"""Returns the slots defiend for this dataflow."""
@@ -85,11 +93,13 @@ class DataFlow(interfaces.IDataFlow):
 		corresponding to the resolution of the given 'name' in this dataflow."""
 		slot = self.getSlot(name)
 		if slot:
+			#print "FOUND !"
 			return (slot, self.element)
 		else:
 			for p in self.getParents():
 				r = p.resolve(name)
-				if r: return r
+				if r != (None,None):
+					return r
 			return (None,None)
 
 	def defines( self, name ):
@@ -107,7 +117,7 @@ class DataFlow(interfaces.IDataFlow):
 
 	def getSlot( self, name ):
 		for slot in self.slots:
-			if slot[0] == name: 
+			if slot.name== name: 
 				return slot
 		return None
 
@@ -141,6 +151,14 @@ class AbstractResolver:
 	def __init__( self, reporter=reporter.DefaultReporter ):
 		self.report = reporter
 		self.stage2 = []
+		self.context = []
+
+	def captureContext(self):
+		"""Returns a copy of the current flowing context. This is helpful
+		for 'stage 2' flowing operations."""
+		res = []
+		for c in self.context: res.append(c)
+		return res
 
 	def _findParentModule( self, element ):
 		"""Finds the parent module for the given context element."""
@@ -173,6 +191,7 @@ class AbstractResolver:
 	def _flow( self, element, dataflow=None ):
 		"""Creates flow information for the given element."""
 		res = None
+		self.context.append(element)
 		if element.hasDataFlow():
 			res = element.getDataFlow()
 		else:
@@ -188,28 +207,39 @@ class AbstractResolver:
 				else:
 					res = getattr(self, "flow" + name)(element)
 					break
+		self.context.pop()
 		return res
 
 	def flowClass( self, element ):
 		dataflow = self.flowContext(element)
-		self.stage2.append((self._flowClassStage2, (element, dataflow)))
+		self.stage2.append((self._flowClassStage2, (self.captureContext(), element, dataflow)))
 		dataflow.declareEnvironment("self", None)
 		return dataflow
 	
-	def _flowClassStage2( self, program, element, dataflow ):
+	def _flowClassStage2( self, program, context, element, dataflow ):
 		"""Utility function that resolves the parents for a class. This must
 		happen at stage 2 because we have to wait for every class to be
 		registered properly."""
 		# TODO: Multiple inheritance is too complicated right now
 		for p in element.getSuperClasses():
-			slot, module = program.getDataFlow().resolve(p.getReferenceName())
-			if not module:
+			slot         = None
+			this_module  = tuple(e for e in context if isinstance(e,interfaces.IModule))
+			this_program = tuple(e for e in context if isinstance(e,interfaces.IProgram))
+			if this_module:
+				this_module = this_module[0]
+				slot, defined_in = this_module.getDataFlow().resolve(p.getReferenceName())
+			if slot is None and this_program:
+				this_program = this_program[0]
+				slot, defined_in = this_program.getDataFlow().resolve(p.getReferenceName())
+			if not defined_in:
 				self.report.error("Undefined parent class:" + p.getReferenceName(), element)
 			else:
-				parent = module.getSlot(p.getReferenceName())
-				flow   = parent.getDataFlow()
-				dataflow.addParent(flow)
-
+				parent_class = defined_in.getSlot(p.getReferenceName())
+				class_flow   = parent_class.getDataFlow()
+				dataflow.addParent(class_flow)
+				for slot in class_flow.getSlots():
+					assert dataflow.resolve(slot.name)
+				
 	def flowContext( self, element ):
 		dataflow = DataFlow(element)
 		for name, value in element.getSlots():

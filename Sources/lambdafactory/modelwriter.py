@@ -8,7 +8,7 @@
 # License   : Revised BSD License
 # -----------------------------------------------------------------------------
 # Creation  : 02-Nov-2006
-# Last mod  : 27-Mar-2007
+# Last mod  : 08-Jun-2007
 # -----------------------------------------------------------------------------
 
 import interfaces, reporter
@@ -128,9 +128,10 @@ class AbstractWriter:
 		cur = self.getCurrentClass()
 		for ref in cur.getSuperClasses():
 			ref = ref.getReferenceName()
-			tar = self.resolve(ref, cur.getDataFlow())
-			par = tar.getSlot(ref)
-			res.append(par)
+			target, context = self.resolve(ref, cur.getDataFlow())
+			parent = target.value
+			assert parent
+			res.append(parent)
 		return res
 		
 	def getCurrentModule( self ):
@@ -167,6 +168,7 @@ class AbstractWriter:
 			if not res[0] or not res[1]:
 				#raise Exception("Unresolved symbol:" + name )
 				self.report.error("Unresolved symbol:" + name, current_context)
+			assert len(res) == 2
 			return res
 		else:
 			i = len(self.contexts) - 2
