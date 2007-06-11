@@ -550,6 +550,24 @@ class ImportOperation(Operation, IImportOperation):
 		Operation.__init__(self, *arguments)
 		assertImplements(self, IImportOperation)
 
+class Embed(Operation, IEmbed):
+
+	def __init__(self, lang=None, code=None):
+		self.language = lang
+		self.code = code
+
+	def getLanguage( self ):
+		return self.language
+
+	def setLanguage( self, language ):
+		self.language = language
+
+	def getCodeString( self ):
+		return self.code
+
+	def setCodeString( self, code ):
+		self.code = code
+
 # ------------------------------------------------------------------------------
 #
 # VALUES
@@ -786,7 +804,10 @@ class Factory:
 
 	def returns( self, evaluable ):
 		return self._getImplementation("Termination")(evaluable)
-
+	
+	def embed(self, lang, code):
+		return self._getImplementation("Embed")(lang,code)
+		
 	def comment( self, content ):
 		return self._getImplementation("Comment")(content)
 	

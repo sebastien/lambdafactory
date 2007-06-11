@@ -565,6 +565,11 @@ class Writer(AbstractWriter):
 		"""Writes a termination operation."""
 		return "return %s" % ( self.write(termination.getReturnedEvaluable()) )
 
+	def writeEmbed( self, embed ):
+		lang = embed.getLanguage().lower().strip()
+		assert lang in ("js", "javascript")
+		return embed.getCodeString()
+	
 	def _document( self, element ):
 		if element.hasDocumentation():
 			doc = element.getDocumentation()

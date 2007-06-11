@@ -74,7 +74,7 @@ class AbstractWriter:
 		"Allocation", "Assignation", "Computation",
 		"Invocation", "Instanciation", "Resolution", "Selection",
 		"Repetition", "Iteration", "AccessOperation", "SliceOperation",
-		"Evaluation", "Termination", "ImportOperation"
+		"Evaluation", "Termination", "ImportOperation", "Embed"
 	)
 
 	def __init__( self, reporter=reporter.DefaultReporter ):
