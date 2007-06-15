@@ -1,9 +1,32 @@
+// vim: tw=80 ts=4 sw=4 noet
+// ----------------------------------------------------------------------------
+// Project   : LambdaFactory - Java Runtime
+// ----------------------------------------------------------------------------
+// Author    : Sebastien Pierre                              <sebastien@ivy.fr>
+// License   : Lesser GNU Public License
+// ----------------------------------------------------------------------------
+// Creation  : 02-Nov-2006
+// Last mod  : 14-Jun-2007
+// ----------------------------------------------------------------------------
+
 package lambdafactory;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.InvocationTargetException;
 
+// ----------------------------------------------------------------------------
+//
+// RUNTIME CLASS
+//
+// ----------------------------------------------------------------------------
+
 public class Runtime {
+
+	// ------------------------------------------------------------------------
+	//
+	// BOUND METHOD
+	//
+	// ------------------------------------------------------------------------
 
 	public static class BoundMethod {
 		public String name;
@@ -90,6 +113,12 @@ public class Runtime {
 		return result;
 	}
 
+	// ------------------------------------------------------------------------
+	//
+	// OBJET INTROSPECTION
+	//
+	// ------------------------------------------------------------------------
+
 	public static final java.lang.Object resolveField( java.lang.Object o, String s) {
 		Field f = null;
 		try {
@@ -120,6 +149,12 @@ public class Runtime {
 		}
 	}
 
+	// ------------------------------------------------------------------------
+	//
+	// 
+	//
+	// ------------------------------------------------------------------------
+
 	public static final java.lang.Object access( java.lang.Object value ) {
 		return null;
 	}
@@ -144,6 +179,13 @@ public class Runtime {
 	public static final java.lang.Object respond( java.lang.Object o, String s, java.lang.Object[] a ) {
 		return null;
 	}
+
+	// ------------------------------------------------------------------------
+	//
+	// RUNTIME SERVICES
+	//
+	// ------------------------------------------------------------------------
+
 	public static final void print( java.lang.Object s ) {
 		System.out.println(">> " + s.toString());
 	}
@@ -159,6 +201,13 @@ public class Runtime {
 	public static final java.lang.Object box( java.lang.Object o ) {
 		return o;
 	}
+
+	// ------------------------------------------------------------------------
+	//
+	// COMPUTATION SUPPORT
+	//
+	// ------------------------------------------------------------------------
+
 	public static final java.lang.Object computeAdd( java.lang.Object a, java.lang.Object b ) {
 		if (a instanceof String || b instanceof String ) {
 			return a.toString() + b.toString();
@@ -194,3 +243,5 @@ public class Runtime {
 		}
 	}
 }
+
+// EOF
