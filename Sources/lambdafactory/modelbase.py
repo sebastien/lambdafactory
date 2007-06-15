@@ -8,7 +8,7 @@
 # License   : Revised BSD License
 # -----------------------------------------------------------------------------
 # Creation  : 02-Nov-2006
-# Last mod  : 11-Jun-2007
+# Last mod  : 15-Jun-2007
 # -----------------------------------------------------------------------------
 
 # FIXME: Evaluable == Expression ?
@@ -544,6 +544,9 @@ class Termination(Operation, ITermination):
 	def getReturnedEvaluable( self ):
 		return self.getOpArgument(0)
 
+class Breaking(Operation, IBreaking):
+	pass
+	
 class ImportOperation(Operation, IImportOperation):
 	
 	def __init__( self, *arguments):
@@ -804,6 +807,9 @@ class Factory:
 
 	def returns( self, evaluable ):
 		return self._getImplementation("Termination")(evaluable)
+	
+	def breaks( self ):
+		return self._getImplementation("Breaking")()
 	
 	def embed(self, lang, code):
 		return self._getImplementation("Embed")(lang,code)

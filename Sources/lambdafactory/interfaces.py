@@ -7,7 +7,7 @@
 # License   : Revised BSD License
 # -----------------------------------------------------------------------------
 # Creation  : 02-Nov-2006
-# Last mod  : 11-Jun-2007
+# Last mod  : 14-Jun-2007
 # -----------------------------------------------------------------------------
 
 # TODO: ADd a Flowable interface that tells that the element can have
@@ -782,6 +782,9 @@ class ITermination(IOperation):
 	def getReturnedEvaluable( self ):
 		"""Returns the termination return evaluable."""
 
+class IBreaking(IOperation):
+	ARGS = []
+		
 class IEmbed(IOperation):
 	"""An embedded operation represents a bit of verbatim code written in
 	a different language. This allows for embedding code written specifically

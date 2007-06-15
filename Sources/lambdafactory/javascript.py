@@ -8,7 +8,7 @@
 # License   : Revised BSD License
 # -----------------------------------------------------------------------------
 # Creation  : 02-Nov-2006
-# Last mod  : 28-May-2007
+# Last mod  : 15-Jun-2007
 # -----------------------------------------------------------------------------
 
 from modelwriter import AbstractWriter, flatten
@@ -565,6 +565,10 @@ class Writer(AbstractWriter):
 		"""Writes a termination operation."""
 		return "return %s" % ( self.write(termination.getReturnedEvaluable()) )
 
+	def writeBreaking( self, breking ):
+		"""Writes a break operation."""
+		return "break"
+	
 	def writeEmbed( self, embed ):
 		lang = embed.getLanguage().lower().strip()
 		assert lang in ("js", "javascript")
