@@ -7,7 +7,7 @@
 # License   : Revised BSD License
 # -----------------------------------------------------------------------------
 # Creation  : 02-Nov-2006
-# Last mod  : 14-Jun-2007
+# Last mod  : 18-Jun-2007
 # -----------------------------------------------------------------------------
 
 # TODO: ADd a Flowable interface that tells that the element can have
@@ -336,6 +336,9 @@ class IAttribute(ISlot):
 	@abstract
 	def getDefaultValue(self):
 		"""Gets the default value for this attribute"""
+
+class IModuleAttribute(IAttribute):
+	pass
 
 class IClassAttribute(IAttribute):
 	pass

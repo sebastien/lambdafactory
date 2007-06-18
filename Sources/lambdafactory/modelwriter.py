@@ -8,7 +8,7 @@
 # License   : Revised BSD License
 # -----------------------------------------------------------------------------
 # Creation  : 02-Nov-2006
-# Last mod  : 15-Jun-2007
+# Last mod  : 18-Jun-2007
 # -----------------------------------------------------------------------------
 
 import interfaces, reporter
@@ -68,7 +68,7 @@ class AbstractWriter:
 	INTERFACES = (
 		"Module", "Class",
 		"Destructor", "Constructor","ClassMethod", "Method", "Function", "Closure", "Block",
-		"ClassAttribute", "Attribute", "Argument", "Operator", "Reference",
+		"ModuleAttribute", "ClassAttribute", "Attribute", "Argument", "Operator", "Reference",
 		"Number", "String", "List", "Dict",
 		"Enumeration",
 		"Allocation", "Assignation", "Computation",
@@ -231,7 +231,7 @@ class Writer(AbstractWriter):
 	program representation. You can call the main @write method to get the
 	representatio of any model element."""
 
-	def writeModule( self, moduleElement, contentOnly=False ):
+	def writeModule( self, moduleElement ):
 		"""Writes a Module element."""
 		return self._format("@module %s" % (moduleElement.getName()),
 			[self.write(s[1]) for s in moduleElement.getSlots()],

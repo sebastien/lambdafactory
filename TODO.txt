@@ -1,3 +1,10 @@
+Design
+======
+
+ - Every element should have an associated dataflow, which could be the element
+   own dataflow (blocks, functions, classes, modules) or a dataflow inherited
+   from a parent (computation, assignation, etc)
+
 Checks
 ======
 

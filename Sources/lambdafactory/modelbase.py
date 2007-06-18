@@ -8,7 +8,7 @@
 # License   : Revised BSD License
 # -----------------------------------------------------------------------------
 # Creation  : 02-Nov-2006
-# Last mod  : 15-Jun-2007
+# Last mod  : 18-Jun-2007
 # -----------------------------------------------------------------------------
 
 # FIXME: Evaluable == Expression ?
@@ -689,6 +689,8 @@ class Attribute(Slot, IAttribute):
 class ClassAttribute(Attribute, IClassAttribute):
 	pass
 
+class ModuleAttribute(Attribute, IModuleAttribute):
+	pass
 
 # ------------------------------------------------------------------------------
 #
@@ -838,6 +840,9 @@ class Factory:
 	def _classattr( self, name, typeinfo=None, value=None):
 		return self._getImplementation("ClassAttribute")(name, typeinfo, value)
 
+	def _moduleattr( self, name, typeinfo=None, value=None):
+		return self._getImplementation("ModuleAttribute")(name, typeinfo, value)
+	
 	def _op( self, symbol, priority=0 ):
 		return self._getImplementation("Operator")(symbol, priority)
 

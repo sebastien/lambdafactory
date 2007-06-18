@@ -7,7 +7,7 @@
 # License   : Revised BSD License
 # -----------------------------------------------------------------------------
 # Creation  : 02-Nov-2006
-# Last mod  : 08-Jun-2007
+# Last mod  : 18-Jun-2007
 # -----------------------------------------------------------------------------
 
 import interfaces, reporter
@@ -143,6 +143,7 @@ class AbstractResolver:
 		"Allocation",
 		"ImportOperation",
 	
+		"Program",
 		"Process",
 		"Context"	
 		
@@ -240,8 +241,8 @@ class AbstractResolver:
 				for slot in class_flow.getSlots():
 					assert dataflow.resolve(slot.name)
 				
-	def flowContext( self, element ):
-		dataflow = DataFlow(element)
+	def flowContext( self, element, dataflow=None ):
+		if dataflow is None: dataflow = DataFlow(element)
 		for name, value in element.getSlots():
 			dataflow.declareVariable(name, value, element)
 		for name, value in element.getSlots():
@@ -249,6 +250,14 @@ class AbstractResolver:
 			if child_flow:
 				child_flow.addParent(dataflow)
 		return dataflow
+
+	def flowProgram( self, element ):
+		dataflow = DataFlow(element)
+		dataflow.declareEnvironment("Undefined", None)
+		dataflow.declareEnvironment("True", None)
+		dataflow.declareEnvironment("False", None)
+		dataflow.declareEnvironment("Null", None)
+		return self.flowContext(element, dataflow)
 
 	def flowMethod( self, element ):
 		dataflow  = self.flowClosure(element)
@@ -265,8 +274,11 @@ class AbstractResolver:
 			if flow: flow.addParent(dataflow)
 		return dataflow
 
-	def flowProcess( self, element ):
+	def flowProcess( self, element, dataflow=None ):
+		if dataflow is None: dataflow = DataFlow(element)
 		dataflow = DataFlow(element)
+		if isinstance(element, interfaces.IContext):
+			self.flowContext(element, dataflow)
 		for op in element.getOperations():
 			flow = self._flow(op, dataflow)
 			if flow: flow.addParent(dataflow)

@@ -8,7 +8,7 @@
 # License   : Revised BSD License
 # -----------------------------------------------------------------------------
 # Creation  : 02-Nov-2006
-# Last mod  : 15-Jun-2007
+# Last mod  : 18-Jun-2007
 # -----------------------------------------------------------------------------
 
 from modelwriter import AbstractWriter, flatten
@@ -49,10 +49,14 @@ class Writer(AbstractWriter):
 		if name == interfaces.Constants.MainFunction: name = "main"
 		return name
 	
-	def writeModule( self, moduleElement, contentOnly=False ):
+	def writeModule( self, moduleElement):
 		"""Writes a Module element."""
 		code = [self._document(moduleElement),"var %s={}" % (moduleElement.getName())]
-		code.extend(["%s.%s=%s" % (moduleElement.getName(), self.renameModuleSlot(s[0]), self.write(s[1])) for s in moduleElement.getSlots()])
+		for name, value in moduleElement.getSlots():
+			if isinstance(value, interfaces.IModuleAttribute):
+				code.extend(["%s.%s=%s" % (moduleElement.getName(), name, self.write(value.getDefaultValue()))])
+			else: 
+				code.extend(["%s.%s=%s" % (moduleElement.getName(), self.renameModuleSlot(name), self.write(value))])
 		code.append("%s.initialize()" % (moduleElement.getName()))
 		return self._format(
 			*code
@@ -256,6 +260,16 @@ class Writer(AbstractWriter):
 		else:
 			res = "%s:undefined" % (element.getReferenceName())
 		return self._format(self._document(element), res)
+
+	def writeModuleAttribute( self, element ):
+		"""Writes an argument element."""
+		default_value = element.getDefaultValue()
+		if default_value: default_value = self.write(default_value)
+		else: default_value = 'undefined'
+		return self._format(
+			self._document(element),
+			"%s=%s" % (element.getReferenceName(), default_value)
+		)
 
 	def writeReference( self, element ):
 		"""Writes an argument element."""
