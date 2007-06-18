@@ -267,6 +267,7 @@ class AbstractResolver:
 
 	def flowClosure( self, element ):
 		dataflow = DataFlow(element)
+		dataflow.declareEnvironment("target", None)
 		for arg in element.getArguments():
 			dataflow.declareArgument(arg.getReferenceName(), None)
 		for op in element.getOperations():

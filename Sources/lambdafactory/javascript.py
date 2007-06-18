@@ -279,6 +279,8 @@ class Writer(AbstractWriter):
 			value = scope.getSlot(symbol_name)
 		if symbol_name == "self":
 			return "__this__"
+		if symbol_name == "target":
+			return "this"
 		elif symbol_name == "Undefined":
 			return "undefined"
 		elif symbol_name == "True":
