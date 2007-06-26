@@ -7,7 +7,7 @@
 # License   : Revised BSD License
 # -----------------------------------------------------------------------------
 # Creation  : 02-Nov-2006
-# Last mod  : 18-Jun-2007
+# Last mod  : 26-Jun-2007
 # -----------------------------------------------------------------------------
 
 # TODO: ADd a Flowable interface that tells that the element can have
@@ -325,8 +325,45 @@ class ISlot(IReference, IAssignable):
 		argument."""
 
 class IArgument(ISlot):
-	pass
+	"""Arguments are slots which can be interpreted in different ways.
+	
+	When an argument is _optional_, it does not need to be defined in the
+	invocation. When an argument is _variable_, it means it references the
+	rest of the arguments lists. When an argument is _keywords_, it will reference
+	the named arguments of the rest of the arguments list."""
 
+	@abstract
+	def isOptional(self):
+		"""Tells if the argument is optional or not."""
+
+	@abstract
+	def setOptional(self, value):
+		"""Sets this argument as optional or not."""
+
+	@abstract
+	def isRest(self):
+		"""Tells if the argument is variable or not."""
+
+	@abstract
+	def setRest(self, value):
+		"""Sets this argument as variable or not."""
+
+	@abstract
+	def isKeywords(self):
+		"""Tells if the argument is keywords list or not."""
+
+	@abstract
+	def setKeywords(self, value):
+		"""Sets this argument as keywords list  or not."""
+
+	@abstract
+	def setDefault(self, value):
+		"""Sets the default value for this argument."""
+
+	@abstract
+	def getDefault(self):
+		"""Returns the default value for this slot."""
+		
 class IAttribute(ISlot):
 	
 	@abstract

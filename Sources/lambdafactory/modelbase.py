@@ -8,7 +8,7 @@
 # License   : Revised BSD License
 # -----------------------------------------------------------------------------
 # Creation  : 02-Nov-2006
-# Last mod  : 18-Jun-2007
+# Last mod  : 26-Jun-2007
 # -----------------------------------------------------------------------------
 
 # FIXME: Evaluable == Expression ?
@@ -671,8 +671,35 @@ class Argument(Slot, IArgument):
 
 	def __init__( self, refname, typeinfo ):
 		Slot.__init__(self, refname, typeinfo)
+		self._isRest = False
+		self._isOptional = False
+		self._isKeywords = False
 		assertImplements(self, IArgument)
 
+	def isOptional(self):
+		return self._isOptional
+
+	def setOptional(self, value):
+		self._isOptional = value and value
+
+	def isRest(self):
+		return self._isRest
+
+	def setRest(self, value):
+		self._isRest = value and value
+
+	def isKeywords(self):
+		return self._isKeywords
+
+	def setKeywords(self, value):
+		self._isKeywords = value and value
+
+	def setDefault(self, value):
+		self._defaultValue = value
+
+	def getDefault(self):
+		return self._defaultValue
+	
 class Attribute(Slot, IAttribute):
 
 	def __init__( self, refname, typeinfo, value=None ):
@@ -831,8 +858,10 @@ class Factory:
 	def _slot( self, name, typeinfo=None ):
 		return self._getImplementation("Slot")(name, typeinfo)
 
-	def _arg( self, name, typeinfo=None ):
-		return self._getImplementation("Argument")(name, typeinfo)
+	def _arg( self, name, typeinfo=None, optional=False ):
+		arg = self._getImplementation("Argument")(name, typeinfo)
+		arg.setOptional(optional)
+		return arg
 
 	def _attr( self, name, typeinfo=None, value=None):
 		return self._getImplementation("Attribute")(name, typeinfo, value)

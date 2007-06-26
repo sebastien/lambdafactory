@@ -120,6 +120,7 @@ class Writer(AbstractWriter):
 				", ".join(map(self.write, methodElement.getArguments()))
 			),
 			["var __this__=this"],
+			self._writeClosureArguments(methodElement),
 			self.writeFunctionWhen(methodElement),
 			map(self.write, methodElement.getOperations()),
 			"}"
@@ -133,6 +134,7 @@ class Writer(AbstractWriter):
 			self._document(methodElement),
 			"%s:function(%s){" % (method_name, ", ".join(map(self.write, args))),
 			["var __this__ = this;"],
+			self._writeClosureArguments(methodElement),
 			self.writeFunctionWhen(methodElement),
 			map(self.write, methodElement.getOperations()),
 			"}"
@@ -168,6 +170,7 @@ class Writer(AbstractWriter):
 				", ".join(map(self.write, element.getArguments()))
 			),
 			["var __this__=this"],
+			self._writeClosureArguments(element),
 			attributes or None,
 			map(self.write, element.getOperations()),
 			"}"
@@ -178,12 +181,27 @@ class Writer(AbstractWriter):
 		return self._format(
 			self._document(closure),
 			"function(%s){" % ( ", ".join(map(self.write, closure.getArguments()))),
+			self._writeClosureArguments(closure),
 			map(self.write, closure.getOperations()),
 			"}"
 		)
 	
 	def writeClosureBody(self, closure):
 		return self._format('{', map(self.write, closure.getOperations()), '}')
+
+	def _writeClosureArguments(self, closure):
+		i = 0
+		l = len(closure.getArguments())
+		result = []
+		for argument in closure.getArguments():
+			if argument.isRest():
+				assert i >= l - 2
+				result.append("%s = arguments.slice(%d)" % (
+					argument.getReferenceName(),
+					i
+				))
+			i += 1
+		return result
 
 	def writeFunctionWhen(self, function ):
 		res = []
@@ -208,6 +226,7 @@ class Writer(AbstractWriter):
 				),
 				[self._document(function)],
 				['var __this__=%s;' % (self.getAbsoluteName(parent))],
+				self._writeClosureArguments(function),
 				self.writeFunctionWhen(function),
 				map(self.write, function.getOperations()),
 				"}"
@@ -218,6 +237,7 @@ class Writer(AbstractWriter):
 				"function(%s){" % (
 					", ".join(map(self.write, function.getArguments()))
 				),
+				self._writeClosureArguments(function),
 				self.writeFunctionWhen(function),
 				map(self.write, function.getOperations()),
 				"}"
