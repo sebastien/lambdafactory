@@ -11,6 +11,8 @@
 # Last mod  : 27-Jun-2007
 # -----------------------------------------------------------------------------
 
+# TODO: When constructor is empty, should assign default attributes anyway
+
 from modelwriter import AbstractWriter, flatten
 from resolver import AbstractResolver
 import interfaces, reporter
@@ -54,7 +56,7 @@ class Writer(AbstractWriter):
 		return ".".join(names)
 
 	def renameModuleSlot(self, name):
-		if name == interfaces.Constants.ModuleInit: name = "initialize"
+		if name == interfaces.Constants.ModuleInit: name = "init"
 		if name == interfaces.Constants.MainFunction: name = "main"
 		return name
 	
@@ -66,7 +68,7 @@ class Writer(AbstractWriter):
 				code.extend(["%s.%s=%s" % (moduleElement.getName(), name, self.write(value.getDefaultValue()))])
 			else: 
 				code.extend(["%s.%s=%s" % (moduleElement.getName(), self.renameModuleSlot(name), self.write(value))])
-		code.append("%s.initialize()" % (moduleElement.getName()))
+		code.append("%s.init()" % (moduleElement.getName()))
 		return self._format(
 			*code
 		)
@@ -108,10 +110,10 @@ class Writer(AbstractWriter):
 		methods      = classElement.getInstanceMethods()
 		if constructors:
 			assert len(constructors) == 1, "Multiple constructors are not supported yet"
-			result.append("init:%s" % (self.write(constructors[0])))
+			result.append("%s" % (self.write(constructors[0])))
 		if destructors:
 			assert len(destructors) == 1, "Multiple destructors are not supported"
-			result.append("cleanup:%s" % (self.write(destructors[0])))
+			result.append("%s" % (self.write(destructors[0])))
 		if methods:
 			written_meths = ",\n".join(map(self.write, methods))
 			result.append("methods:{")
@@ -137,8 +139,8 @@ class Writer(AbstractWriter):
 	def writeMethod( self, methodElement ):
 		"""Writes a method element."""
 		method_name = methodElement.getName()
-		if method_name == interfaces.Constants.Constructor: method_name = "initialize"
-		if method_name == interfaces.Constants.Destructor:  method_name = "destroy"
+		if method_name == interfaces.Constants.Constructor: method_name = "init"
+		if method_name == interfaces.Constants.Destructor:  method_name = "cleanup"
 		return self._format(
 			self._document(methodElement),
 			"%s:function(%s){" % (
@@ -192,7 +194,7 @@ class Writer(AbstractWriter):
 			attributes.append("__this__.%s = %s" % (a.getReferenceName(), self.write(a.getDefaultValue())))
 		return self._format(
 			self._document(element),
-			"initialize:function(%s){" % (
+			"init:function(%s){" % (
 				", ".join(map(self.write, element.getArguments()))
 			),
 			["var __this__=this"],
