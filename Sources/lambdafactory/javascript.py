@@ -8,12 +8,13 @@
 # License   : Revised BSD License
 # -----------------------------------------------------------------------------
 # Creation  : 02-Nov-2006
-# Last mod  : 18-Jun-2007
+# Last mod  : 26-Jun-2007
 # -----------------------------------------------------------------------------
 
 from modelwriter import AbstractWriter, flatten
 from resolver import AbstractResolver
 import interfaces, reporter
+import os.path
 
 class Resolver(AbstractResolver):
 	pass
@@ -29,10 +30,14 @@ class Writer(AbstractWriter):
 	def __init__( self, reporter=reporter.DefaultReporter ):
 		AbstractWriter.__init__(self, reporter)
 		self.resolver = Resolver(reporter=reporter)
-		self.jsPrefix = "S."
-		self.jsCore   = "Core."
+		self.jsPrefix = ""
+		self.jsCore   = "Extend."
 		self.inInvocation = False
 
+	def getRuntimeSource(s):
+		"""Returns the JavaScript code for the runtime that is necassary to run
+		the program."""
+		 
 	def getAbsoluteName( self, element ):
 		"""Returns the absolute name for the given element. This is the '.'
 		concatenation of the individual names of the parents."""
@@ -90,21 +95,38 @@ class Writer(AbstractWriter):
 		for attribute in classElement.getClassAttributes():
 			classAttributes[attribute.getName()] = self.write(attribute)
 		classAttributes = classAttributes.values()
+		result = []
+		result.append(self._document(classElement))
+		result.append("name:'%s', parent:%s," % (self.getAbsoluteName(classElement), parent))
+		# We collect class attributes
+		constructors = classElement.getConstructors()
+		destructors  = classElement.getDestructors()
+		methods      = classElement.getInstanceMethods()
+		if constructors:
+			assert len(constructors) == 1, "Multiple constructors are not supported yet"
+			result.append("init:%s" % (self.write(constructors[0])))
+		if destructors:
+			assert len(destructors) == 1, "Multiple destructors are not supported"
+			result.append("cleanup:%s" % (self.write(destructors[0])))
+		if methods:
+			written_meths = ",\n".join(map(self.write, methods))
+			result.append("methods:{")
+			result.append([written_meths])
+			result.append("},")
+		if classAttributes:
+			written_attrs = ",\n".join(map(self.write, classAttributes))
+			result.append("attributes:{")
+			result.append([written_attrs])
+			result.append("},")
+		if classOperations:
+			written_ops = ",\n".join(map(self.write, classOperations))
+			result.append("operations:{")
+			result.append([written_ops])
+			result.append("},")
+		if result[-1][-1] == ",":result[-1] =result[-1][:-1]
 		return self._format(
-			"Class.create({",
-			[	self._document(classElement),
-				",\n".join(map(self.write, flatten(
-				"CLASSDEF:{name:'%s', parent:%s}" % (self.getAbsoluteName(classElement), parent),
-				classElement.getAttributes(),
-				classElement.getConstructors(),
-				classElement.getDestructors(),		
-				classElement.getInstanceMethods()
-			)))],
-			"},{",
-			[",\n".join(map(self.write, flatten(
-				classAttributes,
-				classOperations
-			)))],
+			"Extend.Class({",
+			result,
 			"})"
 		)
 
@@ -196,8 +218,9 @@ class Writer(AbstractWriter):
 		for argument in closure.getArguments():
 			if argument.isRest():
 				assert i >= l - 2
-				result.append("%s = arguments.slice(%d)" % (
+				result.append("%s = %s(arguments,%d)" % (
 					argument.getReferenceName(),
+					self.jsPrefix + self.jsCore + "sliceArguments",
 					i
 				))
 			i += 1
@@ -312,7 +335,7 @@ class Writer(AbstractWriter):
 		elif symbol_name == "super":
 			assert self.resolve("self"), "Super must be used inside method"
 			# FIXME: Should check that the element has a method in parent scope
-			return self.jsPrefix + self.jsCore + "superFor(%s, __this__)" % (
+			return "__this__.getSuper(%s)" % (
 				self.getAbsoluteName(self.getCurrentClass())
 			)
 		# If there is no scope, then the symmbol is undefined
@@ -328,7 +351,7 @@ class Writer(AbstractWriter):
 				if self.inInvocation:
 					return "__this__.%s" % (symbol_name)
 				else:
-					return self.jsPrefix + self.jsCore + "wrapMethod(__this__,'%s') " % (symbol_name)
+					return "__this__.getMethod('%s') " % (symbol_name)
 			elif isinstance(value, interfaces.IClassMethod):
 				if self.isInInstanceMethod():
 					return "__this__.getClass().%s" % (symbol_name)
@@ -450,10 +473,14 @@ class Writer(AbstractWriter):
 
 	def writeResolution( self, resolution ):
 		"""Writes a resolution operation."""
+		resolved_name = resolution.getReference().getReferenceName()
 		if resolution.getContext():
-			return "%s.%s" % (self.write(resolution.getContext()), resolution.getReference().getReferenceName())
+			if resolved_name == "super":
+				return "%s.getSuper()" % (self.write(resolution.getContext()))
+			else:
+				return "%s.%s" % (self.write(resolution.getContext()), resolved_name)
 		else:
-			return "%s" % (resolution.getReference().getReferenceName())
+			return "%s" % (resolved_name)
 
 	def writeComputation( self, computation ):
 		"""Writes a computation operation."""
