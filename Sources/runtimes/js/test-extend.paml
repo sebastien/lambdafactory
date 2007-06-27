@@ -1,7 +1,0 @@
-<html
-	<head
-		<script(src=extend.sjs)
-		<script(src=test-extend.js)
-	<body
-		<h1:Extend test
-		<div#results
