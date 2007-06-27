@@ -8,7 +8,7 @@
 # License   : Revised BSD License
 # -----------------------------------------------------------------------------
 # Creation  : 02-Nov-2006
-# Last mod  : 26-Jun-2007
+# Last mod  : 27-Jun-2007
 # -----------------------------------------------------------------------------
 
 from modelwriter import AbstractWriter, flatten
@@ -37,7 +37,11 @@ class Writer(AbstractWriter):
 	def getRuntimeSource(s):
 		"""Returns the JavaScript code for the runtime that is necassary to run
 		the program."""
-		 
+		this_file = os.path.abspath(__file__)
+		js_runtime = os.path.join(os.path.dirname(this_file), "runtimes", "js", "extend+runtime.js")
+		f = file(js_runtime, 'r') ; text = f.read() ; f.close()
+		return text
+
 	def getAbsoluteName( self, element ):
 		"""Returns the absolute name for the given element. This is the '.'
 		concatenation of the individual names of the parents."""
