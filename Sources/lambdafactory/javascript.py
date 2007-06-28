@@ -8,7 +8,7 @@
 # License   : Revised BSD License
 # -----------------------------------------------------------------------------
 # Creation  : 02-Nov-2006
-# Last mod  : 27-Jun-2007
+# Last mod  : 28-Jun-2007
 # -----------------------------------------------------------------------------
 
 # TODO: When constructor is empty, should assign default attributes anyway
@@ -105,24 +105,30 @@ class Writer(AbstractWriter):
 		result.append(self._document(classElement))
 		result.append("name:'%s', parent:%s," % (self.getAbsoluteName(classElement), parent))
 		# We collect class attributes
+		attributes   = classElement.getAttributes()
 		constructors = classElement.getConstructors()
 		destructors  = classElement.getDestructors()
 		methods      = classElement.getInstanceMethods()
+		if classAttributes:
+			written_attrs = ",\n".join(map(self.write, classAttributes))
+			result.append("shared:{")
+			result.append([written_attrs])
+			result.append("},")
+		if attributes:
+			written_attrs = ",\n".join(map(self.write, attributes))
+			result.append("properties:{")
+			result.append([written_attrs])
+			result.append("},")
 		if constructors:
 			assert len(constructors) == 1, "Multiple constructors are not supported yet"
-			result.append("%s" % (self.write(constructors[0])))
+			result.append("%s," % (self.write(constructors[0])))
 		if destructors:
 			assert len(destructors) == 1, "Multiple destructors are not supported"
-			result.append("%s" % (self.write(destructors[0])))
+			result.append("%s," % (self.write(destructors[0])))
 		if methods:
 			written_meths = ",\n".join(map(self.write, methods))
 			result.append("methods:{")
 			result.append([written_meths])
-			result.append("},")
-		if classAttributes:
-			written_attrs = ",\n".join(map(self.write, classAttributes))
-			result.append("attributes:{")
-			result.append([written_attrs])
 			result.append("},")
 		if classOperations:
 			written_ops = ",\n".join(map(self.write, classOperations))
@@ -296,9 +302,12 @@ class Writer(AbstractWriter):
 
 	def writeAttribute( self, element ):
 		"""Writes an argument element."""
+		default_value = element.getDefaultValue()
+		if default_value: default_value = self.write(default_value)
+		else: default_value="undefined"
 		return self._format(
 			self._document(element),
-			"%s:undefined" % (element.getReferenceName())
+			"%s:%s" % (element.getReferenceName(), default_value)
 		)
 
 	def writeClassAttribute( self, element ):

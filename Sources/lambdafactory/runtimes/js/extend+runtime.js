@@ -7,8 +7,9 @@
 // - 'name', an optional name for this class
 // - 'parent', with a reference to a parent class (created with Extend)
 // - 'init', with a function to be used as a init
+// - 'properties', with a dictionary of instance attributes
 // - 'methods', with a dictionary of instance methods
-// - 'attributes', with a dictionary of class attributes
+// - 'shared', with a dictionary of class attributes
 // - 'operations', with a dictionary of class operations
 // 
 // Extend 2.0 is a rewritten, simplified version of the Extend 1 library. It is
@@ -25,8 +26,9 @@ Extend.Class=	function(declaration){
 		// - 'name', an optional name for this class
 		// - 'parent', with a reference to a parent class (created with Extend)
 		// - 'init', with a function to be used as a init
+		// - 'properties', with a dictionary of instance attributes
 		// - 'methods', with a dictionary of instance methods
-		// - 'attributes', with a dictionary of class attributes
+		// - 'shared', with a dictionary of class attributes
 		// - 'operations', with a dictionary of class operations
 		// 
 		// Invoking the 'Class' function will return you a _Class Object_ that
@@ -40,7 +42,8 @@ Extend.Class=	function(declaration){
 		// - 'isSubclassOf(c)' tells if the given class is a subclass of this class
 		// - 'listMethods()' returns a dictionary of *methods* available for this class
 		// - 'listOperations()' returns a dictionary of *operations* (class methods)
-		// - 'listAttributes()' returns a dictionary of *class attributes*
+		// - 'listShared()' returns a dictionary of *class attributes*
+		// - 'listProperties()' returns a dictionary of *instance attributes*
 		// - 'bindMethod(o,n)' binds the method with the given name to the given object
 		// - 'proxyWithState(o)' returns a *proxy* that will use the given object as if
 		// it was an instance of this class (useful for implementing 'super')
@@ -73,6 +76,11 @@ Extend.Class=	function(declaration){
 		var class_object=function(){
 			if ( (! ((arguments.length == 1) && (arguments[0] == "__Extend_SubClass__"))) )
 			{
+				 var properties = class_object.listProperties()
+				 for ( var prop in properties ) {
+				   this[prop] = properties[prop];
+				 }
+				
 				if ( this.init )
 				{
 					return this.init.apply(this, arguments)
@@ -84,7 +92,8 @@ Extend.Class=	function(declaration){
 		};
 		class_object._parent = declaration.parent;
 		class_object._name = declaration.name;
-		class_object._attributes = {"all":{}, "inherited":{}, "own":{}};
+		class_object._properties = {"all":{}, "inherited":{}, "own":{}};
+		class_object._shared = {"all":{}, "inherited":{}, "own":{}};
 		class_object._operations = {"all":{}, "inherited":{}, "own":{}, "fullname":{}};
 		class_object._methods = {"all":{}, "inherited":{}, "own":{}, "fullname":{}};
 		class_object.getName = function(){
@@ -172,7 +181,7 @@ Extend.Class=	function(declaration){
 				return {}
 			}
 		};
-		class_object.listAttributes = function(o, i){
+		class_object.listShared = function(o, i){
 			if ( (o == undefined) )
 			{
 				o = true;
@@ -183,15 +192,41 @@ Extend.Class=	function(declaration){
 			}
 			if ( (o && i) )
 			{
-				return class_object._attributes.all
+				return class_object._shared.all
 			}
 			else if ( ((! o) && i) )
 			{
-				return class_object._attributes.inherited
+				return class_object._shared.inherited
 			}
 			else if ( (o && (! i)) )
 			{
-				return class_object._attributes.own
+				return class_object._shared.own
+			}
+			else if ( true )
+			{
+				return {}
+			}
+		};
+		class_object.listProperties = function(o, i){
+			if ( (o == undefined) )
+			{
+				o = true;
+			}
+			if ( (i == undefined) )
+			{
+				i = true;
+			}
+			if ( (o && i) )
+			{
+				return class_object._properties.all
+			}
+			else if ( ((! o) && i) )
+			{
+				return class_object._properties.inherited
+			}
+			else if ( (o && (! i)) )
+			{
+				return class_object._properties.own
 			}
 			else if ( true )
 			{
@@ -242,11 +277,17 @@ Extend.Class=	function(declaration){
 				class_object._methods.inherited[name] = method
 			}
 			// We copy parent class attributes default values
-			for ( var name in declaration.parent._attributes.all ) {
-				var attribute = declaration.parent._attributes.all[name]
+			for ( var name in declaration.parent._shared.all ) {
+				var attribute = declaration.parent._shared.all[name]
 				class_object[name] = attribute
-				class_object._attributes.all[name] = attribute
-				class_object._attributes.inherited[name] = attribute
+				class_object._shared.all[name] = attribute
+				class_object._shared.inherited[name] = attribute
+			}
+			// We copy parent instance attributes default values
+			for ( var name in declaration.parent._properties.all ) {
+				var prop = declaration.parent._properties.all[name]
+				class_object._properties.all[name] = prop
+				class_object._properties.inherited[name] = prop
 			}
 		}
 		if ( declaration.operations != undefined ) {
@@ -267,12 +308,19 @@ Extend.Class=	function(declaration){
 				class_object._methods.own[name] = method
 			}
 		}
-		if ( declaration.attributes != undefined ) {
-			for ( var name in declaration.attributes ) {
-				var attribute = declaration.attributes[name]
+		if ( declaration.shared != undefined ) {
+			for ( var name in declaration.shared ) {
+				var attribute = declaration.shared[name]
 				class_object[name] = attribute
-				class_object._attributes.all[name] = attribute
-				class_object._attributes.own[name] = attribute
+				class_object._shared.all[name] = attribute
+				class_object._shared.own[name] = attribute
+			}
+		}
+		if ( declaration.properties != undefined ) {
+			for ( var name in declaration.properties ) {
+				var attribute = declaration.properties[name]
+				class_object._properties.all[name] = attribute
+				class_object._properties.own[name] = attribute
 			}
 		}
 		
@@ -327,12 +375,12 @@ Extend.range=	function(start, end, step){
 		var result=[];
 		 if (start < end ) {
 		   for ( var i=start ; i<end ; i++ ) {
-		     res.push(i);
+		     result.push(i);
 		   }
 		 }
 		 else if (start > end ) {
 		   for ( var i=start ; i>end ; i-- ) {
-		     res.push(i);
+		     result.push(i);
 		   }
 		 }
 		
@@ -411,7 +459,7 @@ Extend.print=	function(args){
 		 if(typeof(print)!="undefined"){print(res);}
 		
 	}
-Extend.initialize=	function(){
+Extend.init=	function(){
 		var __this__=Extend;
 	}
-Extend.initialize()
+Extend.init()

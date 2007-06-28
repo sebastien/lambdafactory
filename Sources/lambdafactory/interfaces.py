@@ -420,7 +420,7 @@ class IClass(IContext, IReferencable):
 
 	@abstract
 	def getAttributes( self ):
-		"""Returns the attributes defined within this class."""
+		"""Returns the (non-class) attributes defined within this class."""
 		pass
 
 	@abstract
