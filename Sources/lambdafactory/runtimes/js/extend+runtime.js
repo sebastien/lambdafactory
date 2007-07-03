@@ -124,7 +124,7 @@ Extend.Class=	function(declaration){
 			}
 		};
 		class_object.getOperation = function(name){
-			var this_operation=object[name];
+			var this_operation=class_object[name];
 			return function(){
 				return this_operation.apply(class_object, arguments)
 			}
@@ -242,7 +242,7 @@ Extend.Class=	function(declaration){
 				}
 			};
 			var proxy_object=function(){
-				return constr.apply(undefined, arguments)
+				return class_object.prototype.init.apply(o, arguments)
 			};
 			proxy_object.prototype = proxy;
 			 for (var key in class_object.prototype) {
@@ -394,6 +394,7 @@ Extend.iterate=	function(value, callback, context){
 		// expected to define both 'length' or 'getLength' and 'get' or 'getItem' to
 		// enable the iteration.
 		var __this__=Extend;
+		  if ( !value ) { return }
 		  if ( value.length != undefined ) {
 		    var length = undefined
 		    // Is it an object with the length() and get() protocol ?
@@ -456,7 +457,7 @@ Extend.print=	function(args){
 		   else { res += val }
 		 }
 		 if(typeof(console)!="undefined"){console.log(res);}
-		 if(typeof(print)!="undefined"){print(res);}
+		 else if(typeof(document)=="undefined"&&typeof(print)!="undefined"){print(res);}
 		
 	}
 Extend.init=	function(){

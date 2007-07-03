@@ -65,7 +65,7 @@ class Writer(AbstractWriter):
 		code = [self._document(moduleElement),"var %s={}" % (moduleElement.getName())]
 		for name, value in moduleElement.getSlots():
 			if isinstance(value, interfaces.IModuleAttribute):
-				code.extend(["%s.%s=%s" % (moduleElement.getName(), name, self.write(value.getDefaultValue()))])
+				code.extend(["%s.%s" % (moduleElement.getName(), self.write(value))])
 			else: 
 				code.extend(["%s.%s=%s" % (moduleElement.getName(), self.renameModuleSlot(name), self.write(value))])
 		code.append("%s.init()" % (moduleElement.getName()))
@@ -350,7 +350,7 @@ class Writer(AbstractWriter):
 		elif symbol_name == "super":
 			assert self.resolve("self"), "Super must be used inside method"
 			# FIXME: Should check that the element has a method in parent scope
-			return "__this__.getSuper(%s)" % (
+			return "__this__.getSuper(%s.getParent())" % (
 				self.getAbsoluteName(self.getCurrentClass())
 			)
 		# If there is no scope, then the symmbol is undefined
