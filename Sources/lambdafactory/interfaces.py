@@ -7,10 +7,10 @@
 # License   : Revised BSD License
 # -----------------------------------------------------------------------------
 # Creation  : 02-Nov-2006
-# Last mod  : 26-Jun-2007
+# Last mod  : 07-Jul-2007
 # -----------------------------------------------------------------------------
 
-# TODO: ADd a Flowable interface that tells that the element can have
+# TODO: Add a Flowable interface that tells that the element can have
 # a dataflow
 
 def abstract(f):
@@ -580,16 +580,16 @@ class IOperation:
 
 class IImportOperation(IOperation):
 	ARGS = [ IEvaluable, IEvaluable ]
-	
-	def getTarget( self ):
-		if self.getAlias():
-			return self.getAlias()
-		return self.getName()
 
-	def getName( self ):
+
+	def getImportedElement( self ):
+		"""Returns a reference or a resolution that will allow to get the
+		imported element."""
 		return self.getOpArgument(0)
 
 	def getAlias( self ):
+		"""Returns the (optional) alias which will allow to reference the
+		element."""
 		return self.getOpArgument(1)
 
 class IEvaluation(IOperation):

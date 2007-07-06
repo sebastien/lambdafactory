@@ -7,7 +7,7 @@
 # License   : Revised BSD License
 # -----------------------------------------------------------------------------
 # Creation  : 02-Nov-2006
-# Last mod  : 18-Jun-2007
+# Last mod  : 06-Jul-2007
 # -----------------------------------------------------------------------------
 
 import interfaces, reporter
@@ -19,7 +19,7 @@ import interfaces, reporter
 # ------------------------------------------------------------------------------
 
 class DataFlowSlot:
-	
+
 	def __init__(self, name, value, origin, type):
 		self.name = name
 		self.value = value
@@ -167,7 +167,7 @@ class AbstractResolver:
 		while element.getParent() and not isinstance(element.getParent(), interfaces.IModule):
 			parent = element.getParent()
 		return element.getParent()
-		
+
 	def flow( self, program ):
 		"""This is the main method of the resolver. Basically, you give a
 		program, and it will either flow the whole program, or flow the given
@@ -216,7 +216,7 @@ class AbstractResolver:
 		self.stage2.append((self._flowClassStage2, (self.captureContext(), element, dataflow)))
 		dataflow.declareEnvironment("self", None)
 		return dataflow
-	
+
 	def _flowClassStage2( self, program, context, element, dataflow ):
 		"""Utility function that resolves the parents for a class. This must
 		happen at stage 2 because we have to wait for every class to be
@@ -292,7 +292,7 @@ class AbstractResolver:
 
 	def flowIteration( self, operation, dataflow ):
 		return self._flow(operation.getClosure())
-	
+
 	def flowRepetition(self, operation, dataflow):
 		return self._flow(operation.getProcess())
 
@@ -300,11 +300,20 @@ class AbstractResolver:
 		return self._flow(operation.getEvaluable())
 
 	def flowImportOperation( self, operation, dataflow):
-		self.stage2.append((self._flowImportOperationStage2, (operation, dataflow)))	
-		print operation.getTarget().getName()
-		return dataflow
+		self.stage2.append((self._flowImportOperationStage2, (operation, dataflow)))
 
 	def _flowImportOperationStage2( self, program, operation, dataflow):
-		program.getDataFlow().declareVariable(operation.getTarget().getName(),operation.getName(),operation)
+		to_resolve = operation.getImportedElement()
+		while isinstance(to_resolve, interfaces.IResolution):
+			if not to_resolve.getContext(): to_resolve = to_resolve.getReference()
+			else: to_resolve = to_resolve.getContext()
+		if isinstance(to_resolve, interfaces.IReference):
+			to_resolve = to_resolve.getName()
+		else:
+			raise Exception("Only references and resolution can be imported.")
+		resolve_slot, resolved = dataflow.resolve(to_resolve)
+		if operation.getAlias():
+			to_resolve = operation.getAlias().getReferenceName()
+		program.getDataFlow().declareVariable(to_resolve,resolved,operation)
 
 # EOF
