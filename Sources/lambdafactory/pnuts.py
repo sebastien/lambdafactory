@@ -59,6 +59,7 @@ class Writer(AbstractWriter):
 	def writeModule( self, moduleElement):
 		"""Writes a Module element."""
 		pnuts_name = self.getAbsoluteName(moduleElement)
+		# TODO: Move imports to the top
 		code = ['package("%s")' % (pnuts_name)]
 		for name, value in moduleElement.getSlots():
 			if isinstance(value, interfaces.IModuleAttribute):
@@ -258,11 +259,16 @@ class Writer(AbstractWriter):
 		"""Writes a function element."""
 		parent = function.getParent()
 		name   = function.getName()
+
+		args = []
+		for arg in function.getArguments():
+			args.append(self.write(arg))
+		args = ", ".join(args)
 		if parent and isinstance(parent, interfaces.IModule):
 			res = [
 				"function %s(%s) {" % (
 					function.getName(),
-					", ".join(map(self.write, function.getArguments()))
+					args
 				),
 				[self._document(function)],
 				self._writeClosureArguments(function),
@@ -605,12 +611,16 @@ class Writer(AbstractWriter):
 	def writeIteration( self, iteration ):
 		"""Writes a iteration operation."""
 		it_name = self._unique("_iterator")
+		args = map(self.write, iteration.getClosure().getArguments())
+		assert len(args) == 1
 		return self._format(
-			"%siterate(%s, %s, __this__)" % (
-				self.jsPrefix + self.jsCore,
+			"for (%s : %s ){" % (
+				args[0],
 				self.write(iteration.getIterator()),
-				self.write(iteration.getClosure())
-			)
+			),
+			map(self.write,iteration.getClosure().getOperations()),
+			"}"
+
 		)
 
 	def writeRepetition( self, repetition ):
