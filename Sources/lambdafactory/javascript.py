@@ -8,7 +8,7 @@
 # License   : Revised BSD License
 # -----------------------------------------------------------------------------
 # Creation  : 02-Nov-2006
-# Last mod  : 28-Jun-2007
+# Last mod  : 09-Jul-2007
 # -----------------------------------------------------------------------------
 
 # TODO: When constructor is empty, should assign default attributes anyway
@@ -63,6 +63,9 @@ class Writer(AbstractWriter):
 	def writeModule( self, moduleElement):
 		"""Writes a Module element."""
 		code = [self._document(moduleElement),"var %s={}" % (moduleElement.getName())]
+		version = moduleElement.getAnnotation("version")
+		if version:
+			code.append("%s._VERSION_='%s';" % (moduleElement.getName(),version.getContent()))
 		for name, value in moduleElement.getSlots():
 			if isinstance(value, interfaces.IModuleAttribute):
 				code.extend(["%s.%s" % (moduleElement.getName(), self.write(value))])

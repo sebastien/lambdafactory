@@ -546,7 +546,7 @@ class Termination(Operation, ITermination):
 
 class Breaking(Operation, IBreaking):
 	pass
-	
+
 class ImportOperation(Operation, IImportOperation):
 	
 	def __init__( self, *arguments):

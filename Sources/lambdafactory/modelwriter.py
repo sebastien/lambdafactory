@@ -97,15 +97,41 @@ class AbstractWriter:
 		res = self._filterContext(interfaces.IMethod)
 		return res and res[-1] or None
 
+	def getCurrentClass( self ):
+		res = self._filterContext(interfaces.IClass)
+		return res and res[-1] or None
+
+	def getCurrentClassParents( self ):
+		res = []
+		cur = self.getCurrentClass()
+		for ref in cur.getSuperClasses():
+			ref = ref.getReferenceName()
+			target, context = self.resolve(ref, cur.getDataFlow())
+			parent = target.value
+			assert parent
+			res.append(parent)
+		return res
+
+	def getCurrentModule( self ):
+		res = self._filterContext(interfaces.IModule)
+		return res and res[-1] or None
+		
+	def getCurrentContext( self ):
+		return self.contexts[-1]
+
+	def getCurrentDataFlow( self ):
+		i = len(self.contexts) - 1
+		while i >= 0:
+			if self.contexts[i].hasDataFlow():
+				return self.contexts[i].getDataFlow()
+			i -= 1
+		return None
+
 	def isInClassMethod(self):
 		return self._filterContext(interfaces.IClassMethod)
 	
 	def isInInstanceMethod(self):
 		return self._filterContext(interfaces.IInstanceMethod)
-
-	def getCurrentClass( self ):
-		res = self._filterContext(interfaces.IClass)
-		return res and res[-1] or None
 
 	def isIn(self, interface):
 		"""Tells wether the current element is in a context where at least one
@@ -122,32 +148,6 @@ class AbstractWriter:
 				return i
 			i -= 1
 		return -1
-	
-	def getCurrentClassParents( self ):
-		res = []
-		cur = self.getCurrentClass()
-		for ref in cur.getSuperClasses():
-			ref = ref.getReferenceName()
-			target, context = self.resolve(ref, cur.getDataFlow())
-			parent = target.value
-			assert parent
-			res.append(parent)
-		return res
-		
-	def getCurrentModule( self ):
-		res = self._filterContext(interfaces.IModule)
-		return res and res[-1] or None
-
-	def getCurrentContext( self ):
-		return self.contexts[-1]
-
-	def getCurrentDataFlow( self ):
-		i = len(self.contexts) - 1
-		while i >= 0:
-			if self.contexts[i].hasDataFlow():
-				return self.contexts[i].getDataFlow()
-			i -= 1
-		return None
 
 	def _getContextsAsString( self ):
 		res = []
