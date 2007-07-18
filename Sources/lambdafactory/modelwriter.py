@@ -8,7 +8,7 @@
 # License   : Revised BSD License
 # -----------------------------------------------------------------------------
 # Creation  : 02-Nov-2006
-# Last mod  : 18-Jun-2007
+# Last mod  : 18-Jul-2007
 # -----------------------------------------------------------------------------
 
 import interfaces, reporter
@@ -74,7 +74,8 @@ class AbstractWriter:
 		"Allocation", "Assignation", "Computation",
 		"Invocation", "Instanciation", "Resolution", "Selection",
 		"Repetition", "Iteration", "AccessOperation", "SliceOperation",
-		"Evaluation", "Termination", "Breaking", "ImportOperation", "Embed"
+		"Evaluation", "Termination", "Breaking", "Except", "Interception",
+		"ImportOperation", "Embed"
 	)
 
 	def __init__( self, reporter=reporter.DefaultReporter ):

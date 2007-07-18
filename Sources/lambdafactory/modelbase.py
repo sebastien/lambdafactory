@@ -547,6 +547,14 @@ class Termination(Operation, ITermination):
 class Breaking(Operation, IBreaking):
 	pass
 
+class Except(Operation, IExcept):
+	pass
+
+class Interception(Operation, IInterception):
+
+	def __init__( self, tryProcess, catchProcess=None, finallyProcess=None):
+		Operation.__init__(self, tryProcess, catchProcess, finallyProcess)
+
 class ImportOperation(Operation, IImportOperation):
 	
 	def __init__( self, *arguments):
@@ -839,6 +847,12 @@ class Factory:
 	
 	def breaks( self ):
 		return self._getImplementation("Breaking")()
+
+	def exception( self, exception ):
+		return self._getImplementation("Except")(exception)
+	
+	def intercept( self, tryProcess, catchProcess=None, finallyProcess=None ):
+		return self._getImplementation("Interception")(tryProcess, catchProcess, finallyProcess)
 	
 	def embed(self, lang, code):
 		return self._getImplementation("Embed")(lang,code)

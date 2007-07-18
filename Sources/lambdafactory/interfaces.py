@@ -7,7 +7,7 @@
 # License   : Revised BSD License
 # -----------------------------------------------------------------------------
 # Creation  : 02-Nov-2006
-# Last mod  : 07-Jul-2007
+# Last mod  : 18-Jul-2007
 # -----------------------------------------------------------------------------
 
 # TODO: Add a Flowable interface that tells that the element can have
@@ -822,9 +822,50 @@ class ITermination(IOperation):
 	def getReturnedEvaluable( self ):
 		"""Returns the termination return evaluable."""
 
-class IBreaking(IOperation):
+class IInterruption(IOperation):
+	"""An interruption can be be used to halt the process."""
+	pass
+
+class IBreaking(IInterruption):
 	ARGS = []
-		
+
+class IExcept(IInterruption):
+	"""An interruption that raises some value"""
+	ARGS = [ IEvaluable ]
+
+	def getValue( self ):
+		"""Returns the termination return evaluable."""
+		return self.getOpArgument(0)
+
+class IInterception(IOperation):
+	"""An interception allows to intercept interruptions that propagage from an
+	enclosed process to parent contexts."""
+	ARGS = [ IProcess, IProcess, IProcess ]
+
+	def setProcess( self, process ):
+		"""Sets the process from which interruptions will be intercepted."""
+		return self.setOpArgument(0, process)
+	
+	def getProcess( self ):
+		"""Returns the process that we will intercept interruptions from."""
+		return self.getOpArgument(0)
+
+	def setIntercept( self, process ):
+		"""Sets the process that will do the interception"""
+		return self.setOpArgument(1, process)
+	
+	def getIntercept( self ):
+		"""Returns the process that will do the interception"""
+		return self.getOpArgument(1)
+
+	def setConclusion( self, process ):
+		"""Sets the process that will conclude the interception (finally)"""
+		return self.setOpArgument(2, process)
+	
+	def getConclusion( self ):
+		"""Returns the process that will conclude the interception (finally)"""
+		return self.getOpArgument(2)
+	
 class IEmbed(IOperation):
 	"""An embedded operation represents a bit of verbatim code written in
 	a different language. This allows for embedding code written specifically

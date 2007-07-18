@@ -8,7 +8,7 @@
 # License   : Revised BSD License
 # -----------------------------------------------------------------------------
 # Creation  : 02-Nov-2006
-# Last mod  : 09-Jul-2007
+# Last mod  : 18-Jul-2007
 # -----------------------------------------------------------------------------
 
 # TODO: When constructor is empty, should assign default attributes anyway
@@ -650,6 +650,26 @@ class Writer(AbstractWriter):
 		"""Writes a break operation."""
 		return "break"
 	
+	def writeExcept( self, exception ):
+		"""Writes a except operation."""
+		return "throw " + self.write(exception.getValue())
+	
+	def writeInterception( self, interception ):
+		"""Writes an interception operation."""
+		try_block   = interception.getProcess()
+		try_catch   = interception.getIntercept()
+		try_finally = interception.getConclusion()
+		res         = ["try {", map(self.write, try_block.getOperations()), "}"]
+		if try_catch:
+			res.extend([
+				"catch(%s){" % ( self.write(try_catch.getArguments()[0])) ,
+				map(self.write, try_catch.getOperations()),
+				"}"
+			])
+		if try_finally:
+			res.extend(["finally {", map(self.write, try_finally.getOperations()), "}"])
+		return self._format(*res)
+
 	def writeEmbed( self, embed ):
 		lang = embed.getLanguage().lower().strip()
 		assert lang in ("js", "javascript")
