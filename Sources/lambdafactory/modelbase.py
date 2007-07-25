@@ -229,15 +229,22 @@ class Class(Context, IClass, IReferencable, IAssignable):
 		res = {}
 		for class_ref in self._inherited:
 			slot, parent = resolver.resolve(class_ref.getReferenceName())
-			cl = parent.getSlot(class_ref.getReferenceName())
-			for meth in cl.getClassMethods():
-				name = meth.getName()
-				meths = res.setdefault(name, [])
-				meths.append(meth)
-			inherited_cm = cl.getInheritedClassMethods(resolver)
-			for name, imeths in inherited_cm.items():
-				meths = res.setdefault(name, [])
-				meths.extend(imeths)
+			if not parent:
+				# FIXME: Should raise an error
+				pass
+			else:
+				# FIXME: Report an error here
+				if not parent.hasSlot(class_ref.getReferenceName()):
+					continue
+				cl = parent.getSlot(class_ref.getReferenceName())
+				for meth in cl.getClassMethods():
+					name = meth.getName()
+					meths = res.setdefault(name, [])
+					meths.append(meth)
+				inherited_cm = cl.getInheritedClassMethods(resolver)
+				for name, imeths in inherited_cm.items():
+					meths = res.setdefault(name, [])
+					meths.extend(imeths)
 		return res
 
 	def getInheritedClassAttributes(self, resolver):
@@ -246,15 +253,19 @@ class Class(Context, IClass, IReferencable, IAssignable):
 		res = {}
 		for class_ref in self._inherited:
 			slot, parent = resolver.resolve(class_ref.getReferenceName())
-			cl = parent.getSlot(class_ref.getReferenceName())
-			for attr in cl.getClassAttributes():
-				name = attr.getName()
-				attrs = res.setdefault(name, [])
-				attrs.append(attr)
-			inherited_ca = cl.getInheritedClassAttributes(resolver)
-			for name, iattrs in inherited_ca.items():
-				attrs = res.setdefault(name, [])
-				attrs.extend(iattrs)
+			# FIXME: Should raise an error when parent is not reachable
+			if parent:
+				if not parent.hasSlot(class_ref.getReferenceName()):
+					continue
+				cl = parent.getSlot(class_ref.getReferenceName())
+				for attr in cl.getClassAttributes():
+					name = attr.getName()
+					attrs = res.setdefault(name, [])
+					attrs.append(attr)
+				inherited_ca = cl.getInheritedClassAttributes(resolver)
+				for name, iattrs in inherited_ca.items():
+					attrs = res.setdefault(name, [])
+					attrs.extend(iattrs)
 		return res
 
 	def getSuperClasses( self ):

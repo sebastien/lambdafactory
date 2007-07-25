@@ -8,7 +8,7 @@
 # License   : Revised BSD License
 # -----------------------------------------------------------------------------
 # Creation  : 05-Jul-2006
-# Last mod  : 06-Jul-2007
+# Last mod  : 18-Jul-2007
 # -----------------------------------------------------------------------------
 
 from modelwriter import AbstractWriter, flatten
@@ -60,19 +60,31 @@ class Writer(AbstractWriter):
 		"""Writes a Module element."""
 		pnuts_name = self.getAbsoluteName(moduleElement)
 		# TODO: Move imports to the top
+		module_slots = moduleElement.getSlots()
 		code = ['package("%s")' % (pnuts_name)]
-		for name, value in moduleElement.getSlots():
+		for name, value in module_slots:
 			if isinstance(value, interfaces.IModuleAttribute):
-				code.extend(["%s = " % (moduleElement.getName(), self.write(value))])
-			if isinstance(value, interfaces.IClass):
+				code.append("%s = " % (moduleElement.getName(), self.write(value)))
+			elif isinstance(value, interfaces.IClass):
 				code.append(self.write(value))
-			if isinstance(value, interfaces.IFunction):
+			elif isinstance(value, interfaces.IFunction):
 				if value.getName() == interfaces.Constants.ModuleInit:
-					code.extend(map(self.write, value.getOperations()))
+					imports = []
+					operations = []
+					for op in value.getOperations():
+						if isinstance(op,interfaces.IImportOperation):
+							imports.append(op)
+						else:
+							operations.append(op)
+					code.extend(map(self.write, operations))
+					if imports:
+						imports.insert(0, "")
+						imports.append("")
+					code.insert(1,map(self.write, imports))
 				else:
 					code.append(self.write(value))
 			else: 
-				code.extend(["%s=%s" % (self.renameModuleSlot(name), self.write(value))])
+				code.append("%s=%s" % (self.renameModuleSlot(name), self.write(value)))
 		return self._format(
 			*code
 		)
@@ -82,7 +94,8 @@ class Writer(AbstractWriter):
 		imported_elem = imported_name.split(".")[-1]
 		code = ['import("%s")' % (imported_name)]
 		if importElement.getAlias():
-			code.append("%s=%s" % (importElement.getAlias().getReferenceName(), imported_elem))
+			if importElement.getAlias().getReferenceName() != imported_elem:
+				code[-1] += " ; %s=%s" % (importElement.getAlias().getReferenceName(), imported_elem)
 		return "\n".join(code)
 
 	def writeClass( self, classElement ):
@@ -367,7 +380,7 @@ class Writer(AbstractWriter):
 			return "super"
 		# If there is no scope, then the symmbol is undefined
 		if not scope:
-			if symbol_name == "print": return self.jsPrefix + self.jsCore + "print"
+			if symbol_name == "print": return "System.out.println"
 			else: return symbol_name
 		# It is a method of the current class
 		elif self.getCurrentClass() == scope:

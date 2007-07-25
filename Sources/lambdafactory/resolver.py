@@ -232,7 +232,7 @@ class AbstractResolver:
 			if slot is None and this_program:
 				this_program = this_program[0]
 				slot, defined_in = this_program.getDataFlow().resolve(p.getReferenceName())
-			if not defined_in:
+			if not defined_in or not defined_in.hasSlot(p.getReferenceName()):
 				self.report.error("Undefined parent class:" + p.getReferenceName(), element)
 			else:
 				parent_class = defined_in.getSlot(p.getReferenceName())
