@@ -8,7 +8,7 @@
 # License   : Revised BSD License
 # -----------------------------------------------------------------------------
 # Creation  : 02-Nov-2006
-# Last mod  : 18-Jul-2007
+# Last mod  : 25-Jul-2007
 # -----------------------------------------------------------------------------
 
 # TODO: When constructor is empty, should assign default attributes anyway
@@ -203,7 +203,7 @@ class Writer(AbstractWriter):
 			attributes.append("__this__.%s = %s" % (a.getReferenceName(), self.write(a.getDefaultValue())))
 		return self._format(
 			self._document(element),
-			"init:function(%s){" % (
+			"initialize:function(%s){" % (
 				", ".join(map(self.write, element.getArguments()))
 			),
 			["var __this__=this"],
