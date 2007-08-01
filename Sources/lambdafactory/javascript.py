@@ -62,7 +62,10 @@ class Writer(AbstractWriter):
 	
 	def writeModule( self, moduleElement):
 		"""Writes a Module element."""
-		code = [self._document(moduleElement),"var %s={}" % (moduleElement.getName())]
+		code = [
+			"// " + self.SNIP % ("%s.js" % (self.getAbsoluteName(moduleElement).replace(".", "/"))),
+			self._document(moduleElement),"var %s={}" % (moduleElement.getName())
+		]
 		version = moduleElement.getAnnotation("version")
 		if version:
 			code.append("%s._VERSION_='%s';" % (moduleElement.getName(),version.getContent()))
