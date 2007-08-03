@@ -14,6 +14,7 @@
 # SEE: http://livedocs.adobe.com/specs/actionscript/3/
 # TODO: When constructor is empty, should assign default attributes anyway
 
+import os
 import javascript
 import interfaces
 import reporter
@@ -34,6 +35,14 @@ class Writer(javascript.Writer):
 		self.jsCore   = "Extend.__module__."
 		self.supportedEmbedLanguages.extend(("as", "actionscript"))
 
+	def getRuntimeSource(s):
+		"""Returns the JavaScript code for the runtime that is necassary to run
+		the program."""
+		this_file = os.path.abspath(__file__)
+		js_runtime = os.path.join(os.path.dirname(this_file), "runtimes", "actionscript", "extend+runtime.as")
+		f = file(js_runtime, 'r') ; text = f.read() ; f.close()
+		return text
+	
 	def writeModule( self, moduleElement):
 		"""Writes a Module element."""
 		files_code  = []
