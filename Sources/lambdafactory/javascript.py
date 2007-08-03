@@ -34,6 +34,7 @@ class Writer(AbstractWriter):
 		self.resolver = Resolver(reporter=reporter)
 		self.jsPrefix = ""
 		self.jsCore   = "Extend."
+		self.supportedEmbedLanguages = ["ecmascript", "js", "javascript"]
 		self.inInvocation = False
 
 	def getRuntimeSource(s):
@@ -608,13 +609,39 @@ class Writer(AbstractWriter):
 	def writeIteration( self, iteration ):
 		"""Writes a iteration operation."""
 		it_name = self._unique("_iterator")
-		return self._format(
-			"%siterate(%s, %s, __this__)" % (
-				self.jsPrefix + self.jsCore,
-				self.write(iteration.getIterator()),
-				self.write(iteration.getClosure())
+		iterator = iteration.getIterator()
+		closure  = iteration.getClosure()
+		if isinstance(iterator, interfaces.IEnumeration):
+			start = self.write(iterator.getStart())
+			end   = self.write(iterator.getEnd())
+			step  = self.write(iterator.getStep()) or "1"
+			if "." in start or "." in end or "." in step: filt = float
+			else: filt = int
+			start, end, step = map(filt, (start, end, step))
+			if start > end:
+				swap  = start
+				start = end
+				end   = swap
+			if step < 0: step = -step
+			args  = map(lambda a:a.getName(), closure.getArguments())
+			if len(args) == 0: args.append("__iterator_value")
+			if len(args) == 1: args.append("__iterator_index")
+			i = args[1]
+			v = args[0] 
+			return self._format(
+				"for ( var %s=%s ; %s < %s ; %s += %s ) {" % (i, start, i, end, i, step),
+				["var %s=%s;" % (v,i)],
+				map(self.write, closure.getOperations()),
+				"}"
 			)
-		)
+		else:
+			return self._format(
+				"%siterate(%s, %s, __this__)" % (
+					self.jsPrefix + self.jsCore,
+					self.write(iteration.getIterator()),
+					self.write(iteration.getClosure())
+				)
+			)
 
 	def writeRepetition( self, repetition ):
 		return self._format(
@@ -675,7 +702,7 @@ class Writer(AbstractWriter):
 
 	def writeEmbed( self, embed ):
 		lang = embed.getLanguage().lower().strip()
-		assert lang in ("js", "javascript")
+		assert lang in self.supportedEmbedLanguages
 		return embed.getCodeString()
 	
 	def _document( self, element ):
