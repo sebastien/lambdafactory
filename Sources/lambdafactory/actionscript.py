@@ -8,7 +8,7 @@
 # License   : Revised BSD License
 # -----------------------------------------------------------------------------
 # Creation  : 01-Aug-2007
-# Last mod  : 01-Aug-2007
+# Last mod  : 03-Aug-2007
 # -----------------------------------------------------------------------------
 
 # SEE: http://livedocs.adobe.com/specs/actionscript/3/
@@ -32,6 +32,7 @@ class Writer(javascript.Writer):
 	def __init__(self, reporter=reporter.DefaultReporter ):
 		javascript.Writer.__init__(self,reporter=reporter)
 		self.jsCore   = "Extend.__module__."
+		self.supportedEmbedLanguages.extend(("as", "actionscript"))
 
 	def writeModule( self, moduleElement):
 		"""Writes a Module element."""
@@ -264,7 +265,7 @@ class Writer(javascript.Writer):
 		else: default_value = 'undefined'
 		return self._format(
 			self._document(element),
-			"public static %s=%s" % (element.getReferenceName(), default_value)
+			"public static var %s=%s" % (element.getReferenceName(), default_value)
 		)
 		
 	def writeReference( self, element ):
