@@ -611,6 +611,8 @@ class Writer(AbstractWriter):
 		it_name = self._unique("_iterator")
 		iterator = iteration.getIterator()
 		closure  = iteration.getClosure()
+		# If the iteration iterates on an enumeration, we can use a for
+		# loop instead.
 		if isinstance(iterator, interfaces.IEnumeration):
 			start = self.write(iterator.getStart())
 			end   = self.write(iterator.getEnd())
@@ -618,18 +620,21 @@ class Writer(AbstractWriter):
 			if "." in start or "." in end or "." in step: filt = float
 			else: filt = int
 			start, end, step = map(filt, (start, end, step))
+			comp = "<"
+			# If start > end, then step < 0
 			if start > end:
-				swap  = start
-				start = end
-				end   = swap
-			if step < 0: step = -step
+				if step > 0: step =  -step
+				comp = ">"
+			# If start <= end then step >  0 
+			else:
+				if step < 0: step = -step
 			args  = map(lambda a:a.getName(), closure.getArguments())
 			if len(args) == 0: args.append("__iterator_value")
 			if len(args) == 1: args.append("__iterator_index")
 			i = args[1]
 			v = args[0] 
 			return self._format(
-				"for ( var %s=%s ; %s < %s ; %s += %s ) {" % (i, start, i, end, i, step),
+				"for ( var %s=%s ; %s %s %s ; %s += %s ) {" % (i, start, i, comp, end, i, step),
 				["var %s=%s;" % (v,i)],
 				map(self.write, closure.getOperations()),
 				"}"
