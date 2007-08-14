@@ -8,7 +8,7 @@
 # License   : Revised BSD License
 # -----------------------------------------------------------------------------
 # Creation  : 02-Nov-2006
-# Last mod  : 25-Jul-2007
+# Last mod  : 14-Aug-2007
 # -----------------------------------------------------------------------------
 
 # TODO: When constructor is empty, should assign default attributes anyway
@@ -241,6 +241,12 @@ class Writer(AbstractWriter):
 					argument.getReferenceName(),
 					self.jsPrefix + self.jsCore + "sliceArguments",
 					i
+				))
+			if argument.getDefault():
+				result.append("%s = %s || %s" % (
+					argument.getReferenceName(),
+					argument.getReferenceName(),
+					self.write(argument.getDefault())
 				))
 			i += 1
 		return result
@@ -619,6 +625,7 @@ class Writer(AbstractWriter):
 			step  = self.write(iterator.getStep()) or "1"
 			if "." in start or "." in end or "." in step: filt = float
 			else: filt = int
+			print "***", start, end, step
 			start, end, step = map(filt, (start, end, step))
 			comp = "<"
 			# If start > end, then step < 0

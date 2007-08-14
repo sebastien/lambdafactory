@@ -693,6 +693,7 @@ class Argument(Slot, IArgument):
 		self._isRest = False
 		self._isOptional = False
 		self._isKeywords = False
+		self._defaultValue = None
 		assertImplements(self, IArgument)
 
 	def isOptional(self):

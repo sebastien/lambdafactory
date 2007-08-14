@@ -8,10 +8,11 @@
 # License   : Revised BSD License
 # -----------------------------------------------------------------------------
 # Creation  : 03-Aug-2007
-# Last mod  : 03-Aug-2007
+# Last mod  : 14-Aug-2007
 # -----------------------------------------------------------------------------
 
 # TODO: When constructor is empty, should assign default attributes anyway
+# TODO: Support for variable and keyword arguments
 
 from modelwriter import AbstractWriter, flatten
 from resolver import AbstractResolver
@@ -181,7 +182,20 @@ class Writer(AbstractWriter):
 			attributes.append("self.%s = %s" % (a.getReferenceName(), self.write(a.getDefaultValue())))
 		if not attributes: return None
 		else: return self._format(attributes)
-	
+
+	def _writeFunctionArgumentsInit(self, function):
+		"""Returns a list of operations that initialize the default attributes
+		in case they weren't already."""
+		result = []
+		for argument in function.getArguments():
+			if argument.getDefault():
+				result.append("%s = %s or %s" % (
+					argument.getReferenceName(),
+					argument.getReferenceName(),
+					self.write(argument.getDefault())
+				))
+		return result
+
 	def writeConstructor( self, element ):
 		"""Writes a method element."""
 		arguments = self._writeMethodArguments(element)
@@ -189,6 +203,7 @@ class Writer(AbstractWriter):
 			self._document(element),
 			"def __init__ (%s):" % (arguments),
 			self._writeConstructorAttributes(element),
+			self._writeFunctionArgumentsInit(element),
 			map(self.write, element.getOperations()),
 			""
 		)
@@ -200,6 +215,7 @@ class Writer(AbstractWriter):
 			self._document(closure),
 			"lambda %s:(" % ( ", ".join(map(self.write, closure.getArguments()))),
 				", ".join(map(self.write, closure.getArguments())),
+				self._writeFunctionArgumentsInit(closure),
 				map(self.write, closure.getOperations()),
 			")"
 		)
@@ -228,6 +244,7 @@ class Writer(AbstractWriter):
 				),
 				[self._document(function)],
 				['self=__module__'],
+				self._writeFunctionArgumentsInit(function),
 				self.writeFunctionWhen(function),
 				map(self.write, function.getOperations()),
 				"\n"
