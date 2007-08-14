@@ -590,6 +590,9 @@ class Embed(Operation, IEmbed):
 	def setCodeString( self, code ):
 		self.code = code
 
+class EmbedTemplate(Embed, IEmbedTemplate):
+	pass
+
 # ------------------------------------------------------------------------------
 #
 # VALUES
@@ -868,6 +871,9 @@ class Factory:
 	
 	def embed(self, lang, code):
 		return self._getImplementation("Embed")(lang,code)
+
+	def embedTemplate(self, lang, code):
+		return self._getImplementation("EmbedTemplate")(lang,code)
 		
 	def comment( self, content ):
 		return self._getImplementation("Comment")(content)

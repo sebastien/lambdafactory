@@ -7,10 +7,13 @@
 # License   : Revised BSD License
 # -----------------------------------------------------------------------------
 # Creation  : 02-Nov-2006
-# Last mod  : 06-Jul-2007
+# Last mod  : 14-Aug-2007
 # -----------------------------------------------------------------------------
 
 import interfaces, reporter
+
+# STAGE2: Linking classes/modules/symbols together
+# STAGE3: Linking operations to their original dataflowslot
 
 # ------------------------------------------------------------------------------
 #
@@ -24,7 +27,26 @@ class DataFlowSlot:
 		self.name = name
 		self.value = value
 		self.origin = origin
-		self.type = type
+		self.slotType = type
+		self.operations = []
+		self.type = None
+
+	def addOperation(self,operation):
+		"""Adds an operation made to this dataflow slot."""
+		self.operations.append(operation)
+
+	def setType(self, typeInfo):
+		"""Sets the type information attached to this slot. The type information
+		should be a typecast type instance."""
+		return self.type
+
+	def getType(self):
+		"""Returns the typecast type description for the value associated to
+		that slot."""
+		return self.type
+
+	def __str__(self):
+		return '<Slot("%s"=%s):%s@%s%s>' % (self.name, self.value, self.type, self.slotType, self.origin)
 
 class DataFlow(interfaces.IDataFlow):
 	"""The DataFlow are ''dynamic contexts'' bound to the various program model
@@ -141,6 +163,7 @@ class AbstractResolver:
 		"Repetition",
 		"Evaluation",
 		"Allocation",
+		"Assignation",
 		"ImportOperation",
 	
 		"Program",
@@ -152,6 +175,7 @@ class AbstractResolver:
 	def __init__( self, reporter=reporter.DefaultReporter ):
 		self.report = reporter
 		self.stage2 = []
+		self.stage3 = []
 		self.context = []
 
 	def captureContext(self):
@@ -187,6 +211,9 @@ class AbstractResolver:
 		self._flow(program)
 		while self.stage2:
 			f, a = self.stage2.pop()
+			f(program, *a)
+		while self.stage3:
+			f, a = self.stage3.pop()
 			f(program, *a)
 
 	def _flow( self, element, dataflow=None ):
@@ -253,6 +280,8 @@ class AbstractResolver:
 
 	def flowProgram( self, element ):
 		dataflow = DataFlow(element)
+		# TODO: Call the runtime for setting variables
+		# TODO: Add symbolic values for this
 		dataflow.declareEnvironment("Undefined", None)
 		dataflow.declareEnvironment("True", None)
 		dataflow.declareEnvironment("False", None)
@@ -287,8 +316,18 @@ class AbstractResolver:
 
 	def flowAllocation( self, operation, dataflow ):
 		name = operation.getSlotToAllocate().getReferenceName()
-		dataflow.declareVariable(name, None, operation)
+		dataflow.declareVariable(name, operation.getDefaultValue(), operation)
 		return None
+
+	def flowAssignation(self, operation, dataflow):
+		# TODO
+		self.stage3.append((self._flowAssignationStage3, (self.captureContext(), operation, dataflow)))
+		
+	def _flowAssignationStage3( self, program, context, operation, dataflow ):
+		target = operation.getTarget()
+		target_name = target.getReferenceName()
+		slot, context = dataflow.resolve(target_name)
+		slot.addOperation(operation)
 
 	def flowIteration( self, operation, dataflow ):
 		# We get the closure arguments which will be assigned during each

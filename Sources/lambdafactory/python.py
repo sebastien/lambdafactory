@@ -169,7 +169,7 @@ class Writer(AbstractWriter):
 			),
 			self._writeFunctionArgumentsInit(methodElement),
 			self.writeFunctionWhen(methodElement),
-			map(self.write, methodElement.getOperations()),
+			map(self.write, methodElement.getOperations()) or ["pass"],
 			""
 		)
 
@@ -183,7 +183,7 @@ class Writer(AbstractWriter):
 			"def %s(%s):" % (method_name, self._writeMethodArguments(methodElement)),
 			self._writeFunctionArgumentsInit(methodElement),
 			self.writeFunctionWhen(methodElement),
-			map(self.write, methodElement.getOperations()),
+			map(self.write, methodElement.getOperations()) or ["pass"],
 			""
 		)
 
@@ -226,7 +226,7 @@ class Writer(AbstractWriter):
 			"def __init__ (%s):" % (arguments),
 			self._writeConstructorAttributes(element),
 			self._writeFunctionArgumentsInit(element),
-			map(self.write, element.getOperations()),
+			map(self.write, element.getOperations()) or ["pass"],
 			""
 		)
 
@@ -238,7 +238,7 @@ class Writer(AbstractWriter):
 			"lambda %s:(" % ( ", ".join(map(self.write, closure.getArguments()))),
 				", ".join(map(self.write, closure.getArguments())),
 				self._writeFunctionArgumentsInit(closure),
-				map(self.write, closure.getOperations()),
+				map(self.write, closure.getOperations()) or ["pass"],
 			")"
 		)
 
@@ -268,7 +268,7 @@ class Writer(AbstractWriter):
 				['self=__module__'],
 				self._writeFunctionArgumentsInit(function),
 				self.writeFunctionWhen(function),
-				map(self.write, function.getOperations()),
+				map(self.write, function.getOperations()) or ["pass"],
 				"\n"
 			]
 		else:

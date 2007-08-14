@@ -598,6 +598,7 @@ class IEvaluation(IOperation):
 	def getEvaluable( self ):
 		return self.getOpArgument(0)
 
+# FIXME: Rename Assignment
 class IAssignation(IOperation):
 	ARGS = [ IEvaluable, IEvaluable ]
 
@@ -888,4 +889,10 @@ class IEmbed(IOperation):
 	@abstract
 	def setCodeString( self, code ):
 		"""Sets the code of this embed operation."""
+
+class IEmbedTemplate(IEmbed):
+	"""The 'EmbedTemplate' is embedded ('Embed') that contains template
+	expressions. It's up to the model writer to know how to expand the template
+	to convert it to the target language."""
+
 # EOF
