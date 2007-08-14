@@ -277,7 +277,7 @@ class AbstractResolver:
 
 	def flowProcess( self, element, dataflow=None ):
 		if dataflow is None: dataflow = DataFlow(element)
-		dataflow = DataFlow(element)
+		#dataflow = DataFlow(element)
 		if isinstance(element, interfaces.IContext):
 			self.flowContext(element, dataflow)
 		for op in element.getOperations():
@@ -291,7 +291,21 @@ class AbstractResolver:
 		return None
 
 	def flowIteration( self, operation, dataflow ):
-		return self._flow(operation.getClosure())
+		# We get the closure arguments which will be assigned during each
+		# iteration.
+		closure = operation.getClosure()
+		args  = map(lambda a:a.getName(), closure.getArguments())
+		# Here we cheat a little bit, as the iteration is an operation, not
+		# a context, we use the process attached to the iteration as a context
+		# and define the slots in its dataflow that correspond to the first two
+		# arguments (iterated value, iteartion count)
+		child_flow  = self._flow(operation.getClosure())
+		for i in range(0,min(len(args),2)):
+			child_flow.declareVariable(args[i], None, operation)
+		# FIXME: This does not work...
+		# flow = DataFlow(operation)
+		# child_flow.addParent(flow)
+		return child_flow
 
 	def flowRepetition(self, operation, dataflow):
 		return self._flow(operation.getProcess())
