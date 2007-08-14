@@ -1,0 +1,28 @@
+@module System
+
+@class File
+
+	@property handler
+
+	@constructor path, mode
+		handler = file (path, mode)
+	@end
+
+	@method close
+		handler close()
+	@end
+
+	@method read
+		return handler read()
+	@end
+
+	@method readLine
+		return handler readline()
+	@end
+
+	@method readLines
+		return handler readlines()
+	@end
+
+@end
+
