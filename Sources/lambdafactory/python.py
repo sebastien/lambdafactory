@@ -73,6 +73,7 @@ class Writer(AbstractWriter):
 	
 	def writeModule( self, moduleElement):
 		"""Writes a Module element."""
+		main = False
 		code = [
 			"# " + self.SNIP % ("%s.py" % (self.getAbsoluteName(moduleElement).replace(".", "/"))),
 			self._document(moduleElement),
@@ -81,8 +82,9 @@ class Writer(AbstractWriter):
 		]
 		imports_offset = len(code)
 		version = moduleElement.getAnnotation("version")
+		code.append("__module_name__ = '%s'" % (self.getAbsoluteName(moduleElement)))
 		if version:
-			code.append("__version__ = '%s';" % (moduleElement.getName(),version.getContent()))
+			code.append("__version__ = '%s'" % (version.getContent()))
 		module_init = []
 		imports     = []
 		for name, value in moduleElement.getSlots():
@@ -95,6 +97,8 @@ class Writer(AbstractWriter):
 						module_init.append(self.write(o))
 			else:
 				code.append(self.write(value))
+			if name == interfaces.Constants.MainFunction:
+				main = value
 		# We take care of the imports
 		if imports:
 			# NOTE: This is a bit dirty, but it helps preserve the import
@@ -105,6 +109,15 @@ class Writer(AbstractWriter):
 		# We take care of the module_init
 		if module_init:
 			code.extend(module_init)
+		# We take care or the main function
+		if main:
+			code.extend([
+				'if __name__ == "__main__":',
+				[
+					"import sys",
+					"sys.exit(%s(sys.argv))" % (interfaces.Constants.MainFunction)
+				]
+			])
 		return self._format(
 			*code
 		)
@@ -127,13 +140,19 @@ class Writer(AbstractWriter):
 				"def __init__(self):",
 				[self._writeConstructorAttributes(classElement)]
 			]
+		c_attrs = classElement.getClassAttributes()
+		c_inst  = classElement.getInstanceMethods()
+		c_ops   = classElement.getClassMethods()
+		if not c_attrs and not c_inst and not c_ops: empty = ["pass"]
+		else: empty = None
 		return self._format(
 			self._document(classElement),
 			"class %s%s" % (classElement.getName(), parents),
-			flatten([self.write(m) for m in classElement.getClassAttributes()]),
+			flatten([self.write(m) for m in c_attrs]),
 			constructor,
-			flatten([self.write(m) for m in classElement.getInstanceMethods()]),
-			flatten([self.write(m) for m in classElement.getClassMethods()]),
+			flatten([self.write(m) for m in c_inst]),
+			flatten([self.write(m) for m in c_ops]),
+			empty,
 			""
 		)
 	
@@ -148,6 +167,7 @@ class Writer(AbstractWriter):
 				method_name,
 				self._writeMethodArguments(methodElement)
 			),
+			self._writeFunctionArgumentsInit(methodElement),
 			self.writeFunctionWhen(methodElement),
 			map(self.write, methodElement.getOperations()),
 			""
@@ -161,6 +181,7 @@ class Writer(AbstractWriter):
 			self._document(methodElement),
 			"@classmethod",
 			"def %s(%s):" % (method_name, self._writeMethodArguments(methodElement)),
+			self._writeFunctionArgumentsInit(methodElement),
 			self.writeFunctionWhen(methodElement),
 			map(self.write, methodElement.getOperations()),
 			""
@@ -188,10 +209,11 @@ class Writer(AbstractWriter):
 		in case they weren't already."""
 		result = []
 		for argument in function.getArguments():
-			if argument.getDefault():
-				result.append("%s = %s or %s" % (
-					argument.getReferenceName(),
-					argument.getReferenceName(),
+			if not (argument.getDefault() is None):
+				a = argument.getReferenceName()
+				result.append("if %s is None: %s = %s" % (
+					a,
+					a,
 					self.write(argument.getDefault())
 				))
 		return result
@@ -277,9 +299,11 @@ class Writer(AbstractWriter):
 
 	def writeArgument( self, argElement ):
 		"""Writes an argument element."""
-		return "%s" % (
-			argElement.getReferenceName(),
-		)
+		default = argElement.getDefault()
+		if default is None:
+			return "%s" % (argElement.getReferenceName())
+		else:
+			return "%s=None" % (argElement.getReferenceName())
 
 	def writeAttribute( self, element ):
 		"""Writes an argument element."""
@@ -605,8 +629,7 @@ class Writer(AbstractWriter):
 	def writeRepetition( self, repetition ):
 		return self._format(
 			"while %s:" % (self.write(repetition.getCondition())),
-			self.write(repetition.getProcess()),
-			"# end while"
+			[self.write(repetition.getProcess())]
 		)
 
 	def writeAccessOperation( self, operation ):
