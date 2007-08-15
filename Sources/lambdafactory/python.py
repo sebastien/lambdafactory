@@ -17,7 +17,7 @@
 from modelwriter import AbstractWriter, flatten
 from resolver import AbstractResolver
 import interfaces, reporter
-import os.path
+import os.path, re, time, string, random
 
 class Resolver(AbstractResolver):
 	pass
@@ -535,15 +535,63 @@ class Writer(AbstractWriter):
 			res = "(%s)" % (res)
 		return res
 
+	def _closureIsRewrite(self, closure):
+		embed_templates_for_backend = []
+		others = []
+		if not isinstance(closure, interfaces.IClosure):
+			return False
+		print "REWRITE", closure
+		for op in closure.getOperations():
+			if isinstance(op, interfaces.IEmbedTemplate):
+				lang = op.getLanguage().lower()
+				if lang == "python":
+					embed_templates_for_backend.append(op)
+				continue
+		if embed_templates_for_backend and not others:
+			return embed_templates_for_backend
+		else:
+			return ()
+
+	RE_TEMPLATE = re.compile("\$\{[^\}]+\}")
+	def _rewriteInvocation(self, invocation, closure, template):
+		arguments = tuple([self.write(a) for a in invocation.getArguments()])
+		parameters = tuple([a.getReferenceName() for a  in closure.getArguments()])
+		args = {}
+		for i in range(len(arguments)):
+			args[parameters[i]] = arguments[i]
+		target = invocation.getTarget()
+		# To have the 'self', the invocation target must be a resolution on an
+		# object
+		assert isinstance(target, interfaces.IResolution)
+		args["self"] = "self_" + str(time.time()).replace(".","_") + str(random.randint(0,100)) 
+		for var in self.RE_TEMPLATE.findall(template):
+			var = var[2:-1]
+			if var[0] == "_":
+				if var not in args:
+					args[var] = "var_" + str(time.time()).replace(".","_") + str(random.randint(0,100)) 
+		return "%s=%s\n%s" % (
+			args["self"],
+			self.write(target.getContext()),
+			string.Template(template).substitute(args)
+		)
+
 	def writeInvocation( self, invocation ):
 		"""Writes an invocation operation."""
+		print "INVOCATION", invocation.prettyList()
 		self.inInvocation = True
 		t = self.write(invocation.getTarget())
-		self.inInvocation = False
-		return "%s(%s)" % (
-			t,
-			", ".join(map(self.write, invocation.getArguments()))
-		)
+		target_type = invocation.getTarget().getResultAbstractType()
+		print "TARGET TYPE", target_type
+		concrete_type = target_type.concreteType()
+		rewrite = self._closureIsRewrite(concrete_type)
+		if rewrite:
+			return self._rewriteInvocation(invocation, concrete_type, "\n".join([r.getCodeString() for r in rewrite]))
+		else:
+			self.inInvocation = False
+			return "%s(%s)" % (
+							t,
+				", ".join(map(self.write, invocation.getArguments()))
+				)
 	
 	def writeInstanciation( self, operation ):
 		"""Writes an invocation operation."""

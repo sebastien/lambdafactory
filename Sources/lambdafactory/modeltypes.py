@@ -55,7 +55,6 @@ Behaviour.Method               = typecast.Process()
 
 Runtime.Instance               = typecast.Context()
 
-
 def typeForValue( value, noneIs=Nothing ):
 	"""Associates a type with the given value. This basically creates a typecast
 	instance/subtype, using the types defined in this module, using the given
@@ -67,6 +66,7 @@ def typeForValue( value, noneIs=Nothing ):
 	if hasattr(value, "_lf_type"): return value._lf_type
 	if isinstance(value, interfaces.IOperation):
 		res = Operations.getType(value.__class__.__name__)
+		res = Any
 	elif isinstance(value, interfaces.IModule):
 		res = Structure.Module.clone()
 	elif isinstance(value, interfaces.IClass):
@@ -83,7 +83,9 @@ def typeForValue( value, noneIs=Nothing ):
 		default = value.getDefaultValue()
 		if default is None: res = Any
 		else: res = typeForValue(default, Any)
-	if not res:
+	elif isinstance(value, interfaces.IReference):
+		res = Any
+	if res is None:
 		raise Exception("No abstract type for Python value: %s" % (value))
 	# When the type is a context, we populate its slots
 	if isinstance(value, interfaces.IClosure):

@@ -13,15 +13,26 @@
 	@end
 
 	@method length
-		@rewrite(Python):${self}.length
+		@rewrite(Python):len(${self})
+		@rewrite(JavaScript):${self}.length
 	@end
 
 	@method swap a,b
 		@rewrite(Python)
-		|${?s} = ${self}[${a}]
+		|${_s} = ${self}[${a}]
 		|${self}[${a}] = ${self}[${b}]
-		|${self}[${b}] = ${?s}
+		|${self}[${b}] = ${_s}
+		@end
+		@rewrite(JavaScript)
+		|var ${_s} = ${self}[${a}]
+		|${self}[${a}] = ${self}[${b}]
+		|${self}[${b}] = ${_s}
 		@end
 	@end
 
+#	@operator slice start,end
+#		@rewrite(JavaScript)
+#		@end
+#	@end
+	
 @end

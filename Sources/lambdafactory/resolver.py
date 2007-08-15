@@ -31,6 +31,12 @@ class DataFlowSlot:
 		self.operations = []
 		self.type = None
 
+	def getValue(self):
+		return self.value
+
+	def getAbstractType(self):
+		return self.type
+
 	def addOperation(self,operation):
 		"""Adds an operation made to this dataflow slot."""
 		self.operations.append(operation)
@@ -75,6 +81,7 @@ class DataFlow(interfaces.IDataFlow):
 		if parent != None: self.addParent(parent)
 		element.setDataFlow(self)
 
+	# FIXME: ARgument should be 'element' rather than 'value'
 	def declareArgument( self, name, value ):
 		self._declare(name, value, None, self.ARGUMENT)
 
@@ -216,6 +223,14 @@ class AbstractResolver:
 			f, a = self.stage3.pop()
 			f(program, *a)
 
+	def getCurrentDataFlow( self ):
+		i = len(self.context) - 1
+		while i >= 0:
+			if self.context[i].hasDataFlow():
+				return self.context[i].getDataFlow()
+			i -= 1
+		return None
+	
 	def _flow( self, element, dataflow=None ):
 		"""Creates flow information for the given element."""
 		res = None
@@ -235,6 +250,8 @@ class AbstractResolver:
 				else:
 					res = getattr(self, "flow" + name)(element)
 					break
+			if not element.hasDataFlow():
+				element.setDataFlow(self.getCurrentDataFlow())
 		self.context.pop()
 		return res
 
@@ -298,7 +315,7 @@ class AbstractResolver:
 		dataflow = DataFlow(element)
 		dataflow.declareEnvironment("target", None)
 		for arg in element.getArguments():
-			dataflow.declareArgument(arg.getReferenceName(), None)
+			dataflow.declareArgument(arg.getReferenceName(), arg)
 		for op in element.getOperations():
 			flow = self._flow(op, dataflow)
 			if flow: flow.addParent(dataflow)

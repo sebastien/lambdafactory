@@ -60,6 +60,22 @@ class Constants:
 #
 #------------------------------------------------------------------------------
 
+# TODO: Annotations
+# TODO: Source (external, source file, etc)
+# TODO: Documentation shorthands
+# TODO: S-Expression representation
+
+class IElement:
+	"""The core class for every element."""
+	
+	@abstract
+	def getAbstractType(self):
+		"""Returns the abstract type for this element."""
+	
+	@abstract
+	def setAbstractType(self, type):
+		"""Sets the abstract type for this element."""
+
 class IReferencable:
 	"""A referencable is an element that can be referenced either by id (it is
 	unique and stable), or by a name (which is also not supposed to change).
@@ -88,6 +104,15 @@ class IEvaluable:
 	#	"""This *evaluates* the element in the given context. This returns the
 	#	type (internal or not) for the value of the evaluated element, which
 	#	should be as narrow as possible."""
+
+	@abstract
+	def getResultAbstractType(self):
+		"""Returns the abstract type of the result of the evaluation of this
+		evaluable."""
+
+	@abstract
+	def setResultAbstractType(self, type):
+		pass
 
 class IAssignable:
 	"""An assignable value can be *bound to a slot* within a context. Each
@@ -257,7 +282,7 @@ class IDocumentation(IAnnotation):
 #
 #------------------------------------------------------------------------------
 
-class IValue(IEvaluable):
+class IValue(IElement, IEvaluable):
 	"""A value represents an atomic element of the language, like a number, a
 	string, or a name (that can resolved by the language, acts as key for data
 	structures, etc.)."""
@@ -364,7 +389,8 @@ class IArgument(ISlot):
 	@abstract
 	def getDefaultValue(self):
 		"""Returns the default value for this slot."""
-		
+
+	
 class IAttribute(ISlot):
 	
 	@abstract
@@ -387,7 +413,7 @@ class IClassAttribute(IAttribute):
 #
 #------------------------------------------------------------------------------
 
-class IContext(IDataFlowable):
+class IContext(IElement, IDataFlowable):
 	"""A context is an element that has slots, which bind evaluable elements
 	(aka values) to names."""
 
@@ -558,7 +584,7 @@ class IClassMethod(IMethod):
 #
 #------------------------------------------------------------------------------
 
-class IOperation:
+class IOperation(IElement):
 
 	@abstract
 	def addOpArgument( self, argument ):

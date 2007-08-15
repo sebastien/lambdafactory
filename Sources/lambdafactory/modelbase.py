@@ -8,7 +8,7 @@
 # License   : Revised BSD License
 # -----------------------------------------------------------------------------
 # Creation  : 02-Nov-2006
-# Last mod  : 26-Jun-2007
+# Last mod  : 15-Aug-2007
 # -----------------------------------------------------------------------------
 
 # FIXME: Evaluable == Expression ?
@@ -24,7 +24,7 @@ class ModelBadArgument(Exception):
 		Exception.__init__(self, "Bad argument: %s expected %s, got %s" \
 		% (someClass, expectedClass, argument))
 
-class Element:
+class Element(IElement):
 	"""Element is the *base class* for every class within this module. This is
 	where common operations can be defined.
 	
@@ -40,6 +40,8 @@ class Element:
 		self._name   = name
 		self._source = None
 		self._annotations = []
+		self._abstractType = None
+		self._resultAbstractType = None
 		self.meta    = {}
 		self.COUNT  += 1
 
@@ -66,9 +68,24 @@ class Element:
 		"""Sets the source for this element."""
 		self._source = source
 
-	@classmethod
-	def getModelType( self ):
-		return mt.typeFromClass(self)
+	def getAbstractType( self ):
+		if self._abstractType is None:
+			self._abstractType = mt.typeForValue(self)
+		return self._abstractType 
+	
+	def setAbstractType( self, type ):
+		self._abstractType = type
+
+	# FIXME: IEvaluable only
+	def getResultAbstractType( self ):
+		assert isinstance(self, IEvaluable)
+		if self._resultAbstractType is None:
+			self._resultAbstractType = mt.typeForValue(self)
+		return self._resultAbstractType 
+	
+		# FIXME: IEvaluable only
+	def setResultAbstractType( self, type ):
+		self._resultAbstractType = type
 
 	def hasDocumentation( self ):
 		"""Tells if this element has attached documentation."""
@@ -102,6 +119,13 @@ class Element:
 		if res: return res[0]
 		else: return None
 
+	def prettyList(self):
+		import pprint
+		return pprint.pprint(self.asList())
+
+	def asList(self):
+		return (self.__class__.__name__,)
+		
 class Annotation(IAnnotation):
 
 	def __init__( self, name=None, content=None ):
@@ -177,6 +201,12 @@ class Context(Element, IContext, IAbstractable):
 
 	def getParent( self ): 
 		return self._parent
+
+	def asList(self):
+		slots = []
+		for n,v in self._slots.items():
+			slots.append((n,v.asList()))
+		return tuple(self.__class__.__name__,tuple(slots))
 
 class Class(Context, IClass, IReferencable, IAssignable):
 
@@ -324,6 +354,12 @@ class Process( Context, IContext, IProcess, IAbstractable ):
 		pass
 		# TODO: Find how we process the operations to get a type
 
+	def asList(self):
+		oeprations = []
+		for o in self._opertions:
+			operations.append(o)
+		return tuple(self.__class__.__name__,tuple(operations))
+	
 class Block( Process, IBlock ):
 	pass
 
@@ -471,6 +507,14 @@ class Operation(Element, IEvaluable, IOperation):
 		else:
 			return isinstance(arg, argtype)
 
+	def asList(self):
+		args = []
+		for a in self._oparguments:
+			if not type(a) in (tuple,list):
+				args.append(a.asList())
+			else:
+				args.append(a)
+		return (self.__class__.__name__,tuple(args))
 
 class Assignation(Operation, IAssignation, IEvaluable):
 
@@ -575,6 +619,7 @@ class ImportOperation(Operation, IImportOperation):
 class Embed(Operation, IEmbed):
 
 	def __init__(self, lang=None, code=None):
+		Operation.__init__(self)
 		self.language = lang
 		self.code = code
 
@@ -662,6 +707,9 @@ class Reference(Value, IReference):
 	def getReferenceName( self ):
 		return self._refname
 
+	def asList(self):
+		return (self.__class__.__name__, self._refname)
+
 class Operator(Reference, IOperator):
 
 	def __init__( self, opname, priority ):
@@ -722,7 +770,7 @@ class Argument(Slot, IArgument):
 
 	def getDefaultValue(self):
 		return self._defaultValue
-	
+
 class Attribute(Slot, IAttribute):
 
 	def __init__( self, refname, typeinfo, value=None ):
