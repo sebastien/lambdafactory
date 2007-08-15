@@ -13,8 +13,8 @@
 	@end
 
 	@method length
-		@rewrite(Python):len(${self})
-		@rewrite(JavaScript):${self}.length
+		@rewrite(Python):len(${self_once})
+		@rewrite(JavaScript):${self_once}.length
 	@end
 
 	@method swap a,b

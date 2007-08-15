@@ -139,8 +139,6 @@ class Typer(object):
 
 	def typeResolution(self, element):
 		# FIXME: This is too basic and DIRTY !!
-		print "RESOLUTION====="
-		print element.prettyList()
 		dataflow = self.getCurrentDataFlow()
 		context   = element.getContext()
 		reference = element.getReference()
@@ -150,7 +148,6 @@ class Typer(object):
 			df_slot, context_value = dataflow.resolve(context.getReferenceName())
 			slot_value = df_slot.getValue()
 			if slot_value is None:
-				print df_slot
 				assert df_slot.getAbstractType()
 				element.setResultAbstractType(df_slot.getAbstractType())
 			else:

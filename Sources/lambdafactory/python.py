@@ -540,7 +540,6 @@ class Writer(AbstractWriter):
 		others = []
 		if not isinstance(closure, interfaces.IClosure):
 			return False
-		print "REWRITE", closure
 		for op in closure.getOperations():
 			if isinstance(op, interfaces.IEmbedTemplate):
 				lang = op.getLanguage().lower()
@@ -563,25 +562,25 @@ class Writer(AbstractWriter):
 		# To have the 'self', the invocation target must be a resolution on an
 		# object
 		assert isinstance(target, interfaces.IResolution)
-		args["self"] = "self_" + str(time.time()).replace(".","_") + str(random.randint(0,100)) 
+		args["self"] = "self_" + str(time.time()).replace(".","_") + str(random.randint(0,100))
+		args["self_once"] = self.write(target.getContext())
+		vars = [] 
 		for var in self.RE_TEMPLATE.findall(template):
 			var = var[2:-1]
+			vars.append(var)
 			if var[0] == "_":
 				if var not in args:
 					args[var] = "var_" + str(time.time()).replace(".","_") + str(random.randint(0,100)) 
-		return "%s=%s\n%s" % (
-			args["self"],
-			self.write(target.getContext()),
+		return "%s%s" % (
+			"self" in vars and "%s=%s\n" % (args["self"],self.write(args["self_once"])) or "",
 			string.Template(template).substitute(args)
 		)
 
 	def writeInvocation( self, invocation ):
 		"""Writes an invocation operation."""
-		print "INVOCATION", invocation.prettyList()
 		self.inInvocation = True
 		t = self.write(invocation.getTarget())
 		target_type = invocation.getTarget().getResultAbstractType()
-		print "TARGET TYPE", target_type
 		concrete_type = target_type.concreteType()
 		rewrite = self._closureIsRewrite(concrete_type)
 		if rewrite:
