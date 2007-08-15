@@ -55,9 +55,9 @@
 
 @protocol ReflectiveObject: Object
 
-	@abstract @method getMethod:Callable
-	@abstract @method getMethodIn:Callable parent:Class
-	@abstract @method getField:any
+	@abstract @method getMethod:Callable name:String
+	@abstract @method getMethodIn:Callable name:String, parent:Class
+	@abstract @method getField:any name:String
 	@abstract @method getClass:Class
 
 @end

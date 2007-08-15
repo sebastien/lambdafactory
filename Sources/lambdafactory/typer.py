@@ -48,9 +48,10 @@ class Typer(object):
 		"""Infers the type for the given element."""
 		if isinstance(element, interfaces.IList):
 			list_interface = self.catalog.get("DataTypes.List")
-			return list_interface
+			return modeltypes.typeForValue(list_interface)
 		else:
-			return None
+			# TODO: Cache type into value
+			return modeltypes.typeForValue(element)
 
 	def walk(self, dataflow):
 		for slot in dataflow.getSlots():
@@ -64,9 +65,9 @@ def type( element ):
 	catalog.make(element.getDataFlow())
 	keys = catalog.catalog.keys()
 	keys.sort()
-	#if True:
-	#	for key in keys:
-	#		print key
+	if False:
+		for key in keys:
+			print key
 	typer.walk(element.getDataFlow())
 
 # EOF

@@ -6,9 +6,10 @@
 # License           :   BSD License (revised)
 # ------------------------------------------------------------------------------
 # Creation date     :   21-Mar-2005
-# Last mod.         :   11-Jul-2006
+# Last mod.         :   15-Aug-2007
 # ------------------------------------------------------------------------------
 
+# TODO: Add concrete type
 # TODO: Add Logical
 # TODO: Implement isSame
 # TODO: What about a type (like Parameter) that can be substituted to different
@@ -42,6 +43,17 @@ class Type:
 		self._name        = name
 		self._parentTypes = []
 		self._definition  = None
+		self._concrete    = None
+	
+	def setConcreteType( self, value ):
+		"""Sets the _concrete type_ for this abstract type. The concrete type
+		is a value which represents the type. For instance, if this type
+		represents a class, then the concrete type would be the class instance."""
+		self._concrete = value
+	
+	def concreteType( self ):
+		"""Returns the _concrete type_ for this abstract type."""
+		return self._concrete
 	
 	def definedBy( self, definition=None ):
 		if definition == None:
@@ -174,7 +186,7 @@ class Cell(Type):
 		return False
 
 	def length( self ):
-		"""Returns the length for this cell."""
+		"""Returns the length (in bytes) for this cell."""
 		return self._bytes
 	
 	def asString( self, fromType=None ):
@@ -352,7 +364,9 @@ def Sequence_combine( a, b, sequenceclass=Sequence ):
 #
 # ------------------------------------------------------------------------------
 
+# TODO: Arguments should support optional and keyword arguments
 class Arguments(Sequence): pass
+
 # TODO: Maybe extend sequence ? ==> May pose a problem when subtyping
 class Process(Type):
 	"""A process generates values by processing (optional) arguments."""
@@ -481,12 +495,23 @@ class Map(Type):
 	
 	# FIXME: Deprecate this
 	def add( self, name, theType ):
+		"""This is a *deprecated* methods that is simply an alias for 'Map.set'."""
 		return self.set(name, theType)
 
 	def set( self, name, theType ):
+		"""Sets the slot with the given 'name' to have a value of the given
+		type ('theType')."""
 		assert isinstance(theType, Type), "Expected Typecast._Type instance: %s" % (theType)
 		assert theType != Nothing, "There is no point in adding Nothing."
 		self._elements[name] = theType
+
+	def get( self, name ):
+		"""Returns the type for the slot with the given name."""
+		return self._elements[name]
+
+	def elementNames( self ):
+		"""Returns the list of slots/elements defined in this map."""
+		return self._elements.keys()
 
 	def elements( self ):
 		"""Returns a dict of the elements in this map. Do not modify it."""
@@ -623,6 +648,22 @@ class Context(Map):
 		Map.clone(clone)
 		clone._parents = list(self._parents)
 		return clone
+
+# ------------------------------------------------------------------------------
+#
+# CLASS TYPE
+#
+# ------------------------------------------------------------------------------
+
+def Class(Context):
+
+	def implements( self, parent ):
+		"""Add a new parent that this Class implements (this is just an alias
+		to 'Class.extends'."""
+		return self.extends(parent)
+
+def Interface(Context):
+	pass
 
 # ------------------------------------------------------------------------------
 #

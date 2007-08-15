@@ -24,6 +24,7 @@ class Behaviour(TypeCollection): pass
 class Runtime(TypeCollection): pass
 COLLECTIONS = (Data, Operations, Structure, Behaviour, Runtime)
 
+# This is the list of abstract types
 Nil                            = typecast.Nil
 Nothing                        = typecast.Nothing
 Any                            = typecast.Any
@@ -47,24 +48,58 @@ Structure.Context              = typecast.Context("Context")
 Structure.Program              = Structure.Context.subtype("Program")
 Structure.Module               = Structure.Context.subtype("Module")
 Structure.Class                = Structure.Context.subtype("Class")
+Structure.Interface            = Structure.Context.subtype("Interface")
 
 Behaviour.Function             = typecast.Process()
 Behaviour.Method               = typecast.Process()
 
 Runtime.Instance               = typecast.Context()
 
-def typeFromClass( aclass ):
-	"""Returns the modeltype corresponding to the given Python model class.
-	This allows to bridge types from the Python model implementation to the
-	abstract typecast-based typesystem.
-	
-	This function will raise an execption if the type is not defined."""
-	name = aclass.__name__
-	if interfaces.implements(aclass, interfaces.IOperation):
-		res = Operations.getType(name)
+
+def typeForValue( value, noneIs=Nothing ):
+	"""Associates a type with the given value. This basically creates a typecast
+	instance/subtype, using the types defined in this module, using the given
+	value which is a program element (implements interfaces defined in
+	LF 'interfaces' module)."""
+	res = None
+	if value is None:
+		return noneIs
+	if hasattr(value, "_lf_type"): return value._lf_type
+	if isinstance(value, interfaces.IOperation):
+		res = Operations.getType(value.__class__.__name__)
+	elif isinstance(value, interfaces.IModule):
+		res = Structure.Module.clone()
+	elif isinstance(value, interfaces.IClass):
+		res = Structure.Class.clone()
+	elif isinstance(value, interfaces.IInterface):
+		res = Structure.Interface.clone()
+	elif isinstance(value, interfaces.IFunction):
+		res = Behaviour.Function.clone()
+	elif isinstance(value, interfaces.IArgument):
+		default = value.getDefaultValue()
+		if default is None: res = Any
+		else: res = typeForValue(default, Any)
+	elif isinstance(value, interfaces.IAttribute):
+		default = value.getDefaultValue()
+		if default is None: res = Any
+		else: res = typeForValue(default, Any)
 	if not res:
-		raise Exception("No model type for Python class: %s" % (aclass))
-	else:
-		return res
+		raise Exception("No abstract type for Python value: %s" % (value))
+	# When the type is a context, we populate its slots
+	if isinstance(value, interfaces.IClosure):
+		# We add the arguments
+		for arg in value.getArguments():
+			res.add(typeForValue(arg))
+		# We add the return type (Any by default)
+		# FIXME: We should constrain the types at a later point
+		res.add(Any)
+	if isinstance(value, interfaces.IContext):
+		assert isinstance(res, typecast.Context) or isinstance(res, typecast.Process)
+		for slot, slot_value in value.getSlots():
+			res.set(slot, typeForValue(slot_value))
+	# We cache the abstract type
+	value._lf_type = res
+	res.setConcreteType(value)
+	return res
 
 # EOF
