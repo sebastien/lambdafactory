@@ -7,11 +7,12 @@
 # License   : Revised BSD License
 # -----------------------------------------------------------------------------
 # Creation  : 02-Nov-2006
-# Last mod  : 18-Jul-2007
+# Last mod  : 15-Aug-2007
 # -----------------------------------------------------------------------------
 
 # TODO: Add a Flowable interface that tells that the element can have
 # a dataflow
+# TODO: Add "walk" operations to walk the program
 
 def abstract(f):
 	def decorator(self, *args, **kwargs):
@@ -357,11 +358,11 @@ class IArgument(ISlot):
 		"""Sets this argument as keywords list  or not."""
 
 	@abstract
-	def setDefault(self, value):
+	def setDefaultValue(self, value):
 		"""Sets the default value for this argument."""
 
 	@abstract
-	def getDefault(self):
+	def getDefaultValue(self):
 		"""Returns the default value for this slot."""
 		
 class IAttribute(ISlot):

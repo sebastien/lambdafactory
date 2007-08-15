@@ -242,11 +242,11 @@ class Writer(AbstractWriter):
 					self.jsPrefix + self.jsCore + "sliceArguments",
 					i
 				))
-			if not (argument.getDefault() is None):
+			if not (argument.getDefaultValue() is None):
 				result.append("%s = %s || %s" % (
 					argument.getReferenceName(),
 					argument.getReferenceName(),
-					self.write(argument.getDefault())
+					self.write(argument.getDefaultValue())
 				))
 			i += 1
 		return result

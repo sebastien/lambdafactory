@@ -209,12 +209,12 @@ class Writer(AbstractWriter):
 		in case they weren't already."""
 		result = []
 		for argument in function.getArguments():
-			if not (argument.getDefault() is None):
+			if not (argument.getDefaultValue() is None):
 				a = argument.getReferenceName()
 				result.append("if %s is None: %s = %s" % (
 					a,
 					a,
-					self.write(argument.getDefault())
+					self.write(argument.getDefaultValue())
 				))
 		return result
 
@@ -299,7 +299,7 @@ class Writer(AbstractWriter):
 
 	def writeArgument( self, argElement ):
 		"""Writes an argument element."""
-		default = argElement.getDefault()
+		default = argElement.getDefaultValue()
 		if default is None:
 			return "%s" % (argElement.getReferenceName())
 		else:

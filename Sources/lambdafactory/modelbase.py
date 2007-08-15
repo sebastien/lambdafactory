@@ -717,10 +717,10 @@ class Argument(Slot, IArgument):
 	def setKeywords(self, value):
 		self._isKeywords = value and value
 
-	def setDefault(self, value):
+	def setDefaultValue(self, value):
 		self._defaultValue = value
 
-	def getDefault(self):
+	def getDefaultValue(self):
 		return self._defaultValue
 	
 class Attribute(Slot, IAttribute):
