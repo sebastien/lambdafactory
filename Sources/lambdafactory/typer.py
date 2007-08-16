@@ -53,6 +53,7 @@ class Typer(object):
 		"Allocation",
 		"Assignation",
 		"Invocation",
+		"Selection",
 		"Operation",
 		
 		"Process",
@@ -127,6 +128,10 @@ class Typer(object):
 		element.setResultAbstractType(value.getAbstractType())
 		# TODO: Constrain the dataflow slot with this operaiont
 
+	def typeSelection(self, element):
+		for rule in element.getRules():
+			self._type(rule)
+	
 	def typeInvocation(self, element):
 		self._type(element.getTarget())
 		# TODO: Constraint the target type with the invocation
