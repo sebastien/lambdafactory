@@ -672,7 +672,6 @@ class Writer(AbstractWriter):
 			step  = self.write(iterator.getStep()) or "1"
 			if "." in start or "." in end or "." in step: filt = float
 			else: filt = int
-			print "***", start, end, step
 			start, end, step = map(filt, (start, end, step))
 			comp = "<"
 			# If start > end, then step < 0

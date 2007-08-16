@@ -9,7 +9,8 @@
 # Last mod.         :   15-Aug-2007
 # ------------------------------------------------------------------------------
 
-# TODO: Add concrete type
+# TODO: Add in-place type mutation (so that one type instance can become another)
+#       (this may be done by using proxies)
 # TODO: Add Logical
 # TODO: Implement isSame
 # TODO: What about a type (like Parameter) that can be substituted to different

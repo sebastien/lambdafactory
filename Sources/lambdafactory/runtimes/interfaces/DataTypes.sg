@@ -1,3 +1,23 @@
+@class String
+
+	@constructor
+		@rewrite(Python):""
+	@end
+
+	@method length
+		@rewrite(Python):len(${self_once})
+	@end
+
+	@method split s:String
+		@rewrite(Python):${self_once}.split(${s})
+	@end
+
+	@method find substring:String
+		@rewrite(Python):${self_once}.find(${substring})
+	@end
+
+@end
+
 @class List
 
 	@constructor
@@ -36,3 +56,25 @@
 #	@end
 	
 @end
+
+@class Map
+
+	@constructor
+		@rewrite(Python):{}
+	@end
+
+	@method keys
+		@rewrite(Python):${self_once}.keys()
+	@end
+
+	@method items
+		@rewrite(Python):${self_once}.items()
+	@end
+
+	@method values
+		@rewrite(Python):${self_once}.values()
+	@end
+
+@end
+
+# EOF

@@ -69,14 +69,7 @@ class Typer(object):
 	
 	def inferType( self, element ):
 		"""Infers the type for the given element."""
-		if isinstance(element, interfaces.IList):
-			list_interface = self.catalog.get("DataTypes.List")
-			t = modeltypes.typeForValue(list_interface)
-			element.setAbstractType(t)
-			return t
-		else:
-			# TODO: Cache type into value
-			return modeltypes.typeForValue(element)
+		return modeltypes.typeForValue(element)
 
 	def type( self, program ):
 		# FIXME: Should we ensure that the given elemen is an IProgram ?
@@ -160,22 +153,17 @@ class Typer(object):
 			#slot_value = df_slot.getValue()
 			#element.setResultAbstractType(slot_value.getAbstractType())
 		else:
-			 assert None, "Not implemented"
-		#print element.getResultAbstractType()
-		#print
+			return
 	def typeOperation(self, element):
 		for arg in element.getOpArguments():
 			self._type(arg)
 
 def type( element ):
-	catalog = Catalog()
+	catalog = modeltypes.CATALOG = Catalog()
 	typer = Typer(catalog)
 	catalog.make(element.getDataFlow())
 	keys = catalog.catalog.keys()
 	keys.sort()
-	if False:
-		for key in keys:
-			print key
 	typer.type(element)
 
 # EOF

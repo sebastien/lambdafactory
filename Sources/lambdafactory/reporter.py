@@ -34,7 +34,7 @@ class Reporter:
 	
 	def warning( self, message, element=None ):
 		if self.isDone(message, element): return
-		self.warning.append(message)
+		self.warnings.append(message)
 		map( lambda c:c(message, element), self._onWarning)
 
 	def error( self, message, element=None ):

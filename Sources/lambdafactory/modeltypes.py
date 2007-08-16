@@ -3,6 +3,11 @@
 
 import typecast, interfaces
 
+# This is not very pretty, but the typer module will populate the catalog
+# with the types parsed from the library. The "typeForValue" operation will
+# then use the catalog to resolve specific types (like List, Dict, etc)
+CATALOG = None
+
 class TypeCollection:
 	"""A type collection is a class that contains type definitions which can be
 	easily retrieved using the @getType method."""
@@ -50,6 +55,7 @@ Structure.Module               = Structure.Context.subtype("Module")
 Structure.Class                = Structure.Context.subtype("Class")
 Structure.Interface            = Structure.Context.subtype("Interface")
 
+Behaviour.Closure              = typecast.Process()
 Behaviour.Function             = typecast.Process()
 Behaviour.Method               = typecast.Process()
 
@@ -75,6 +81,8 @@ def typeForValue( value, noneIs=Nothing ):
 		res = Structure.Interface.clone()
 	elif isinstance(value, interfaces.IFunction):
 		res = Behaviour.Function.clone()
+	elif isinstance(value, interfaces.IClosure):
+		res = Behaviour.Closure.clone()
 	elif isinstance(value, interfaces.IArgument):
 		default = value.getDefaultValue()
 		if default is None: res = Any
@@ -84,6 +92,17 @@ def typeForValue( value, noneIs=Nothing ):
 		if default is None: res = Any
 		else: res = typeForValue(default, Any)
 	elif isinstance(value, interfaces.IReference):
+		res = Any
+	elif isinstance(value, interfaces.IList):
+		list_interface = CATALOG.get("DataTypes.List")
+		res = typeForValue(list_interface)
+	elif isinstance(value, interfaces.IDict):
+		map_interface = CATALOG.get("DataTypes.Map")
+		res = typeForValue(map_interface)
+	elif isinstance(value, interfaces.IString):
+		map_interface = CATALOG.get("DataTypes.String")
+		res = typeForValue(map_interface)
+	elif isinstance(value, interfaces.INumber):
 		res = Any
 	if res is None:
 		raise Exception("No abstract type for Python value: %s" % (value))

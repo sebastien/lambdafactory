@@ -339,12 +339,52 @@ class AbstractResolver:
 	def flowAssignation(self, operation, dataflow):
 		# TODO
 		self.stage3.append((self._flowAssignationStage3, (self.captureContext(), operation, dataflow)))
-		
+
+	def getContextDataflow(self, context):
+		i = len(context) - 1
+		while i > 0:
+			if context[i].hasDataFlow(): return context[i].getDataFlow()
+			i -= 1
+		assert None, "No dataflow associated to context elements"
+	
+	def resolve( self, value, context ):
+		if type(value) in (str, unicode):
+			dataflow = self.getContextDataflow(context)
+			return dataflow.resolve(value)
+		elif isinstance(value, interfaces.IReference):
+			return self.resolveReference(value, context)
+		elif isinstance(value, interfaces.IResolution):
+			return self.resolveResolution(value, context)
+		else:
+			self.report.warning("resolver.resolve: Cannot resolve: %s" % (value))
+			return None, None
+			#raise Exception("Cannot resolve: %s" % (value))
+
+	def resolveReference( self, reference, context ):
+		assert isinstance(reference, interfaces.IReference), reference
+		name = reference.getReferenceName()
+		dataflow = self.getContextDataflow(context)
+		return dataflow.resolve(name)
+	
+	def resolveResolution(self, resolution, context):
+		assert isinstance(resolution, interfaces.IResolution)
+		resolution_context  = resolution.getContext()
+		resolution_reference = resolution.getReference()
+		if resolution_context:
+			slot, context_value = self.resolve(resolution_context, context)
+			if slot is None:
+				return None, None
+			c = [] ; c.extend(context) ; c.append(context_value)
+			return self.resolveReference(resolution_reference, c)
+		else:
+			return self.resolveReference(resolution_reference, context)
+			
 	def _flowAssignationStage3( self, program, context, operation, dataflow ):
 		target = operation.getTarget()
-		target_name = target.getReferenceName()
-		slot, context = dataflow.resolve(target_name)
-		slot.addOperation(operation)
+		slot, context = self.resolve(target, context)
+		# FIXME: This means there was a problem in the resolution scheme...
+		if slot:
+			slot.addOperation(operation)
 
 	def flowIteration( self, operation, dataflow ):
 		# We get the closure arguments which will be assigned during each
