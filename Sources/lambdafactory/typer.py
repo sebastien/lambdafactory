@@ -30,13 +30,19 @@ class Catalog(object):
 		return flow.element
 
 	def make(self, dataflow):
+		added_to_parents = False
 		if not isinstance(dataflow.element, interfaces.IProgram):
-			self.parents.append(dataflow.element.getName())
+			# Closures don't have a name
+			if hasattr(dataflow.element, "getName"):
+				name = dataflow.element.getName()
+				if name:
+					self.parents.append(name)
+					added_to_parents = True
 		p = ".".join(self.parents)
 		self.catalog[p] = dataflow
 		for child in dataflow.children:
 			self.make(child)
-		if not isinstance(dataflow.element, interfaces.IProgram):
+		if added_to_parents:
 			self.parents.pop()
 
 class Typer(object):

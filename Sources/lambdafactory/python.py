@@ -146,8 +146,8 @@ class Writer(AbstractWriter):
 		if not c_attrs and not c_inst and not c_ops: empty = ["pass"]
 		else: empty = None
 		return self._format(
-			self._document(classElement),
 			"class %s%s" % (classElement.getName(), parents),
+			[self._document(classElement)],
 			flatten([self.write(m) for m in c_attrs]),
 			constructor,
 			flatten([self.write(m) for m in c_inst]),
@@ -647,12 +647,12 @@ class Writer(AbstractWriter):
 			if i==0:
 				rule_code = (
 					"if %s:" % (self.write(rule.getPredicate())),
-					process,
+					[process],
 				)
 			else:
 				rule_code = (
 					"elif %s:" % (self.write(rule.getPredicate())),
-					process,
+					[process],
 				)
 			result.extend(rule_code)
 		return self._format(*result)
@@ -747,10 +747,7 @@ class Writer(AbstractWriter):
 	def _document( self, element ):
 		if element.hasDocumentation():
 			doc = element.getDocumentation()
-			res = []
-			for line in doc.getContent().split("\n"):
-				res.append("# " + line)
-			return "\n".join(res)
+			return '"""%s"""' % (doc.getContent().replace('"""', '\\"\\"\\"'))
 		else:
 			return None
 

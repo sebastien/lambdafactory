@@ -291,4 +291,15 @@ class Writer(javascript.Writer):
 						return ".".join(names)
 		return javascript.Writer.writeReference(self, element)
 
+	def _document( self, element ):
+		if element.hasDocumentation():
+			doc = element.getDocumentation()
+			res = []
+			for line in doc.getContent().split("\n"):
+				res.append(line)
+			return "/** %s\n*/" % ("\n  * ".join(res))
+		else:
+			return None
+
+
 # EOF

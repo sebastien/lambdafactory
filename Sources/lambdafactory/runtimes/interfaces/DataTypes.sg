@@ -6,6 +6,7 @@
 
 	@method length
 		@rewrite(Python):len(${self_once})
+		@rewrite(JavaScript):${self_once}.length
 	@end
 
 	@method split s:String
@@ -28,9 +29,20 @@
 		@rewrite(Python):${self}.append(${v})
 	@end
 
+	@method append v
+		@rewrite(Python):${self}.append(${v})
+		@rewrite(JavaScript):${self}.push(${v})
+	@end
+	
 	@method pop
 		@rewrite(Python):${self}.pop()
 	@end
+
+	@method find item
+		@rewrite(Python):${self_once}.find(${item})
+		@rewrite(JavaScript):${self_once}.indexOf(${item})
+	@end
+
 
 	@method length
 		@rewrite(Python):len(${self_once})
@@ -63,6 +75,11 @@
 		@rewrite(Python):{}
 	@end
 
+	@method get k
+		@rewrite(Python):${self_once}.get(${k})
+		@rewrite(JavaScript):${self_once}[${k}]
+	@end
+	
 	@method keys
 		@rewrite(Python):${self_once}.keys()
 	@end
