@@ -20,7 +20,7 @@
 // You can get more information at the Extend [project
 // page](http://www.ivy.fr/js/extend).
 var Extend={}
-Extend._VERSION_='1.9.15';
+Extend._VERSION_='1.9.16';
 Extend.Class=	function(declaration){
 		// Classes are created using extend by giving a dictionary that contains the
 		// following keys:
