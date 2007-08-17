@@ -666,14 +666,17 @@ class Writer(AbstractWriter):
 		closure  = iteration.getClosure()
 		# If the iteration iterates on an enumeration, we can use a for
 		# loop instead.
-		if isinstance(iterator, interfaces.IEnumeration):
+		if isinstance(iterator, interfaces.IEnumeration) \
+		and isinstance(iterator.getStart(), interfaces.INumber) \
+		and isinstance(iterator.getEnd(), interfaces.INumber) \
+		and (isinstance(iterator.getStep(), interfaces.INumber) or not iter):
 			start = self.write(iterator.getStart())
 			end   = self.write(iterator.getEnd())
 			step  = self.write(iterator.getStep()) or "1"
 			if "." in start or "." in end or "." in step: filt = float
 			else: filt = int
-			start, end, step = map(filt, (start, end, step))
 			comp = "<"
+			start, end, step = map(filt, (start, end, step))
 			# If start > end, then step < 0
 			if start > end:
 				if step > 0: step =  -step

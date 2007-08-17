@@ -125,7 +125,11 @@ class Typer(object):
 	def typeAllocation(self, element):
 		target = element.getSlotToAllocate()
 		value  = element.getDefaultValue()
-		element.setResultAbstractType(value.getAbstractType())
+		# An allocation may not have a default value
+		if value:
+			element.setResultAbstractType(value.getAbstractType())
+		else:
+			element.setResultAbstractType(modeltypes.Any)
 		# TODO: Constrain the dataflow slot with this operaiont
 
 	def typeSelection(self, element):
