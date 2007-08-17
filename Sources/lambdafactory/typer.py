@@ -142,6 +142,7 @@ class Typer(object):
 		element.setResultAbstractType(element.getTarget().getResultAbstractType())
 
 	def typeResolution(self, element):
+		# TODO: Rewrite this
 		# FIXME: This is too basic and DIRTY !!
 		dataflow = self.getCurrentDataFlow()
 		context   = element.getContext()
@@ -150,9 +151,11 @@ class Typer(object):
 			assert None, "Not implemented"
 		elif isinstance(context, interfaces.IReference):
 			df_slot, context_value = dataflow.resolve(context.getReferenceName())
+			if not df_slot:
+				return
 			slot_value = df_slot.getValue()
 			if slot_value is None:
-				assert df_slot.getAbstractType()
+				if not df_slot.getAbstractType(): return
 				element.setResultAbstractType(df_slot.getAbstractType())
 			else:
 				slot_value_type = slot_value.getAbstractType()
