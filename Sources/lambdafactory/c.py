@@ -356,7 +356,7 @@ class Writer(AbstractWriter):
 		# It is a property of a class
 		elif isinstance(scope, interfaces.IClass):
 			# And the class is one of the parent class
-			if scope in self.getCurrentClassParents():
+			if scope in self.getCurrentClassAncestors():
 				return "$G(self,%s)" % (symbol_name)
 			# Otherwise it is an outside class, and we have to check that the
 			# value is not an instance slot
