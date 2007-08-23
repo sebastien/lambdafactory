@@ -406,16 +406,12 @@ class Writer(AbstractWriter):
 		# It is a property of a class
 		elif isinstance(scope, interfaces.IClass):
 			# And the class is one of the parent class
-			if scope in self.getCurrentClassParents():
+			if scope in self.getCurrentClassAncestors():
 				return "__this__." + symbol_name
 			# Otherwise it is an outside class, and we have to check that the
 			# value is not an instance slot
 			else:
-				names = [scope.getName(), symbol_name]
-				while scope.getParent():
-					scope = scope.getParent()
-					names.insert(0, scope.getName())
-				return ".".join(names)
+				return ".".join((self.getAbsoluteName(scope),symbol_name))
 		# FIXME: This is an exception... iteration being an operation, not a
 		# context...
 		elif isinstance(scope, interfaces.IIteration):

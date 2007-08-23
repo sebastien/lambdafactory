@@ -173,9 +173,10 @@ class AbstractWriter:
 		res = self._filterContext(interfaces.IClass)
 		return res and res[-1] or None
 
-	def getCurrentClassParents( self ):
+	def getCurrentClassParents( self, theClass=None ):
 		res = []
-		cur = self.getCurrentClass()
+		if theClass is None: theClass = self.getCurrentClass()
+		cur = theClass
 		for ref in cur.getSuperClasses():
 			ref = ref.getReferenceName()
 			target, context = self.resolve(ref, cur.getDataFlow())
@@ -184,6 +185,16 @@ class AbstractWriter:
 			res.append(parent)
 		return res
 
+	def getCurrentClassAncestors( self, theClass = None ):
+		res = []
+		if theClass is None: theClass = self.getCurrentClass()
+		cur = theClass
+		parents = self.getCurrentClassParents(theClass)
+		res.extend(parents)
+		for parent in parents:
+			res.extend(self.getCurrentClassAncestors(parent))
+		return res
+		
 	def getCurrentModule( self ):
 		res = self._filterContext(interfaces.IModule)
 		return res and res[-1] or None
