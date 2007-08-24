@@ -49,6 +49,7 @@ class Typer(object):
 	
 	INTERFACES = (
 		
+		"Repetition",
 		"Resolution",
 		"Allocation",
 		"Assignation",
@@ -66,6 +67,27 @@ class Typer(object):
 		self.catalog = catalog
 		self.contexts= []
 
+	# FIXME: Inherit from Pass
+	
+	def _filterContext( self, interface ):
+		return filter(lambda x:isinstance(x,interface), self.contexts)
+
+	def getCurrentClosure( self ):
+		res = self._filterContext(interfaces.IClosure)
+		return res and res[-1] or None
+
+	def getCurrentFunction( self ):
+		res = self._filterContext(interfaces.IFunction)
+		return res and res[-1] or None
+
+	def getCurrentMethod( self ):
+		res = self._filterContext(interfaces.IMethod)
+		return res and res[-1] or None
+
+	def getCurrentClass( self ):
+		res = self._filterContext(interfaces.IClass)
+		return res and res[-1] or None
+		
 	def getCurrentDataFlow( self ):
 		i = len(self.contexts) - 1
 		while i >= 0:
@@ -119,6 +141,8 @@ class Typer(object):
 	def typeAssignation(self, element):
 		target = element.getTarget()
 		value  = element.getAssignedValue()
+		self._type(target)
+		self._type(value)
 		element.setResultAbstractType(value.getAbstractType())
 		# TODO: Constrain the dataflow slot with this operaiont
 
@@ -135,7 +159,11 @@ class Typer(object):
 	def typeSelection(self, element):
 		for rule in element.getRules():
 			self._type(rule)
-	
+
+	def typeRepetition(self, element):
+		self._type(element.getCondition())
+		self._type(element.getProcess())
+
 	def typeInvocation(self, element):
 		self._type(element.getTarget())
 		# TODO: Constraint the target type with the invocation
@@ -148,30 +176,77 @@ class Typer(object):
 	def typeResolution(self, element):
 		# TODO: Rewrite this
 		# FIXME: This is too basic and DIRTY !!
+		assert element, "Resolution element is None"
 		dataflow = self.getCurrentDataFlow()
 		context   = element.getContext()
 		reference = element.getReference()
+		# The resolution does not have a context (it can be directly looked up)
+		# in the current scope.
 		if context is None:
-			assert None, "Not implemented"
-		elif isinstance(context, interfaces.IReference):
-			df_slot, context_value = dataflow.resolve(context.getReferenceName())
-			if not df_slot:
-				return
-			slot_value = df_slot.getValue()
-			if slot_value is None:
-				if not df_slot.getAbstractType(): return
-				element.setResultAbstractType(df_slot.getAbstractType())
+			# A resolution without context means we have to resolve on the
+			# current dataflow
+			if reference.getReferenceName() == "self":
+				current_class = self.getCurrentClass()
+				# FIXME: Maybe we need to get the type for the instance, not
+				# the type for the class
+				element.setResultAbstractType(current_class.getAbstractType())
 			else:
-				slot_value_type = slot_value.getAbstractType()
-				assert slot_value_type
-				if isinstance(slot_value_type, typecast.Context):
-					resolution_result_type = slot_value_type.element(reference.getReferenceName())
+				df_slot, context_value = dataflow.resolve(reference.getReferenceName())
+				if not df_slot:
+					return
+				slot_value = df_slot.getValue()
+				# The slot may be empty (resolution fails)
+				if slot_value:
+					slot_value_type = slot_value.getAbstractType()
 					element.setResultAbstractType(resolution_result_type)
-			#df_slot, context_value = slot_value.getDataFlow().resolve(reference.getReferenceName())
-			#slot_value = df_slot.getValue()
-			#element.setResultAbstractType(slot_value.getAbstractType())
+		# The reference has a context that should be resolved first
+		elif isinstance(context, interfaces.IReference):
+			context_name    = context.getReferenceName()
+			reference_name  = reference.getReferenceName()
+			if context_name == "self":
+				current_class = self.getCurrentClass()
+				slot, context_value = current_class.getDataFlow().resolve(reference_name)
+				# FIXME:
+				# The strategy here should be: let the dataflow determine the
+				# slot type. It may be the initial value, or the result of the
+				# constraints.
+				# so: slot_value = slot.getType()
+				slot_value     = slot.getValue()
+				element.setResultAbstractType(slot_value.getAbstractType())
+			else:
+				df_slot, context_value = dataflow.resolve(context.getReferenceName())
+				if not df_slot:
+					return
+				slot_value = df_slot.getValue()
+				if slot_value is None:
+					if not df_slot.getAbstractType(): return
+					element.setResultAbstractType(df_slot.getAbstractType())
+				else:
+					slot_value_type = slot_value.getAbstractType()
+					assert slot_value_type
+					if isinstance(slot_value_type, typecast.Context):
+						resolution_result_type = slot_value_type.element(reference.getReferenceName())
+						element.setResultAbstractType(resolution_result_type)
+					# FIXME: I don't know what this case is for
+					else:
+						pass
+				#df_slot, context_value = slot_value.getDataFlow().resolve(reference.getReferenceName())
+				#slot_value = df_slot.getValue()
+				#element.setResultAbstractType(slot_value.getAbstractType())
+		elif isinstance(context, interfaces.IResolution):
+			self._type(context)
+		 	result_type     = context.getResultAbstractType()
+			resolution_type = None
+			if isinstance(result_type, typecast.Map):
+				resolution_type = result_type.get(reference.getReferenceName())
+				element.setResultAbstractType(resolution_type)
+		# Resolving from an expression. We've got to extract the type of the
+		# expression, see if the resolution can happen (does the type
+		# support resolution ?), and then return the type that results from
+		# the resolution.
 		else:
 			return
+	
 	def typeOperation(self, element):
 		for arg in element.getOpArguments():
 			self._type(arg)

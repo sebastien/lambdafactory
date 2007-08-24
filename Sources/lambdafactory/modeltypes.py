@@ -77,8 +77,10 @@ def typeForValue( value, noneIs=Nothing ):
 		res = Structure.Module.clone()
 	elif isinstance(value, interfaces.IClass):
 		res = Structure.Class.clone()
+		res.setName(value.getName())
 	elif isinstance(value, interfaces.IInterface):
 		res = Structure.Interface.clone()
+		res.setName(value.getName())
 	elif isinstance(value, interfaces.IFunction):
 		res = Behaviour.Function.clone()
 	elif isinstance(value, interfaces.IClosure):

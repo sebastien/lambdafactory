@@ -75,7 +75,7 @@ class Writer(AbstractWriter):
 		"""Writes a Module element."""
 		main = False
 		code = [
-			"# " + self.SNIP % ("%s.py" % (self.getAbsoluteName(moduleElement).replace(".", "/"))),
+			"#" + self.SNIP % ("%s.py" % (self.getAbsoluteName(moduleElement).replace(".", "/"))),
 			self._document(moduleElement),
 			"import sys",
 			"__module__ = sys.modules[__name__]"
@@ -571,6 +571,8 @@ class Writer(AbstractWriter):
 			if var[0] == "_":
 				if var not in args:
 					args[var] = "var_" + str(time.time()).replace(".","_") + str(random.randint(0,100)) 
+		# FIXME: Ensure that all arguments are provided, otherwise there may
+		# be a template error.
 		return "%s%s" % (
 			"self" in vars and "%s=%s\n" % (args["self"],self.write(args["self_once"])) or "",
 			string.Template(template).substitute(args)
@@ -676,7 +678,7 @@ class Writer(AbstractWriter):
 	def writeRepetition( self, repetition ):
 		return self._format(
 			"while %s:" % (self.write(repetition.getCondition())),
-			[self.write(repetition.getProcess())]
+			[self.write(repetition.getProcess()) or "pass"]
 		)
 
 	def writeAccessOperation( self, operation ):

@@ -46,9 +46,16 @@ class DataFlowSlot:
 		should be a typecast type instance."""
 		return self.type
 
+	def getDeclaredType(self):
+		pass
+
+	def getInitialValue(self):
+		pass
+
 	def getType(self):
 		"""Returns the typecast type description for the value associated to
 		that slot."""
+		# FIXME: Do resolution of operation to get the final type
 		return self.type
 
 	def __str__(self):

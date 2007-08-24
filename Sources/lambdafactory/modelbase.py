@@ -511,7 +511,10 @@ class Operation(Element, IEvaluable, IOperation):
 		args = []
 		for a in self._oparguments:
 			if not type(a) in (tuple,list):
-				args.append(a.asList())
+				if a:
+					args.append(a.asList())
+				else:
+					args.append(a)
 			else:
 				args.append(a)
 		return (self.__class__.__name__,tuple(args))

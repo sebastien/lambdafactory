@@ -104,6 +104,10 @@ class Type:
 			return self.__class__.__name__
 		return self._name
 
+	def setName( self, name ):
+		"""Sets the name of this type"""
+		self.name(name)
+
 	def asString( self, fromTypes=None ):
 		"""Returns a string representation of this type."""
 		if fromTypes == None: fromTypes = []
@@ -569,7 +573,7 @@ class Map(Type):
 		res = Type.asString(self, fromTypes)
 		if res: return res
 		assert self in fromTypes
-		return "{" + ",".join(["%s:%s" % (k, t.asString(fromTypes)) for k, t in
+		return "%s={" % (self.name() or '_') + ",".join(["%s:%s" % (k, t.asString(fromTypes)) for k, t in
 		self.elements().items()]) + "}"
 
 	def clone(self, clone=None ):
