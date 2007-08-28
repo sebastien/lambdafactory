@@ -1,0 +1,114 @@
+@import reporter
+@import interfaces
+
+@class Pass
+
+	@property context  = []
+	@property reporter = None
+	@property isWalking = False
+	
+	@property matches  = []
+	
+	@constructor reporter=(reporter DefaultReporter)
+		
+	@end
+	
+	@method walk element
+		# Is the element a Context ? -> walk slots
+		# Is the element a Process ? -> walk operations
+		# Is the element matched -> walk it
+		# TODO: assert not isWalking
+		print element
+	@end
+	
+	@group ContextAccessors
+	
+		@method filterContext interface
+		@as internal
+			@embed Python
+			|return filter(lambda x:isinstance(x,interface), self.context) 
+			@end
+		@end
+		
+		@method findInContext interface
+		@as internal
+			var res = filterContext(interface)
+			if res
+				return res[-1]
+			else
+				return None
+			end
+		@end
+		
+		@method isIn interface
+			return findInContext (interface ) != None
+		@end
+		
+		@method getCurrentClosure
+			return findInContext (interfaces IClosure)
+		@end
+		
+		@method getCurrentFunction
+			return findInContext (interfaces IFunction)
+		@end
+
+		@method getCurrentMethod
+			return findInContext (interfaces IMethod)
+		@end
+
+		@method getCurrentClass
+			return findInContext (interfaces IClass)
+		@end
+
+		@method getCurrentClassParents theClass
+			var parents = []
+			if theClass is None
+				theClass = getCurrentClass()
+			end
+			var current_class = theClass
+			for parent_class_ref in current_class getSuperClasses()
+				var parent_class_name = parent_class_ref getReferenceName()
+				var resolution = resolve ( parent_class_name, current_class )
+				var target, context = resolution
+				parent_class = target value
+				# TODO: assert parent
+				parents append (parent_class)
+			end
+		@end
+		
+	@end
+	
+	@group Resolution
+	
+		@method resolve referenceOrName, contextOrDataFlow=None
+			if contextOrDataFlow is None
+				contextOrDataFlow = getCurrentContext() getDataFlow()
+			if isinstance( contextOrDataFlow, interfaces IElement )
+				contextOrDataFlow = contextOrDataFlow getDataFlow()
+			end
+			if isinstance(referenceOrName, interfaces IReference)
+				referenceOrName = referenceOrName getReferenceName()
+			end
+			return contextOrDataFlow resolve (referenceOrName)
+		@end
+	@end
+	
+@end
+
+# ============================================================================
+#
+# Transform Asynchronous Invocations Pass
+#
+# ============================================================================
+
+@class TransformAsynchronousInvocations: Pass
+
+	@property matches = [ interfaces IClosure ]
+	
+	@constructor
+		super()
+	@end
+	
+@end
+
+# EOF	
