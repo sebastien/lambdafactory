@@ -127,9 +127,13 @@ class Writer(AbstractWriter):
 		parents = classElement.getSuperClasses()
 		if len(parents):
 			# Remove object if we know one of the parent already extends object
-			parents = "(%s,object):" % (", ".join(map(self.write, parents)))
+			# FIXME: This does not seem to work with complex inheritance
+			# parents = "(%s,object):" % (", ".join(map(self.write, parents)))
+			parents = "(%s):" % (", ".join(map(self.write, parents)))
 		else:
-			parents = "(object):"
+			# FIXME: This does not seem to work with complex inheritance
+			# parents = "(object):"
+			parents = ":"
 		constructor  = None
 		constructors = classElement.getConstructors()
 		assert not constructors or len(constructors) == 1

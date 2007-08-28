@@ -1,0 +1,32 @@
+
+Strategy for LF 2.0:
+
+ - Parallel re-implementation
+ - Rewrite Interfaces first, with a proper hierarchy and S-Expressions support
+ - Properly model the relations between Element, DataFlow (Scope), Types
+   (Abstract=typecast,Concrete=Element,Info=Type Description elements)
+ - Implement modelbase after the interfaces
+ - Write a small S-Expression parser to create modelbases
+ - Design a flexible "pass" module, with "traits" that can be assigned to 
+ - Front-End and Back-Ends easily integrated into LF
+ - Common command-line interface
+ - Importance of elements name: some are (classes, functions, modules), some
+   aren't (program, closure, iterations, selection, etc)
+	
+Abstract Type
+|
+|
+Element -> Dataflow <----+
+|                        |
+(when process)         (alter)
+|                        |
++--------> Operations ---+
+           |
+           (when evaluable)
+           |
+           Value Abstract Type
+
+Passes:
+
+  [ ] Element pass
+  [ ] Data-flow pass

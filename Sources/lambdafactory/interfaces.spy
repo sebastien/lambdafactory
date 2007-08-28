@@ -1,0 +1,942 @@
+# Encoding: iso-8859-1
+# vim: tw=80 ts=4 sw=4 noet
+# -----------------------------------------------------------------------------
+# Project   : LambdaFactory
+# -----------------------------------------------------------------------------
+# Author    : Sebastien Pierre                               <sebastien@ivy.fr>
+# License   : Revised BSD License
+# -----------------------------------------------------------------------------
+# Creation  : 02-Nov-2006
+# Last mod  : 28-Aug-2007
+# -----------------------------------------------------------------------------
+
+# TODO: Add a Flowable interface that tells that the element can have
+# a dataflow
+# TODO: Add "walk" operations to walk the program
+
+@protocol Constants
+	@shared MainFunction:String    = "__main__"
+	@shared CurrentModule:String   = "__current__"
+	@shared Constructor:String     = "__init__"
+	@shared Destructor:String      = "__destroy__"
+	@shared ModuleInit:String      = "__moduleinit__"
+	@shared CurrentValue:String    = "__currentvalue__"
+	@shared PARENS_PRIORITY:String = 9999
+@end
+
+#-----------------------------------------------------------------------------
+#
+#  Annotations
+#
+#-----------------------------------------------------------------------------
+
+@protocol IAnnotation
+| An annotation is some information that is not used for the actual
+| program, but annotates/gives meta-information about is elements.
+
+	@abstract @method getContent
+	| Returns the content of this annotation.
+
+	@abstract @method getName:String
+	| Returns the name of this annotation.
+
+@end
+	
+@protocol IComment:IAnnotation
+| A comment is an annotation that can occur anywhere in a source file.
+@end
+
+@protocol IDocumentation:IAnnotation
+| Documentation is often attached to various language elements.
+| Documentation can be found in coments (as in Java), or be directly embedded
+| as values (as in Python).
+@end
+
+#-----------------------------------------------------------------------------
+#
+#  Dataflow
+#
+#-----------------------------------------------------------------------------
+
+@protocol IDataFlow
+| The DataFlow are ''dynamic contexts'' bound to the various program model
+| elements. DataFlows are typically owned by elements which implement
+| 'IContext', and are linked together by rules @methodined in the 'Resolver'
+| @protocol.
+|
+| The dataflow bound to most expressions is the one of the enclosing closure
+| (whether it is a function, or method. The dataflow of a method is bound to
+| its parent @protocol, which dataflow is also bound to the parent @protocol dataflow.
+|
+| While 'DataFlow' and 'Context' may appear very similar, they are not the
+| same: contexts are elements that keep track of declared slots, while the
+| dataflow make use of the context to weave the elements togeher.
+
+
+	# TODO: Define what Argument, Environment, Variable are and what
+	# origin is
+
+	@abstract @method declareArgument:None name:String, value:IElement
+	
+	@abstract @method declareEnvironment:None name:String, value:IElement
+	| Declares an environment variable with the given name, value
+	| and origin.
+	
+	@abstract @method declareVariable:None name:String, value:IElement, origin:IElement=None
+	| Declares a (local) variable with the given name, value and
+	| origin
+
+	@abstract @method getSlots:<[IDataFlowSlot]>
+	| Returns the lsit of slots @methodiend for this dataflow.
+
+	@abstract @method hasSlot:<True|False> name:String
+	| Tells if this dataflow @methodines a slot with the given name.
+
+	# FIXME: Why would dataflows have more than one parent ?
+	@abstract @method getParents:<[IDataFlow]>
+	| Returns the list of parent dataflows for this dataflow.
+
+	@abstract @method addParent:None parent:IDataFlow
+	| Add the given dataflow as a parent of this dataflow.
+
+	@abstract  @method addChild child:IDataflow
+	| Adds the given dataflow as a child of this dataflow.
+
+	@abstract @method getChildren:<[IDataFlow]>
+	| Returns a list of the child dataflows for this dataflow.
+
+	@abstract @method resolve:<: IDataFlowSlot,IElement)> name:String
+	| Returns a couple '(DataFlow slot, IElement)' or '(None,None)'
+	| corresponding to the resolution of the given 'name' in this dataflow.
+
+	@abstract @method defines:<True|False> name:String
+	| Tells if this dataflow, or any of its child dataflows defines
+	| the given name (symbol)
+
+	@abstract @method getSlot:<IDataFlowSlot> name:String
+	| Returns the slot with the given name, if any.
+@end
+
+@protocol IDataFlowSlot
+
+	@abstract @method addOperation
+	
+	@abstract @method getOperations:<[IOperation]>
+	| Returns the (ordered) list of operations that affected the slot.
+	| Operations usually constrain the dataflow abstract type, and
+	| exception/warnings/errors may be raised by the type system
+	| when a type constraint fails.
+	
+	@abstract @method getOrigin:IElement
+	
+	@abstract @method getOriginalValue:IElement
+	
+	@abstract @method getName:String
+	
+	@abstract @method getAbstractType
+	
+@end
+
+@protocol IDataFlowOwner
+| DataFlow owners are elements that have their own dataflow. IContext are
+| typical examples of elements that are dataflow owners
+
+@end
+
+#-----------------------------------------------------------------------------
+#
+#  Element Interfaces
+#
+#-----------------------------------------------------------------------------
+
+# TODO: Annotations
+# TODO: Source (external, source file, etc)
+# TODO: Documentation shorthands
+# TODO: S-Expression representation
+
+@protocol IElement
+| The core @protocol for every element.
+
+	@abstract @method getAbstractType
+	| Returns the abstract type for this element
+	
+	@abstract @method setAbstractType type
+	| Sets the abstract type for this element
+
+	@abstract @method getDataFlow
+	| Returns the dataflow accessible/bound to this element
+
+	@abstract @method getAnnotation name
+	| Gets the annotation with the given name associated to this element
+
+	@abstract @method setAnnotation name, annotation
+	| Sets the annotation with the given name to this element
+		
+@end
+
+@protocol IReferencable
+| A referencable is an element that can be referenced either by id (it is
+| unique and stable), or by a name (which is also not supposed to change).
+|
+| Types are good examples of referencables: they have an *absolute name* (like
+| `Data.List`), but can also be bound to slots within contexts which give them
+| "local names" (like `List := Data.List`)
+
+
+	@abstract @method getName
+	| Returns the local name for this referencable element
+
+	@abstract @method getAbsoluteName:String
+	| Returns the absolute name for this element
+
+@end
+
+@protocol IAssignable
+| Assignable elements are elements that can be bound to slots. In many
+| languages, only a subset of elements can be assigned. For instance, in
+| Java, you cannot assign a package to something:
+|
+| >     Object my_package = java.lang.Object
+|
+| while in some other languages (like JavaScript), you could do that.
+@end
+
+@protocol IEvaluable
+| An evaluable is an element that can produce a value. Evaluable elements
+| then have associated type information.
+
+	@abstract @method getResultAbstractType
+	| Returns the abstract type of the result of the evaluation of this
+	| evaluable
+
+	@abstract @method setResultAbstractType
+	@as internal
+	| Sets the abstract type for this operation result. This is usually
+	| invoked in the typing phase.
+@end
+
+@protocol IInstanciable
+| Instanciable is a property of some elements that allows them to be
+| instanciated. Conceptually, an instanciation could be considered as a
+| specific kind of invocation.
+
+@end
+
+@protocol IInvocable
+| An invocable can be used in an invocation operation.
+
+	@abstract @method getArguments
+	| Returns a list of arguments (which are names associated with optional
+	| type information.
+
+@end
+
+@protocol IAbstractable
+| An abstractable element is an element that is allow to have
+| no underlying implementation.  Abstract element are typically interfaces,
+| methods, functions, operations, and sometimes modules and @protocoles.
+
+	@abstract @method isAbstract
+	| Tells wether the given abstractable is abstract or not.
+
+	@abstract @method setAbstract isAbstract
+	| Sets wether the given abstractable is abstract or not.
+
+@end
+
+
+#------------------------------------------------------------------------------
+#
+#  Operational Elements
+#
+#------------------------------------------------------------------------------
+
+@protocol IValue: IElement, IEvaluable
+| A value represents an atomic element of the language, like a number, a
+| string, or a name (that can resolved by the language, acts as key for data
+| structures, etc.).
+@end
+
+@protocol ILiteral: IValue
+| A literal is a value that does not need a context to be evaluated. The
+| evaluation is direct.
+@end
+
+@protocol INumber: ILiteral
+@end
+
+@protocol IString: ILiteral
+@end
+
+@protocol IList: IValue
+
+	@abstract @method addValue value 
+	| Adds a value to this list.
+
+
+	@abstract @method getValues
+	| Returns the values within this list.
+
+@end
+
+@protocol IDict: IValue
+| A dictionary is a binding of key to values. It may or may not be ordered,
+| depending on the implementation/model semantics.
+
+	@abstract @method setValue key, value 
+	|	Sets the value to be associated to the given key (which must be an
+	|	evaluable).
+
+	@abstract @method getItems
+	|	Returns the items contained in this dict
+
+@end
+
+@protocol IReference: IValue, IReferencable
+|	A reference is a name that can be converted into a value using a
+|	resolution operation (for instance).
+
+	@abstract @method getReferenceName
+	|	Returns the name which this reference contains. The name is used by
+	|	the resolution operation to actually resolve a value from the name.
+@end
+
+@protocol IOperator: IReference
+
+	@abstract @method setPriority priority 
+	|	Sets the priority for this operator
+	
+	@abstract @method getPriority
+	|	Gets the priority for this operator
+@end
+
+@protocol ISlot: IReference
+| An argument is a reference with additional type information.
+
+	@abstract @method getTypeInformation
+	|	Returns type information (constraints) that are associated to this
+	|	argument.
+
+@end
+
+@protocol IArgument: ISlot
+|	Arguments are slots which can be interpreted in different ways.
+|	
+|	When an argument is _optional_, it does not need to be @methodined in the
+|	invocation. When an argument is _variable_, it means it references the
+|	rest of the arguments lists. When an argument is _keywords_, it will reference
+|	the named arguments of the rest of the arguments list.
+
+	@abstract @method isOptional
+	|	Tells if the argument is optional or not.
+
+	@abstract@method setOptional value
+	|	Sets this argument as optional or not.
+
+	@abstract @method isRest
+	|	Tells if the argument is variable or not.
+
+	@abstract @method setRest value
+	|	Sets this argument as variable or not.
+
+	@abstract @method isKeywords
+	|	Tells if the argument is keywords list or not.
+
+	@abstract @method setKeywords value
+	|	Sets this argument as keywords list  or not.
+
+	@abstract @method setDefaultValue value
+	|	Sets the @methodault value for this argument.
+
+	@abstract @method getDefaultValue
+	|	Returns the @methodault value for this slot.
+
+@end
+
+@protocol IAttribute: ISlot
+	
+	@abstract @method setDefaultValue
+	|	Sets the @methodault value for this attribute
+
+	@abstract @method getDefaultValue
+	|	Gets the @methodault value for this attribute
+@end
+
+@protocol IModuleAttribute: IAttribute
+@end
+
+@protocol IClassAttribute: IAttribute
+@end
+
+#------------------------------------------------------------------------------
+#
+#  Contexts and Processes
+#
+#------------------------------------------------------------------------------
+
+@protocol IContext: IElement, IDataFlowOwner
+|	A context is an element that has slots, which bind evaluable elements
+|	(aka values) to names.
+
+	@abstract @method setSlot name, evaluable 
+	|	Binds the given evaluable to the named slot.
+
+	@abstract @method getSlot name 
+	|	Returns the given evaluable bound to named slot.
+
+	@abstract @method hasSlot name 
+	|	Tells if the context has a slot with the given name.
+
+	@abstract @method getSlots 
+	|	Returns (key, evaluable) pairs representing the slots within this
+	|	context.
+
+	@abstract @method setParent context 
+	|	Sets the parent context for this context.
+
+	@abstract @method getParent
+	|	Returns the parent context for this context (if any)
+
+@end
+
+@protocol IClass: IContext, IReferencable
+
+	@abstract @method getAttributes
+	|	Returns the (non-@protocol) attributes @methodined within this @protocol.
+	
+	@abstract @method getClassAttributes 
+	|	Returns the @protocol attributes @methodined within this @protocol.
+	
+	@abstract @method getOperations 
+	|	Returns the operations (methods and @protocol methods) @methodined within this @protocol.
+	
+	@abstract @method getMethods 
+	|	Returns the methods @methodined within this @protocol.
+	
+	@abstract @method getConstructors
+	|	Returns the constructors for this @protocol
+	
+	@abstract @method getDestructors
+	|	Returns the destructors for this @protocol
+	
+	@abstract @method getInstanceMethods 
+	|	Returns the instance methods @methodined within this @protocol.
+	
+	@abstract @method getClassMethods 
+	|	Returns the @protocol method @methodined within this @protocol.
+
+	@abstract @method getName 
+	|	Returns this @protocol name. It can be `None` if the @protocol is anonymous.
+
+	@abstract @method getSuperClasses 
+	|	Returns the list of inherited @protocoles references.
+
+@end
+
+@protocol IAbstractClass: IClass, IAbstractable
+|	An abstract @protocol is a @protocol that has at least one abstract element.
+@end
+
+@protocol IInterface: IAbstractClass
+|	An interface is an abstract @protocol that only has abstract elements.
+@end
+
+@protocol IModule: IContext
+
+	@abstract @method getClasses
+
+@end
+
+@protocol IProgram: IContext
+|	The program is the core context and entry point for almost every
+|	operation offered by LambdaFactory.
+@end
+
+# TODO: Maybe processed are contexts as well ?
+@protocol IProcess
+|	A process is a sequence of operations.
+
+	@abstract @method addOperation operation 
+	|	Adds the given operation as a child of this process.
+
+	@abstract @method addOperations operations... 
+	|	Adds the given operations as children of this process.
+
+	@abstract @method getOperations 
+	|	Returns the list of operations in this process.
+
+@end
+
+@protocol IGroup: IProcess
+| A block is a group of operations that share a common aspect. Groups
+| are more likely to be used by program passes to further structure the
+| program.
+|
+| Groups should generally not have their own context, as opposed to blocks
+| which generally have a context of their own.
+@end
+
+@protocol IBlock: IGroup
+|	A block is a specific type of (sub) process.
+@end
+
+
+
+@protocol IClosure: IProcess, IContext
+
+	@abstract @method getArguments
+
+	@abstract @method setArguments
+
+@end
+
+
+@protocol IFunction: IClosure, IReferencable, IAbstractable
+
+	@abstract @method getName 
+	|	Returns this @protocol name. It can be `None` if the @protocol is anonymous.
+
+	@abstract @method hasExplicitTermination
+	|	Returns true if this function has an operation with a termination,
+	|	otherwise return false.
+
+	@abstract @method endsWithTermination
+	|	Returns true if this function ends with a termination operation. This
+	|	is especially useful for back-ends which want to know if they have to
+	|	insert an explicit 'return' at the end (like Java).
+
+@end
+
+@protocol IMethod: IFunction
+@end
+
+@protocol IConstructor: IMethod
+@end
+
+@protocol IDestructor: IMethod
+@end
+
+@protocol IInstanceMethod: IMethod
+@end
+
+@protocol IClassMethod: IMethod
+@end
+
+#------------------------------------------------------------------------------
+#
+#  Operations
+#
+#------------------------------------------------------------------------------
+
+@protocol IOperation: IElement
+
+	@abstract @method addOpArgument argument 
+	|	Adds an argument to this operation. This should do checking of
+	|	arguments (by expected internal type and number).
+
+	@abstract @method getOpArguments 
+	|	Returns the arguments to this operation.
+
+	@abstract @method getOpArgument i
+	|	Returns the ith arguments to this operation.
+
+	@abstract @method setOpArgument i, value
+	|	Sets the given argument of this operation, by argument index.
+
+	@abstract @method getOpArgumentsInternalTypes
+	|	Returns the *internal types* for this operations arguments. This is
+	|	typically the list of interfaces or @protocols that the arguments must
+	|	comply to.
+	
+@end
+
+@class IImportOperation: IOperation
+
+	@shared ARGS      = [ IEvaluable, IEvaluable ]
+	@shared ARG_NAMES = [ "ImportedElement", "Alias" ] 
+
+	@method getImportedElement
+	|	Returns a reference or a resolution that will allow to get the
+	|	imported element.
+		return getOpArgument(0)
+	@end
+	
+	@method getAlias
+	|	Returns the (optional) alias which will allow to reference the
+	|	element.
+		return getOpArgument(1)
+	@end
+	
+@end
+
+@class IEvaluation: IOperation
+	@shared ARGS = [ IEvaluable, IEvaluable ]
+	@shared ARG_NAMES = [ "Evaluable" ] 
+	
+	@method getEvaluable 
+		return getOpArgument(0)
+	@end
+@end
+
+# FIXME: Rename Assignment
+@class IAssignation: IOperation
+	@shared ARGS = [ IEvaluable, IEvaluable ]
+
+	@abstract @method getTarget 
+	|	Returns this assignation target reference, which can be an evaluable
+	|	(in case you assign to self.something, or a reference)
+
+	@abstract @method getAssignedValue 
+	|	Returns this assigned evaluable.
+	
+@end
+
+@class IAllocation: IOperation
+	@shared ARGS = [ ISlot, IEvaluable ]
+
+	@abstract @method getSlotToAllocate 
+	|	Returns slot to be allocated by this operation.
+
+	@abstract @method getDefaultValue 
+	|	Returns the expression that assigns the @methodault value.
+
+@end
+
+@protocol IResolution: IOperation
+|	A resolution resolves a reference into a value.
+	@shared ARGS = [ IReferencable, IEvaluable ]
+
+	@abstract @method getReference 
+	|	Returns the reference to be resolved.
+
+	@abstract @method getContext 
+	|	Returns the (optional) context in which the resolution should occur.
+
+@end
+
+@class IComputation: IOperation
+	@shared ARGS = [ IOperator, IEvaluable, IEvaluable ]
+
+	@method getOperator 
+	|	Gets the operator for this computation
+		return getOpArgument(0)
+	@end
+	
+	@method setOperator operator 
+	|	Sets the operator for this computation
+		return getOpArgument(0, operator)
+	@end
+	
+	@method getOperand 
+	|	Returns the left operand of this computation.
+		return getLeftOperand()
+	@end
+	
+	@method getOperands 
+	|	Returns the left (and right, if any) operands of this computation.
+		return [getLeftOperand(), getRightOperand()]
+	@end
+	
+	@method getLeftOperand 
+	|	Returns the left operand of this computation.
+		return getOpArgument(1)
+	@end
+	
+	@method getRightOperand 
+	|	Returns the right operand of this computation (if any)
+		return getOpArgument(2)
+	@end
+	
+	@method setLeftOperand operand 
+	|	Sets the left operand of this computation.
+		return setOpArgument(1, operand)
+	@end
+	
+	@method setRightOperand operand 
+	|	Sets the right operand of this computation
+		return setOpArgument(2, operand)
+	@end
+	
+@end
+
+@class IInvocation: IOperation
+	@shared ARGS = [ IEvaluable, [IEvaluable] ]
+
+	@method getTarget 
+	|	Returns the invocation target reference.
+		return getOpArgument(0)
+	@end
+	
+	@method getArguments 
+	|	Returns evaluable arguments.
+		return getOpArgument(1)
+	@end
+	
+@end
+	
+@class IInstanciation: IOperation
+	@shared ARGS = [ IEvaluable, [IEvaluable] ]
+
+	@method getInstanciable 
+	|	Returns the instanciable used in this operation.
+		return getOpArgument(0)
+	@end
+
+	@method getArguments 
+	|	Returns evaluable arguments.
+		return getOpArgument(1)
+	@end
+	
+@end
+
+@class ISubsetOperation: IOperation
+	
+	@method getTarget 
+	|	Returns the operation target.
+		return getOpArgument(0)
+	@end
+
+@end
+	
+@class IAccessOperation: ISubsetOperation
+	@shared ARGS = [ IEvaluable, IEvaluable]
+	
+	@method getIndex 
+	|	Returns evaluable that will return the access index
+		return getOpArgument(1)
+	@end
+
+@end
+	
+@class ISliceOperation: ISubsetOperation
+	
+	@shared ARGS = [ IEvaluable, IEvaluable, IEvaluable ]
+		
+	@method getSliceStart 
+	|	Returns evaluable that will return the slice start
+		return getOpArgument(1)
+	@end
+
+	@method getSliceEnd 
+	|	Returns evaluable that will return the slice end
+		return getOpArgument(2)
+	@end
+	
+@end
+
+# TODO: Rename this to RULE
+@class IMatchOperation: IOperation
+|	A match operation is the binding of an expression and a process.
+
+	@method getPredicate 
+	|	Returns the evaluable that acts as a predicate for this operation.
+		return getOpArgument(0)
+	@end
+	
+	@method setPredicate v 
+		return setOpArgument(0, v)
+	@end
+	
+@end
+
+@class IMatchExpressionOperation: IMatchOperation
+|	A match expression is a predicate that is associated to an expression.
+|	This is typically used in conditional expressions like in C:
+|	
+|	>	int a = ( b==2 ? 1 : 2 )
+	
+	@shared ARGS = [ IEvaluable, IEvaluable ]
+		
+	@method getExpression 
+	|	Returns the process that will be executed if the rule matches.
+		return getOpArgument(1)
+	@end
+	
+	@method setExpression v 
+		return setOpArgument(1, v)
+	@end
+	
+@end
+	
+@class IMatchProcessOperation: IMatchOperation
+|	A match process is a predicate associate to a process, which is typically
+|	used for implementing 'if', 'else', etc.
+	
+	@shared ARGS = [ IEvaluable, IProcess ]
+	
+	@method getProcess 
+	|	Returns the process that will be executed if the rule matches.
+		return getOpArgument(1)
+	@end
+	
+	@method setProcess v 
+		return setOpArgument(1, v)
+	@end
+	
+@end
+
+
+@class ISelection: IOperation
+|	Selections are the abstract objects behind `if`, `select` or
+|	pattern-matching operations. Each selection has match operations as
+|	arguments, which bind a subprocess to a predicate expression.
+	@shared ARGS = [ [IMatchOperation] ]
+
+	@abstract @method addRule evaluable 
+	|	Adds a rule to this operation.
+
+	@abstract @method getRules 
+	|	Returns the ordered set of rule for this selection.
+@end
+
+@class IIteration: IOperation 
+|	An iteration is the multiple application of a process given a set of
+|	values produced by an iterator.
+	@shared ARGS = [IEvaluable, IEvaluable ]
+
+	@method getIterator 
+	|	Returns this iteration iterator.
+		return getOpArgument(0)
+	@end
+	
+	@method getClosure 
+	|	Returns the closure that will be applied to the iterator.
+		return getOpArgument(1)
+	@end
+	
+@end
+
+@class IEnumeration: IOperation 
+|	An enumeration produces values between a start and an end value, with the
+|	given step.
+	@shared ARGS = [ IEvaluable, IEvaluable, IEvaluable ]
+
+	@method getStart 
+	|	Returns this enumeration start.
+		return getOpArgument(0)
+	@end
+	
+	@method getEnd 
+	|	Returns this enumeration end.
+		return getOpArgument(1)
+	@end
+	
+	@method getStep 
+	|	Returns this enumeration step.
+		return getOpArgument(2)
+	@end
+	
+	@method setStep value 
+	|	Sets this enumeration step
+		return setOpArgument(2, value)
+	@end
+	
+@end
+
+@class IRepetition: IOperation 
+|	A repetition is the repetitive execution of a process according to a
+|	predicate expression which can be modified by the process.
+|	@shared ARGS = [ IEvaluable, IProcess ]
+
+	@method getCondition 
+	|	Gets the expression that is the condition for this repetition.
+		return getOpArgument(0)
+	@end
+	
+	@method getProcess 
+		return getOpArgument(1)
+	@end
+	
+@end
+
+@class ITermination: IOperation
+	@shared ARGS = [ IEvaluable ]
+
+	@abstract @method getReturnedEvaluable 
+	|	Returns the termination return evaluable.
+@end
+
+@class IInterruption: IOperation
+|	An interruption can be be used to halt the process.
+@end
+
+@class IBreaking: IInterruption
+	@shared ARGS = []
+@end
+
+@class IExcept: IInterruption
+|	An interruption that raises some value
+	@shared ARGS = [ IEvaluable ]
+
+	@method getValue 
+	|	Returns the termination return evaluable.
+		return getOpArgument(0)
+	@end
+	
+@end
+
+@class IInterception: IOperation
+|	An interception allows to intercept interruptions that propagage from an
+|	enclosed process to parent contexts.
+	@shared ARGS = [ IProcess, IProcess, IProcess ]
+
+	@method setProcess process 
+	|	Sets the process from which interruptions will be intercepted.
+		return setOpArgument(0, process)
+	@end
+	
+	 @method getProcess 
+	|	Returns the process that we will intercept interruptions from.
+		return getOpArgument(0)
+	@end
+	
+	@method setIntercept process 
+	|	Sets the process that will do the interception
+		return setOpArgument(1, process)
+	@end
+	
+	@method getIntercept 
+	|	Returns the process that will do the interception
+		return getOpArgument(1)
+	@end
+	
+	@method setConclusion process 
+	|	Sets the process that will conclude the interception (finally)
+		return setOpArgument(2, process)
+	@end
+	
+	@method getConclusion 
+	|	Returns the process that will conclude the interception (finally)
+		return getOpArgument(2)
+	@end
+	
+@end
+	
+@class IEmbed: IOperation
+|	An embedded operation represents a bit of verbatim code written in
+|	a different language. This allows for embedding code written specifically
+|	in a target language (which may happen for optimizing stuff, for instance).
+	
+	@shared ARGS = []
+	
+	@abstract @method getLanguage 
+	|	Returns the language in which the emebedded code is written.
+		
+	@abstract @method setLanguage language 
+	|	Sets the language in which the emebedded code is written.
+	
+	@abstract@method getCodeString
+	|	Returns the embedded code string.
+	
+	@abstract @method setCodeString code 
+	|	Sets the code of this embed operation.
+@end
+
+@class IEmbedTemplate: IEmbed
+|	The 'EmbedTemplate' is embedded ('Embed') that contains template
+|	expressions. It's up to the model writer to know how to expand the template
+|	to convert it to the target language.
+@end
+
+
+# EOF

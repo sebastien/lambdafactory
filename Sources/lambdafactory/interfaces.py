@@ -1,295 +1,233 @@
-# Encoding: iso-8859-1
-# vim: tw=80 ts=4 sw=4 noet
-# -----------------------------------------------------------------------------
-# Project   : XXX
-# -----------------------------------------------------------------------------
-# Author    : Sebastien Pierre                               <sebastien@ivy.fr>
-# License   : Revised BSD License
-# -----------------------------------------------------------------------------
-# Creation  : 02-Nov-2006
-# Last mod  : 15-Aug-2007
-# -----------------------------------------------------------------------------
-
-# TODO: Add a Flowable interface that tells that the element can have
-# a dataflow
-# TODO: Add "walk" operations to walk the program
-
-def abstract(f):
-	def decorator(self, *args, **kwargs):
-		raise Exception("Operation not implemented: %s in %s" % (f, self.__class__))
-	decorator.isAbstract = True
-	decorator.__doc__ = getattr(f, "__doc__")
-	return decorator
-
-def implements( instance, interface ):
-	"""This is a simple method that allows to check if the given instance
-	implements the given interface."""
-	res = []
-	for key in interface.__dict__.keys():
-		if not hasattr(instance, key):
-			res.append(key)
-		else:
-			func = getattr(instance, key)
-			if hasattr(func, "isAbstract"):
-				res.append(key)
-	if not res:
-		return True
-	else:
-		return res
-
-def assertImplements( instance, interface ):
-	res = implements(instance, interface)
-	if res is True:
-		return
-	else:
-		raise Exception("Operations not implemented: %s from %s in %s" % (res, interface, instance.__class__))
-
+#8< ---[interfaces.py]---
+import sys
+__module__ = sys.modules[__name__]
+__module_name__ = 'interfaces'
 class Constants:
-
-	MainFunction  = "__main__"
+	MainFunction = "__main__"
 	CurrentModule = "__current__"
-	Constructor   = "__init__"
-	Destructor    = "__destroy__"
-	ModuleInit    = "__moduleinit__"
-	CurrentValue  = "__currentvalue__"
+	Constructor = "__init__"
+	Destructor = "__destroy__"
+	ModuleInit = "__moduleinit__"
+	CurrentValue = "__currentvalue__"
 	PARENS_PRIORITY = 9999
-
-#------------------------------------------------------------------------------
-#
-#  Element Interfaces
-#
-#------------------------------------------------------------------------------
-
-# TODO: Annotations
-# TODO: Source (external, source file, etc)
-# TODO: Documentation shorthands
-# TODO: S-Expression representation
-
-class IElement:
-	"""The core class for every element."""
-	
-	@abstract
-	def getAbstractType(self):
-		"""Returns the abstract type for this element."""
-	
-	@abstract
-	def setAbstractType(self, type):
-		"""Sets the abstract type for this element."""
-
-class IReferencable:
-	"""A referencable is an element that can be referenced either by id (it is
-	unique and stable), or by a name (which is also not supposed to change).
-
-	Types are good examples of referencables: they have an *absolute name* (like
-	`Data.List`), but can also be bound to slots within contexts which give them
-	"local names" (like `List := Data.List`)
-	"""
-
-	@abstract
-	def getId( self ):
-		"""Returns the identifier of this referencable. The identifier must be
-		unique among all elements."""
-
-	@abstract
-	def getName( self ):
-		"""Returns the *absolute name* for this referencable element."""
-
-class IEvaluable:
-	"""An evaluable is an element that can produce a value. Evaluable elements
-	then have associated type information."""
-
-	# FIXME: I guess evaluation should be left to an evaluator
-	#@abstract
-	#def evaluate( self, context ):
-	#	"""This *evaluates* the element in the given context. This returns the
-	#	type (internal or not) for the value of the evaluated element, which
-	#	should be as narrow as possible."""
-
-	@abstract
-	def getResultAbstractType(self):
-		"""Returns the abstract type of the result of the evaluation of this
-		evaluable."""
-
-	@abstract
-	def setResultAbstractType(self, type):
-		pass
-
-class IAssignable:
-	"""An assignable value can be *bound to a slot* within a context. Each
-	assignable then has a a name for a particular context."""
-
-	@abstract
-	def bound( self, context ):
-		"""Returns the name of this element in the given context."""
-
-	@abstract
-	def bind( self, context, name ):
-		"""Binds the given element to the given context, using the given
-		name."""
-
-	@abstract
-	def bounds( self ):
-		"""Returns the list of bounds (context, name) between this element and
-		all the contexts to which it is bound."""
-
-	@abstract
-	def unbind( self, context, name ):
-		"""Unbinds this element from the given context."""
-
-class IInstanciable:
-	"""Instanciable is a property of some elements that allows them to be
-	instanciated. Conceptually, an instanciation could be considered as a
-	specific kind of invocation."""
-
-class IInvocable:
-	"""An invocable can be used in an invocation operation."""
-
-	@abstract
-	def getArguments( self ):
-		"""Returns a list of arguments (which are names associated with optional
-		type information."""
-
-class IAbstractable:
-	"""An abstractable element is an element that is allow to have
-	no underlying implementation.  Abstract element are typically interfaces,
-	methods, functions, operations, and sometimes modules and classes."""
-
-	@abstract
-	def isAbstract( self ):
-		"""Tells wether the given abstractable is abstract or not."""
-
-	@abstract
-	def setAbstract( self, isAbstract=True ):
-		"""Sets wether the given abstractable is abstract or not."""
-
-class IDataFlow:
-	"""The DataFlow are ''dynamic contexts'' bound to the various program model
-	elements. DataFlows are typically owned by elements which implement
-	'IContext', and are linked together by rules defined in the 'Resolver'
-	class.
-
-	The dataflow bound to most expressions is the one of the enclosing closure
-	(wether it is a function, or method. The dataflow of a method is bound to
-	its parent class, which dataflow is also bound to the parent class dataflow.
-
-	While 'DataFlow' and 'Context' may appear very similar, they are not the
-	same: contexts are elements that keep track of declared slots, while the
-	dataflow make use of the context to weave the elements togeher.
-	"""
-
-	# TODO: Define what Argument, Environment, Variable are and what
-	# origin is
-	@abstract
-	def declareArgument( self, name, value ):
-		pass
-
-	@abstract
-	def declareEnvironment( self, name, value ):
-		"""Declares an environment variable with the given name, value
-		and origin."""
-	
-	@abstract
-	def declareVariable( self, name, value, origin ):
-		"""Declares a (local) variable with the given name, value and
-		origin"""
-
-	@abstract
-	def getSlots( self ):
-		"""Returns the lsit of slots defiend for this dataflow."""
-
-	@abstract
-	def hasSlot( self, name ):
-		"""Tells if this dataflow defines a slot with the given name."""
-
-	@abstract
-	def getParents( self ):
-		"""Returns the list of parent dataflows for this dataflow."""
-
-	@abstract
-	def addParent( self, parent ):
-		"""Addd the given dataflow as a parent of this dataflow."""
-
-	@abstract
-	def addChild( self, child ):
-		"""Adds the given dataflow as a child of this dataflow."""
-
-	@abstract
-	def getChildren( self ):
-		"""Returns a list of the child dataflows for this dataflow."""
-
-	@abstract
-	def resolve( self, name ):
-		"""Returns a couple '(DataFlow slot, IElement)' or '(None,None)'
-		corresponding to the resolution of the given 'name' in this dataflow."""
-
-	@abstract
-	def defines( self, name ):
-		"""Tells if this dataflow, or any of its child dataflows defines
-		the given name (symbol)."""
-		
-	@abstract
-	def getSlot( self, name ):
-		"""Returns the slot with the given name, if any."""
-		
-class IDataFlowable:
-	"""A 'DataFlowable' element can be assigned a dataflow. A dataflow
-	represents a runtime context where variables are defined, and where
-	dataflows can be linked together. DataFlowable elements are typically
-	able to resolve symbols and returns values."""
-	
-	@abstract
-	def hasDataFlow( self ):
-		"""Tells if the element has already been associated with a
-		dataflow."""
-
-	@abstract
-	def getDataFlow( self ):
-		"""Returns the IDataFlow for this element."""
-
-	@abstract
-	def setDataFlow( self, dataflow ):
-		"""Sets the dataflow for this element."""
-	 
-#------------------------------------------------------------------------------
-#
-#  Annotation Elements
-#
-#------------------------------------------------------------------------------
 
 class IAnnotation:
 	"""An annotation is some information that is not used for the actual
 	program, but annotates/gives meta-information about is elements."""
+	"""Returns the content of this annotation."""
+	def getContent(self):
+		pass
+	
+	"""Returns the name of this annotation."""
+	def getName(self):
+		pass
+	
 
-	@abstract
-	def getContent( self ):
-		"""Returns the content of this annotation."""
-
-	@abstract
-	def getName( self ):
-		"""Returns the name of this annotation."""
-		
 class IComment(IAnnotation):
 	"""A comment is an annotation that can occur anywhere in a source file."""
+	pass
 
 class IDocumentation(IAnnotation):
 	"""Documentation is often attached to various language elements.
 	Documentation can be found in coments (as in Java), or be directly embedded
 	as values (as in Python)."""
+	pass
 
-#------------------------------------------------------------------------------
-#
-#  Operational Elements
-#
-#------------------------------------------------------------------------------
+class IDataFlow:
+	"""The DataFlow are ''dynamic contexts'' bound to the various program model
+	elements. DataFlows are typically owned by elements which implement
+	'IContext', and are linked together by rules @methodined in the 'Resolver'
+	@protocol.
+	
+	The dataflow bound to most expressions is the one of the enclosing closure
+	(whether it is a function, or method. The dataflow of a method is bound to
+	its parent @protocol, which dataflow is also bound to the parent @protocol dataflow.
+	
+	While 'DataFlow' and 'Context' may appear very similar, they are not the
+	same: contexts are elements that keep track of declared slots, while the
+	dataflow make use of the context to weave the elements togeher."""
+	def declareArgument(self, name, value):
+		pass
+	
+	"""Declares an environment variable with the given name, value
+	and origin."""
+	def declareEnvironment(self, name, value):
+		pass
+	
+	"""Declares a (local) variable with the given name, value and
+	origin"""
+	def declareVariable(self, name, value, origin=None):
+		if origin is None: origin = None
+		pass
+	
+	"""Returns the lsit of slots @methodiend for this dataflow."""
+	def getSlots(self):
+		pass
+	
+	"""Tells if this dataflow @methodines a slot with the given name."""
+	def hasSlot(self, name):
+		pass
+	
+	"""Returns the list of parent dataflows for this dataflow."""
+	def getParents(self):
+		pass
+	
+	"""Add the given dataflow as a parent of this dataflow."""
+	def addParent(self, parent):
+		pass
+	
+	"""Adds the given dataflow as a child of this dataflow."""
+	def addChild(self, child):
+		pass
+	
+	"""Returns a list of the child dataflows for this dataflow."""
+	def getChildren(self):
+		pass
+	
+	"""Returns a couple '(DataFlow slot, IElement)' or '(None,None)'
+	corresponding to the resolution of the given 'name' in this dataflow."""
+	def resolve(self, name):
+		pass
+	
+	"""Tells if this dataflow, or any of its child dataflows defines
+	the given name (symbol)"""
+	def defines(self, name):
+		pass
+	
+	"""Returns the slot with the given name, if any."""
+	def getSlot(self, name):
+		pass
+	
+
+class IDataFlowSlot:
+	def addOperation(self):
+		pass
+	
+	"""Returns the (ordered) list of operations that affected the slot.
+	Operations usually constrain the dataflow abstract type, and
+	exception/warnings/errors may be raised by the type system
+	when a type constraint fails."""
+	def getOperations(self):
+		pass
+	
+	def getOrigin(self):
+		pass
+	
+	def getOriginalValue(self):
+		pass
+	
+	def getName(self):
+		pass
+	
+	def getAbstractType(self):
+		pass
+	
+
+class IDataFlowOwner:
+	"""DataFlow owners are elements that have their own dataflow. IContext are
+	typical examples of elements that are dataflow owners"""
+	pass
+
+class IElement:
+	"""The core @protocol for every element."""
+	"""Returns the abstract type for this element"""
+	def getAbstractType(self):
+		pass
+	
+	"""Sets the abstract type for this element"""
+	def setAbstractType(self, type):
+		pass
+	
+	"""Returns the dataflow accessible/bound to this element"""
+	def getDataFlow(self):
+		pass
+	
+	"""Gets the annotation with the given name associated to this element"""
+	def getAnnotation(self, name):
+		pass
+	
+	"""Sets the annotation with the given name to this element"""
+	def setAnnotation(self, name, annotation):
+		pass
+	
+
+class IReferencable:
+	"""A referencable is an element that can be referenced either by id (it is
+	unique and stable), or by a name (which is also not supposed to change).
+	
+	Types are good examples of referencables: they have an *absolute name* (like
+	`Data.List`), but can also be bound to slots within contexts which give them
+	"local names" (like `List := Data.List`)"""
+	"""Returns the local name for this referencable element"""
+	def getName(self):
+		pass
+	
+	"""Returns the absolute name for this element"""
+	def getAbsoluteName(self):
+		pass
+	
+
+class IAssignable:
+	"""Assignable elements are elements that can be bound to slots. In many
+	languages, only a subset of elements can be assigned. For instance, in
+	Java, you cannot assign a package to something:
+	
+	>     Object my_package = java.lang.Object
+	
+	while in some other languages (like JavaScript), you could do that."""
+	pass
+
+class IEvaluable:
+	"""An evaluable is an element that can produce a value. Evaluable elements
+	then have associated type information."""
+	"""Returns the abstract type of the result of the evaluation of this
+	evaluable"""
+	def getResultAbstractType(self):
+		pass
+	
+	"""Sets the abstract type for this operation result. This is usually
+	invoked in the typing phase."""
+	def setResultAbstractType(self):
+		pass
+	
+
+class IInstanciable:
+	"""Instanciable is a property of some elements that allows them to be
+	instanciated. Conceptually, an instanciation could be considered as a
+	specific kind of invocation."""
+	pass
+
+class IInvocable:
+	"""An invocable can be used in an invocation operation."""
+	"""Returns a list of arguments (which are names associated with optional
+	type information."""
+	def getArguments(self):
+		pass
+	
+
+class IAbstractable:
+	"""An abstractable element is an element that is allow to have
+	no underlying implementation.  Abstract element are typically interfaces,
+	methods, functions, operations, and sometimes modules and @protocoles."""
+	"""Tells wether the given abstractable is abstract or not."""
+	def isAbstract(self):
+		pass
+	
+	"""Sets wether the given abstractable is abstract or not."""
+	def setAbstract(self, isAbstract):
+		pass
+	
 
 class IValue(IElement, IEvaluable):
 	"""A value represents an atomic element of the language, like a number, a
 	string, or a name (that can resolved by the language, acts as key for data
 	structures, etc.)."""
+	pass
 
 class ILiteral(IValue):
 	"""A literal is a value that does not need a context to be evaluated. The
 	evaluation is direct."""
+	pass
 
 class INumber(ILiteral):
 	pass
@@ -298,108 +236,104 @@ class IString(ILiteral):
 	pass
 
 class IList(IValue):
-
-	@abstract
-	def addValue( self, value ):
-		"""Adds a value to this list."""
+	"""Adds a value to this list."""
+	def addValue(self, value):
 		pass
-
-	def getValues( self ):
-		"""Returns the values within this list."""
+	
+	"""Returns the values within this list."""
+	def getValues(self):
 		pass
+	
 
 class IDict(IValue):
 	"""A dictionary is a binding of key to values. It may or may not be ordered,
 	depending on the implementation/model semantics."""
-
-	@abstract
-	def setValue( self, key, value ):
-		"""Sets the value to be associated to the given key (which must be an
-		evaluable)."""
+	"""Sets the value to be associated to the given key (which must be an
+	evaluable)."""
+	def setValue(self, key, value):
 		pass
-
-	@abstract
-	def getItems( self ):
-		"""Returns the items contained in this dict"""
+	
+	"""Returns the items contained in this dict"""
+	def getItems(self):
 		pass
+	
 
 class IReference(IValue, IReferencable):
 	"""A reference is a name that can be converted into a value using a
 	resolution operation (for instance)."""
-
-	def getReferenceName( self ):
-		"""Returns the name which this reference contains. The name is used by
-		the resolution operation to actually resolve a value from the name."""
+	"""Returns the name which this reference contains. The name is used by
+	the resolution operation to actually resolve a value from the name."""
+	def getReferenceName(self):
+		pass
+	
 
 class IOperator(IReference):
-	pass
-
-	@abstract
-	def setPriority( self, priority ):
-		"""Sets the priority for this operator"""
+	"""Sets the priority for this operator"""
+	def setPriority(self, priority):
+		pass
 	
-	@abstract
-	def getPriority( self ):
-		"""Gets the priority for this operator"""
+	"""Gets the priority for this operator"""
+	def getPriority(self):
+		pass
+	
 
-class ISlot(IReference, IAssignable):
+class ISlot(IReference):
 	"""An argument is a reference with additional type information."""
-
-	@abstract
-	def getTypeInformation( self ):
-		"""Returns type information (constraints) that are associated to this
-		argument."""
+	"""Returns type information (constraints) that are associated to this
+	argument."""
+	def getTypeInformation(self):
+		pass
+	
 
 class IArgument(ISlot):
 	"""Arguments are slots which can be interpreted in different ways.
 	
-	When an argument is _optional_, it does not need to be defined in the
+	When an argument is _optional_, it does not need to be @methodined in the
 	invocation. When an argument is _variable_, it means it references the
 	rest of the arguments lists. When an argument is _keywords_, it will reference
 	the named arguments of the rest of the arguments list."""
-
-	@abstract
+	"""Tells if the argument is optional or not."""
 	def isOptional(self):
-		"""Tells if the argument is optional or not."""
-
-	@abstract
+		pass
+	
+	"""Sets this argument as optional or not."""
 	def setOptional(self, value):
-		"""Sets this argument as optional or not."""
-
-	@abstract
+		pass
+	
+	"""Tells if the argument is variable or not."""
 	def isRest(self):
-		"""Tells if the argument is variable or not."""
-
-	@abstract
+		pass
+	
+	"""Sets this argument as variable or not."""
 	def setRest(self, value):
-		"""Sets this argument as variable or not."""
-
-	@abstract
+		pass
+	
+	"""Tells if the argument is keywords list or not."""
 	def isKeywords(self):
-		"""Tells if the argument is keywords list or not."""
-
-	@abstract
+		pass
+	
+	"""Sets this argument as keywords list  or not."""
 	def setKeywords(self, value):
-		"""Sets this argument as keywords list  or not."""
-
-	@abstract
+		pass
+	
+	"""Sets the @methodault value for this argument."""
 	def setDefaultValue(self, value):
-		"""Sets the default value for this argument."""
-
-	@abstract
-	def getDefaultValue(self):
-		"""Returns the default value for this slot."""
-
+		pass
 	
+	"""Returns the @methodault value for this slot."""
+	def getDefaultValue(self):
+		pass
+	
+
 class IAttribute(ISlot):
-	
-	@abstract
+	"""Sets the @methodault value for this attribute"""
 	def setDefaultValue(self):
-		"""Sets the default value for this attribute"""
-
-	@abstract
+		pass
+	
+	"""Gets the @methodault value for this attribute"""
 	def getDefaultValue(self):
-		"""Gets the default value for this attribute"""
+		pass
+	
 
 class IModuleAttribute(IAttribute):
 	pass
@@ -407,161 +341,147 @@ class IModuleAttribute(IAttribute):
 class IClassAttribute(IAttribute):
 	pass
 
-#------------------------------------------------------------------------------
-#
-#  Contexts and Processes
-#
-#------------------------------------------------------------------------------
-
-class IContext(IElement, IDataFlowable):
+class IContext(IElement, IDataFlowOwner):
 	"""A context is an element that has slots, which bind evaluable elements
 	(aka values) to names."""
-
-	@abstract
-	def setSlot( self, name, evaluable ):
-		"""Binds the given evaluable to the named slot."""
-
-	@abstract
-	def getSlot( self, name ):
-		"""Returns the given evaluable bound to named slot."""
-
-	@abstract
-	def hasSlot( self, name ):
-		"""Tells if the context has a slot with the given name."""
-
-	@abstract
-	def getSlots( self ):
-		"""Returns (key, evaluable) pairs representing the slots within this
-		context."""
-
-	@abstract
-	def setParent( self, context ):
-		"""Sets the parent context for this context."""
-
-	@abstract
-	def getParent( self ): 
-		"""Returns the parent context for this context (if any)"""
+	"""Binds the given evaluable to the named slot."""
+	def setSlot(self, name, evaluable):
+		pass
+	
+	"""Returns the given evaluable bound to named slot."""
+	def getSlot(self, name):
+		pass
+	
+	"""Tells if the context has a slot with the given name."""
+	def hasSlot(self, name):
+		pass
+	
+	"""Returns (key, evaluable) pairs representing the slots within this
+	context."""
+	def getSlots(self):
+		pass
+	
+	"""Sets the parent context for this context."""
+	def setParent(self, context):
+		pass
+	
+	"""Returns the parent context for this context (if any)"""
+	def getParent(self):
+		pass
+	
 
 class IClass(IContext, IReferencable):
-	pass
-
-	@abstract
-	def getAttributes( self ):
-		"""Returns the (non-class) attributes defined within this class."""
+	"""Returns the (non-@protocol) attributes @methodined within this @protocol."""
+	def getAttributes(self):
 		pass
-
-	@abstract
-	def getClassAttributes( self ):
-		"""Returns the class attributes defined within this class."""
+	
+	"""Returns the @protocol attributes @methodined within this @protocol."""
+	def getClassAttributes(self):
 		pass
-
-	@abstract
-	def getOperations( self ):
-		"""Returns the operations (methods and class methods) defined within this class."""
+	
+	"""Returns the operations (methods and @protocol methods) @methodined within this @protocol."""
+	def getOperations(self):
 		pass
-
-	@abstract
-	def getMethods( self ):
-		"""Returns the methods defined within this class."""
+	
+	"""Returns the methods @methodined within this @protocol."""
+	def getMethods(self):
 		pass
-
-	@abstract
+	
+	"""Returns the constructors for this @protocol"""
 	def getConstructors(self):
-		"""Returns the constructors for this class"""
 		pass
 	
-	@abstract
+	"""Returns the destructors for this @protocol"""
 	def getDestructors(self):
-		"""Returns the destructors for this class"""
 		pass
 	
-	@abstract
-	def getInstanceMethods( self ):
-		"""Returns the instance methods defined within this class."""
+	"""Returns the instance methods @methodined within this @protocol."""
+	def getInstanceMethods(self):
 		pass
 	
-	@abstract
-	def getClassMethods( self ):
-		"""Returns the class method defined within this class."""
+	"""Returns the @protocol method @methodined within this @protocol."""
+	def getClassMethods(self):
 		pass
-
-	@abstract
-	def getName( self ):
-		"""Returns this class name. It can be `None` if the class is anonymous."""
-
-	@abstract
-	def getSuperClasses( self ):
-		"""Returns the list of inherited classes references."""
+	
+	"""Returns this @protocol name. It can be `None` if the @protocol is anonymous."""
+	def getName(self):
+		pass
+	
+	"""Returns the list of inherited @protocoles references."""
+	def getSuperClasses(self):
+		pass
+	
 
 class IAbstractClass(IClass, IAbstractable):
-	"""An abstract class is a class that has at least one abstract element."""
-
-class IInterface(IAbstractClass):
-	"""An interface is an abstract class that only has abstract elements."""
-
-class IModule(IContext):
+	"""An abstract @protocol is a @protocol that has at least one abstract element."""
 	pass
 
-	@abstract
-	def getClasses( self ):
+class IInterface(IAbstractClass):
+	"""An interface is an abstract @protocol that only has abstract elements."""
+	pass
+
+class IModule(IContext):
+	def getClasses(self):
 		pass
+	
 
 class IProgram(IContext):
 	"""The program is the core context and entry point for almost every
 	operation offered by LambdaFactory."""
 	pass
 
-# TODO: Maybe processed are contexts as well ?
-class IProcess(IDataFlowable):
+class IProcess:
 	"""A process is a sequence of operations."""
+	"""Adds the given operation as a child of this process."""
+	def addOperation(self, operation):
+		pass
+	
+	"""Adds the given operations as children of this process."""
+	def addOperations(self, operations):
+		pass
+	
+	"""Returns the list of operations in this process."""
+	def getOperations(self):
+		pass
+	
 
-	@abstract
-	def addOperation( self, operation ):
-		"""Adds the given operation as a child of this process."""
+class IGroup(IProcess):
+	"""A block is a group of operations that share a common aspect. Groups
+	are more likely to be used by program passes to further structure the
+	program.
+	
+	Groups should generally not have their own context, as opposed to blocks
+	which generally have a context of their own."""
+	pass
 
-	@abstract
-	def addOperations( self, *operations ):
-		"""Adds the given operations as children of this process."""
-
-	@abstract
-	def getOperations( self ):
-		"""Returns the list of operations in this process."""
-
-class IBlock(IProcess):
+class IBlock(IGroup):
 	"""A block is a specific type of (sub) process."""
+	pass
 
 class IClosure(IProcess, IContext):
-
-	@abstract
-	def getArguments( self ):
+	def getArguments(self):
 		pass
-
-	@abstract
-	def setArguments( self ):
+	
+	def setArguments(self):
 		pass
+	
 
 class IFunction(IClosure, IReferencable, IAbstractable):
-
-	@abstract
-	def getName( self ):
-		"""Returns this class name. It can be `None` if the class is anonymous."""
-
-	def hasExplicitTermination( self ):
-		"""Returns true if this function has an operation with a termination,
-		otherwise return false."""
-		for o in self.getOperations():
-			if isinstance(o, ITermination):
-				return True
-		return False
-
-	def endsWithTermination( self ):
-		"""Returns true if this function ends with a termination operation. This
-		is especially useful for back-ends which want to know if they have to
-		insert an explicit 'return' at the end (like Java)."""
-		ops = self.getOperations()
-		if not ops: return False
-		return isinstance(ops[-1], ITermination)
-
+	"""Returns this @protocol name. It can be `None` if the @protocol is anonymous."""
+	def getName(self):
+		pass
+	
+	"""Returns true if this function has an operation with a termination,
+	otherwise return false."""
+	def hasExplicitTermination(self):
+		pass
+	
+	"""Returns true if this function ends with a termination operation. This
+	is especially useful for back-ends which want to know if they have to
+	insert an explicit 'return' at the end (like Java)."""
+	def endsWithTermination(self):
+		pass
+	
 
 class IMethod(IFunction):
 	pass
@@ -578,277 +498,270 @@ class IInstanceMethod(IMethod):
 class IClassMethod(IMethod):
 	pass
 
-#------------------------------------------------------------------------------
-#
-#  Operations
-#
-#------------------------------------------------------------------------------
-
 class IOperation(IElement):
-
-	@abstract
-	def addOpArgument( self, argument ):
-		"""Adds an argument to this operation. This should do checking of
-		arguments (by expected internal type and number)."""
-
-	@abstract
-	def getOpArguments( self ):
-		"""Returns the arguments to this operation."""
-
-	@abstract
-	def setOpArgument( self, i, value ):
-		"""Sets the given argument of this operation, by argument index."""
-
-	@classmethod
-	def getOpArgumentsInternalTypes( self ):
-		"""Returns the *internal types* for this operations arguments. This is
-		typically the list of interfaces or classes that the arguments must
-		comply to."""
+	"""Adds an argument to this operation. This should do checking of
+	arguments (by expected internal type and number)."""
+	def addOpArgument(self, argument):
+		pass
+	
+	"""Returns the arguments to this operation."""
+	def getOpArguments(self):
+		pass
+	
+	"""Returns the ith arguments to this operation."""
+	def getOpArgument(self, i):
+		pass
+	
+	"""Sets the given argument of this operation, by argument index."""
+	def setOpArgument(self, i, value):
+		pass
+	
+	"""Returns the *internal types* for this operations arguments. This is
+	typically the list of interfaces or @protocols that the arguments must
+	comply to."""
+	def getOpArgumentsInternalTypes(self):
+		pass
+	
 
 class IImportOperation(IOperation):
-	ARGS = [ IEvaluable, IEvaluable ]
-
-
-	def getImportedElement( self ):
-		"""Returns a reference or a resolution that will allow to get the
-		imported element."""
+	ARGS = [IEvaluable, IEvaluable]
+	ARG_NAMES = ["ImportedElement", "Alias"]
+	"""Returns a reference or a resolution that will allow to get the
+	imported element."""
+	def getImportedElement(self):
 		return self.getOpArgument(0)
-
-	def getAlias( self ):
-		"""Returns the (optional) alias which will allow to reference the
-		element."""
+	
+	"""Returns the (optional) alias which will allow to reference the
+	element."""
+	def getAlias(self):
 		return self.getOpArgument(1)
+	
 
 class IEvaluation(IOperation):
-	ARGS = [ IEvaluable, IEvaluable ]
-
-	def getEvaluable( self ):
+	ARGS = [IEvaluable, IEvaluable]
+	ARG_NAMES = ["Evaluable"]
+	def getEvaluable(self):
 		return self.getOpArgument(0)
+	
 
-# FIXME: Rename Assignment
 class IAssignation(IOperation):
-	ARGS = [ IEvaluable, IEvaluable ]
-
-	@abstract
-	def getTarget( self ):
-		"""Returns this assignation target reference, which can be an evaluable
-		(in case you assign to self.something, or a reference)"""
-
-	@abstract
-	def getAssignedValue( self ):
-		"""Returns this assigned evaluable."""
+	ARGS = [IEvaluable, IEvaluable]
+	"""Returns this assignation target reference, which can be an evaluable
+	(in case you assign to self.something, or a reference)"""
+	def getTarget(self):
+		pass
+	
+	"""Returns this assigned evaluable."""
+	def getAssignedValue(self):
+		pass
+	
 
 class IAllocation(IOperation):
-	ARGS = [ ISlot, IEvaluable ]
+	ARGS = [ISlot, IEvaluable]
+	"""Returns slot to be allocated by this operation."""
+	def getSlotToAllocate(self):
+		pass
+	
+	"""Returns the expression that assigns the @methodault value."""
+	def getDefaultValue(self):
+		pass
+	
 
-	@abstract
-	def getSlotToAllocate( self ):
-		"""Returns slot to be allocated by this operation."""
-
-	@abstract
-	def getDefaultValue( self ):
-		"""Returns the expression that assigns the default value."""
-		
 class IResolution(IOperation):
 	"""A resolution resolves a reference into a value."""
-	ARGS = [ IReferencable, IEvaluable ]
-
-	@abstract
-	def getReference( self ):
-		"""Returns the reference to be resolved."""
-
-	@abstract
-	def getContext( self ):
-		"""Returns the (optional) context in which the resolution should occur."""
+	ARGS = [IReferencable, IEvaluable]
+	"""Returns the reference to be resolved."""
+	def getReference(self):
+		pass
+	
+	"""Returns the (optional) context in which the resolution should occur."""
+	def getContext(self):
+		pass
+	
 
 class IComputation(IOperation):
-	ARGS = [ IOperator, IEvaluable, IEvaluable ]
-
-	def getOperator( self ):
-		"""Gets the operator for this computation"""
+	ARGS = [IOperator, IEvaluable, IEvaluable]
+	"""Gets the operator for this computation"""
+	def getOperator(self):
 		return self.getOpArgument(0)
-
-	def setOperator( self, operator ):
-		"""Sets the operator for this computation"""
+	
+	"""Sets the operator for this computation"""
+	def setOperator(self, operator):
 		return self.getOpArgument(0, operator)
 	
-	def getOperand( self ):
-		"""Returns the left operand of this computation."""
+	"""Returns the left operand of this computation."""
+	def getOperand(self):
 		return self.getLeftOperand()
 	
-	def getOperands( self ):
-		"""Returns the left (and right, if any) operands of this computation."""
-		return self.getLeftOperand(), self.getRightOperand()
+	"""Returns the left (and right, if any) operands of this computation."""
+	def getOperands(self):
+		return [self.getLeftOperand(), self.getRightOperand()]
 	
-	def getLeftOperand( self ):
-		"""Returns the left operand of this computation."""
+	"""Returns the left operand of this computation."""
+	def getLeftOperand(self):
 		return self.getOpArgument(1)
-
-	def getRightOperand( self ):
-		"""Returns the right operand of this computation (if any)"""
+	
+	"""Returns the right operand of this computation (if any)"""
+	def getRightOperand(self):
 		return self.getOpArgument(2)
 	
-	def setLeftOperand( self, operand ):
-		"""Sets the left operand of this computation."""
+	"""Sets the left operand of this computation."""
+	def setLeftOperand(self, operand):
 		return self.setOpArgument(1, operand)
-
-	def setRightOperand( self, operand ):
-		"""Sets the right operand of this computation"""
+	
+	"""Sets the right operand of this computation"""
+	def setRightOperand(self, operand):
 		return self.setOpArgument(2, operand)
+	
 
 class IInvocation(IOperation):
-	ARGS = [ IEvaluable, [IEvaluable] ]
-
-	def getTarget( self ):
-		"""Returns the invocation target reference."""
+	ARGS = [IEvaluable, [IEvaluable]]
+	"""Returns the invocation target reference."""
+	def getTarget(self):
 		return self.getOpArgument(0)
-
-	def getArguments( self ):
-		"""Returns evaluable arguments."""
-		return self.getOpArgument(1) or ()
+	
+	"""Returns evaluable arguments."""
+	def getArguments(self):
+		return self.getOpArgument(1)
+	
 
 class IInstanciation(IOperation):
-	ARGS = [ IEvaluable, [IEvaluable] ]
-
-	def getInstanciable( self ):
-		"""Returns the instanciable used in this operation."""
+	ARGS = [IEvaluable, [IEvaluable]]
+	"""Returns the instanciable used in this operation."""
+	def getInstanciable(self):
 		return self.getOpArgument(0)
-
-	def getArguments( self ):
-		"""Returns evaluable arguments."""
-		return self.getOpArgument(1) or ()
+	
+	"""Returns evaluable arguments."""
+	def getArguments(self):
+		return self.getOpArgument(1)
+	
 
 class ISubsetOperation(IOperation):
-	
-	def getTarget( self ):
-		"""Returns the operation target."""
+	"""Returns the operation target."""
+	def getTarget(self):
 		return self.getOpArgument(0)
 	
-class IAccessOperation(ISubsetOperation):
-	ARGS = [ IEvaluable, IEvaluable]
-	
-	def getIndex( self ):
-		"""Returns evaluable that will return the access index"""
-		return self.getOpArgument(1)
-	
-class ISliceOperation(ISubsetOperation):
-	
-	ARGS = [ IEvaluable, IEvaluable, IEvaluable ]
-		
-	def getSliceStart( self ):
-		"""Returns evaluable that will return the slice start"""
-		return self.getOpArgument(1)
-	
-	def getSliceEnd( self ):
-		"""Returns evaluable that will return the slice end"""
-		return self.getOpArgument(2)
 
-# TODO: Rename this to RULE
+class IAccessOperation(ISubsetOperation):
+	ARGS = [IEvaluable, IEvaluable]
+	"""Returns evaluable that will return the access index"""
+	def getIndex(self):
+		return self.getOpArgument(1)
+	
+
+class ISliceOperation(ISubsetOperation):
+	ARGS = [IEvaluable, IEvaluable, IEvaluable]
+	"""Returns evaluable that will return the slice start"""
+	def getSliceStart(self):
+		return self.getOpArgument(1)
+	
+	"""Returns evaluable that will return the slice end"""
+	def getSliceEnd(self):
+		return self.getOpArgument(2)
+	
+
 class IMatchOperation(IOperation):
 	"""A match operation is the binding of an expression and a process."""
-
-	def getPredicate( self ):
-		"""Returns the evaluable that acts as a predicate for this operation."""
+	"""Returns the evaluable that acts as a predicate for this operation."""
+	def getPredicate(self):
 		return self.getOpArgument(0)
-
-	def setPredicate( self, v ):
+	
+	def setPredicate(self, v):
 		return self.setOpArgument(0, v)
+	
 
 class IMatchExpressionOperation(IMatchOperation):
 	"""A match expression is a predicate that is associated to an expression.
 	This is typically used in conditional expressions like in C:
 	
-	>	int a = ( b==2 ? 1 : 2 )
-	"""
-	ARGS = [ IEvaluable, IEvaluable ]
-		
-	def getExpression( self ):
-		"""Returns the process that will be executed if the rule matches."""
+	>	int a = ( b==2 ? 1 : 2 )"""
+	ARGS = [IEvaluable, IEvaluable]
+	"""Returns the process that will be executed if the rule matches."""
+	def getExpression(self):
 		return self.getOpArgument(1)
-
-	def setExpression( self, v ):
+	
+	def setExpression(self, v):
 		return self.setOpArgument(1, v)
 	
+
 class IMatchProcessOperation(IMatchOperation):
 	"""A match process is a predicate associate to a process, which is typically
-	used for implementing 'if', 'else', etc.
-	"""
-	ARGS = [ IEvaluable, IProcess ]
-	
-	def getProcess( self ):
-		"""Returns the process that will be executed if the rule matches."""
+	used for implementing 'if', 'else', etc."""
+	ARGS = [IEvaluable, IProcess]
+	"""Returns the process that will be executed if the rule matches."""
+	def getProcess(self):
 		return self.getOpArgument(1)
-
-	def setProcess( self, v ):
+	
+	def setProcess(self, v):
 		return self.setOpArgument(1, v)
-
+	
 
 class ISelection(IOperation):
 	"""Selections are the abstract objects behind `if`, `select` or
 	pattern-matching operations. Each selection has match operations as
 	arguments, which bind a subprocess to a predicate expression."""
-	ARGS = [ [IMatchOperation] ]
+	ARGS = [[IMatchOperation]]
+	"""Adds a rule to this operation."""
+	def addRule(self, evaluable):
+		pass
+	
+	"""Returns the ordered set of rule for this selection."""
+	def getRules(self):
+		pass
+	
 
-	@abstract
-	def addRule( self, evaluable ):
-		"""Adds a rule to this operation."""
-
-	@abstract
-	def getRules( self ):
-		"""Returns the ordered set of rule for this selection."""
-
-class IIteration( IOperation ):
+class IIteration(IOperation):
 	"""An iteration is the multiple application of a process given a set of
 	values produced by an iterator."""
-	ARGS = [IEvaluable, IEvaluable ]
-
-	def getIterator( self ):
-		"""Returns this iteration iterator."""
+	ARGS = [IEvaluable, IEvaluable]
+	"""Returns this iteration iterator."""
+	def getIterator(self):
 		return self.getOpArgument(0)
-
-	def getClosure( self ):
-		"""Returns the closure that will be applied to the iterator."""
+	
+	"""Returns the closure that will be applied to the iterator."""
+	def getClosure(self):
 		return self.getOpArgument(1)
+	
 
-class IEnumeration( IOperation ):
+class IEnumeration(IOperation):
 	"""An enumeration produces values between a start and an end value, with the
 	given step."""
-	ARGS = [ IEvaluable, IEvaluable, IEvaluable ]
-
-	def getStart( self ):
-		"""Returns this enumeration start."""
+	ARGS = [IEvaluable, IEvaluable, IEvaluable]
+	"""Returns this enumeration start."""
+	def getStart(self):
 		return self.getOpArgument(0)
-
-	def getEnd( self ):
-		"""Returns this enumeration end."""
+	
+	"""Returns this enumeration end."""
+	def getEnd(self):
 		return self.getOpArgument(1)
-
-	def getStep( self ):
-		"""Returns this enumeration step."""
+	
+	"""Returns this enumeration step."""
+	def getStep(self):
 		return self.getOpArgument(2)
-
-	def setStep( self, value ):
-		"""Sets this enumeration step"""
+	
+	"""Sets this enumeration step"""
+	def setStep(self, value):
 		return self.setOpArgument(2, value)
+	
 
-class IRepetition( IOperation ):
+class IRepetition(IOperation):
 	"""A repetition is the repetitive execution of a process according to a
-	predicate expression which can be modified by the process."""
-	ARGS = [ IEvaluable, IProcess ]
-
-	def getCondition( self ):
-		"""Gets the expression that is the condition for this repetition."""
+	predicate expression which can be modified by the process.
+	@shared ARGS = [ IEvaluable, IProcess ]"""
+	"""Gets the expression that is the condition for this repetition."""
+	def getCondition(self):
 		return self.getOpArgument(0)
-
-	def getProcess( self ):
+	
+	def getProcess(self):
 		return self.getOpArgument(1)
+	
 
 class ITermination(IOperation):
-	ARGS = [ IEvaluable ]
-
-	@abstract
-	def getReturnedEvaluable( self ):
-		"""Returns the termination return evaluable."""
+	ARGS = [IEvaluable]
+	"""Returns the termination return evaluable."""
+	def getReturnedEvaluable(self):
+		pass
+	
 
 class IInterruption(IOperation):
 	"""An interruption can be be used to halt the process."""
@@ -859,67 +772,66 @@ class IBreaking(IInterruption):
 
 class IExcept(IInterruption):
 	"""An interruption that raises some value"""
-	ARGS = [ IEvaluable ]
-
-	def getValue( self ):
-		"""Returns the termination return evaluable."""
+	ARGS = [IEvaluable]
+	"""Returns the termination return evaluable."""
+	def getValue(self):
 		return self.getOpArgument(0)
+	
 
 class IInterception(IOperation):
 	"""An interception allows to intercept interruptions that propagage from an
 	enclosed process to parent contexts."""
-	ARGS = [ IProcess, IProcess, IProcess ]
-
-	def setProcess( self, process ):
-		"""Sets the process from which interruptions will be intercepted."""
+	ARGS = [IProcess, IProcess, IProcess]
+	"""Sets the process from which interruptions will be intercepted."""
+	def setProcess(self, process):
 		return self.setOpArgument(0, process)
 	
-	def getProcess( self ):
-		"""Returns the process that we will intercept interruptions from."""
+	"""Returns the process that we will intercept interruptions from."""
+	def getProcess(self):
 		return self.getOpArgument(0)
-
-	def setIntercept( self, process ):
-		"""Sets the process that will do the interception"""
+	
+	"""Sets the process that will do the interception"""
+	def setIntercept(self, process):
 		return self.setOpArgument(1, process)
 	
-	def getIntercept( self ):
-		"""Returns the process that will do the interception"""
+	"""Returns the process that will do the interception"""
+	def getIntercept(self):
 		return self.getOpArgument(1)
-
-	def setConclusion( self, process ):
-		"""Sets the process that will conclude the interception (finally)"""
+	
+	"""Sets the process that will conclude the interception (finally)"""
+	def setConclusion(self, process):
 		return self.setOpArgument(2, process)
 	
-	def getConclusion( self ):
-		"""Returns the process that will conclude the interception (finally)"""
+	"""Returns the process that will conclude the interception (finally)"""
+	def getConclusion(self):
 		return self.getOpArgument(2)
 	
+
 class IEmbed(IOperation):
 	"""An embedded operation represents a bit of verbatim code written in
 	a different language. This allows for embedding code written specifically
 	in a target language (which may happen for optimizing stuff, for instance)."""
-	
 	ARGS = []
+	"""Returns the language in which the emebedded code is written."""
+	def getLanguage(self):
+		pass
 	
-	@abstract
-	def getLanguage( self ):
-		"""Returns the language in which the emebedded code is written."""
-		
-	@abstract
-	def setLanguage( self, language ):
-		"""Sets the language in which the emebedded code is written."""
+	"""Sets the language in which the emebedded code is written."""
+	def setLanguage(self, language):
+		pass
 	
-	@abstract
-	def getCodeString( self ):
-		"""Returns the embedded code string."""
+	"""Returns the embedded code string."""
+	def getCodeString(self):
+		pass
 	
-	@abstract
-	def setCodeString( self, code ):
-		"""Sets the code of this embed operation."""
+	"""Sets the code of this embed operation."""
+	def setCodeString(self, code):
+		pass
+	
 
 class IEmbedTemplate(IEmbed):
 	"""The 'EmbedTemplate' is embedded ('Embed') that contains template
 	expressions. It's up to the model writer to know how to expand the template
 	to convert it to the target language."""
+	pass
 
-# EOF

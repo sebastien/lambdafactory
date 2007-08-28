@@ -16,6 +16,9 @@
 from interfaces import *
 import modeltypes as mt
 
+def assertImplements(v,i):
+	return True
+
 class ModelException(Exception):
 	pass
 
