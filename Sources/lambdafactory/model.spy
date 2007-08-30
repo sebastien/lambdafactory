@@ -1,0 +1,827 @@
+@import interfaces *
+@import pprint
+| This module is the default implementation of the LambdaFactory interfaces.
+| It defines objects that allow you to build a complete OO program model on
+| which you can apply transformation passes, and from which you can generate
+| code using the different back-ends.
+
+# ------------------------------------------------------------------------------
+#
+# Data Flow Elements
+#
+# ------------------------------------------------------------------------------
+
+
+# ------------------------------------------------------------------------------
+#
+# Program Model Elements
+#
+# ------------------------------------------------------------------------------
+
+@class Element
+| The Element class is a generic class that implements many of the
+| functionalities required to implement the full LambdaFactory program model.
+|
+| Property defined in this class may not be relevant to every subclass, but at
+| least they provide a common infrastructure and limit the number of
+| subclasses.
+	
+	@shared COUNT               = 0
+	@property id                = Undefined
+	@property name              = Undefined
+	@property source            = Undefined
+	@property annotations       = []
+	@property abstractType      = Undefined
+	@property resultAbtractType = Undefined
+	@property sourceLocation    = [-1,-1,-1]
+	@property dataflow          = Undefined
+	
+	@constructor name=Undefined
+		self name = name
+		id   = COUNT
+		COUNT += 1
+	@end
+	
+	@method getDataFlow
+		return dataflow
+	@end
+	
+	@method setDataFlow f
+		dataflow = f
+	@end
+	
+	@method ownsDataFlow
+		raise "Not implemented"
+	@end
+
+	@method prettyList
+		return pprint pprint(asList())
+	@end
+
+	@method asList
+		return [self __class__ __name__]
+	@end
+		
+@end
+
+# ------------------------------------------------------------------------------
+#
+# Annotation/Documentation elements
+#
+# ------------------------------------------------------------------------------
+
+
+@class Annotation: Element, IAnnotation
+
+	@property content
+	
+	@constructor name=None, content=None
+		#REWRITE: super()
+		Element __init__  name, content )
+		self name = name
+		self content = content
+	@end
+	
+	@method getContent
+		return content
+	@end
+	
+@end
+
+@class Comment: Annotation, IComment
+	@constructor content=None
+		#REWRITE: super("comment", content)
+		Annotation __init__  "comment", content)
+	@end
+@end
+
+@class Documentation: Annotation, IDocumentation
+	@constructor content=None
+		#REWRITE: super("documentation", content)
+		Annotation __init__  "documentation", content)
+	@end
+@end
+
+# ------------------------------------------------------------------------------
+#
+# Structural Elements (Context, Class, Interface, Module, Program)
+#
+# ------------------------------------------------------------------------------
+
+@class Context: Element
+	
+	@property slots    = []
+	@property parent   = Undefined
+	@property abstract = False
+	
+	@constructor name=Undefined
+		#REWRITE: super( name )
+		Element __init__  name)
+	@end
+
+	@method setAbstract isAbstract
+		abstract = isAbstract
+	@end
+	
+	@method isAbstract
+		return abstract
+	@end
+	
+	@method setSlot name, evaluable, assignParent=True
+		if not isinstance(evaluable, IAssignable)
+			raise ERR_SLOT_VALUE_NOT_ASSIGNABLE
+		end
+		if assignParent and isinstance(evaluable, IContext) or hasattr(evaluable,"setParent")
+			evaluable setParent )
+		end
+		slots append [name, evaluable]
+	@end
+	
+	@method getSlot name
+		for slot in slots
+			if slot[0] == name
+				return slot[1]
+			end
+		end
+		raise ERR_SLOT_NOT_FOUND
+	@end
+	
+	@method setParent context:Context
+		parent = context
+	@end
+	
+	@method getParent
+		return parent
+	@end
+
+@end
+
+@class Class: Context, IClass, IReferencable, IAssignable
+	
+	@property parentClasses:<[IClass]> = []
+	
+	@constructor name=Undefined, parentClasses=Undefined
+		#REWRITE: super( name )
+		Context __init__  name)
+		if parentClasses != Undefined
+			setParentClasses(parentClasses)
+		end
+	@end
+	
+	@method slotsValuesImplementing interface, without=Undefined
+		var res = []
+		for slot in getSlots()
+			var value = slot[1]
+			if without == Undefined or not isinstance(value, without)
+				if isintance(value, interface)
+					res append (value)
+				end
+			end
+		end
+		return value
+	@end
+
+	# REWRITE (Sugar macros)
+	# % for e in "Attributes ClassAttributes Operations Constructors" split()
+	#	@method get%{e}
+	#		return slotValuesImplementing(I%{e})
+	#	@end
+	# % end
+
+	@method getAttributes
+		return slotValuesImplementing(IAttribute, IClassAttribute)
+	@end
+
+	@method getClassAttributes
+		return slotValuesImplementing(IClassAttribute)
+	@end
+
+	@method getOperations
+		return slotValuesImplementing(IInvocable)
+	@end
+	
+	@method getConstructors
+		return slotValuesImplementing(IConstructor)
+	@end
+	
+	@method getDestructors
+		return slotValuesImplementing(IDestructor)
+	@end
+	
+	@method getMethods
+		return slotValuesImplementing( IMethod)
+	@end
+	
+	@method getInstanceMethods
+		return slotValuesImplementing(IInstanceMethod)
+	@end
+	
+	@method getClassMethods
+		return slotValuesImplementing(IClassMethod)
+	@end
+		
+	@method getSuperClasses
+		return parentClasses
+	@end
+		
+	@method setParentClasses classes
+		parentClasses = []
+		for the_class in classes
+			if not (isinstance(cl, IReference) or isinstance(cl, IResolution))
+				raise ERR_PARENT_CLASS_REFERENCE_EXPECTED
+			end
+			parentClasses append (the_class)
+		end
+	@end
+	
+	# REWRITE ME
+	@method getInheritedClassMethods resolver
+	| Returns the inherited class methods as a dict of lists. This operation
+	| needs a resolver to resolve the classes from their references.
+		var res = {}
+		for class_ref in getParentClasses()
+			var parent_name = class_ref getReferenceName()
+			# We must be in the dataflow phase
+			slot_and_scope = getDataFlow() resolve(parent_name)
+			var slot, scope = slot_and_scope 
+			if not scope
+				# FIXME: Should raise an error
+			@end
+			else
+				var the_class = slot getValue()
+				for method in the_class getClassMethods()
+					name     = method getName()
+					methods = res setdefault(name, [])
+					methods append(meth)
+				end
+				for name_and_method in the_class getInheritedClassMethods(resolver) items ()
+					meths = res setdefault(name_and_method[0], [])
+					meths extend (name_and_method[1])
+				end
+			end
+		end
+		return res
+	@end
+
+	# REWRITE ME
+	@method getInheritedClassAttributes resolver
+	| Returns the inherited class attributes as a dict of lists. This operation
+	| needs a resolver to resolve the classes from their references.
+		var res = {}
+		for class_ref in getParentClasses()
+			var parent_name = class_ref getReferenceName()
+			# We must be in the dataflow phase
+			slot_and_scope = getDataFlow() resolve(parent_name)
+			var slot, scope = slot_and_scope 
+			var the_class    = slot getValue()
+			for attr in the_class getClassAttributes()
+				name = attr getName()
+				attrs = res setdefault(name, [])
+				attrs append(attr)
+			end
+			for name_and_attrs in the_class getInheritedClassAttributes(resolver) items()
+				attrs = res setdefault(name_and_attrs[0], [])
+				attrs extend(name_and_attrs[1])
+			end
+		end
+		return res
+	@end
+@end
+
+@class Interface: Class, IInterface
+@end
+
+@class Module: Context, IModule, IAssignable, IReferencable
+
+	@method getClasses
+		@embed Python
+		| return [value for name, value in self.getSlots() if isinstance(value, IClass)]
+		@end
+	@end
+		
+@end
+
+# TODO: Add more features here
+@class Program: Context, IProgram
+@end
+
+# ------------------------------------------------------------------------------
+#
+# Dynamic Elements (Processes)
+#
+# ------------------------------------------------------------------------------
+
+@class Process: Context, IContext, IProcess, IAbstractable
+
+	@property operations = []
+	@constructor name:Undefined
+		#REWRITE: super(name)
+		Context __init__  name)
+	@end
+	
+	@method addOperation operation:IOperation
+		if isAbstract()
+			raise ERR_ABSTRACT_PROCESS_NO_OPERATIONS
+		end
+		operations append (operation)
+	@end
+
+	@method getOperations:<[IOperation]>
+		return operations
+	@end
+
+	@method asList
+		var res = []
+		for o in operations
+			res append(o asList())
+		end
+		return tuple __class__ __name__, tuple(operations))
+	@end
+
+@end
+
+@class Group: Process, IGroup
+@end
+
+@class Block: Group, IBlock
+@end
+
+@class Closure: Process, IAssignable, IClosure, IEvaluable
+	
+	@property arguments = Undefined
+
+	@constructor arguments, name=Undefined
+		#REWRITE: super(name)
+		Process __name__  name)
+		setArguments(arguments)
+	@end
+
+	@method setArguments arguments
+		self arguments = []
+		for argument in arguments
+			if not isinstance(argument, ISlot)
+				raise ERR_CLOSURE_ARGUMENT_NOT_SLOT  ISlot, argument)
+			end
+			self arguments append(argument)
+		end
+	@end
+	
+	@method  getArguments
+		return arguments
+	@end
+	
+	@method getArgument index
+		return arguments[index]
+	@end
+		
+@end
+
+@class Function: Closure, IFunction, IReferencable
+
+	@constructor name, arguments
+		#REWRITE: super arguments, name)
+		Closure __init__  arguments, name)
+	@end
+	
+@end
+
+@class Method: Function, IMethod
+@end
+
+@class Constructor: Method, IConstructor
+
+	@constructor arguments
+		#REWRITE: super(arguments, Constants Constructor)
+		Method __init__  arguments, Constants Constructor)
+	@end
+@end
+
+@class Destructor: Method, IDestructor
+
+	@constructor
+		#REWRITE: super([], Constants Destructor)
+		Method __init__  [], Constants Destructor)
+	@end
+
+@end
+
+@class ClassMethod: Method, IClassMethod
+@end
+
+
+@class InstanceMethod: Method, IInstanceMethod
+@end
+
+# ------------------------------------------------------------------------------
+#
+# Operation Elements
+#
+# ------------------------------------------------------------------------------
+
+@class Operation: Element, IEvaluable, IOperation
+
+	@shared   ARGS:List = Undefined
+	@property opArguments:<[IElement]> = []
+	
+	@constructor arguments...
+		Element __init__ )
+		self.setOpArguments(arguments)
+	@end
+
+	@method setOpArguments arguments
+		#if not len(arguments) <= len.ARGS
+		#	raise ModelException("Too many arguments: %s expected %s, got %s" \
+		#	%  len.ARGS), len(arguments)))
+		opArguments = []
+		map addOpArgument, arguments )
+	@end
+
+	@method setOpArgument i, argument
+		#if not i < len.ARGS)
+		#	raise ModelException("Too many arguments: %s expected %s, got %s" \
+		#	%  len.ARGS), len(arguments)))
+		#if not self._isInstance(argument, self.ARGS[i]
+		#	raise ModelException("Incompatible argument:  %s expected arg %s as  %s, got %s" \
+		#	%  offset, self.ARGS[i], argument))
+		while len(opArguments) < i
+			opArguments append(None)
+		end
+		opArguments [i] = argument
+	@end
+
+	@method addOpArgument argument
+		#offset = len opArguments)
+		#if offset > len.ARGS
+		#	raise ModelException("Too many arguments: %s expected args %s as %s, got %s" \
+		#	%  offset, len.ARGS), offset + 1))
+		#if not self._isInstance(argument, self.ARGS[offset]
+		#	raise ModelException("Incompatible argument:  %s expected arg %s as  %s, got %s" \
+		#	%  offset, self.ARGS[offset], argument))
+		opArguments append (argument)
+	@end
+	
+	@method getOpArguments
+		return opArguments
+	@end
+	
+	@method getOpArgument i
+		return opArguments[i]
+	@end
+
+	@method asList
+		var args = []
+		for a in opArguments
+			if not type(a) in (tuple,list)
+				if a
+					args append (a asList())
+				else
+					args append(a)
+				end
+			else
+				args append(a)
+			end
+		end
+		return [self __class__ __name__, tuple(args)]
+	@end
+@end
+
+@class Assignation: Operation, IAssignation, IEvaluable
+
+	@method getTarget
+		return self getOpArgument(0)
+	@end
+	
+	@method getAssignedValue
+		return self getOpArgument(1)
+	@end
+	
+@end
+
+@class Allocation: Operation, IAllocation, IEvaluable
+
+	@method getSlotToAllocate
+		self getOpArgument(0)
+	@end
+
+	@method getDefaultValue
+		self getOpArgument(1)
+	@end
+	
+@end
+	
+@class Resolution: Operation, IResolution, IEvaluable, IReferencable
+
+	@method getReference
+		return self getOpArgument(0)
+	@end
+	
+	@method getContext
+		return self getOpArgument(1)
+	@end
+@end
+
+@class Computation: Operation, IComputation, IEvaluable
+
+	@constructor arguments...
+		@embed Python
+		|Operation.__init__(self, *arguments)
+		@end
+	@end
+	
+@end
+
+@class Invocation: Operation, IInvocation, IEvaluable
+@end
+
+@class Instanciation: Operation, IInstanciation, IEvaluable
+@end
+
+@class Selection: Operation, ISelection
+
+	@method addRule evaluable
+		res = getOpArgument()
+		if not res
+			res = []
+			self addOpArgument(res)
+		else
+			res = res[0]
+		end
+		res append (evaluable)
+	@end
+
+	@method getRules
+		if opArguments:
+			return self.getOpArgument(0)
+		else:
+			return []
+
+	@end
+@end
+
+
+@class Evaluation: Operation, IEvaluation
+@end
+
+@class AccessOperation: Operation, IAccessOperation
+@end
+
+@class SliceOperation: Operation, ISliceOperation
+@end
+
+@class MatchProcessOperation: Operation, IMatchProcessOperation
+@end
+
+@class MatchExpressionOperation: Operation, IMatchExpressionOperation
+@end
+
+@class Iteration: Operation, IIteration
+@end
+
+@class Enumeration: Operation, IEnumeration
+@end
+
+@class Repetition: Operation, IRepetition
+@end
+
+@class Termination: Operation, ITermination
+
+	@method getReturnedEvaluable
+		return self getOpArgument(0)
+	@end
+@end
+
+@class Breaking: Operation, IBreaking
+@end
+
+@class Except: Operation, IExcept
+@end
+
+@class Interception: Operation, IInterception
+
+	@constructor tryProcess, catchProcess=None, finallyProcess=None
+		Operation.__init__( self,  tryProcess, catchProcess, finallyProcess )
+	@end
+@end
+
+@class ImportOperation: Operation, IImportOperation
+	
+	@constructor arguments...
+		@embed Python
+		|Operation.__init__(self, *arguments)
+		@end
+	@end
+	
+@end
+
+@class Embed: Operation, IEmbed
+
+	@property language = Undefined
+	@property code     = None
+	
+	@constructor lang=None, code=None
+		Operation __init__( self )
+		self language = lang
+		self code = code
+	@end
+	
+	@method getLanguage
+		return language
+	@end
+
+	@method setLanguage language
+		self language = language
+	@end
+	
+	@method getCode
+		return self code
+	@end
+
+	@method setCode code
+		self code = code
+	@end
+
+@class EmbedTemplate: Embed, IEmbedTemplate
+@end
+
+
+# ------------------------------------------------------------------------------
+#
+# VALUES
+#
+# ------------------------------------------------------------------------------
+
+@class Value: Element, IValue, IEvaluable, IAssignable
+@end
+
+@class Literal: Value, ILiteral
+
+	@property actualValue = Undefined
+	@constructor actualValue
+		Value __init__ (self)
+		self actualValue = actualValue
+	@end
+	
+	@method getActualValue
+		return actualValue
+	@end
+
+@end
+
+@class Number: Literal, INumber
+@end
+
+@class String: Literal, IString
+@end
+
+@class List: Value, IList
+
+	@property values
+	
+	@constructor
+		Value __init__ (self)
+	@end
+
+	@method addValue value:IElement
+		values append (values)
+	@end
+	
+	@method getValues
+		return values
+	@end
+
+	@method getValue i
+		return values[i]
+	@end
+@end
+
+@class Dict: Value, IDict
+
+	@property items:<[(IElement,IElement)]> = []
+	
+	@constructor
+		Value.__init__(self)
+	@end
+	
+	@method setValue key:IElement, value:IElement
+		items append([key,value])
+	@end
+	
+	@method getItems
+		return items
+	@end
+
+@end
+
+@class Reference: Value, IReference
+
+	@property referenceName:String
+	
+	@constructor name:String
+		Value __init__ (self)
+		self referenceName = name
+	@end
+	
+	@method getReferenceName
+		return self._refname
+
+	@method asList
+		return [self __class__ __name__, referenceName]
+	@end
+	
+@end
+
+@class Operator: Reference, IOperator
+
+	@property priority = 0
+
+	@constructor operator, priority
+		Reference __init__ (self, operator )
+		setPriority(priority)
+	@end
+	
+	@method getPriority
+		return priority
+	@end
+	
+	@method setPriority priority
+		self priority = priority
+	@end
+@end
+
+@class Slot: Reference, ISlot
+
+	@property defaultValue:IElement = None
+	@property typeDescription = Undefined
+	
+	@constructor name, typeDescription
+		Reference.__init__ ( self, name )
+		self typeDescription = typeDescription
+	@end
+
+	@method getTypeDescription
+		return typeDescription
+	@end
+
+	@method setDefaultValue value
+		defaultValue = value
+	@end
+
+	@method getDefaultValue
+		return defaultValue
+	@end
+
+@end
+
+
+@class Argument: Slot, IArgument
+
+	@property rest = False
+	@property optional = False
+	@property keywords = False
+
+	@constructor name, typeDescription
+		Slot __init__ (self, name, typeDescription)
+	@end
+
+	@method isOptional
+		return optional
+	@end
+
+	@method setOptional value
+		optional = value and value
+	@end
+
+	@method isRest
+		return rest
+	@end
+
+	@method setRest value
+		rest = value and value
+	@end
+
+	@method isKeywords
+		return keywords
+	@end
+
+	@method setKeywords value
+		keywords = value and value
+	@end
+
+@end
+
+@class Attribute: Slot, IAttribute
+	
+	@constructor name, typeDescription, value=None
+		Slot __init__ (self, name, typeDescription)
+		setDefaultValue ( value )
+	@end
+
+@end
+
+@class ClassAttribute: Attribute, IClassAttribute
+@end
+
+@class ModuleAttribute: Attribute, IModuleAttribute
+@end
+
+# EOF
