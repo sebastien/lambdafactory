@@ -305,9 +305,11 @@ class Writer(AbstractWriter):
 		"""Writes an argument element."""
 		default = argElement.getDefaultValue()
 		if default is None:
-			return "%s" % (argElement.getReferenceName())
+		 	res = "%s" % (argElement.getReferenceName())
 		else:
-			return "%s=None" % (argElement.getReferenceName())
+			res = "%s=None" % (argElement.getReferenceName())
+		if argElement.isRest(): res = "*" + res
+		return res
 
 	def writeAttribute( self, element ):
 		"""Writes an argument element."""

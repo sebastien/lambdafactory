@@ -1,9 +1,10 @@
-@import interfaces *
-@import pprint
 | This module is the default implementation of the LambdaFactory interfaces.
 | It defines objects that allow you to build a complete OO program model on
 | which you can apply transformation passes, and from which you can generate
 | code using the different back-ends.
+@import interfaces *
+@import pprint
+
 
 # ------------------------------------------------------------------------------
 #
@@ -42,12 +43,43 @@
 		COUNT += 1
 	@end
 	
+	@method setName name
+		self name = name
+	@end
+	
+	@method getName
+		return self name
+	@end
+	
+	@method setSource source
+		self source = source
+	@end
+	
+	@method getSource
+		return source
+	@end
+
+	@method annotate annotation:IAnnotation
+		annotations append (annotation)
+	@end
+	
+	@method getAnnotations withName
+		@embed Python
+		| return [a for a in self.annotations if a.getName() == withName]
+		@end
+	@end
+	
 	@method getDataFlow
 		return dataflow
 	@end
 	
 	@method setDataFlow f
 		dataflow = f
+	@end
+	
+	# FIXME: To deprecate
+	@method hasDataFlow
+		return dataflow
 	@end
 	
 	@method ownsDataFlow
@@ -77,7 +109,7 @@
 	
 	@constructor name=None, content=None
 		#REWRITE: super()
-		Element __init__  name, content )
+		Element __init__ ( self, name )
 		self name = name
 		self content = content
 	@end
@@ -91,14 +123,14 @@
 @class Comment: Annotation, IComment
 	@constructor content=None
 		#REWRITE: super("comment", content)
-		Annotation __init__  "comment", content)
+		Annotation __init__ ( self,  "comment", content)
 	@end
 @end
 
 @class Documentation: Annotation, IDocumentation
 	@constructor content=None
 		#REWRITE: super("documentation", content)
-		Annotation __init__  "documentation", content)
+		Annotation __init__ ( self,  "documentation", content)
 	@end
 @end
 
@@ -116,7 +148,7 @@
 	
 	@constructor name=Undefined
 		#REWRITE: super( name )
-		Element __init__  name)
+		Element __init__ ( self,  name)
 	@end
 
 	@method setAbstract isAbstract
@@ -132,7 +164,7 @@
 			raise ERR_SLOT_VALUE_NOT_ASSIGNABLE
 		end
 		if assignParent and isinstance(evaluable, IContext) or hasattr(evaluable,"setParent")
-			evaluable setParent )
+			evaluable setParent ( self )
 		end
 		slots append [name, evaluable]
 	@end
@@ -162,7 +194,7 @@
 	
 	@constructor name=Undefined, parentClasses=Undefined
 		#REWRITE: super( name )
-		Context __init__  name)
+		Context __init__ ( self,  name)
 		if parentClasses != Undefined
 			setParentClasses(parentClasses)
 		end
@@ -227,7 +259,7 @@
 	@method setParentClasses classes
 		parentClasses = []
 		for the_class in classes
-			if not (isinstance(cl, IReference) or isinstance(cl, IResolution))
+			if not (isinstance(the_class, IReference) or isinstance(the_class, IResolution))
 				raise ERR_PARENT_CLASS_REFERENCE_EXPECTED
 			end
 			parentClasses append (the_class)
@@ -244,20 +276,15 @@
 			# We must be in the dataflow phase
 			slot_and_scope = getDataFlow() resolve(parent_name)
 			var slot, scope = slot_and_scope 
-			if not scope
-				# FIXME: Should raise an error
-			@end
-			else
-				var the_class = slot getValue()
-				for method in the_class getClassMethods()
-					name     = method getName()
-					methods = res setdefault(name, [])
-					methods append(meth)
-				end
-				for name_and_method in the_class getInheritedClassMethods(resolver) items ()
-					meths = res setdefault(name_and_method[0], [])
-					meths extend (name_and_method[1])
-				end
+			var the_class = slot getValue()
+			for method in the_class getClassMethods()
+				name     = method getName()
+				methods = res setdefault(name, [])
+				methods append(meth)
+			end
+			for name_and_method in the_class getInheritedClassMethods(resolver) items ()
+				meths = res setdefault(name_and_method[0], [])
+				meths extend (name_and_method[1])
 			end
 		end
 		return res
@@ -316,7 +343,7 @@
 	@property operations = []
 	@constructor name:Undefined
 		#REWRITE: super(name)
-		Context __init__  name)
+		Context __init__ ( self,  name)
 	@end
 	
 	@method addOperation operation:IOperation
@@ -335,7 +362,7 @@
 		for o in operations
 			res append(o asList())
 		end
-		return tuple __class__ __name__, tuple(operations))
+		return tuple( [self __class__ __name__, tuple(operations)] )
 	@end
 
 @end
@@ -352,7 +379,7 @@
 
 	@constructor arguments, name=Undefined
 		#REWRITE: super(name)
-		Process __name__  name)
+		Process __init__ ( self,  name)
 		setArguments(arguments)
 	@end
 
@@ -360,7 +387,7 @@
 		self arguments = []
 		for argument in arguments
 			if not isinstance(argument, ISlot)
-				raise ERR_CLOSURE_ARGUMENT_NOT_SLOT  ISlot, argument)
+				raise ERR_CLOSURE_ARGUMENT_NOT_SLOT
 			end
 			self arguments append(argument)
 		end
@@ -380,7 +407,7 @@
 
 	@constructor name, arguments
 		#REWRITE: super arguments, name)
-		Closure __init__  arguments, name)
+		Closure __init__ ( self,  arguments, name)
 	@end
 	
 @end
@@ -392,7 +419,7 @@
 
 	@constructor arguments
 		#REWRITE: super(arguments, Constants Constructor)
-		Method __init__  arguments, Constants Constructor)
+		Method __init__ ( self, Constants Constructor, arguments)
 	@end
 @end
 
@@ -400,7 +427,7 @@
 
 	@constructor
 		#REWRITE: super([], Constants Destructor)
-		Method __init__  [], Constants Destructor)
+		Method __init__ ( self, Constants Destructor,  [] )
 	@end
 
 @end
@@ -424,8 +451,8 @@
 	@property opArguments:<[IElement]> = []
 	
 	@constructor arguments...
-		Element __init__ )
-		self.setOpArguments(arguments)
+		Element __init__ ( self )
+		self setOpArguments(arguments)
 	@end
 
 	@method setOpArguments arguments
@@ -433,7 +460,9 @@
 		#	raise ModelException("Too many arguments: %s expected %s, got %s" \
 		#	%  len.ARGS), len(arguments)))
 		opArguments = []
-		map addOpArgument, arguments )
+		for a in arguments
+			addOpArgument(a)
+		end
 	@end
 
 	@method setOpArgument i, argument
@@ -471,7 +500,7 @@
 	@method asList
 		var args = []
 		for a in opArguments
-			if not type(a) in (tuple,list)
+			if not type(a) in [tuple,list]
 				if a
 					args append (a asList())
 				else
@@ -481,7 +510,7 @@
 				args append(a)
 			end
 		end
-		return [self __class__ __name__, tuple(args)]
+		return tuple([self __class__ __name__, tuple(args)])
 	@end
 @end
 
@@ -550,11 +579,11 @@
 	@end
 
 	@method getRules
-		if opArguments:
-			return self.getOpArgument(0)
-		else:
+		if opArguments
+			return self getOpArgument(0)
+		else
 			return []
-
+		end
 	@end
 @end
 
@@ -599,7 +628,7 @@
 @class Interception: Operation, IInterception
 
 	@constructor tryProcess, catchProcess=None, finallyProcess=None
-		Operation.__init__( self,  tryProcess, catchProcess, finallyProcess )
+		Operation __init__( self,  tryProcess, catchProcess, finallyProcess )
 	@end
 @end
 
@@ -639,6 +668,7 @@
 	@method setCode code
 		self code = code
 	@end
+@end
 
 @class EmbedTemplate: Embed, IEmbedTemplate
 @end
@@ -699,7 +729,7 @@
 	@property items:<[(IElement,IElement)]> = []
 	
 	@constructor
-		Value.__init__(self)
+		Value __init__(self)
 	@end
 	
 	@method setValue key:IElement, value:IElement
@@ -722,10 +752,11 @@
 	@end
 	
 	@method getReferenceName
-		return self._refname
-
+		return self referenceName
+	@end
+	
 	@method asList
-		return [self __class__ __name__, referenceName]
+		return tuple([self __class__ __name__, referenceName])
 	@end
 	
 @end
@@ -746,6 +777,7 @@
 	@method setPriority priority
 		self priority = priority
 	@end
+	
 @end
 
 @class Slot: Reference, ISlot
@@ -754,7 +786,7 @@
 	@property typeDescription = Undefined
 	
 	@constructor name, typeDescription
-		Reference.__init__ ( self, name )
+		Reference __init__ ( self, name )
 		self typeDescription = typeDescription
 	@end
 
