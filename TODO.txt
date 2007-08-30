@@ -5,6 +5,60 @@ Design
    own dataflow (blocks, functions, classes, modules) or a dataflow inherited
    from a parent (computation, assignation, etc)
 
+Core modules:
+=============
+
+	Core functions/predicates
+
+		- like
+		- isa
+		- isinstance
+		 
+	Conversion:
+
+		- describe
+		- string
+		- list
+		- tuple
+	
+	Manipulation/Introspection:
+
+		- getSlot
+		- hasSlot
+		- setSlot
+		- keysOf
+		- slotsOf
+		- methodsOf
+		- propertiesOf
+		- operationsOf
+		- sharedOf
+		- classOf
+		- typeOf
+	
+	Functional arithmetic operators:
+
+		- add
+		- mul
+		- div
+		- mod
+		- sub
+		- ceil
+		- floor
+		- round
+		- random
+		- sin
+		- cos
+		- PI
+	
+	Functional programming:
+
+		- car
+		- cdr
+		- map
+		- filter
+		- reduce
+		- fold
+
 Checks
 ======
 

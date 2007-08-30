@@ -69,7 +69,7 @@
 @protocol IDataFlow
 | The DataFlow are ''dynamic contexts'' bound to the various program model
 | elements. DataFlows are typically owned by elements which implement
-| 'IContext', and are linked together by rules @methodined in the 'Resolver'
+| 'IContext', and are linked together by rules defined in the 'Resolver'
 | @protocol.
 |
 | The dataflow bound to most expressions is the one of the enclosing closure
@@ -268,6 +268,11 @@
 @protocol ILiteral: IValue
 | A literal is a value that does not need a context to be evaluated. The
 | evaluation is direct.
+	
+		
+	@abstract @method getActualValue
+	| Returns the (implementation language) value for this literal
+
 @end
 
 @protocol INumber: ILiteral
@@ -321,7 +326,7 @@
 @protocol ISlot: IReference
 | An argument is a reference with additional type information.
 
-	@abstract @method getTypeInformation
+	@abstract @method getTypeDescription
 	|	Returns type information (constraints) that are associated to this
 	|	argument.
 
@@ -330,7 +335,7 @@
 @protocol IArgument: ISlot
 |	Arguments are slots which can be interpreted in different ways.
 |	
-|	When an argument is _optional_, it does not need to be @methodined in the
+|	When an argument is _optional_, it does not need to be defined in the
 |	invocation. When an argument is _variable_, it means it references the
 |	rest of the arguments lists. When an argument is _keywords_, it will reference
 |	the named arguments of the rest of the arguments list.
@@ -409,35 +414,38 @@
 
 @protocol IClass: IContext, IReferencable
 
+	@abstract @method setParentClasses:<[IClass]>
+	|	gives the list of parent classes that will
+		
 	@abstract @method getAttributes
-	|	Returns the (non-@protocol) attributes @methodined within this @protocol.
+	|	Returns the (non-class) attributes defined within this class.
 	
 	@abstract @method getClassAttributes 
-	|	Returns the @protocol attributes @methodined within this @protocol.
+	|	Returns the class attributes defined within this class.
 	
 	@abstract @method getOperations 
-	|	Returns the operations (methods and @protocol methods) @methodined within this @protocol.
+	|	Returns the operations (methods and class methods) defined within this class.
 	
 	@abstract @method getMethods 
-	|	Returns the methods @methodined within this @protocol.
+	|	Returns the methods defined within this class.
 	
 	@abstract @method getConstructors
-	|	Returns the constructors for this @protocol
+	|	Returns the constructors for this class
 	
 	@abstract @method getDestructors
-	|	Returns the destructors for this @protocol
+	|	Returns the destructors for this class
 	
 	@abstract @method getInstanceMethods 
-	|	Returns the instance methods @methodined within this @protocol.
+	|	Returns the instance methods defined within this class.
 	
 	@abstract @method getClassMethods 
-	|	Returns the @protocol method @methodined within this @protocol.
+	|	Returns the class method defined within this class.
 
 	@abstract @method getName 
-	|	Returns this @protocol name. It can be `None` if the @protocol is anonymous.
+	|	Returns this class name. It can be `None` if the class is anonymous.
 
 	@abstract @method getSuperClasses 
-	|	Returns the list of inherited @protocoles references.
+	|	Returns the list of inherited classes references.
 
 @end
 
@@ -452,6 +460,8 @@
 @protocol IModule: IContext
 
 	@abstract @method getClasses
+	| Returns the list of classes defined in this module. This is mainly a
+	| convenience function.
 
 @end
 
@@ -466,9 +476,6 @@
 
 	@abstract @method addOperation operation 
 	|	Adds the given operation as a child of this process.
-
-	@abstract @method addOperations operations... 
-	|	Adds the given operations as children of this process.
 
 	@abstract @method getOperations 
 	|	Returns the list of operations in this process.

@@ -180,9 +180,12 @@ class AbstractWriter:
 		for ref in cur.getSuperClasses():
 			ref = ref.getReferenceName()
 			target, context = self.resolve(ref, cur.getDataFlow())
-			parent = target.value
-			assert parent
-			res.append(parent)
+			if target:
+				parent = target.value
+				assert parent
+				res.append(parent)
+			else:
+				sys.stderr.write("[!]Cannot resolve parent class: %s\n" % (ref))
 		return res
 
 	def getCurrentClassAncestors( self, theClass = None ):

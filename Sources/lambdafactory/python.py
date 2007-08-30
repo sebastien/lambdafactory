@@ -359,9 +359,10 @@ class Writer(AbstractWriter):
 		elif symbol_name == "super":
 			assert self.resolve("self"), "Super must be used inside method"
 			# FIXME: Should check that the element has a method in parent scope
-			return "super(self,%s)" % (
+			return "super(%s, self)" % (
 				self.getAbsoluteNameFromModule(self.getCurrentClass(), self.getCurrentModule())
 			)
+		
 		# If there is no scope, then the symmbol is undefined
 		if not scope:
 			if symbol_name == "print": return "print "

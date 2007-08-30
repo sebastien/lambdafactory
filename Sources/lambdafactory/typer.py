@@ -211,8 +211,9 @@ class Typer(object):
 				# slot type. It may be the initial value, or the result of the
 				# constraints.
 				# so: slot_value = slot.getType()
-				slot_value     = slot.getValue()
-				element.setResultAbstractType(slot_value.getAbstractType())
+				if slot:
+					slot_value     = slot.getValue()
+					element.setResultAbstractType(slot_value.getAbstractType())
 			else:
 				df_slot, context_value = dataflow.resolve(context.getReferenceName())
 				if not df_slot:
