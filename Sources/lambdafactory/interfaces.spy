@@ -52,6 +52,14 @@
 | as values (as in Python).
 @end
 
+@protocol ISyntactic
+
+	@abstract @method getOffset:Integer
+	@abstract @method getLine:Integer
+	@abstract @method getColumn:Integer
+
+@end
+
 #-----------------------------------------------------------------------------
 #
 #  Dataflow
@@ -836,7 +844,8 @@
 @class IRepetition: IOperation 
 |	A repetition is the repetitive execution of a process according to a
 |	predicate expression which can be modified by the process.
-|	@shared ARGS = [ IEvaluable, IProcess ]
+
+	@shared ARGS = [ IEvaluable, IProcess ]
 
 	@method getCondition 
 	|	Gets the expression that is the condition for this repetition.
@@ -937,6 +946,5 @@
 |	expressions. It's up to the model writer to know how to expand the template
 |	to convert it to the target language.
 @end
-
 
 # EOF

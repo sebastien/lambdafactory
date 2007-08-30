@@ -33,6 +33,17 @@ class IDocumentation(IAnnotation):
 	as values (as in Python)."""
 	pass
 
+class ISyntactic:
+	def getOffset(self):
+		pass
+	
+	def getLine(self):
+		pass
+	
+	def getColumn(self):
+		pass
+	
+
 class IDataFlow:
 	"""The DataFlow are ''dynamic contexts'' bound to the various program model
 	elements. DataFlows are typically owned by elements which implement
@@ -746,8 +757,8 @@ class IEnumeration(IOperation):
 
 class IRepetition(IOperation):
 	"""A repetition is the repetitive execution of a process according to a
-	predicate expression which can be modified by the process.
-	@shared ARGS = [ IEvaluable, IProcess ]"""
+	predicate expression which can be modified by the process."""
+	ARGS = [IEvaluable, IProcess]
 	"""Gets the expression that is the condition for this repetition."""
 	def getCondition(self):
 		return self.getOpArgument(0)

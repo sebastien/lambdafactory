@@ -154,6 +154,7 @@ class Writer(javascript.Writer):
 			"}"
 		]
 		# We collect class attributes
+		class_code.extend(map(self.write, classElement.getClassAttributes()))
 		class_code.extend(map(self.write, classElement.getAttributes()))
 		class_code.extend(map(self.write, classElement.getConstructors()))
 		# FIXME: What about destructors
@@ -177,11 +178,17 @@ class Writer(javascript.Writer):
 
 	def writeClassAttribute( self, element ):
 		"""Writes an argument element."""
+		res = ""
 		default_value = element.getDefaultValue()
+		fleximage_ann = element.getAnnotation("fleximage")
+		rest          = ""
+		the_type      = "*"
 		if default_value:
-			res = "public static var %s = %s" % (element.getReferenceName(), self.write(default_value))
-		else:
-			res = "public static var %s" % (element.getReferenceName())
+			rest = " = %s" % (self.write(default_value))
+		if fleximage_ann:
+			res +="[Embed(%s)]\n" % (fleximage_ann.getContent())
+			the_type = "Class"
+		res += "public static var %s:%s%s" % (element.getReferenceName(),the_type,rest)
 		return self._format(self._document(element), res)
 	
 	def writeConstructor( self, element ):
@@ -260,6 +267,19 @@ class Writer(javascript.Writer):
 			res.append("return result;")
 		return self._format(res)
 
+	def writeClosure( self, closure ):
+		"""Writes a closure element."""
+		arguments = ", ".join(map(self.write, closure.getArguments()))
+		if arguments: arguments += ","
+		arguments += " ... arguments"
+		return self._format(
+			self._document(closure),
+			"function(%s){" % ( arguments ),
+			self._writeClosureArguments(closure),
+			map(self.write, closure.getOperations()),
+			"}"
+		)
+		
 	def writeArgument( self, argElement ):
 		"""Writes an argument element."""
 		return "%s=undefined" % (
@@ -280,7 +300,13 @@ class Writer(javascript.Writer):
 	def writeReference( self, element ):
 		"""Writes an argument element."""
 		symbol_name  = element.getReferenceName()
-		value, scope = self.resolve(symbol_name)
+		# FIXME: Does resolve really always return a dataflow slot ?
+		value_slot, scope = self.resolve(symbol_name)
+		if value_slot: value = value_slot.getValue()
+		else: value = None
+		if symbol_name == "super":
+			assert self.resolve("self"), "Super must be used inside method"
+			return "super"
 		if scope and isinstance(scope, interfaces.IModule):
 			if not isinstance(value, interfaces.IClass):
 				names = [scope.getName(), "__module__", symbol_name]
@@ -289,6 +315,29 @@ class Writer(javascript.Writer):
 					if not isinstance(scope, interfaces.IProgram):
 						names.insert(0, scope.getName())
 						return ".".join(names)
+		if self.getCurrentClass() == scope:
+			# FIXME: This seems broken as resolve returns a dataflowslot
+			if isinstance(value, interfaces.IInstanceMethod):
+				# Here we need to wrap the method if they are given as values (
+				# that means used outside of direct invocations), because when
+				# giving a method as a callback, the 'this' pointer is not carried.
+				if self.inInvocation:
+					return "__this__.%s" % (symbol_name)
+				else:
+					return "__this__.getMethod('%s') " % (symbol_name)
+			elif isinstance(value, interfaces.IClassMethod):
+				if self.isInInstanceMethod():
+					return "%s.%s" % (self.getCurrentClass().getName(), symbol_name)
+				else:
+					return "__this__.%s" % (symbol_name)
+			elif isinstance(value, interfaces.IClassAttribute):
+				if self.isInClassMethod():
+					return "__this__.%s" % (symbol_name)
+				else:
+					return "%s.%s" % (self.getCurrentClass().getName(), symbol_name)
+			else:
+				# It's a probably a None value (it's not resolved :/)
+				return symbol_name
 		return javascript.Writer.writeReference(self, element)
 
 	def _document( self, element ):
@@ -300,6 +349,5 @@ class Writer(javascript.Writer):
 			return "/** %s\n*/" % ("\n  * ".join(res))
 		else:
 			return None
-
 
 # EOF

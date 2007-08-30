@@ -107,7 +107,8 @@ def typeForValue( value, noneIs=Nothing ):
 	elif isinstance(value, interfaces.INumber):
 		res = Any
 	if res is None:
-		raise Exception("No abstract type for Python value: %s" % (value))
+		return
+		#raise Exception("No abstract type for Python value: %s" % (value))
 	# When the type is a context, we populate its slots
 	if isinstance(value, interfaces.IClosure):
 		# We add the arguments

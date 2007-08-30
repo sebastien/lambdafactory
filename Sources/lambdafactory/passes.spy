@@ -1,25 +1,16 @@
 @import reporter
 @import interfaces
 
-@class Pass
-
+@class PassContext
+    
 	@property context  = []
 	@property reporter = None
-	@property isWalking = False
-	
-	@property matches  = []
-	
+
+    # REWRITE: @constructor reporter=reporter.DefaultReporter
 	@constructor reporter=(reporter DefaultReporter)
 		
 	@end
-	
-	@method walk element
-		# Is the element a Context ? -> walk slots
-		# Is the element a Process ? -> walk operations
-		# Is the element matched -> walk it
-		# TODO: assert not isWalking
-		print element
-	@end
+
 	
 	@group ContextAccessors
 	
@@ -91,6 +82,40 @@
 			end
 			return contextOrDataFlow resolve (referenceOrName)
 		@end
+	@end
+@end
+
+@class Pass
+
+	@property isWalking = False
+	
+	@property matches  = []
+	
+	@method walk element
+		# Is the element a Context ? -> walk slots
+		if isinstance(element, interfaces IContext)
+		end
+		# Is the element a Process ? -> walk operations
+		if isintance(element, interfaces IProcess)
+		end
+		# Is the element matched -> walk it
+		# TODO: assert not isWalking
+		print element
+	@end
+	
+	@method isHandled element:IElement
+	| Tells if the pass handles the given element. This basically iterates
+	| on the 'handles' property values (which are interfaces), when one
+	| interface matches the given 'element', then the corresponding 'doXXX'
+	| method is invoked, where 'XXX' is the interface
+	| name (without the leading 'I').
+		for interface in handles
+			# REWRITE: element is an interface
+			if isinstance(element, interface)
+				# REWRITE return self `(interface getClass() getName())
+				return getattr(self, interface __class__ __name__ [1:])
+			end
+		end
 	@end
 	
 @end
