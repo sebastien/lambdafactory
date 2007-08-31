@@ -291,7 +291,7 @@ class IOperator(IReference):
 		raise Exception("Abstract method IOperator.getPriority not implemented")
 	
 
-class ISlot(IReference):
+class ISlot(IReferencable, IAssignable):
 	"""An argument is a reference with additional type information."""
 	def getTypeDescription(self):
 		"""Returns type information (constraints) that are associated to this
@@ -340,6 +340,7 @@ class IArgument(ISlot):
 	
 
 class IAttribute(ISlot):
+
 	def setDefaultValue(self):
 		"""Sets the @methodault value for this attribute"""
 		raise Exception("Abstract method IAttribute.setDefaultValue not implemented")
@@ -838,11 +839,11 @@ class IEmbed(IOperation):
 	
 	def getCode(self):
 		"""Returns the embedded code string."""
-		raise Exception("Abstract method IEmbed.getCodeString not implemented")
+		raise Exception("Abstract method IEmbed.getCode not implemented")
 	
 	def setCode(self, code):
 		"""Sets the code of this embed operation."""
-		raise Exception("Abstract method IEmbed.setCodeString not implemented")
+		raise Exception("Abstract method IEmbed.setCode not implemented")
 	
 
 class IEmbedTemplate(IEmbed):

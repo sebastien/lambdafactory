@@ -221,7 +221,7 @@ class Writer(AbstractWriter):
 		attributes    = []
 		for a in current_class.getAttributes():
 			if not a.getDefaultValue(): continue
-			attributes.append("self.%s = %s" % (a.getReferenceName(), self.write(a.getDefaultValue())))
+			attributes.append("self.%s = %s" % (a.getName(), self.write(a.getDefaultValue())))
 		if not attributes: return None
 		else: return self._format(attributes)
 
@@ -231,7 +231,7 @@ class Writer(AbstractWriter):
 		result = []
 		for argument in function.getArguments():
 			if not (argument.getDefaultValue() is None):
-				a = argument.getReferenceName()
+				a = argument.getName()
 				result.append("if %s is None: %s = %s" % (
 					a,
 					a,
@@ -322,9 +322,9 @@ class Writer(AbstractWriter):
 		"""Writes an argument element."""
 		default = argElement.getDefaultValue()
 		if default is None:
-		 	res = "%s" % (argElement.getReferenceName())
+		 	res = "%s" % (argElement.getName())
 		else:
-			res = "%s=None" % (argElement.getReferenceName())
+			res = "%s=None" % (argElement.getName())
 		if argElement.isRest(): res = "*" + res
 		return res
 
@@ -335,16 +335,16 @@ class Writer(AbstractWriter):
 		else: default_value="None"
 		return self._format(
 			self._document(element),
-			"%s = %s" % (element.getReferenceName(), default_value)
+			"%s = %s" % (element.getName(), default_value)
 		)
 
 	def writeClassAttribute( self, element ):
 		"""Writes an argument element."""
 		default_value = element.getDefaultValue()
 		if default_value:
-			res = "%s = %s" % (element.getReferenceName(), self.write(default_value))
+			res = "%s = %s" % (element.getName(), self.write(default_value))
 		else:
-			res = "%s = None" % (element.getReferenceName())
+			res = "%s = None" % (element.getName())
 		return self._format(self._document(element), res)
 
 	def writeModuleAttribute( self, element ):
@@ -354,7 +354,7 @@ class Writer(AbstractWriter):
 		else: default_value = 'None'
 		return self._format(
 			self._document(element),
-			"%s = %s" % (element.getReferenceName(), default_value)
+			"%s = %s" % (element.getName(), default_value)
 		)
 
 	def writeReference( self, element ):
@@ -493,9 +493,9 @@ class Writer(AbstractWriter):
 		s = allocation.getSlotToAllocate()
 		v = allocation.getDefaultValue()
 		if v:
-			return "%s=%s" % (s.getReferenceName(), self.write(v))
+			return "%s=%s" % (s.getName(), self.write(v))
 		else:
-			return "%s" % (s.getReferenceName())
+			return "%s" % (s.getName())
 
 	def writeAssignation( self, assignation ):
 		"""Writes an assignation operation."""
@@ -578,7 +578,7 @@ class Writer(AbstractWriter):
 	RE_TEMPLATE = re.compile("\$\{[^\}]+\}")
 	def _rewriteInvocation(self, invocation, closure, template):
 		arguments = tuple([self.write(a) for a in invocation.getArguments()])
-		parameters = tuple([a.getReferenceName() for a  in closure.getArguments()])
+		parameters = tuple([a.getName() for a  in closure.getArguments()])
 		args = {}
 		for i in range(len(arguments)):
 			args[parameters[i]] = arguments[i]

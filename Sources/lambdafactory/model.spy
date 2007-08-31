@@ -49,7 +49,12 @@
 	@end
 	
 	@method getName
+		assert (isinstance(self,IReferencable) or isinstance(self,IAnnotation))
 		return self name
+	@end
+
+	@method hasName
+		return isinstance(self,IReferencable) or isinstance(self,IAnnotation)
 	@end
 	
 	@method setSource source
@@ -832,13 +837,13 @@
 	
 @end
 
-@class Slot: Reference, ISlot
+@class Slot:Element, ISlot
 
 	@property defaultValue:IElement = None
 	@property typeDescription = Undefined
 	
 	@constructor name, typeDescription
-		Reference __init__ ( self, name )
+		Element __init__ ( self, name )
 		self typeDescription = typeDescription
 	@end
 

@@ -33,7 +33,7 @@ class Catalog(object):
 		added_to_parents = False
 		if not isinstance(dataflow.element, interfaces.IProgram):
 			# Closures don't have a name
-			if hasattr(dataflow.element, "getName"):
+			if dataflow.element.hasName():
 				name = dataflow.element.getName()
 				if name:
 					self.parents.append(name)

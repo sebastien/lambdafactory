@@ -16,6 +16,18 @@
 from model import *
 import modeltypes as mt
 
+def assertImplements(v,i):
+	return True
+
+class ModelException(Exception):
+	pass
+
+class ModelBadArgument(Exception):
+	def __init__( self, someClass, expectedClass, argument ):
+		Exception.__init__(self, "Bad argument: %s expected %s, got %s" \
+		% (someClass, expectedClass, argument))
+
+
 
 # ------------------------------------------------------------------------------
 #

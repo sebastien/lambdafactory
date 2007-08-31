@@ -182,7 +182,9 @@
 		
 @end
 
-@protocol IReferencable
+# FIXME: Elements can be named (Function, Class, Slots), and then
+# references can reference these names (getReferenceName)
+@protocol IReferencable: IAssignable
 | A referencable is an element that can be referenced either by id (it is
 | unique and stable), or by a name (which is also not supposed to change).
 |
@@ -323,7 +325,7 @@
 	|	Gets the priority for this operator
 @end
 
-@protocol ISlot: IReference
+@protocol ISlot: IReferencable
 | An argument is a reference with additional type information.
 
 	@abstract @method getTypeDescription

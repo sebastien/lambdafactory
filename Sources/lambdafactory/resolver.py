@@ -24,6 +24,7 @@ import interfaces, reporter
 class DataFlowSlot:
 
 	def __init__(self, name, value, origin, type):
+		assert name
 		self.name = name
 		self.value = value
 		self.origin = origin
@@ -322,7 +323,7 @@ class AbstractResolver:
 		dataflow = DataFlow(element)
 		dataflow.declareEnvironment("target", None)
 		for arg in element.getArguments():
-			dataflow.declareArgument(arg.getReferenceName(), arg)
+			dataflow.declareArgument(arg.getName(), arg)
 		for op in element.getOperations():
 			flow = self._flow(op, dataflow)
 			if flow: flow.addParent(dataflow)
@@ -339,9 +340,7 @@ class AbstractResolver:
 		return dataflow
 
 	def flowAllocation( self, operation, dataflow ):
-		print "ALLOCATION", operation.getOpArguments()
-		print "--", operation.getSlotToAllocate()
-		name = operation.getSlotToAllocate().getReferenceName()
+		name = operation.getSlotToAllocate().getName()
 		dataflow.declareVariable(name, operation.getDefaultValue(), operation)
 		return None
 
@@ -427,7 +426,7 @@ class AbstractResolver:
 			if not to_resolve.getContext(): to_resolve = to_resolve.getReference()
 			else: to_resolve = to_resolve.getContext()
 		if isinstance(to_resolve, interfaces.IReference):
-			to_resolve = to_resolve.getName()
+			to_resolve = to_resolve.getReferenceName()
 		else:
 			raise Exception("Only references and resolution can be imported.")
 		resolve_slot, resolved = dataflow.resolve(to_resolve)

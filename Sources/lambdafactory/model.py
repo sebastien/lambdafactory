@@ -6,8 +6,8 @@ code using the different back-ends."""
 import sys
 __module__ = sys.modules[__name__]
 from interfaces import *
-import modeltypes
 import pprint
+import modeltypes
 __module_name__ = 'model'
 class Element:
 	"""The Element class is a generic class that implements many of the
@@ -30,21 +30,16 @@ class Element:
 		self.name = name
 		self.id = self.__class__.COUNT
 		self.__class__.COUNT = (self.__class__.COUNT + 1)
-		self._abstractType = None
-
-	def getAbstractType( self ):
-		if self._abstractType is None:
-			self._abstractType = modeltypes.typeForValue(self)
-		return self._abstractType 
 	
-	def setAbstractType( self, type ):
-		self._abstractType = type
-		
 	def setName(self, name):
 		self.name = name
 	
 	def getName(self):
+		assert((isinstance(self, IReferencable) or isinstance(self, IAnnotation)))
 		return self.name
+	
+	def hasName(self):
+		return (isinstance(self, IReferencable) or isinstance(self, IAnnotation))
 	
 	def setSource(self, source):
 		self.source = source
@@ -53,19 +48,20 @@ class Element:
 		return self.source
 	
 	def annotate(self, annotation):
-		self_1188570359_61100=self.annotations
-		self_1188570359_61100.append(annotation)
+		self_1188577636_2242=self.annotations
+		self_1188577636_2242.append(annotation)
 	
 	def getAnnotations(self, withName):
 		 return [a for a in self.annotations if a.getName() == withName]
 		
- 	def getAnnotation(self, withName):
-		annotations =   self.getAnnotations(withName)
+	
+	def getAnnotation(self, withName):
+		annotations=self.getAnnotations(withName)
 		if annotations:
 			return annotations[0]
-		else:
+		elif True:
 			return None
-
+	
 	def setDocumentation(self, documentation):
 		self.annotate(documentation)
 	
@@ -83,6 +79,14 @@ class Element:
 	
 	def ownsDataFlow(self):
 		raise "Not implemented"
+	
+	def getAbstractType(self):
+		if (self.abstractType == None):
+			self.abstractType = modeltypes.typeForValue(self)
+		return self.abstractType
+	
+	def setAbstractType(self, abstractType):
+		self.abstractType = abstractType
 	
 	def getResultAbstractType(self):
 		return self.resultAbtractType
@@ -143,20 +147,20 @@ class Context(Element):
 			raise ERR_SLOT_VALUE_NOT_ASSIGNABLE
 		if ((assignParent and isinstance(evaluable, IContext)) or hasattr(evaluable, "setParent")):
 			evaluable.setParent(self)
-		self_1188570359_6371=self.slots
-		self_1188570359_6371.append([name, evaluable])
+		self_1188577636_2491=self.slots
+		self_1188577636_2491.append([name, evaluable])
+	
+	def hasSlot(self, name):
+		for slot in self.slots:
+			if (slot[0] == name):
+				return True
+		return False
 	
 	def getSlot(self, name):
 		for slot in self.slots:
 			if (slot[0] == name):
 				return slot[1]
 		raise ERR_SLOT_NOT_FOUND
-
-	def hasSlot(self, name):
-		for slot in self.slots:
-			if (slot[0] == name):
-				return True
-		return False
 	
 	def getSlots(self):
 		return self.slots
@@ -184,8 +188,8 @@ class Class(Context, IClass, IReferencable, IAssignable):
 			value=slot[1]
 			if ((without == None) or (not isinstance(value, without))):
 				if isinstance(value, interface):
-					self_1188570359_6530=res
-					self_1188570359_6530.append(value)
+					self_1188577636_2668=res
+					self_1188577636_2668.append(value)
 		return res
 	
 	def getAttributes(self):
@@ -220,12 +224,12 @@ class Class(Context, IClass, IReferencable, IAssignable):
 		for the_class in classes:
 			if (not (isinstance(the_class, IReference) or isinstance(the_class, IResolution))):
 				raise ERR_PARENT_CLASS_REFERENCE_EXPECTED
-			self_1188570359_6644=self.parentClasses
-			self_1188570359_6644.append(the_class)
+			self_1188577636_27100=self.parentClasses
+			self_1188577636_27100.append(the_class)
 	
-	"""Returns the inherited class methods as a dict of lists. This operation
-	needs a resolver to resolve the classes from their references."""
 	def getInheritedClassMethods(self, resolver):
+		"""Returns the inherited class methods as a dict of lists. This operation
+		needs a resolver to resolve the classes from their references."""
 		res={}
 		for class_ref in getParentClasses():
 			parent_name=class_ref.getReferenceName()
@@ -242,9 +246,9 @@ class Class(Context, IClass, IReferencable, IAssignable):
 				meths.extend(name_and_method[1])
 		return res
 	
-	"""Returns the inherited class attributes as a dict of lists. This operation
-	needs a resolver to resolve the classes from their references."""
 	def getInheritedClassAttributes(self, resolver):
+		"""Returns the inherited class attributes as a dict of lists. This operation
+		needs a resolver to resolve the classes from their references."""
 		res={}
 		for class_ref in getParentClasses():
 			parent_name=class_ref.getReferenceName()
@@ -283,8 +287,8 @@ class Process(Context, IContext, IProcess, IAbstractable):
 	def addOperation(self, operation):
 		if self.isAbstract():
 			raise ERR_ABSTRACT_PROCESS_NO_OPERATIONS
-		self_1188570359_75=self.operations
-		self_1188570359_75.append(operation)
+		self_1188577636_382=self.operations
+		self_1188577636_382.append(operation)
 	
 	def getOperations(self):
 		return self.operations
@@ -292,8 +296,8 @@ class Process(Context, IContext, IProcess, IAbstractable):
 	def asList(self):
 		res=[]
 		for o in self.operations:
-			self_1188570359_7171=res
-			self_1188570359_7171.append(o.asList())
+			self_1188577636_338=res
+			self_1188577636_338.append(o.asList())
 		return tuple([self.__class__.__name__, tuple(self.operations)])
 	
 
@@ -365,13 +369,13 @@ class Operation(Element, IEvaluable, IOperation):
 	
 	def setOpArgument(self, i, argument):
 		while (len(self.opArguments) < i):
-			self_1188570359_7362=self.opArguments
-			self_1188570359_7362.append(None)
+			self_1188577636_3374=self.opArguments
+			self_1188577636_3374.append(None)
 		self.opArguments[i] = argument
 	
 	def addOpArgument(self, argument):
-		self_1188570359_7324=self.opArguments
-		self_1188570359_7324.append(argument)
+		self_1188577636_3333=self.opArguments
+		self_1188577636_3333.append(argument)
 	
 	def getOpArguments(self):
 		return self.opArguments
@@ -384,14 +388,14 @@ class Operation(Element, IEvaluable, IOperation):
 		for a in self.opArguments:
 			if (not (type(a) in [tuple, list])):
 				if a:
-					self_1188570359_7387=args
-					self_1188570359_7387.append(a.asList())
+					self_1188577636_3360=args
+					self_1188577636_3360.append(a.asList())
 				elif True:
-					self_1188570359_7317=args
-					self_1188570359_7317.append(a)
+					self_1188577636_3324=args
+					self_1188577636_3324.append(a)
 			elif True:
-				self_1188570359_7445=args
-				self_1188570359_7445.append(a)
+				self_1188577636_3489=args
+				self_1188577636_3489.append(a)
 		return tuple([self.__class__.__name__, tuple(args)])
 	
 
@@ -550,8 +554,8 @@ class List(Value, IList):
 		Value.__init__(self)
 	
 	def addValue(self, value):
-		self_1188570359_7831=self.values
-		self_1188570359_7831.append(value)
+		self_1188577636_386=self.values
+		self_1188577636_386.append(value)
 	
 	def getValues(self):
 		return self.values
@@ -566,8 +570,8 @@ class Dict(Value, IDict):
 		Value.__init__(self)
 	
 	def setValue(self, key, value):
-		self_1188570359_7913=self.items
-		self_1188570359_7913.append([key, value])
+		self_1188577636_3872=self.items
+		self_1188577636_3872.append([key, value])
 	
 	def getItems(self):
 		return self.items
@@ -598,11 +602,11 @@ class Operator(Reference, IOperator):
 		self.priority = priority
 	
 
-class Slot(Reference, ISlot):
+class Slot(Element, ISlot):
 	def __init__ (self, name, typeDescription):
 		self.defaultValue = None
 		self.typeDescription = None
-		Reference.__init__(self, name)
+		Element.__init__(self, name)
 		self.typeDescription = typeDescription
 	
 	def getTypeDescription(self):
