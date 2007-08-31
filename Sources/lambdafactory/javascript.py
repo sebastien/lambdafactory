@@ -253,13 +253,13 @@ class Writer(AbstractWriter):
 
 	def writeFunctionWhen(self, function ):
 		res = []
-		for a in function.annotations(withName="when"):
+		for a in function.getAnnotations(withName="when"):
 			res.append("if (!(%s)) {return}" % (self.write(a.getContent())))
 		return self._format(res) or None
 
 	def writeFunctionPost(self, function ):
 		res = []
-		for a in function.annotations(withName="post"):
+		for a in function.getAnnotations(withName="post"):
 			res.append("if (!(%s)) {throw new Exception('Assertion failed')}" % (self.write(a.getContent())))
 		return self._format(res) or None
 	
@@ -290,7 +290,7 @@ class Writer(AbstractWriter):
 				map(self.write, function.getOperations()),
 				"}"
 			]
-		if function.annotations(withName="post"):
+		if function.getAnnotations(withName="post"):
 			res[0] = "var __wrapped__ = " + res[0] + ";"
 			if parent and isinstance(parent, interfaces.IModule):
 				res.insert(0, 'var __this__=%s;' % (self.getAbsoluteName(parent)))
@@ -582,7 +582,7 @@ class Writer(AbstractWriter):
 		concrete_type = target_type.concreteType()
 		rewrite = self._closureIsRewrite(concrete_type)
 		if rewrite:
-			return self._rewriteInvocation(invocation, concrete_type, "\n".join([r.getCodeString() for r in rewrite]))
+			return self._rewriteInvocation(invocation, concrete_type, "\n".join([r.getCode() for r in rewrite]))
 		else:
 			self.inInvocation = False
 			return "%s(%s)" % (
@@ -760,7 +760,7 @@ class Writer(AbstractWriter):
 	def writeEmbed( self, embed ):
 		lang = embed.getLanguage().lower().strip()
 		assert lang in self.supportedEmbedLanguages
-		return embed.getCodeString()
+		return embed.getCode()
 	
 	def _document( self, element ):
 		if element.hasDocumentation():

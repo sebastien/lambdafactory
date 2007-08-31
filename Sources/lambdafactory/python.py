@@ -8,7 +8,7 @@
 # License   : Revised BSD License
 # -----------------------------------------------------------------------------
 # Creation  : 03-Aug-2007
-# Last mod  : 14-Aug-2007
+# Last mod  : 31-Aug-2007
 # -----------------------------------------------------------------------------
 
 # TODO: When constructor is empty, should assign default attributes anyway
@@ -165,15 +165,24 @@ class Writer(AbstractWriter):
 		method_name = methodElement.getName()
 		if method_name == interfaces.Constants.Constructor: method_name = "init"
 		if method_name == interfaces.Constants.Destructor:  method_name = "cleanup"
+		# TODO: If abstract, raise exception
+		default_body = ["pass"]
+		if methodElement.isAbstract():
+			default_body = [
+				'raise Exception("Abstract method %s.%s not implemented")' % (
+					self.getCurrentClass().getName(),
+					method_name
+				)
+			]
 		return self._format(
-			self._document(methodElement),
 			"def %s(%s):" % (
 				method_name,
 				self._writeMethodArguments(methodElement)
 			),
+			[self._document(methodElement)],
 			self._writeFunctionArgumentsInit(methodElement),
 			self.writeFunctionWhen(methodElement),
-			map(self.write, methodElement.getOperations()) or ["pass"],
+			map(self.write, methodElement.getOperations()) or default_body,
 			""
 		)
 
@@ -181,13 +190,21 @@ class Writer(AbstractWriter):
 		"""Writes a class method element."""
 		method_name = methodElement.getName()
 		args        = methodElement.getArguments()
+		default_body = ["pass"]
+		if methodElement.isAbstract():
+			default_body = [
+				'raise Exception("Abstract method %s.%s not implemented")' % (
+					self.getCurrentClass().getName(),
+					method_name
+				)
+			]
 		return self._format(
-			self._document(methodElement),
 			"@classmethod",
 			"def %s(%s):" % (method_name, self._writeMethodArguments(methodElement)),
+			[self._document(methodElement)],
 			self._writeFunctionArgumentsInit(methodElement),
 			self.writeFunctionWhen(methodElement),
-			map(self.write, methodElement.getOperations()) or ["pass"],
+			map(self.write, methodElement.getOperations()) or default_body,
 			""
 		)
 
@@ -248,13 +265,13 @@ class Writer(AbstractWriter):
 
 	def writeFunctionWhen(self, function ):
 		res = []
-		for a in function.annotations(withName="when"):
+		for a in function.getAnnotations("when"):
 			res.append("if (not(%s)): return" % (self.write(a.getContent())))
 		return self._format(res) or None
 
 	def writeFunctionPost(self, function ):
 		res = []
-		for a in function.annotations(withName="post"):
+		for a in function.getAnnotations("post"):
 			res.append("if (not (%s)): raise new Exception('Assertion failed')" % (self.write(a.getContent())))
 		return self._format(res) or None
 	
@@ -286,7 +303,7 @@ class Writer(AbstractWriter):
 				map(self.write, function.getOperations()),
 				"\n"
 			]
-		if function.annotations(withName="post"):
+		if function.getAnnotations("post"):
 			res[0] = "__wrapped__ = " + res[0] + ";"
 			if parent and isinstance(parent, interfaces.IModule):
 				res.insert(0, 'self=__module__' )
@@ -590,10 +607,13 @@ class Writer(AbstractWriter):
 		self.inInvocation = True
 		t = self.write(invocation.getTarget())
 		target_type = invocation.getTarget().getResultAbstractType()
-		concrete_type = target_type.concreteType()
-		rewrite = self._closureIsRewrite(concrete_type)
+		if target_type:
+			concrete_type = target_type.concreteType()
+			rewrite = self._closureIsRewrite(concrete_type)
+		else:
+			rewrite = None
 		if rewrite:
-			return self._rewriteInvocation(invocation, concrete_type, "\n".join([r.getCodeString() for r in rewrite]))
+			return self._rewriteInvocation(invocation, concrete_type, "\n".join([r.getCode() for r in rewrite]))
 		else:
 			self.inInvocation = False
 			return "%s(%s)" % (
@@ -751,10 +771,10 @@ class Writer(AbstractWriter):
 	def writeEmbed( self, embed ):
 		lang = embed.getLanguage().lower().strip()
 		assert lang in self.supportedEmbedLanguages
-		return embed.getCodeString()
+		return embed.getCode()
 	
 	def _document( self, element ):
-		if element.hasDocumentation():
+		if element.getDocumentation():
 			doc = element.getDocumentation()
 			return '"""%s"""' % (doc.getContent().replace('"""', '\\"\\"\\"'))
 		else:

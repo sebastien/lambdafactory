@@ -258,7 +258,7 @@ class Writer(javascript.Writer):
 			map(self.write, function.getOperations()),
 			"}"
 		]
-		if function.annotations(withName="post"):
+		if function.getAnnotations("post"):
 			res[0] = "var __wrapped__ = " + res[0] + ";"
 			if parent and isinstance(parent, interfaces.IModule):
 				res.insert(0, 'var __this__=%s;' % (self.getAbsoluteName(parent)))

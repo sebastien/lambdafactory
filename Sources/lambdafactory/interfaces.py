@@ -14,13 +14,13 @@ class Constants:
 class IAnnotation:
 	"""An annotation is some information that is not used for the actual
 	program, but annotates/gives meta-information about is elements."""
-	"""Returns the content of this annotation."""
 	def getContent(self):
-		pass
+		"""Returns the content of this annotation."""
+		raise Exception("Abstract method IAnnotation.getContent not implemented")
 	
-	"""Returns the name of this annotation."""
 	def getName(self):
-		pass
+		"""Returns the name of this annotation."""
+		raise Exception("Abstract method IAnnotation.getName not implemented")
 	
 
 class IComment(IAnnotation):
@@ -35,19 +35,19 @@ class IDocumentation(IAnnotation):
 
 class ISyntactic:
 	def getOffset(self):
-		pass
+		raise Exception("Abstract method ISyntactic.getOffset not implemented")
 	
 	def getLine(self):
-		pass
+		raise Exception("Abstract method ISyntactic.getLine not implemented")
 	
 	def getColumn(self):
-		pass
+		raise Exception("Abstract method ISyntactic.getColumn not implemented")
 	
 
 class IDataFlow:
 	"""The DataFlow are ''dynamic contexts'' bound to the various program model
 	elements. DataFlows are typically owned by elements which implement
-	'IContext', and are linked together by rules @methodined in the 'Resolver'
+	'IContext', and are linked together by rules defined in the 'Resolver'
 	@protocol.
 	
 	The dataflow bound to most expressions is the one of the enclosing closure
@@ -58,80 +58,80 @@ class IDataFlow:
 	same: contexts are elements that keep track of declared slots, while the
 	dataflow make use of the context to weave the elements togeher."""
 	def declareArgument(self, name, value):
-		pass
+		raise Exception("Abstract method IDataFlow.declareArgument not implemented")
 	
-	"""Declares an environment variable with the given name, value
-	and origin."""
 	def declareEnvironment(self, name, value):
-		pass
+		"""Declares an environment variable with the given name, value
+		and origin."""
+		raise Exception("Abstract method IDataFlow.declareEnvironment not implemented")
 	
-	"""Declares a (local) variable with the given name, value and
-	origin"""
 	def declareVariable(self, name, value, origin=None):
+		"""Declares a (local) variable with the given name, value and
+		origin"""
 		if origin is None: origin = None
-		pass
+		raise Exception("Abstract method IDataFlow.declareVariable not implemented")
 	
-	"""Returns the lsit of slots @methodiend for this dataflow."""
 	def getSlots(self):
-		pass
+		"""Returns the lsit of slots @methodiend for this dataflow."""
+		raise Exception("Abstract method IDataFlow.getSlots not implemented")
 	
-	"""Tells if this dataflow @methodines a slot with the given name."""
 	def hasSlot(self, name):
-		pass
+		"""Tells if this dataflow @methodines a slot with the given name."""
+		raise Exception("Abstract method IDataFlow.hasSlot not implemented")
 	
-	"""Returns the list of parent dataflows for this dataflow."""
 	def getParents(self):
-		pass
+		"""Returns the list of parent dataflows for this dataflow."""
+		raise Exception("Abstract method IDataFlow.getParents not implemented")
 	
-	"""Add the given dataflow as a parent of this dataflow."""
 	def addParent(self, parent):
-		pass
+		"""Add the given dataflow as a parent of this dataflow."""
+		raise Exception("Abstract method IDataFlow.addParent not implemented")
 	
-	"""Adds the given dataflow as a child of this dataflow."""
 	def addChild(self, child):
-		pass
+		"""Adds the given dataflow as a child of this dataflow."""
+		raise Exception("Abstract method IDataFlow.addChild not implemented")
 	
-	"""Returns a list of the child dataflows for this dataflow."""
 	def getChildren(self):
-		pass
+		"""Returns a list of the child dataflows for this dataflow."""
+		raise Exception("Abstract method IDataFlow.getChildren not implemented")
 	
-	"""Returns a couple '(DataFlow slot, IElement)' or '(None,None)'
-	corresponding to the resolution of the given 'name' in this dataflow."""
 	def resolve(self, name):
-		pass
+		"""Returns a couple '(DataFlow slot, IElement)' or '(None,None)'
+		corresponding to the resolution of the given 'name' in this dataflow."""
+		raise Exception("Abstract method IDataFlow.resolve not implemented")
 	
-	"""Tells if this dataflow, or any of its child dataflows defines
-	the given name (symbol)"""
 	def defines(self, name):
-		pass
+		"""Tells if this dataflow, or any of its child dataflows defines
+		the given name (symbol)"""
+		raise Exception("Abstract method IDataFlow.defines not implemented")
 	
-	"""Returns the slot with the given name, if any."""
 	def getSlot(self, name):
-		pass
+		"""Returns the slot with the given name, if any."""
+		raise Exception("Abstract method IDataFlow.getSlot not implemented")
 	
 
 class IDataFlowSlot:
 	def addOperation(self):
-		pass
+		raise Exception("Abstract method IDataFlowSlot.addOperation not implemented")
 	
-	"""Returns the (ordered) list of operations that affected the slot.
-	Operations usually constrain the dataflow abstract type, and
-	exception/warnings/errors may be raised by the type system
-	when a type constraint fails."""
 	def getOperations(self):
-		pass
+		"""Returns the (ordered) list of operations that affected the slot.
+		Operations usually constrain the dataflow abstract type, and
+		exception/warnings/errors may be raised by the type system
+		when a type constraint fails."""
+		raise Exception("Abstract method IDataFlowSlot.getOperations not implemented")
 	
 	def getOrigin(self):
-		pass
+		raise Exception("Abstract method IDataFlowSlot.getOrigin not implemented")
 	
 	def getOriginalValue(self):
-		pass
+		raise Exception("Abstract method IDataFlowSlot.getOriginalValue not implemented")
 	
 	def getName(self):
-		pass
+		raise Exception("Abstract method IDataFlowSlot.getName not implemented")
 	
 	def getAbstractType(self):
-		pass
+		raise Exception("Abstract method IDataFlowSlot.getAbstractType not implemented")
 	
 
 class IDataFlowOwner:
@@ -141,25 +141,25 @@ class IDataFlowOwner:
 
 class IElement:
 	"""The core @protocol for every element."""
-	"""Returns the abstract type for this element"""
 	def getAbstractType(self):
-		pass
+		"""Returns the abstract type for this element"""
+		raise Exception("Abstract method IElement.getAbstractType not implemented")
 	
-	"""Sets the abstract type for this element"""
 	def setAbstractType(self, type):
-		pass
+		"""Sets the abstract type for this element"""
+		raise Exception("Abstract method IElement.setAbstractType not implemented")
 	
-	"""Returns the dataflow accessible/bound to this element"""
 	def getDataFlow(self):
-		pass
+		"""Returns the dataflow accessible/bound to this element"""
+		raise Exception("Abstract method IElement.getDataFlow not implemented")
 	
-	"""Gets the annotation with the given name associated to this element"""
 	def getAnnotation(self, name):
-		pass
+		"""Gets the annotation with the given name associated to this element"""
+		raise Exception("Abstract method IElement.getAnnotation not implemented")
 	
-	"""Sets the annotation with the given name to this element"""
 	def setAnnotation(self, name, annotation):
-		pass
+		"""Sets the annotation with the given name to this element"""
+		raise Exception("Abstract method IElement.setAnnotation not implemented")
 	
 
 class IReferencable:
@@ -169,13 +169,13 @@ class IReferencable:
 	Types are good examples of referencables: they have an *absolute name* (like
 	`Data.List`), but can also be bound to slots within contexts which give them
 	"local names" (like `List := Data.List`)"""
-	"""Returns the local name for this referencable element"""
 	def getName(self):
-		pass
+		"""Returns the local name for this referencable element"""
+		raise Exception("Abstract method IReferencable.getName not implemented")
 	
-	"""Returns the absolute name for this element"""
 	def getAbsoluteName(self):
-		pass
+		"""Returns the absolute name for this element"""
+		raise Exception("Abstract method IReferencable.getAbsoluteName not implemented")
 	
 
 class IAssignable:
@@ -191,15 +191,15 @@ class IAssignable:
 class IEvaluable:
 	"""An evaluable is an element that can produce a value. Evaluable elements
 	then have associated type information."""
-	"""Returns the abstract type of the result of the evaluation of this
-	evaluable"""
 	def getResultAbstractType(self):
-		pass
+		"""Returns the abstract type of the result of the evaluation of this
+		evaluable"""
+		raise Exception("Abstract method IEvaluable.getResultAbstractType not implemented")
 	
-	"""Sets the abstract type for this operation result. This is usually
-	invoked in the typing phase."""
-	def setResultAbstractType(self):
-		pass
+	def setResultAbstractType(self, abstractType):
+		"""Sets the abstract type for this operation result. This is usually
+		invoked in the typing phase."""
+		raise Exception("Abstract method IEvaluable.setResultAbstractType not implemented")
 	
 
 class IInstanciable:
@@ -210,23 +210,23 @@ class IInstanciable:
 
 class IInvocable:
 	"""An invocable can be used in an invocation operation."""
-	"""Returns a list of arguments (which are names associated with optional
-	type information."""
 	def getArguments(self):
-		pass
+		"""Returns a list of arguments (which are names associated with optional
+		type information."""
+		raise Exception("Abstract method IInvocable.getArguments not implemented")
 	
 
 class IAbstractable:
 	"""An abstractable element is an element that is allow to have
 	no underlying implementation.  Abstract element are typically interfaces,
 	methods, functions, operations, and sometimes modules and @protocoles."""
-	"""Tells wether the given abstractable is abstract or not."""
 	def isAbstract(self):
-		pass
+		"""Tells wether the given abstractable is abstract or not."""
+		raise Exception("Abstract method IAbstractable.isAbstract not implemented")
 	
-	"""Sets wether the given abstractable is abstract or not."""
 	def setAbstract(self, isAbstract):
-		pass
+		"""Sets wether the given abstractable is abstract or not."""
+		raise Exception("Abstract method IAbstractable.setAbstract not implemented")
 	
 
 class IValue(IElement, IEvaluable):
@@ -238,7 +238,10 @@ class IValue(IElement, IEvaluable):
 class ILiteral(IValue):
 	"""A literal is a value that does not need a context to be evaluated. The
 	evaluation is direct."""
-	pass
+	def getActualValue(self):
+		"""Returns the (implementation language) value for this literal"""
+		raise Exception("Abstract method ILiteral.getActualValue not implemented")
+	
 
 class INumber(ILiteral):
 	pass
@@ -247,103 +250,103 @@ class IString(ILiteral):
 	pass
 
 class IList(IValue):
-	"""Adds a value to this list."""
 	def addValue(self, value):
-		pass
+		"""Adds a value to this list."""
+		raise Exception("Abstract method IList.addValue not implemented")
 	
-	"""Returns the values within this list."""
 	def getValues(self):
-		pass
+		"""Returns the values within this list."""
+		raise Exception("Abstract method IList.getValues not implemented")
 	
 
 class IDict(IValue):
 	"""A dictionary is a binding of key to values. It may or may not be ordered,
 	depending on the implementation/model semantics."""
-	"""Sets the value to be associated to the given key (which must be an
-	evaluable)."""
 	def setValue(self, key, value):
-		pass
+		"""Sets the value to be associated to the given key (which must be an
+		evaluable)."""
+		raise Exception("Abstract method IDict.setValue not implemented")
 	
-	"""Returns the items contained in this dict"""
 	def getItems(self):
-		pass
+		"""Returns the items contained in this dict"""
+		raise Exception("Abstract method IDict.getItems not implemented")
 	
 
 class IReference(IValue, IReferencable):
 	"""A reference is a name that can be converted into a value using a
 	resolution operation (for instance)."""
-	"""Returns the name which this reference contains. The name is used by
-	the resolution operation to actually resolve a value from the name."""
 	def getReferenceName(self):
-		pass
+		"""Returns the name which this reference contains. The name is used by
+		the resolution operation to actually resolve a value from the name."""
+		raise Exception("Abstract method IReference.getReferenceName not implemented")
 	
 
 class IOperator(IReference):
-	"""Sets the priority for this operator"""
 	def setPriority(self, priority):
-		pass
+		"""Sets the priority for this operator"""
+		raise Exception("Abstract method IOperator.setPriority not implemented")
 	
-	"""Gets the priority for this operator"""
 	def getPriority(self):
-		pass
+		"""Gets the priority for this operator"""
+		raise Exception("Abstract method IOperator.getPriority not implemented")
 	
 
 class ISlot(IReference):
 	"""An argument is a reference with additional type information."""
-	"""Returns type information (constraints) that are associated to this
-	argument."""
-	def getTypeInformation(self):
-		pass
+	def getTypeDescription(self):
+		"""Returns type information (constraints) that are associated to this
+		argument."""
+		raise Exception("Abstract method ISlot.getTypeDescription not implemented")
 	
 
 class IArgument(ISlot):
 	"""Arguments are slots which can be interpreted in different ways.
 	
-	When an argument is _optional_, it does not need to be @methodined in the
+	When an argument is _optional_, it does not need to be defined in the
 	invocation. When an argument is _variable_, it means it references the
 	rest of the arguments lists. When an argument is _keywords_, it will reference
 	the named arguments of the rest of the arguments list."""
-	"""Tells if the argument is optional or not."""
 	def isOptional(self):
-		pass
+		"""Tells if the argument is optional or not."""
+		raise Exception("Abstract method IArgument.isOptional not implemented")
 	
-	"""Sets this argument as optional or not."""
 	def setOptional(self, value):
-		pass
+		"""Sets this argument as optional or not."""
+		raise Exception("Abstract method IArgument.setOptional not implemented")
 	
-	"""Tells if the argument is variable or not."""
 	def isRest(self):
-		pass
+		"""Tells if the argument is variable or not."""
+		raise Exception("Abstract method IArgument.isRest not implemented")
 	
-	"""Sets this argument as variable or not."""
 	def setRest(self, value):
-		pass
+		"""Sets this argument as variable or not."""
+		raise Exception("Abstract method IArgument.setRest not implemented")
 	
-	"""Tells if the argument is keywords list or not."""
 	def isKeywords(self):
-		pass
+		"""Tells if the argument is keywords list or not."""
+		raise Exception("Abstract method IArgument.isKeywords not implemented")
 	
-	"""Sets this argument as keywords list  or not."""
 	def setKeywords(self, value):
-		pass
+		"""Sets this argument as keywords list  or not."""
+		raise Exception("Abstract method IArgument.setKeywords not implemented")
 	
-	"""Sets the @methodault value for this argument."""
 	def setDefaultValue(self, value):
-		pass
+		"""Sets the @methodault value for this argument."""
+		raise Exception("Abstract method IArgument.setDefaultValue not implemented")
 	
-	"""Returns the @methodault value for this slot."""
 	def getDefaultValue(self):
-		pass
+		"""Returns the @methodault value for this slot."""
+		raise Exception("Abstract method IArgument.getDefaultValue not implemented")
 	
 
 class IAttribute(ISlot):
-	"""Sets the @methodault value for this attribute"""
 	def setDefaultValue(self):
-		pass
+		"""Sets the @methodault value for this attribute"""
+		raise Exception("Abstract method IAttribute.setDefaultValue not implemented")
 	
-	"""Gets the @methodault value for this attribute"""
 	def getDefaultValue(self):
-		pass
+		"""Gets the @methodault value for this attribute"""
+		raise Exception("Abstract method IAttribute.getDefaultValue not implemented")
 	
 
 class IModuleAttribute(IAttribute):
@@ -355,72 +358,76 @@ class IClassAttribute(IAttribute):
 class IContext(IElement, IDataFlowOwner):
 	"""A context is an element that has slots, which bind evaluable elements
 	(aka values) to names."""
-	"""Binds the given evaluable to the named slot."""
 	def setSlot(self, name, evaluable):
-		pass
+		"""Binds the given evaluable to the named slot."""
+		raise Exception("Abstract method IContext.setSlot not implemented")
 	
-	"""Returns the given evaluable bound to named slot."""
 	def getSlot(self, name):
-		pass
+		"""Returns the given evaluable bound to named slot."""
+		raise Exception("Abstract method IContext.getSlot not implemented")
 	
-	"""Tells if the context has a slot with the given name."""
 	def hasSlot(self, name):
-		pass
+		"""Tells if the context has a slot with the given name."""
+		raise Exception("Abstract method IContext.hasSlot not implemented")
 	
-	"""Returns (key, evaluable) pairs representing the slots within this
-	context."""
 	def getSlots(self):
-		pass
+		"""Returns (key, evaluable) pairs representing the slots within this
+		context."""
+		raise Exception("Abstract method IContext.getSlots not implemented")
 	
-	"""Sets the parent context for this context."""
 	def setParent(self, context):
-		pass
+		"""Sets the parent context for this context."""
+		raise Exception("Abstract method IContext.setParent not implemented")
 	
-	"""Returns the parent context for this context (if any)"""
 	def getParent(self):
-		pass
+		"""Returns the parent context for this context (if any)"""
+		raise Exception("Abstract method IContext.getParent not implemented")
 	
 
 class IClass(IContext, IReferencable):
-	"""Returns the (non-@protocol) attributes @methodined within this @protocol."""
+	def setParentClasses(self):
+		"""gives the list of parent classes that will"""
+		raise Exception("Abstract method IClass.setParentClasses not implemented")
+	
 	def getAttributes(self):
-		pass
+		"""Returns the (non-class) attributes defined within this class."""
+		raise Exception("Abstract method IClass.getAttributes not implemented")
 	
-	"""Returns the @protocol attributes @methodined within this @protocol."""
 	def getClassAttributes(self):
-		pass
+		"""Returns the class attributes defined within this class."""
+		raise Exception("Abstract method IClass.getClassAttributes not implemented")
 	
-	"""Returns the operations (methods and @protocol methods) @methodined within this @protocol."""
 	def getOperations(self):
-		pass
+		"""Returns the operations (methods and class methods) defined within this class."""
+		raise Exception("Abstract method IClass.getOperations not implemented")
 	
-	"""Returns the methods @methodined within this @protocol."""
 	def getMethods(self):
-		pass
+		"""Returns the methods defined within this class."""
+		raise Exception("Abstract method IClass.getMethods not implemented")
 	
-	"""Returns the constructors for this @protocol"""
 	def getConstructors(self):
-		pass
+		"""Returns the constructors for this class"""
+		raise Exception("Abstract method IClass.getConstructors not implemented")
 	
-	"""Returns the destructors for this @protocol"""
 	def getDestructors(self):
-		pass
+		"""Returns the destructors for this class"""
+		raise Exception("Abstract method IClass.getDestructors not implemented")
 	
-	"""Returns the instance methods @methodined within this @protocol."""
 	def getInstanceMethods(self):
-		pass
+		"""Returns the instance methods defined within this class."""
+		raise Exception("Abstract method IClass.getInstanceMethods not implemented")
 	
-	"""Returns the @protocol method @methodined within this @protocol."""
 	def getClassMethods(self):
-		pass
+		"""Returns the class method defined within this class."""
+		raise Exception("Abstract method IClass.getClassMethods not implemented")
 	
-	"""Returns this @protocol name. It can be `None` if the @protocol is anonymous."""
 	def getName(self):
-		pass
+		"""Returns this class name. It can be `None` if the class is anonymous."""
+		raise Exception("Abstract method IClass.getName not implemented")
 	
-	"""Returns the list of inherited @protocoles references."""
 	def getSuperClasses(self):
-		pass
+		"""Returns the list of inherited classes references."""
+		raise Exception("Abstract method IClass.getSuperClasses not implemented")
 	
 
 class IAbstractClass(IClass, IAbstractable):
@@ -433,7 +440,9 @@ class IInterface(IAbstractClass):
 
 class IModule(IContext):
 	def getClasses(self):
-		pass
+		"""Returns the list of classes defined in this module. This is mainly a
+		convenience function."""
+		raise Exception("Abstract method IModule.getClasses not implemented")
 	
 
 class IProgram(IContext):
@@ -443,17 +452,13 @@ class IProgram(IContext):
 
 class IProcess:
 	"""A process is a sequence of operations."""
-	"""Adds the given operation as a child of this process."""
 	def addOperation(self, operation):
-		pass
+		"""Adds the given operation as a child of this process."""
+		raise Exception("Abstract method IProcess.addOperation not implemented")
 	
-	"""Adds the given operations as children of this process."""
-	def addOperations(self, operations):
-		pass
-	
-	"""Returns the list of operations in this process."""
 	def getOperations(self):
-		pass
+		"""Returns the list of operations in this process."""
+		raise Exception("Abstract method IProcess.getOperations not implemented")
 	
 
 class IGroup(IProcess):
@@ -471,27 +476,27 @@ class IBlock(IGroup):
 
 class IClosure(IProcess, IContext):
 	def getArguments(self):
-		pass
+		raise Exception("Abstract method IClosure.getArguments not implemented")
 	
 	def setArguments(self):
-		pass
+		raise Exception("Abstract method IClosure.setArguments not implemented")
 	
 
 class IFunction(IClosure, IReferencable, IAbstractable):
-	"""Returns this @protocol name. It can be `None` if the @protocol is anonymous."""
 	def getName(self):
-		pass
+		"""Returns this @protocol name. It can be `None` if the @protocol is anonymous."""
+		raise Exception("Abstract method IFunction.getName not implemented")
 	
-	"""Returns true if this function has an operation with a termination,
-	otherwise return false."""
 	def hasExplicitTermination(self):
-		pass
+		"""Returns true if this function has an operation with a termination,
+		otherwise return false."""
+		raise Exception("Abstract method IFunction.hasExplicitTermination not implemented")
 	
-	"""Returns true if this function ends with a termination operation. This
-	is especially useful for back-ends which want to know if they have to
-	insert an explicit 'return' at the end (like Java)."""
 	def endsWithTermination(self):
-		pass
+		"""Returns true if this function ends with a termination operation. This
+		is especially useful for back-ends which want to know if they have to
+		insert an explicit 'return' at the end (like Java)."""
+		raise Exception("Abstract method IFunction.endsWithTermination not implemented")
 	
 
 class IMethod(IFunction):
@@ -510,41 +515,41 @@ class IClassMethod(IMethod):
 	pass
 
 class IOperation(IElement):
-	"""Adds an argument to this operation. This should do checking of
-	arguments (by expected internal type and number)."""
 	def addOpArgument(self, argument):
-		pass
+		"""Adds an argument to this operation. This should do checking of
+		arguments (by expected internal type and number)."""
+		raise Exception("Abstract method IOperation.addOpArgument not implemented")
 	
-	"""Returns the arguments to this operation."""
 	def getOpArguments(self):
-		pass
+		"""Returns the arguments to this operation."""
+		raise Exception("Abstract method IOperation.getOpArguments not implemented")
 	
-	"""Returns the ith arguments to this operation."""
 	def getOpArgument(self, i):
-		pass
+		"""Returns the ith arguments to this operation."""
+		raise Exception("Abstract method IOperation.getOpArgument not implemented")
 	
-	"""Sets the given argument of this operation, by argument index."""
 	def setOpArgument(self, i, value):
-		pass
+		"""Sets the given argument of this operation, by argument index."""
+		raise Exception("Abstract method IOperation.setOpArgument not implemented")
 	
-	"""Returns the *internal types* for this operations arguments. This is
-	typically the list of interfaces or @protocols that the arguments must
-	comply to."""
 	def getOpArgumentsInternalTypes(self):
-		pass
+		"""Returns the *internal types* for this operations arguments. This is
+		typically the list of interfaces or @protocols that the arguments must
+		comply to."""
+		raise Exception("Abstract method IOperation.getOpArgumentsInternalTypes not implemented")
 	
 
 class IImportOperation(IOperation):
 	ARGS = [IEvaluable, IEvaluable]
 	ARG_NAMES = ["ImportedElement", "Alias"]
-	"""Returns a reference or a resolution that will allow to get the
-	imported element."""
 	def getImportedElement(self):
+		"""Returns a reference or a resolution that will allow to get the
+		imported element."""
 		return self.getOpArgument(0)
 	
-	"""Returns the (optional) alias which will allow to reference the
-	element."""
 	def getAlias(self):
+		"""Returns the (optional) alias which will allow to reference the
+		element."""
 		return self.getOpArgument(1)
 	
 
@@ -557,124 +562,124 @@ class IEvaluation(IOperation):
 
 class IAssignation(IOperation):
 	ARGS = [IEvaluable, IEvaluable]
-	"""Returns this assignation target reference, which can be an evaluable
-	(in case you assign to self.something, or a reference)"""
 	def getTarget(self):
-		pass
+		"""Returns this assignation target reference, which can be an evaluable
+		(in case you assign to self.something, or a reference)"""
+		raise Exception("Abstract method IAssignation.getTarget not implemented")
 	
-	"""Returns this assigned evaluable."""
 	def getAssignedValue(self):
-		pass
+		"""Returns this assigned evaluable."""
+		raise Exception("Abstract method IAssignation.getAssignedValue not implemented")
 	
 
 class IAllocation(IOperation):
 	ARGS = [ISlot, IEvaluable]
-	"""Returns slot to be allocated by this operation."""
 	def getSlotToAllocate(self):
-		pass
+		"""Returns slot to be allocated by this operation."""
+		raise Exception("Abstract method IAllocation.getSlotToAllocate not implemented")
 	
-	"""Returns the expression that assigns the @methodault value."""
 	def getDefaultValue(self):
-		pass
+		"""Returns the expression that assigns the @methodault value."""
+		raise Exception("Abstract method IAllocation.getDefaultValue not implemented")
 	
 
 class IResolution(IOperation):
 	"""A resolution resolves a reference into a value."""
 	ARGS = [IReferencable, IEvaluable]
-	"""Returns the reference to be resolved."""
 	def getReference(self):
-		pass
+		"""Returns the reference to be resolved."""
+		raise Exception("Abstract method IResolution.getReference not implemented")
 	
-	"""Returns the (optional) context in which the resolution should occur."""
 	def getContext(self):
-		pass
+		"""Returns the (optional) context in which the resolution should occur."""
+		raise Exception("Abstract method IResolution.getContext not implemented")
 	
 
 class IComputation(IOperation):
 	ARGS = [IOperator, IEvaluable, IEvaluable]
-	"""Gets the operator for this computation"""
 	def getOperator(self):
+		"""Gets the operator for this computation"""
 		return self.getOpArgument(0)
 	
-	"""Sets the operator for this computation"""
 	def setOperator(self, operator):
+		"""Sets the operator for this computation"""
 		return self.getOpArgument(0, operator)
 	
-	"""Returns the left operand of this computation."""
 	def getOperand(self):
+		"""Returns the left operand of this computation."""
 		return self.getLeftOperand()
 	
-	"""Returns the left (and right, if any) operands of this computation."""
 	def getOperands(self):
+		"""Returns the left (and right, if any) operands of this computation."""
 		return [self.getLeftOperand(), self.getRightOperand()]
 	
-	"""Returns the left operand of this computation."""
 	def getLeftOperand(self):
+		"""Returns the left operand of this computation."""
 		return self.getOpArgument(1)
 	
-	"""Returns the right operand of this computation (if any)"""
 	def getRightOperand(self):
+		"""Returns the right operand of this computation (if any)"""
 		return self.getOpArgument(2)
 	
-	"""Sets the left operand of this computation."""
 	def setLeftOperand(self, operand):
+		"""Sets the left operand of this computation."""
 		return self.setOpArgument(1, operand)
 	
-	"""Sets the right operand of this computation"""
 	def setRightOperand(self, operand):
+		"""Sets the right operand of this computation"""
 		return self.setOpArgument(2, operand)
 	
 
 class IInvocation(IOperation):
 	ARGS = [IEvaluable, [IEvaluable]]
-	"""Returns the invocation target reference."""
 	def getTarget(self):
+		"""Returns the invocation target reference."""
 		return self.getOpArgument(0)
 	
-	"""Returns evaluable arguments."""
 	def getArguments(self):
+		"""Returns evaluable arguments."""
 		return self.getOpArgument(1)
 	
 
 class IInstanciation(IOperation):
 	ARGS = [IEvaluable, [IEvaluable]]
-	"""Returns the instanciable used in this operation."""
 	def getInstanciable(self):
+		"""Returns the instanciable used in this operation."""
 		return self.getOpArgument(0)
 	
-	"""Returns evaluable arguments."""
 	def getArguments(self):
+		"""Returns evaluable arguments."""
 		return self.getOpArgument(1)
 	
 
 class ISubsetOperation(IOperation):
-	"""Returns the operation target."""
 	def getTarget(self):
+		"""Returns the operation target."""
 		return self.getOpArgument(0)
 	
 
 class IAccessOperation(ISubsetOperation):
 	ARGS = [IEvaluable, IEvaluable]
-	"""Returns evaluable that will return the access index"""
 	def getIndex(self):
+		"""Returns evaluable that will return the access index"""
 		return self.getOpArgument(1)
 	
 
 class ISliceOperation(ISubsetOperation):
 	ARGS = [IEvaluable, IEvaluable, IEvaluable]
-	"""Returns evaluable that will return the slice start"""
 	def getSliceStart(self):
+		"""Returns evaluable that will return the slice start"""
 		return self.getOpArgument(1)
 	
-	"""Returns evaluable that will return the slice end"""
 	def getSliceEnd(self):
+		"""Returns evaluable that will return the slice end"""
 		return self.getOpArgument(2)
 	
 
 class IMatchOperation(IOperation):
 	"""A match operation is the binding of an expression and a process."""
-	"""Returns the evaluable that acts as a predicate for this operation."""
 	def getPredicate(self):
+		"""Returns the evaluable that acts as a predicate for this operation."""
 		return self.getOpArgument(0)
 	
 	def setPredicate(self, v):
@@ -687,8 +692,8 @@ class IMatchExpressionOperation(IMatchOperation):
 	
 	>	int a = ( b==2 ? 1 : 2 )"""
 	ARGS = [IEvaluable, IEvaluable]
-	"""Returns the process that will be executed if the rule matches."""
 	def getExpression(self):
+		"""Returns the process that will be executed if the rule matches."""
 		return self.getOpArgument(1)
 	
 	def setExpression(self, v):
@@ -699,8 +704,8 @@ class IMatchProcessOperation(IMatchOperation):
 	"""A match process is a predicate associate to a process, which is typically
 	used for implementing 'if', 'else', etc."""
 	ARGS = [IEvaluable, IProcess]
-	"""Returns the process that will be executed if the rule matches."""
 	def getProcess(self):
+		"""Returns the process that will be executed if the rule matches."""
 		return self.getOpArgument(1)
 	
 	def setProcess(self, v):
@@ -712,25 +717,25 @@ class ISelection(IOperation):
 	pattern-matching operations. Each selection has match operations as
 	arguments, which bind a subprocess to a predicate expression."""
 	ARGS = [[IMatchOperation]]
-	"""Adds a rule to this operation."""
 	def addRule(self, evaluable):
-		pass
+		"""Adds a rule to this operation."""
+		raise Exception("Abstract method ISelection.addRule not implemented")
 	
-	"""Returns the ordered set of rule for this selection."""
 	def getRules(self):
-		pass
+		"""Returns the ordered set of rule for this selection."""
+		raise Exception("Abstract method ISelection.getRules not implemented")
 	
 
 class IIteration(IOperation):
 	"""An iteration is the multiple application of a process given a set of
 	values produced by an iterator."""
 	ARGS = [IEvaluable, IEvaluable]
-	"""Returns this iteration iterator."""
 	def getIterator(self):
+		"""Returns this iteration iterator."""
 		return self.getOpArgument(0)
 	
-	"""Returns the closure that will be applied to the iterator."""
 	def getClosure(self):
+		"""Returns the closure that will be applied to the iterator."""
 		return self.getOpArgument(1)
 	
 
@@ -738,20 +743,20 @@ class IEnumeration(IOperation):
 	"""An enumeration produces values between a start and an end value, with the
 	given step."""
 	ARGS = [IEvaluable, IEvaluable, IEvaluable]
-	"""Returns this enumeration start."""
 	def getStart(self):
+		"""Returns this enumeration start."""
 		return self.getOpArgument(0)
 	
-	"""Returns this enumeration end."""
 	def getEnd(self):
+		"""Returns this enumeration end."""
 		return self.getOpArgument(1)
 	
-	"""Returns this enumeration step."""
 	def getStep(self):
+		"""Returns this enumeration step."""
 		return self.getOpArgument(2)
 	
-	"""Sets this enumeration step"""
 	def setStep(self, value):
+		"""Sets this enumeration step"""
 		return self.setOpArgument(2, value)
 	
 
@@ -759,8 +764,8 @@ class IRepetition(IOperation):
 	"""A repetition is the repetitive execution of a process according to a
 	predicate expression which can be modified by the process."""
 	ARGS = [IEvaluable, IProcess]
-	"""Gets the expression that is the condition for this repetition."""
 	def getCondition(self):
+		"""Gets the expression that is the condition for this repetition."""
 		return self.getOpArgument(0)
 	
 	def getProcess(self):
@@ -769,9 +774,9 @@ class IRepetition(IOperation):
 
 class ITermination(IOperation):
 	ARGS = [IEvaluable]
-	"""Returns the termination return evaluable."""
 	def getReturnedEvaluable(self):
-		pass
+		"""Returns the termination return evaluable."""
+		raise Exception("Abstract method ITermination.getReturnedEvaluable not implemented")
 	
 
 class IInterruption(IOperation):
@@ -784,8 +789,8 @@ class IBreaking(IInterruption):
 class IExcept(IInterruption):
 	"""An interruption that raises some value"""
 	ARGS = [IEvaluable]
-	"""Returns the termination return evaluable."""
 	def getValue(self):
+		"""Returns the termination return evaluable."""
 		return self.getOpArgument(0)
 	
 
@@ -793,28 +798,28 @@ class IInterception(IOperation):
 	"""An interception allows to intercept interruptions that propagage from an
 	enclosed process to parent contexts."""
 	ARGS = [IProcess, IProcess, IProcess]
-	"""Sets the process from which interruptions will be intercepted."""
 	def setProcess(self, process):
+		"""Sets the process from which interruptions will be intercepted."""
 		return self.setOpArgument(0, process)
 	
-	"""Returns the process that we will intercept interruptions from."""
 	def getProcess(self):
+		"""Returns the process that we will intercept interruptions from."""
 		return self.getOpArgument(0)
 	
-	"""Sets the process that will do the interception"""
 	def setIntercept(self, process):
+		"""Sets the process that will do the interception"""
 		return self.setOpArgument(1, process)
 	
-	"""Returns the process that will do the interception"""
 	def getIntercept(self):
+		"""Returns the process that will do the interception"""
 		return self.getOpArgument(1)
 	
-	"""Sets the process that will conclude the interception (finally)"""
 	def setConclusion(self, process):
+		"""Sets the process that will conclude the interception (finally)"""
 		return self.setOpArgument(2, process)
 	
-	"""Returns the process that will conclude the interception (finally)"""
 	def getConclusion(self):
+		"""Returns the process that will conclude the interception (finally)"""
 		return self.getOpArgument(2)
 	
 
@@ -823,21 +828,21 @@ class IEmbed(IOperation):
 	a different language. This allows for embedding code written specifically
 	in a target language (which may happen for optimizing stuff, for instance)."""
 	ARGS = []
-	"""Returns the language in which the emebedded code is written."""
 	def getLanguage(self):
-		pass
+		"""Returns the language in which the emebedded code is written."""
+		raise Exception("Abstract method IEmbed.getLanguage not implemented")
 	
-	"""Sets the language in which the emebedded code is written."""
 	def setLanguage(self, language):
-		pass
+		"""Sets the language in which the emebedded code is written."""
+		raise Exception("Abstract method IEmbed.setLanguage not implemented")
 	
-	"""Returns the embedded code string."""
-	def getCodeString(self):
-		pass
+	def getCode(self):
+		"""Returns the embedded code string."""
+		raise Exception("Abstract method IEmbed.getCodeString not implemented")
 	
-	"""Sets the code of this embed operation."""
-	def setCodeString(self, code):
-		pass
+	def setCode(self, code):
+		"""Sets the code of this embed operation."""
+		raise Exception("Abstract method IEmbed.setCodeString not implemented")
 	
 
 class IEmbedTemplate(IEmbed):

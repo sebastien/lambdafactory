@@ -339,6 +339,8 @@ class AbstractResolver:
 		return dataflow
 
 	def flowAllocation( self, operation, dataflow ):
+		print "ALLOCATION", operation.getOpArguments()
+		print "--", operation.getSlotToAllocate()
 		name = operation.getSlotToAllocate().getReferenceName()
 		dataflow.declareVariable(name, operation.getDefaultValue(), operation)
 		return None

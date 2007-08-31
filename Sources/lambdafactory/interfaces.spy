@@ -217,7 +217,7 @@
 	| Returns the abstract type of the result of the evaluation of this
 	| evaluable
 
-	@abstract @method setResultAbstractType
+	@abstract @method setResultAbstractType abstractType
 	@as internal
 	| Sets the abstract type for this operation result. This is usually
 	| invoked in the typing phase.
@@ -941,10 +941,10 @@
 	@abstract @method setLanguage language 
 	|	Sets the language in which the emebedded code is written.
 	
-	@abstract@method getCodeString
+	@abstract @method getCode
 	|	Returns the embedded code string.
 	
-	@abstract @method setCodeString code 
+	@abstract @method setCode code 
 	|	Sets the code of this embed operation.
 @end
 

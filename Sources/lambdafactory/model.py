@@ -6,6 +6,7 @@ code using the different back-ends."""
 import sys
 __module__ = sys.modules[__name__]
 from interfaces import *
+import modeltypes
 import pprint
 __module_name__ = 'model'
 class Element:
@@ -29,7 +30,16 @@ class Element:
 		self.name = name
 		self.id = self.__class__.COUNT
 		self.__class__.COUNT = (self.__class__.COUNT + 1)
+		self._abstractType = None
+
+	def getAbstractType( self ):
+		if self._abstractType is None:
+			self._abstractType = modeltypes.typeForValue(self)
+		return self._abstractType 
 	
+	def setAbstractType( self, type ):
+		self._abstractType = type
+		
 	def setName(self, name):
 		self.name = name
 	
@@ -43,12 +53,24 @@ class Element:
 		return self.source
 	
 	def annotate(self, annotation):
-		self_1188512947_9256=self.annotations
-		self_1188512947_9256.append(annotation)
+		self_1188570359_61100=self.annotations
+		self_1188570359_61100.append(annotation)
 	
 	def getAnnotations(self, withName):
 		 return [a for a in self.annotations if a.getName() == withName]
 		
+ 	def getAnnotation(self, withName):
+		annotations =   self.getAnnotations(withName)
+		if annotations:
+			return annotations[0]
+		else:
+			return None
+
+	def setDocumentation(self, documentation):
+		self.annotate(documentation)
+	
+	def getDocumentation(self):
+		return self.getAnnotation("documentation")
 	
 	def getDataFlow(self):
 		return self.dataflow
@@ -61,6 +83,12 @@ class Element:
 	
 	def ownsDataFlow(self):
 		raise "Not implemented"
+	
+	def getResultAbstractType(self):
+		return self.resultAbtractType
+	
+	def setResultAbstractType(self, abstractType):
+		self.resultAbtractType = abstractType
 	
 	def prettyList(self):
 		return pprint.pprint(self.asList())
@@ -115,14 +143,23 @@ class Context(Element):
 			raise ERR_SLOT_VALUE_NOT_ASSIGNABLE
 		if ((assignParent and isinstance(evaluable, IContext)) or hasattr(evaluable, "setParent")):
 			evaluable.setParent(self)
-		self_1188512947_9459=self.slots
-		self_1188512947_9459.append([name, evaluable])
+		self_1188570359_6371=self.slots
+		self_1188570359_6371.append([name, evaluable])
 	
 	def getSlot(self, name):
 		for slot in self.slots:
 			if (slot[0] == name):
 				return slot[1]
 		raise ERR_SLOT_NOT_FOUND
+
+	def hasSlot(self, name):
+		for slot in self.slots:
+			if (slot[0] == name):
+				return True
+		return False
+	
+	def getSlots(self):
+		return self.slots
 	
 	def setParent(self, context):
 		self.parent = context
@@ -140,40 +177,40 @@ class Class(Context, IClass, IReferencable, IAssignable):
 		if (parentClasses != None):
 			self.setParentClasses(parentClasses)
 	
-	def slotsValuesImplementing(self, interface, without=None):
+	def slotValuesImplementing(self, interface, without=None):
 		if without is None: without = None
 		res=[]
-		for slot in getSlots():
+		for slot in self.getSlots():
 			value=slot[1]
 			if ((without == None) or (not isinstance(value, without))):
-				if isintance(value, interface):
-					self_1188512947_9581=res
-					self_1188512947_9581.append(value)
-		return value
+				if isinstance(value, interface):
+					self_1188570359_6530=res
+					self_1188570359_6530.append(value)
+		return res
 	
 	def getAttributes(self):
-		return slotValuesImplementing(IAttribute, IClassAttribute)
+		return self.slotValuesImplementing(IAttribute, IClassAttribute)
 	
 	def getClassAttributes(self):
-		return slotValuesImplementing(IClassAttribute)
+		return self.slotValuesImplementing(IClassAttribute)
 	
 	def getOperations(self):
-		return slotValuesImplementing(IInvocable)
+		return self.slotValuesImplementing(IInvocable)
 	
 	def getConstructors(self):
-		return slotValuesImplementing(IConstructor)
+		return self.slotValuesImplementing(IConstructor)
 	
 	def getDestructors(self):
-		return slotValuesImplementing(IDestructor)
+		return self.slotValuesImplementing(IDestructor)
 	
 	def getMethods(self):
-		return slotValuesImplementing(IMethod)
+		return self.slotValuesImplementing(IMethod)
 	
 	def getInstanceMethods(self):
-		return slotValuesImplementing(IInstanceMethod)
+		return self.slotValuesImplementing(IInstanceMethod)
 	
 	def getClassMethods(self):
-		return slotValuesImplementing(IClassMethod)
+		return self.slotValuesImplementing(IClassMethod)
 	
 	def getSuperClasses(self):
 		return self.parentClasses
@@ -183,8 +220,8 @@ class Class(Context, IClass, IReferencable, IAssignable):
 		for the_class in classes:
 			if (not (isinstance(the_class, IReference) or isinstance(the_class, IResolution))):
 				raise ERR_PARENT_CLASS_REFERENCE_EXPECTED
-			self_1188512947_9658=self.parentClasses
-			self_1188512947_9658.append(the_class)
+			self_1188570359_6644=self.parentClasses
+			self_1188570359_6644.append(the_class)
 	
 	"""Returns the inherited class methods as a dict of lists. This operation
 	needs a resolver to resolve the classes from their references."""
@@ -238,15 +275,16 @@ class Program(Context, IProgram):
 	pass
 
 class Process(Context, IContext, IProcess, IAbstractable):
-	def __init__ (self, name):
+	def __init__ (self, name=None):
 		self.operations = []
+		if name is None: name = None
 		Context.__init__(self, name)
 	
 	def addOperation(self, operation):
 		if self.isAbstract():
 			raise ERR_ABSTRACT_PROCESS_NO_OPERATIONS
-		self_1188512948_032=self.operations
-		self_1188512948_032.append(operation)
+		self_1188570359_75=self.operations
+		self_1188570359_75.append(operation)
 	
 	def getOperations(self):
 		return self.operations
@@ -254,8 +292,8 @@ class Process(Context, IContext, IProcess, IAbstractable):
 	def asList(self):
 		res=[]
 		for o in self.operations:
-			self_1188512948_023=res
-			self_1188512948_023.append(o.asList())
+			self_1188570359_7171=res
+			self_1188570359_7171.append(o.asList())
 		return tuple([self.__class__.__name__, tuple(self.operations)])
 	
 
@@ -327,13 +365,13 @@ class Operation(Element, IEvaluable, IOperation):
 	
 	def setOpArgument(self, i, argument):
 		while (len(self.opArguments) < i):
-			self_1188512948_0226=self.opArguments
-			self_1188512948_0226.append(None)
+			self_1188570359_7362=self.opArguments
+			self_1188570359_7362.append(None)
 		self.opArguments[i] = argument
 	
 	def addOpArgument(self, argument):
-		self_1188512948_0340=self.opArguments
-		self_1188512948_0340.append(argument)
+		self_1188570359_7324=self.opArguments
+		self_1188570359_7324.append(argument)
 	
 	def getOpArguments(self):
 		return self.opArguments
@@ -346,14 +384,14 @@ class Operation(Element, IEvaluable, IOperation):
 		for a in self.opArguments:
 			if (not (type(a) in [tuple, list])):
 				if a:
-					self_1188512948_037=args
-					self_1188512948_037.append(a.asList())
+					self_1188570359_7387=args
+					self_1188570359_7387.append(a.asList())
 				elif True:
-					self_1188512948_0387=args
-					self_1188512948_0387.append(a)
+					self_1188570359_7317=args
+					self_1188570359_7317.append(a)
 			elif True:
-				self_1188512948_0315=args
-				self_1188512948_0315.append(a)
+				self_1188570359_7445=args
+				self_1188570359_7445.append(a)
 		return tuple([self.__class__.__name__, tuple(args)])
 	
 
@@ -367,10 +405,10 @@ class Assignation(Operation, IAssignation, IEvaluable):
 
 class Allocation(Operation, IAllocation, IEvaluable):
 	def getSlotToAllocate(self):
-		self.getOpArgument(0)
+		return self.getOpArgument(0)
 	
 	def getDefaultValue(self):
-		self.getOpArgument(1)
+		return self.getOpArgument(1)
 	
 
 class Resolution(Operation, IResolution, IEvaluable, IReferencable):
@@ -396,7 +434,7 @@ class Instanciation(Operation, IInstanciation, IEvaluable):
 
 class Selection(Operation, ISelection):
 	def addRule(self, evaluable):
-		res = self.getOpArgument()
+		res = self.getOpArguments()
 		if (not res):
 			res = []
 			self.addOpArgument(res)
@@ -508,10 +546,12 @@ class String(Literal, IString):
 
 class List(Value, IList):
 	def __init__ (self):
+		self.values = []
 		Value.__init__(self)
 	
 	def addValue(self, value):
-		self.values.append(self.values)
+		self_1188570359_7831=self.values
+		self_1188570359_7831.append(value)
 	
 	def getValues(self):
 		return self.values
@@ -526,8 +566,8 @@ class Dict(Value, IDict):
 		Value.__init__(self)
 	
 	def setValue(self, key, value):
-		self_1188512948_0859=self.items
-		self_1188512948_0859.append([key, value])
+		self_1188570359_7913=self.items
+		self_1188570359_7913.append([key, value])
 	
 	def getItems(self):
 		return self.items

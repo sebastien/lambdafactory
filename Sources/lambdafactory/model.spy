@@ -4,6 +4,7 @@
 | code using the different back-ends.
 @import interfaces *
 @import pprint
+@import modeltypes
 
 
 # ------------------------------------------------------------------------------
@@ -69,6 +70,23 @@
 		@end
 	@end
 	
+	@method getAnnotation withName
+		var annotations = getAnnotations (withName)
+		if annotations
+			return annotations[0]
+		else
+			return None
+		end
+	@end
+	
+	@method setDocumentation documentation
+		annotate(documentation)
+	@end
+
+	@method getDocumentation
+		return getAnnotation "documentation"
+	@end
+	
 	@method getDataFlow
 		return dataflow
 	@end
@@ -86,6 +104,27 @@
 		raise "Not implemented"
 	@end
 
+	@method getAbstractType
+		if abstractType is None
+			abstractType = modeltypes typeForValue (self)
+		end
+		return abstractType
+	@end
+	
+	@method setAbstractType abstractType
+		self abstractType = abstractType
+	@end
+	
+	@method getResultAbstractType
+		# TODO: Assert this is evaluable
+		return resultAbtractType
+	@end
+	
+	@method setResultAbstractType abstractType
+		# TODO: Assert this is evaluable
+		resultAbtractType = abstractType
+	@end
+	
 	@method prettyList
 		return pprint pprint(asList())
 	@end
@@ -169,6 +208,15 @@
 		slots append [name, evaluable]
 	@end
 	
+	@method hasSlot name
+		for slot in slots
+			if slot[0] == name
+				return True
+			end
+		end
+		return False
+	@end
+	
 	@method getSlot name
 		for slot in slots
 			if slot[0] == name
@@ -178,6 +226,10 @@
 		raise ERR_SLOT_NOT_FOUND
 	@end
 	
+	@method getSlots
+		return slots
+	@end
+
 	@method setParent context:Context
 		parent = context
 	@end
@@ -200,17 +252,17 @@
 		end
 	@end
 	
-	@method slotsValuesImplementing interface, without=Undefined
+	@method slotValuesImplementing interface, without=Undefined
 		var res = []
 		for slot in getSlots()
 			var value = slot[1]
 			if without == Undefined or not isinstance(value, without)
-				if isintance(value, interface)
+				if isinstance(value, interface)
 					res append (value)
 				end
 			end
 		end
-		return value
+		return res
 	@end
 
 	# REWRITE (Sugar macros)
@@ -341,7 +393,7 @@
 @class Process: Context, IContext, IProcess, IAbstractable
 
 	@property operations = []
-	@constructor name:Undefined
+	@constructor name=Undefined
 		#REWRITE: super(name)
 		Context __init__ ( self,  name)
 	@end
@@ -529,11 +581,11 @@
 @class Allocation: Operation, IAllocation, IEvaluable
 
 	@method getSlotToAllocate
-		self getOpArgument(0)
+		return self getOpArgument(0)
 	@end
 
 	@method getDefaultValue
-		self getOpArgument(1)
+		return self getOpArgument(1)
 	@end
 	
 @end
@@ -568,7 +620,7 @@
 @class Selection: Operation, ISelection
 
 	@method addRule evaluable
-		res = getOpArgument()
+		res = getOpArguments()
 		if not res
 			res = []
 			self addOpArgument(res)
@@ -705,14 +757,14 @@
 
 @class List: Value, IList
 
-	@property values
+	@property values = []
 	
 	@constructor
 		Value __init__ (self)
 	@end
 
 	@method addValue value:IElement
-		values append (values)
+		values append (value)
 	@end
 	
 	@method getValues
