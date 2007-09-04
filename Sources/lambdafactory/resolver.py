@@ -427,6 +427,8 @@ class AbstractResolver:
 		return res
 
 	def _flowImportOperationStage2( self, program, operation, dataflow):
+		# FIXME
+		return
 		to_resolve = operation.getImportedElement()
 		while isinstance(to_resolve, interfaces.IResolution):
 			if not to_resolve.getContext(): to_resolve = to_resolve.getReference()

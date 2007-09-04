@@ -160,7 +160,7 @@ class IElement:
 	def setAnnotation(self, name, annotation):
 		"""Sets the annotation with the given name to this element"""
 		raise Exception("Abstract method IElement.setAnnotation not implemented")
-
+	
 
 class IAssignable:
 	"""Assignable elements are elements that can be bound to slots. In many
@@ -186,6 +186,7 @@ class IReferencable(IAssignable):
 	def getAbsoluteName(self):
 		"""Returns the absolute name for this element"""
 		raise Exception("Abstract method IReferencable.getAbsoluteName not implemented")
+	
 
 class IEvaluable:
 	"""An evaluable is an element that can produce a value. Evaluable elements
@@ -442,17 +443,19 @@ class IModule(IContext):
 		"""Returns the list of classes defined in this module. This is mainly a
 		convenience function."""
 		raise Exception("Abstract method IModule.getClasses not implemented")
+	
 
 class IProgram(IContext):
 	"""The program is the core context and entry point for almost every
 	operation offered by LambdaFactory."""
-	def addPass(self, programPass):
-		"""Adds the pass to this program."""
-		raise Exception("Abstract method IProgram.addPass not implemented")
+	def setFactory(self, factory):
+		"""Sets the factory that was used to create this program"""
+		raise Exception("Abstract method IProgram.setFactory not implemented")
 	
-	def getPass(self, name):
-		"""Returns the pass with the given name, if it exists."""
-		raise Exception("Abstract method IProgram.getPass not implemented")
+	def getFactory(self):
+		"""Gets the factory that was used to create this program. It can be
+		used to create more elements in the program."""
+		raise Exception("Abstract method IProgram.getFactory not implemented")
 	
 
 class IProcess:
@@ -545,17 +548,54 @@ class IOperation(IElement):
 	
 
 class IImportOperation(IOperation):
-	ARGS = [IEvaluable, IEvaluable]
-	ARG_NAMES = ["ImportedElement", "Alias"]
+	pass
+
+class IImportSymbolOperation(IImportOperation):
+	ARGS = [IEvaluable, IEvaluable, IEvaluable]
+	ARG_NAMES = ["ImportedElement", "ImportOrigin", "Alias"]
 	def getImportedElement(self):
 		"""Returns a reference or a resolution that will allow to get the
 		imported element."""
 		return self.getOpArgument(0)
 	
+	def getImportOrigin(self):
+		return self.getOpArgument(1)
+	
 	def getAlias(self):
 		"""Returns the (optional) alias which will allow to reference the
 		element."""
+		return self.getOpArgument(2)
+	
+
+class IImportSymbolsOperation(IImportOperation):
+	ARGS = [[IEvaluable], IEvaluable]
+	ARG_NAMES = ["ImportedElements", "ImportOrigin"]
+	def getImportedElements(self):
+		"""Returns a reference or a resolution that will allow to get the
+		imported element."""
+		return self.getOpArgument(0)
+	
+	def getImportOrigin(self):
 		return self.getOpArgument(1)
+	
+
+class IImportModuleOperation(IImportOperation):
+	ARGS = [IEvaluable, IEvaluable]
+	ARG_NAMES = ["ImportedModuleName", "Alias"]
+	def getImportedModuleName(self):
+		"""Returns the list of names representing the modules to load"""
+		return self.getOpArgument(0)
+	
+	def getAlias(self):
+		return self.getOpArgument(1)
+	
+
+class IImportModulesOperation(IImportOperation):
+	ARGS = [[IEvaluable]]
+	ARG_NAMES = ["ImportedModuleNames"]
+	def getImportedModuleNames(self):
+		"""Returns the list of names representing the modules to load"""
+		return self.getOpArgument(0)
 	
 
 class IEvaluation(IOperation):

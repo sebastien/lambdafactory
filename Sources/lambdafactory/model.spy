@@ -717,6 +717,46 @@
 	
 @end
 
+@class ImportSymbolOperation: Operation, IImportSymbolOperation
+	
+	@constructor arguments...
+		@embed Python
+		|Operation.__init__(self, *arguments)
+		@end
+	@end
+	
+@end
+
+@class ImportSymbolsOperation: Operation, IImportSymbolsOperation
+	
+	@constructor arguments...
+		@embed Python
+		|Operation.__init__(self, *arguments)
+		@end
+	@end
+	
+@end
+
+@class ImportModuleOperation: Operation, IImportModuleOperation
+	
+	@constructor arguments...
+		@embed Python
+		|Operation.__init__(self, *arguments)
+		@end
+	@end
+	
+@end
+
+@class ImportModulesOperation: Operation, IImportModulesOperation
+	
+	@constructor arguments...
+		@embed Python
+		|Operation.__init__(self, *arguments)
+		@end
+	@end
+	
+@end
+
 @class Embed: Operation, IEmbed
 
 	@property language = Undefined

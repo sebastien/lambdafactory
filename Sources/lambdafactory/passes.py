@@ -19,8 +19,8 @@ class PassContext:
 		self.walk(self.environment.getProgram())
 	
 	def walk(self, element):
-		self_1188916988_7433=self.context
-		self_1188916988_7433.append(element)
+		self_1188922038_4437=self.context
+		self_1188922038_4437.append(element)
 		continue_walking=True
 		for program_pass in self.environment.getPasses():
 			handle=program_pass.getHandle(element)
@@ -34,8 +34,8 @@ class PassContext:
 			if isinstance(element, interfaces.IProcess):
 				for operation in element.getOperations():
 					self.walk(operation)
-		self_1188916988_7570=self.context
-		self_1188916988_7570.pop()
+		self_1188922038_4530=self.context
+		self_1188922038_4530.pop()
 	
 	def filterContext(self, interface):
 		return filter(lambda x:isinstance(x,interface), self.context) 
@@ -81,8 +81,8 @@ class PassContext:
 			target=resolution[0]
 			context=resolution[1]
 			parent_class = self.value
-			self_1188916988_7659=parents
-			self_1188916988_7659.append(parent_class)
+			self_1188922038_46100=parents
+			self_1188922038_46100.append(parent_class)
 	
 	def resolve(self, referenceOrName, contextOrDataFlow=None):
 		if contextOrDataFlow is None: contextOrDataFlow = None
@@ -139,12 +139,13 @@ class ImportationPass(Pass):
 			return res
 	
 	def getImportedSymbol(self, importation):
-		return self._importedAbsoluteName(importation.getImportedElement())
+		return ".".join(self._importedAbsoluteName(importation.getImportedElement()))
 	
 	def onModule(self, context, module):
 		imports=self.getModuleImportations(context, module)
-		for i in imports:
-			print ("Imports:", self.getImportedSymbol(i))
+		#for i in imports:
+		#	imported_module_name=self.getImportedSymbol(i)
+		#	context.environment.importModule(imported_module_name)
 		return False
 	
 

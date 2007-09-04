@@ -48,8 +48,8 @@ class Element:
 		return self.source
 	
 	def annotate(self, annotation):
-		self_1188596139_6645=self.annotations
-		self_1188596139_6645.append(annotation)
+		self_1188920890_8238=self.annotations
+		self_1188920890_8238.append(annotation)
 	
 	def getAnnotations(self, withName):
 		 return [a for a in self.annotations if a.getName() == withName]
@@ -147,8 +147,8 @@ class Context(Element):
 			raise ERR_SLOT_VALUE_NOT_ASSIGNABLE
 		if ((assignParent and isinstance(evaluable, IContext)) or hasattr(evaluable, "setParent")):
 			evaluable.setParent(self)
-		self_1188596139_6968=self.slots
-		self_1188596139_6968.append([name, evaluable])
+		self_1188920890_8447=self.slots
+		self_1188920890_8447.append([name, evaluable])
 	
 	def hasSlot(self, name):
 		for slot in self.slots:
@@ -188,8 +188,8 @@ class Class(Context, IClass, IReferencable, IAssignable):
 			value=slot[1]
 			if ((without == None) or (not isinstance(value, without))):
 				if isinstance(value, interface):
-					self_1188596139_758=res
-					self_1188596139_758.append(value)
+					self_1188920890_858=res
+					self_1188920890_858.append(value)
 		return res
 	
 	def getAttributes(self):
@@ -224,8 +224,8 @@ class Class(Context, IClass, IReferencable, IAssignable):
 		for the_class in classes:
 			if (not (isinstance(the_class, IReference) or isinstance(the_class, IResolution))):
 				raise ERR_PARENT_CLASS_REFERENCE_EXPECTED
-			self_1188596139_7278=self.parentClasses
-			self_1188596139_7278.append(the_class)
+			self_1188920890_8795=self.parentClasses
+			self_1188920890_8795.append(the_class)
 	
 	def getInheritedClassMethods(self, resolver):
 		"""Returns the inherited class methods as a dict of lists. This operation
@@ -277,19 +277,17 @@ class Module(Context, IModule, IAssignable, IReferencable):
 
 class Program(Context, IProgram):
 	def __init__ (self, name=None):
-		self.passes = []
 		if name is None: name = None
 		Context.__init__(self, name)
 	
-	def addPass(self, programPass):
-		self_1188596139_7577=self.passes
-		self_1188596139_7577.append(programPass)
+	def setFactory(self, factory):
+		"""Sets the factory that was used to create this program"""
+		self.factory = factory
 	
-	def getPass(self, name):
-		for p in self.passes:
-			if (p.getName() == name):
-				return p
-		return None
+	def getFactory(self):
+		"""Gets the factory that was used to create this program. It can be
+		used to create more elements in the program."""
+		return self.factory
 	
 
 class Process(Context, IContext, IProcess, IAbstractable):
@@ -301,8 +299,8 @@ class Process(Context, IContext, IProcess, IAbstractable):
 	def addOperation(self, operation):
 		if self.isAbstract():
 			raise ERR_ABSTRACT_PROCESS_NO_OPERATIONS
-		self_1188596139_7694=self.operations
-		self_1188596139_7694.append(operation)
+		self_1188920890_962=self.operations
+		self_1188920890_962.append(operation)
 	
 	def getOperations(self):
 		return self.operations
@@ -310,8 +308,8 @@ class Process(Context, IContext, IProcess, IAbstractable):
 	def asList(self):
 		res=[]
 		for o in self.operations:
-			self_1188596139_7662=res
-			self_1188596139_7662.append(o.asList())
+			self_1188920890_989=res
+			self_1188920890_989.append(o.asList())
 		return tuple([self.__class__.__name__, tuple(self.operations)])
 	
 
@@ -383,13 +381,13 @@ class Operation(Element, IEvaluable, IOperation):
 	
 	def setOpArgument(self, i, argument):
 		while (len(self.opArguments) < i):
-			self_1188596139_7854=self.opArguments
-			self_1188596139_7854.append(None)
+			self_1188920890_921=self.opArguments
+			self_1188920890_921.append(None)
 		self.opArguments[i] = argument
 	
 	def addOpArgument(self, argument):
-		self_1188596139_7830=self.opArguments
-		self_1188596139_7830.append(argument)
+		self_1188920890_9383=self.opArguments
+		self_1188920890_9383.append(argument)
 	
 	def getOpArguments(self):
 		return self.opArguments
@@ -402,14 +400,14 @@ class Operation(Element, IEvaluable, IOperation):
 		for a in self.opArguments:
 			if (not (type(a) in [tuple, list])):
 				if a:
-					self_1188596139_7963=args
-					self_1188596139_7963.append(a.asList())
+					self_1188920890_9342=args
+					self_1188920890_9342.append(a.asList())
 				elif True:
-					self_1188596139_7964=args
-					self_1188596139_7964.append(a)
+					self_1188920890_9363=args
+					self_1188920890_9363.append(a)
 			elif True:
-				self_1188596139_7913=args
-				self_1188596139_7913.append(a)
+				self_1188920890_9423=args
+				self_1188920890_9423.append(a)
 		return tuple([self.__class__.__name__, tuple(args)])
 	
 
@@ -517,6 +515,31 @@ class ImportOperation(Operation, IImportOperation):
 	
 	pass
 
+class ImportSymbolOperation(Operation, IImportSymbolOperation):
+	def __init__ (self, *arguments):
+		Operation.__init__(self, *arguments)
+	pass
+	
+class ImportSymbolsOperation(Operation, IImportSymbolsOperation):
+	def __init__ (self, *arguments):
+		Operation.__init__(self, *arguments)
+		
+	
+	pass
+
+class ImportModulesOperation(Operation, IImportModulesOperation):
+	def __init__ (self, *arguments):
+		Operation.__init__(self, *arguments)
+		
+	
+	pass
+	
+class ImportModuleOperation(Operation, IImportModuleOperation):
+	def __init__ (self, *arguments):
+		Operation.__init__(self, *arguments)
+		
+	
+	pass
 class Embed(Operation, IEmbed):
 	def __init__ (self, lang=None, code=None):
 		self.language = None
@@ -568,8 +591,8 @@ class List(Value, IList):
 		Value.__init__(self)
 	
 	def addValue(self, value):
-		self_1188596139_8398=self.values
-		self_1188596139_8398.append(value)
+		self_1188920890_9885=self.values
+		self_1188920890_9885.append(value)
 	
 	def getValues(self):
 		return self.values
@@ -584,8 +607,8 @@ class Dict(Value, IDict):
 		Value.__init__(self)
 	
 	def setValue(self, key, value):
-		self_1188596139_8367=self.items
-		self_1188596139_8367.append([key, value])
+		self_1188920890_9857=self.items
+		self_1188920890_9857.append([key, value])
 	
 	def getItems(self):
 		return self.items

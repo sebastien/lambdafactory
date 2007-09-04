@@ -7,6 +7,7 @@
 	@property passes=[]
 	@property writer=None
 	@property reporter=None
+	@property importer=None
 	
 	@constructor program
 		self program = program
@@ -14,10 +15,15 @@
 
 	@method addParser parser, extensions
 		for ext in extensions
-			parsers[ext.lower()] = parser
+			parsers[ext lower()] = parser
 		end
 	@end
 
+	@method addImporter importer
+		# TODO: Support for multiple importers
+		self importer = importer
+	@end
+	
 	@method addPass programPass
 		passes append (programPass)
 	@end
@@ -36,6 +42,10 @@
 	
 	@method getProgram
 		return program
+	@end
+	
+	@method importModule name
+		return importer importModule(name)
 	@end
 
 	@method parseModule path, name

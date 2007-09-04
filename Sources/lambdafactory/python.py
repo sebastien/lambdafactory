@@ -8,7 +8,7 @@
 # License   : Revised BSD License
 # -----------------------------------------------------------------------------
 # Creation  : 03-Aug-2007
-# Last mod  : 31-Aug-2007
+# Last mod  : 04-Aug-2007
 # -----------------------------------------------------------------------------
 
 # TODO: When constructor is empty, should assign default attributes anyway
@@ -767,7 +767,41 @@ class Writer(AbstractWriter):
 			if imported_name[-1] == "*":
 				return "from %s import *" % (imported_name[:-2])
 			return "import %s" % (imported_name)
-		
+
+	def writeImportSymbolOperation( self, element ):
+		res = ["import"]
+		res.append(element.getImportedElement())
+		symbol_origin = element.getImportOrigin()
+		symbol_alias = element.getAlias()
+		if symbol_origin:
+			vres = ["from", symbol_origin]
+			vres.extend(res)
+			res = vres
+		if symbol_alias:
+			res.extend(["as", symbol_alias])
+		return " ".join(res)
+
+	def writeImportSymbolsOperation( self, element ):
+		res = ["import"]
+		res.append(", ".join(element.getImportedElements()))
+		symbol_origin = element.getImportOrigin()
+		if symbol_origin:
+			res.extend(["from", symbol_origin])
+		return " ".join(res)
+
+	def writeImportModuleOperation( self, element ):
+		res = ["import"]
+		res.append(element.getImportedModuleName())
+		symbol_alias = element.getAlias()
+		if symbol_alias:
+			res.extend(["as", symbol_alias])
+		return " ".join(res)
+
+	def writeImportModulesOperation( self, element ):
+		res = ["import"]
+		res.append(", ".join(element.getImportedModuleNames()))
+		return " ".join(res)
+	
 	def writeEmbed( self, embed ):
 		lang = embed.getLanguage().lower().strip()
 		assert lang in self.supportedEmbedLanguages

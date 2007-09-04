@@ -8,7 +8,7 @@
 # License   : Revised BSD License
 # -----------------------------------------------------------------------------
 # Creation  : 02-Nov-2006
-# Last mod  : 15-Aug-2007
+# Last mod  : 04-Sep-2007
 # -----------------------------------------------------------------------------
 
 # FIXME: Evaluable == Expression ?
@@ -96,9 +96,18 @@ class Factory:
 	def createModule( self, name ):
 		return self._getImplementation("Module")(name)
 
-	def imports( self, name, alias ):
-		return self._getImplementation("ImportOperation")(name, alias)
+	def importSymbol( self, name, origin, alias ):
+		return self._getImplementation("ImportSymbolOperation")(name, origin, alias)
 
+	def importSymbols( self, names, origin ):
+		return self._getImplementation("ImportSymbolsOperation")(names, origin)
+
+	def importModule( self, name, alias ):
+		return self._getImplementation("ImportModuleOperation")(name, alias)
+			
+	def importModules( self, names ):
+		return self._getImplementation("ImportModulesOperation")(names)
+			
 	def evaluate( self, evaluable ):
 		return self._getImplementation("Evaluation")(evaluable)
 

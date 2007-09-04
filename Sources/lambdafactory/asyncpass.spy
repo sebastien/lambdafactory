@@ -1,7 +1,0 @@
-@import passes
-
-@class TransformAsynchronousInvocations: (passes Pass)
-	
-@end
-
-# EOF

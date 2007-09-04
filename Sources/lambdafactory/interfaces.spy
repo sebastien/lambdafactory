@@ -7,7 +7,7 @@
 # License   : Revised BSD License
 # -----------------------------------------------------------------------------
 # Creation  : 02-Nov-2006
-# Last mod  : 28-Aug-2007
+# Last mod  : 04-Sep-2007
 # -----------------------------------------------------------------------------
 
 # TODO: Add a Flowable interface that tells that the element can have
@@ -579,9 +579,12 @@
 @end
 
 @class IImportOperation: IOperation
+@end
 
-	@shared ARGS      = [ IEvaluable, IEvaluable ]
-	@shared ARG_NAMES = [ "ImportedElement", "Alias" ] 
+@class IImportSymbolOperation: IImportOperation
+
+	@shared ARGS      = [ IEvaluable, IEvaluable, IEvaluable ]
+	@shared ARG_NAMES = [ "ImportedElement", "ImportOrigin", "Alias" ] 
 
 	@method getImportedElement
 	|	Returns a reference or a resolution that will allow to get the
@@ -589,10 +592,57 @@
 		return getOpArgument(0)
 	@end
 	
+	@method getImportOrigin
+		return getOpArgument(1)
+	@end
+	
 	@method getAlias
 	|	Returns the (optional) alias which will allow to reference the
 	|	element.
+		return getOpArgument(2)
+	@end
+	
+@end
+
+@class IImportSymbolsOperation: IImportOperation
+	
+	@shared ARGS     = [ [IEvaluable], IEvaluable ]
+	@shared ARG_NAMES = [ "ImportedElements", "ImportOrigin" ] 
+
+	@method getImportedElements
+	|	Returns a reference or a resolution that will allow to get the
+	|	imported element.
+		return getOpArgument(0)
+	@end
+	
+	@method getImportOrigin
 		return getOpArgument(1)
+	@end
+@end
+
+@class IImportModuleOperation: IImportOperation
+
+	@shared ARGS      = [ IEvaluable, IEvaluable ]
+	@shared ARG_NAMES = [ "ImportedModuleName", "Alias"] 
+
+	@method getImportedModuleName
+	| Returns the list of names representing the modules to load
+		return getOpArgument(0)
+	@end
+		
+	@method getAlias
+		return getOpArgument(1)
+	@end
+@end
+
+@class IImportModulesOperation: IImportOperation
+
+	@shared ARGS      = [ [IEvaluable] ]
+	@shared ARG_NAMES = [ "ImportedModuleNames" ] 
+
+	@method getImportedModuleNames
+	| Returns the list of names representing the modules to load
+		return getOpArgument(0)
 	@end
 	
 @end
@@ -601,7 +651,7 @@
 	@shared ARGS = [ IEvaluable, IEvaluable ]
 	@shared ARG_NAMES = [ "Evaluable" ] 
 	
-	@method getEvaluable 
+	@method getEvaluable
 		return getOpArgument(0)
 	@end
 @end

@@ -1,0 +1,29 @@
+
+@class Importer
+| Imports Python module into the current environment.
+
+	@property environment
+	
+	@constructor environment
+		self environment = environment
+	@end
+
+	@method importModule moduleName
+		print ("IMPORT", moduleName)
+		try
+			@embed Python
+			|exec "import %s" % (moduleName)
+			@end
+		catch e
+			print (e)
+			return False
+		end
+		var python_module = eval(moduleName)
+		# TODO: Create the interfaces for that
+		#environment getFactory() 
+		for slot in dir(python_module)
+			print "SLOT"
+		end
+	@end
+
+@end

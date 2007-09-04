@@ -146,7 +146,9 @@ class AbstractWriter:
 		"Invocation", "Instanciation", "Resolution", "Selection",
 		"Repetition", "Iteration", "AccessOperation", "SliceOperation",
 		"Evaluation", "Termination", "Breaking", "Except", "Interception",
-		"ImportOperation", "Embed"
+		"ImportSymbolOperation","ImportSymbolsOperation",
+		"ImportModuleOperation", "ImportModulesOperation",
+		 "Embed"
 	)
 
 	def __init__( self, reporter=reporter.DefaultReporter ):

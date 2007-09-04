@@ -214,14 +214,15 @@
 	@end
 
 	@method getImportedSymbol importation
-		return _importedAbsoluteName( importation getImportedElement() )
+		return "." join(_importedAbsoluteName( importation getImportedElement()))
 	@end
 	
 	@method onModule context, module
 		var imports = getModuleImportations(context, module)
-		for i in imports
-			print ("Imports:", getImportedSymbol(i))
-		end
+		#for i in imports
+		#	var imported_module_name = getImportedSymbol(i)
+		#	context environment importModule (imported_module_name)
+		#end
 		return False
 	@end
 	
