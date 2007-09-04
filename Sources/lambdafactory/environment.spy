@@ -1,4 +1,46 @@
 @import os
+@import DefaultReporter from reporter
+
+@class Importer
+| The Environment importer class acts like a "hub" for language-specific
+| importers. It will try, according to the current environment settings,
+| to resolve a module absolute name and return a program model object
+| corresponding to the given module.
+
+	@property environment
+	
+	@constructor environment
+		self environment = environment
+	@end
+	
+
+	@method findSugarModule moduleName
+		var paths = [ os getcwd() ]
+		if os environ get "SUGARPATH"
+			paths extend (os environ get "SUGARPATH" split ":")
+		end
+		var module_path = moduleName replace (".", "/")
+		for path in paths
+			for ext in ".sg .sjs .sjava .spnuts .spy" split()
+				if os path exists(module_path + ext)
+					return module_path + ext
+				end
+			end
+		end
+		return None
+	@end
+
+	@method importModule moduleName
+		var module_path = findSugarModule(moduleName)
+		if module_path
+			environment reporter info ("Importing module", moduleName, "from", module_path)
+			var module = environment parseModule (module_path, moduleName)
+			environment getProgram() addModule(module)
+			environment reporter info ("done.")
+		end
+	@end
+
+@end
 
 @class Environment
 	
@@ -6,11 +48,12 @@
 	@property parsers={}
 	@property passes=[]
 	@property writer=None
-	@property reporter=None
+	@property reporter=DefaultReporter
 	@property importer=None
 	
 	@constructor program
 		self program = program
+		importer = new Importer(self)
 	@end
 
 	@method addParser parser, extensions
@@ -21,7 +64,7 @@
 
 	@method addImporter importer
 		# TODO: Support for multiple importers
-		self importer = importer
+		# self importer = importer
 	@end
 	
 	@method addPass programPass
@@ -44,6 +87,10 @@
 		return program
 	@end
 	
+	@method getFactory
+		return program getFactory()
+	@end
+	
 	@method importModule name
 		return importer importModule(name)
 	@end
@@ -51,7 +98,8 @@
 	@method parseModule path, name
 		var extension = os path splitext (path)[-1][1:] lower()
 		var parser = parsers get (extension)
-		return parser parse(path, name)
+		var source_and_module = parser parse(path, name)
+		return source_and_module[1]
 	@end
 	
 @end

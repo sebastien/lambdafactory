@@ -2,7 +2,7 @@
 | It defines objects that allow you to build a complete OO program model on
 | which you can apply transformation passes, and from which you can generate
 | code using the different back-ends.
-@import interfaces *
+@import * from interfaces
 @import pprint
 @import modeltypes
 
@@ -389,11 +389,30 @@
 @class Program: Context, IProgram
 
 	@property factory
+	@property modules = []
 
 	@constructor name=Undefined
 		#REWRITE: super( name )
 		Context __init__ ( self,  name)
 	@end
+
+	@method addModule module
+		# FIXME: Assert not added twice, nor name collision
+		modules append (module)
+	@end
+	
+	@method getModule moduleAbsoluteName
+		for module in modules
+			if module getName() == moduleAbsoluteName
+				return module
+			end
+		end
+	@end 
+
+	@method getModules
+		return modules
+	@end 
+	
 	@method setFactory factory
 	| Sets the factory that was used to create this program
 		self factory = factory

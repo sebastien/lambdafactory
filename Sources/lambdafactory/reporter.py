@@ -42,6 +42,9 @@ class Reporter:
 		self.errors.append(message)
 		map( lambda c:c(message, element), self._onError)
 
+	def info( self, *message):
+		sys.stderr.write("--- %s\n" % (" ".join(map(str, message))))
+
 	def onError( self, callback ):
 		self._onError.append(callback)
 

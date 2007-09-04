@@ -44,6 +44,12 @@
 		# in operations (if we're in a process).
 		if continue_walking != False
 			# Is the element a Context ? -> walk slots
+			if isinstance(element, interfaces IProgram)
+				for module in element getModules()
+					walk (module)
+				end
+			end
+			# Is the element a Context ? -> walk slots
 			if isinstance(element, interfaces IContext)
 				for name_and_value in element getSlots()
 					walk (name_and_value[1])
@@ -203,26 +209,20 @@
 		return context filter(module_init getOperations(), interfaces IImportOperation)
 	@end
 
-	@method _importedAbsoluteName toResolve
-		if not toResolve
-			return []
-		else
-			var res = _importedAbsoluteName(toResolve getContext())
-			res append(toResolve getReference() getReferenceName())
-			return res
-		end
-	@end
-
-	@method getImportedSymbol importation
-		return "." join(_importedAbsoluteName( importation getImportedElement()))
-	@end
-	
 	@method onModule context, module
 		var imports = getModuleImportations(context, module)
-		#for i in imports
-		#	var imported_module_name = getImportedSymbol(i)
-		#	context environment importModule (imported_module_name)
-		#end
+		for i in imports
+			if isinstance(i, interfaces IImportModuleOperation)
+				var imported_module_name = i getImportedModuleName()
+				var imported_module_origin = i getAlias()
+				var imported = context environment importModule (imported_module_name)
+			if isinstance(i, interfaces IImportSymbolOperation)
+				var imported_module_name = i getImportOrigin()
+				var imported_module = context environment importModule (imported_module_name)
+			else
+				context environment error ("ImportationPass: operation not implemented " + repr(i))
+			end
+		end
 		return False
 	@end
 	

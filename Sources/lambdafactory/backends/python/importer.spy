@@ -1,7 +1,9 @@
+@import types
 
 @class Importer
 | Imports Python module into the current environment.
 
+	@shared MODULE_IGNORES = ["__builtins__"]
 	@property environment
 	
 	@constructor environment
@@ -9,20 +11,113 @@
 	@end
 
 	@method importModule moduleName
-		print ("IMPORT", moduleName)
 		try
 			@embed Python
 			|exec "import %s" % (moduleName)
 			@end
 		catch e
-			print (e)
+			# FIXME: Issue warning
 			return False
 		end
 		var python_module = eval(moduleName)
+		var module = environment getFactory() createModule(moduleName)
 		# TODO: Create the interfaces for that
 		#environment getFactory() 
-		for slot in dir(python_module)
-			print "SLOT"
+		for slot_name in dir(python_module)
+			var slot_value = getattr(python_module, slot_name)
+			var slot_type  = type(slot_value)
+			var imported_value = importValue(slot_value)
+			if imported_value
+				module setSlot (slot_name, imported_value)
+			end
+		end
+		return module
+	@end
+
+	@method importClass classObject
+		var f = environment getFactory()
+		var c = f createClass (classObject __name__)
+		for slot_name in dir(classObject)
+			var slot_value = getattr(classObject, slot_name)
+			var imported_value = importValue(slot_value)
+			if imported_value
+				c setSlot(slot_name, imported_value)
+			end
+		end
+		return c
+	@end
+	
+	@method _getPythonFunctionArguments function
+	@as Utility
+		if hasattr(function, "im_func")
+			function = function im_func
+		end
+		var f         = environment getFactory()
+		var defaults  = function func_defaults
+		var code      = function func_code
+		var arguments = []
+		@embed Python
+		|args = list(code.co_varnames[:code.co_argcount])
+		|# We split the args in args / default_args
+		|if defaults:
+		|	default_args = args[-len(defaults):]
+		|	args         = args[:-len(defaults)]
+		|else:
+		|	default_args = []
+		|# We add the default arguments (properly formatted) to the arguments
+		|# list
+		|for i in range(len(default_args)):
+		|	d = default_args[i]
+		|	args.append("%s=%s" % (d, repr(defaults[i])) )
+		|# We append the arguments
+		|if code.co_flags & 0x0004: # CO_VARARGS
+		|	args.append('*'+code.co_varnames[len(args)])
+		|if code.co_flags & 0x0008: # CO_VARKEYWORDS
+		|	args.append('**'+code.co_varnames[len(args)])
+		@end
+		var arguments = []
+		for arg in args
+			#FIXME: Support variable arguments
+			#if args startwith ("**")
+			#if args startwith ("*")
+			#else
+			#end
+			arguments append (f _arg(arg, None))
+		end
+		return arguments
+	@end
+	
+	@method importInstanceMethod methodObject
+		var f = environment getFactory()
+		var args = _getPythonFunctionArguments(methodObject)
+		# FIXME: Add docstring
+		# FIXME: Add 'imported' annotation
+		return f createMethod ( methodObject __name__, args )
+	@end
+	
+	@method importFunction functionObject
+	@end
+	
+	@method importList l
+	@end
+	
+	@method importDict d
+	@end
+	
+	@method importValue value
+		var value_type = type(value)
+		# REWRITE: Match
+		if value_type == types ClassType
+			return importClass(value)
+		if value_type == types UnboundMethodType
+			return importInstanceMethod(value)
+		if value_type == types ListType
+			return importList(value)
+		if value_type == types DictType
+			return importDict(value)
+		else
+			# FIXME: Should issue a warning
+			var v = None
 		end
 	@end
 

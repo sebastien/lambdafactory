@@ -19,8 +19,8 @@ class PassContext:
 		self.walk(self.environment.getProgram())
 	
 	def walk(self, element):
-		self_1188922038_4437=self.context
-		self_1188922038_4437.append(element)
+		self_1188932123_583=self.context
+		self_1188932123_583.append(element)
 		continue_walking=True
 		for program_pass in self.environment.getPasses():
 			handle=program_pass.getHandle(element)
@@ -28,14 +28,17 @@ class PassContext:
 				if (handle(self, element) != False):
 					continue_walking = True
 		if (continue_walking != False):
+			if isinstance(element, interfaces.IProgram):
+				for module in element.getModules():
+					self.walk(module)
 			if isinstance(element, interfaces.IContext):
 				for name_and_value in element.getSlots():
 					self.walk(name_and_value[1])
 			if isinstance(element, interfaces.IProcess):
 				for operation in element.getOperations():
 					self.walk(operation)
-		self_1188922038_4530=self.context
-		self_1188922038_4530.pop()
+		self_1188932123_5144=self.context
+		self_1188932123_5144.pop()
 	
 	def filterContext(self, interface):
 		return filter(lambda x:isinstance(x,interface), self.context) 
@@ -81,8 +84,8 @@ class PassContext:
 			target=resolution[0]
 			context=resolution[1]
 			parent_class = self.value
-			self_1188922038_46100=parents
-			self_1188922038_46100.append(parent_class)
+			self_1188932123_5212=parents
+			self_1188932123_5212.append(parent_class)
 	
 	def resolve(self, referenceOrName, contextOrDataFlow=None):
 		if contextOrDataFlow is None: contextOrDataFlow = None
@@ -130,22 +133,16 @@ class ImportationPass(Pass):
 		module_init=module.getSlot(interfaces.Constants.ModuleInit)
 		return context.filter(module_init.getOperations(), interfaces.IImportOperation)
 	
-	def _importedAbsoluteName(self, toResolve):
-		if (not toResolve):
-			return []
-		elif True:
-			res=self._importedAbsoluteName(toResolve.getContext())
-			res.append(toResolve.getReference().getReferenceName())
-			return res
-	
-	def getImportedSymbol(self, importation):
-		return ".".join(self._importedAbsoluteName(importation.getImportedElement()))
-	
 	def onModule(self, context, module):
 		imports=self.getModuleImportations(context, module)
-		#for i in imports:
-		#	imported_module_name=self.getImportedSymbol(i)
-		#	context.environment.importModule(imported_module_name)
+		for i in imports:
+			if isinstance(i, interfaces.IImportModuleOperation):
+				imported_module_name=i.getImportedModuleName()
+				imported_module_origin=i.getAlias()
+				imported=context.environment.importModule(imported_module_name)
+			elif isinstance(i, interfaces.IImportSymbolOperation):
+				imported_module_name=i.getImportOrigin()
+				imported_module=context.environment.importModule(imported_module_name)
 		return False
 	
 

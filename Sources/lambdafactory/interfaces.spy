@@ -473,6 +473,16 @@
 |	The program is the core context and entry point for almost every
 |	operation offered by LambdaFactory.
 
+	@abstract @method addModule module
+	| Adds a module to this program. The module will be registered in
+	| the global module catalogue.
+
+	@abstract @method getModule moduleAbsoluteName
+	| Returns the module (if any) with the given absolute name
+	
+	@abstract @method getModules
+	| Returns the list of modules declared/imported in this program
+
 	@abstract @method setFactory factory
 	| Sets the factory that was used to create this program
 

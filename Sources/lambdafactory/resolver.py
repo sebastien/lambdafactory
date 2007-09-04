@@ -80,6 +80,7 @@ class DataFlow(interfaces.IDataFlow):
 	ARGUMENT    = "Argument"
 	ENVIRONMENT = "Environment"
 	LOCAL       = "Local"
+	IMPORTED    = "Imported"
 
 	def __init__( self, element, parent=None ):
 		self.element  = element
@@ -99,6 +100,9 @@ class DataFlow(interfaces.IDataFlow):
 	def declareVariable( self, name, value, origin ):
 		self._declare(name, value, origin, self.LOCAL)
 
+	def declareImported( self, name, value, origin ):
+		self._declare(name, value, origin, self.IMPORTED)
+		
 	def _declare( self, name, value, origin, slottype ):
 		"""Declares the given slot with the given name, value, origin
 		and type. This is used internaly by the other 'declare' methods."""
@@ -265,11 +269,11 @@ class AbstractResolver:
 
 	def flowClass( self, element ):
 		dataflow = self.flowContext(element)
-		self.stage2.append((self._flowClassStage2, (self.captureContext(), element, dataflow)))
+		self.stage3.append((self._flowClassStage3, (self.captureContext(), element, dataflow)))
 		dataflow.declareEnvironment("self", None)
 		return dataflow
 
-	def _flowClassStage2( self, program, context, element, dataflow ):
+	def _flowClassStage3( self, program, context, element, dataflow ):
 		"""Utility function that resolves the parents for a class. This must
 		happen at stage 2 because we have to wait for every class to be
 		registered properly."""
@@ -278,21 +282,23 @@ class AbstractResolver:
 			slot         = None
 			this_module  = tuple(e for e in context if isinstance(e,interfaces.IModule))
 			this_program = tuple(e for e in context if isinstance(e,interfaces.IProgram))
+			imported_class = p.getReferenceName()
 			if this_module:
 				this_module = this_module[0]
 				slot, defined_in = this_module.getDataFlow().resolve(p.getReferenceName())
 			if slot is None and this_program:
 				this_program = this_program[0]
 				slot, defined_in = this_program.getDataFlow().resolve(p.getReferenceName())
-			if not defined_in or not defined_in.hasSlot(p.getReferenceName()):
+			if not defined_in or not slot or not slot.getValue():
 				self.report.error("Undefined parent class:" + p.getReferenceName(), element)
 			else:
-				parent_class = defined_in.getSlot(p.getReferenceName())
+				parent_class = slot.getValue()
 				class_flow   = parent_class.getDataFlow()
 				dataflow.addParent(class_flow)
-				for slot in class_flow.getSlots():
+				# We assert that the inheritance works
+				for parent_slot in class_flow.getSlots():
 					assert dataflow.resolve(slot.name)
-				
+
 	def flowContext( self, element, dataflow=None ):
 		if dataflow is None: dataflow = DataFlow(element)
 		for name, value in element.getSlots():
@@ -311,6 +317,14 @@ class AbstractResolver:
 		dataflow.declareEnvironment("True", None)
 		dataflow.declareEnvironment("False", None)
 		dataflow.declareEnvironment("Null", None)
+		for module in element.getModules():
+			module_flow = self._flow(module)
+			# FIXME: This never happens, and I don't get why
+			if module_flow in dataflow.children:
+				module_flow.addParent(dataflow)
+				raise None
+			else:
+				pass
 		return self.flowContext(element, dataflow)
 
 	def flowMethod( self, element ):
@@ -427,21 +441,15 @@ class AbstractResolver:
 		return res
 
 	def _flowImportOperationStage2( self, program, operation, dataflow):
-		# FIXME
-		return
-		to_resolve = operation.getImportedElement()
-		while isinstance(to_resolve, interfaces.IResolution):
-			if not to_resolve.getContext(): to_resolve = to_resolve.getReference()
-			else: to_resolve = to_resolve.getContext()
-		if isinstance(to_resolve, interfaces.IReference):
-			to_resolve = to_resolve.getReferenceName()
-		else:
-			raise Exception("Only references and resolution can be imported.")
-		resolve_slot, resolved = dataflow.resolve(to_resolve)
-		if operation.getAlias():
-			to_resolve = operation.getAlias().getReferenceName()
-		#imported_module_name = self._importedAbsoluteName()
-		#program.environment.importModule(module_name)
-		program.getDataFlow().declareVariable(to_resolve,resolved,operation)
+		#FIXME: Thiss is a hack, should use getCurrentModule instead
+		current_module = dataflow.parents[0].element
+		dataflow       = current_module.getDataFlow()
+		if isinstance( operation, interfaces.IImportSymbolOperation):
+			import_origin = operation.getImportOrigin()
+			imported_element = operation.getImportedElement()
+			imported_alias = operation.getAlias() or imported_element
+			module = program.getModule(import_origin)
+			df_slot, scope = module.getDataFlow().resolve(imported_element)
+			dataflow.declareImported(imported_alias, df_slot.getValue(), module)
 
 # EOF

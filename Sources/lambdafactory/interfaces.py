@@ -382,7 +382,6 @@ class IContext(IElement, IDataFlowOwner):
 	def getParent(self):
 		"""Returns the parent context for this context (if any)"""
 		raise Exception("Abstract method IContext.getParent not implemented")
-	
 
 class IClass(IContext, IReferencable):
 	def setParentClasses(self):
@@ -448,6 +447,15 @@ class IModule(IContext):
 class IProgram(IContext):
 	"""The program is the core context and entry point for almost every
 	operation offered by LambdaFactory."""
+	def addModule(self, module):
+		"""Adds a module to this program. The module will be registered in
+		the global module catalogue."""
+		raise Exception("Abstract method IProgram.addModule not implemented")
+	
+	def getModule(self, moduleAbsoluteName):
+		"""Returns the module (if any) with the given absolute name"""
+		raise Exception("Abstract method IProgram.getModule not implemented")
+	
 	def setFactory(self, factory):
 		"""Sets the factory that was used to create this program"""
 		raise Exception("Abstract method IProgram.setFactory not implemented")

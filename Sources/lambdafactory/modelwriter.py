@@ -262,8 +262,7 @@ class AbstractWriter:
 			i = len(self.contexts) - 2
 			while i >= 0:
 				element = self.contexts[i]
-				if isinstance(element, interfaces.IDataFlowable) and \
-				element.hasDataFlow():
+				if element.hasDataFlow():
 					return self.resolve(name, element.getDataFlow())
 				i -= 1
 			raise Exception("No dataflow available in: %s" % (self.contexts))
@@ -289,7 +288,7 @@ class AbstractWriter:
 		return format(*values)
 	
 	def _document( self, element ):
-		if element.hasDocumentation():
+		if element.getDocumentation():
 			doc = element.getDocumentation()
 			res = []
 			for line in doc.getContent().split("\n"):
@@ -297,7 +296,6 @@ class AbstractWriter:
 			return "\n".join(res)
 		else:
 			return None
-
 
 	def _unique( self, name ):
 		i = 0
@@ -574,4 +572,37 @@ class Writer(AbstractWriter):
 		"""Writes a termination operation."""
 		return "return %s" % ( self.write(termination.getReturnedEvaluable()) )
 
+	def writeImportSymbolOperation( self, element ):
+		import_statement = "import " + element.getImportedElement()
+		symbol_origin = element.getImportOrigin()
+		symbol_alias = element.getAlias()
+		if symbol_origin:
+			import_statement += " from " + symbol_origin
+		if symbol_alias:
+			import_statement += " as " + symbol_alias
+		return import_statement
+
+	def writeImportSymbolsOperation( self, element ):
+		res = ["import"]
+		res.append(", ".join(element.getImportedElements()))
+		symbol_origin = element.getImportOrigin()
+		if symbol_origin:
+			res = ["from", symbol_origin]
+			res.extend( ["from", symbol_origin])
+		return " ".join(res)
+
+	def writeImportModuleOperation( self, element ):
+		res = ["import"]
+		res.append(element.getImportedModuleName())
+		symbol_alias = element.getAlias()
+		if symbol_alias:
+			res.extend(["as", symbol_alias])
+		return " ".join(res)
+
+	def writeImportModulesOperation( self, element ):
+		res = ["import"]
+		res.append(", ".join(element.getImportedModuleNames()))
+		return " ".join(res)
+	
+	
 # EOF

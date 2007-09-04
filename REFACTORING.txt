@@ -14,6 +14,8 @@ Strategy for making LambdaFactory self-hosted:
  - Common command-line interface
  - Importance of elements name: some are (classes, functions, modules), some
    aren't (program, closure, iterations, selection, etc)
+ - Importations should go into the module "meta" (like version and stuff), and
+   not into module init
 
 Conceptual model
 ================
@@ -67,24 +69,24 @@ Refactoring the module architecture
 >       model                          (the core)
 >           interfaces.spy             (program model interface)
 >           base.spy                   (default implementation)
+>			typesystem.py              (the type system)
 >   
 >       passes                         (transformation passes)
 >           resolving.spy              (add dataflow pass)
 >           typing.spy                 (add type information pass)
 >           async.spy                  (rewrite asynchronous invocations)
 >           sdoc.spy                   (create documentation)
+>           uml.spy                    (UML diagram)
 >   
->       frontends                      (directory for plugins)
->           interfaces.py              (front-end interfaces - NOT SURE)
->           sugar                      (the sugar front-end)
->               parser.py              (the main sugar parser)
->   
->       backends                       (available back-ends)
+>       languages                      (available languages)
 >           javascript
->               runtime.js             (back-end specific runtime)
+>				runtime/               (language-specific files)
+>               	runtime.js         (specific runtime library)
 >               importer.spy           (importing mechanisms)
 >               writer.spy             (code generation)
+>               reader.spy             (source code reading)
 >               runner.spy             (interpreter/compiler wrapper)
+>				interfaces.spy         (additional interfaces)
 >           actionscript
 >               runtime.as
 >               importer.spy
@@ -96,7 +98,7 @@ Refactoring the module architecture
 >                writer.spy
 >                 runner.spy
 >   
->         lib                          (default lambda-factory library)
+>         library                       (default lambda-factory library)
 >             core
 >                 datatypes.sg
 >                operations.sg

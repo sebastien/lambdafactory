@@ -758,16 +758,6 @@ class Writer(AbstractWriter):
 			res.extend(["finally:", map(self.write, try_finally.getOperations())])
 		return self._format(*res)
 
-	def writeImportOperation( self, importElement):
-		imported_name = self.write(importElement.getImportedElement())
-		imported_elem = imported_name.split(".")[-1]
-		if importElement.getAlias():
-			return "import %s as %s" % (importElement.getAlias().getReferenceName(), imported_name)
-		else:
-			if imported_name[-1] == "*":
-				return "from %s import *" % (imported_name[:-2])
-			return "import %s" % (imported_name)
-
 	def writeImportSymbolOperation( self, element ):
 		res = ["import"]
 		res.append(element.getImportedElement())
@@ -786,7 +776,9 @@ class Writer(AbstractWriter):
 		res.append(", ".join(element.getImportedElements()))
 		symbol_origin = element.getImportOrigin()
 		if symbol_origin:
-			res.extend(["from", symbol_origin])
+			vres = ["from", symbol_origin]
+			vres.extend(res)
+			res = vres
 		return " ".join(res)
 
 	def writeImportModuleOperation( self, element ):
