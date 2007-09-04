@@ -160,9 +160,19 @@ class IElement:
 	def setAnnotation(self, name, annotation):
 		"""Sets the annotation with the given name to this element"""
 		raise Exception("Abstract method IElement.setAnnotation not implemented")
-	
 
-class IReferencable:
+
+class IAssignable:
+	"""Assignable elements are elements that can be bound to slots. In many
+	languages, only a subset of elements can be assigned. For instance, in
+	Java, you cannot assign a package to something:
+	
+	>     Object my_package = java.lang.Object
+	
+	while in some other languages (like JavaScript), you could do that."""
+	pass
+
+class IReferencable(IAssignable):
 	"""A referencable is an element that can be referenced either by id (it is
 	unique and stable), or by a name (which is also not supposed to change).
 	
@@ -176,17 +186,6 @@ class IReferencable:
 	def getAbsoluteName(self):
 		"""Returns the absolute name for this element"""
 		raise Exception("Abstract method IReferencable.getAbsoluteName not implemented")
-	
-
-class IAssignable:
-	"""Assignable elements are elements that can be bound to slots. In many
-	languages, only a subset of elements can be assigned. For instance, in
-	Java, you cannot assign a package to something:
-	
-	>     Object my_package = java.lang.Object
-	
-	while in some other languages (like JavaScript), you could do that."""
-	pass
 
 class IEvaluable:
 	"""An evaluable is an element that can produce a value. Evaluable elements
@@ -291,7 +290,7 @@ class IOperator(IReference):
 		raise Exception("Abstract method IOperator.getPriority not implemented")
 	
 
-class ISlot(IReferencable, IAssignable):
+class ISlot(IReferencable):
 	"""An argument is a reference with additional type information."""
 	def getTypeDescription(self):
 		"""Returns type information (constraints) that are associated to this
@@ -340,7 +339,6 @@ class IArgument(ISlot):
 	
 
 class IAttribute(ISlot):
-
 	def setDefaultValue(self):
 		"""Sets the @methodault value for this attribute"""
 		raise Exception("Abstract method IAttribute.setDefaultValue not implemented")
@@ -426,9 +424,9 @@ class IClass(IContext, IReferencable):
 		"""Returns this class name. It can be `None` if the class is anonymous."""
 		raise Exception("Abstract method IClass.getName not implemented")
 	
-	def getSuperClasses(self):
+	def getParentClasses(self):
 		"""Returns the list of inherited classes references."""
-		raise Exception("Abstract method IClass.getSuperClasses not implemented")
+		raise Exception("Abstract method IClass.getParentClasses not implemented")
 	
 
 class IAbstractClass(IClass, IAbstractable):
@@ -444,12 +442,18 @@ class IModule(IContext):
 		"""Returns the list of classes defined in this module. This is mainly a
 		convenience function."""
 		raise Exception("Abstract method IModule.getClasses not implemented")
-	
 
 class IProgram(IContext):
 	"""The program is the core context and entry point for almost every
 	operation offered by LambdaFactory."""
-	pass
+	def addPass(self, programPass):
+		"""Adds the pass to this program."""
+		raise Exception("Abstract method IProgram.addPass not implemented")
+	
+	def getPass(self, name):
+		"""Returns the pass with the given name, if it exists."""
+		raise Exception("Abstract method IProgram.getPass not implemented")
+	
 
 class IProcess:
 	"""A process is a sequence of operations."""

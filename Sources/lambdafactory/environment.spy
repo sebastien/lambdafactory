@@ -1,0 +1,47 @@
+@import os
+
+@class Environment
+	
+	@property program=None
+	@property parsers={}
+	@property passes=[]
+	@property writer=None
+	@property reporter=None
+	
+	@constructor program
+		self program = program
+	@end
+
+	@method addParser parser, extensions
+		for ext in extensions
+			parsers[ext.lower()] = parser
+		end
+	@end
+
+	@method addPass programPass
+		passes append (programPass)
+	@end
+	
+	@method getPass name
+		for p in passes
+			if p getName() == name
+				return p
+			end
+		end
+	@end
+	
+	@method getPasses
+		return passes
+	@end
+	
+	@method getProgram
+		return program
+	@end
+
+	@method parseModule path, name
+		var extension = os path splitext (path)[-1][1:] lower()
+		var parser = parsers get (extension)
+		return parser parse(path, name)
+	@end
+	
+@end

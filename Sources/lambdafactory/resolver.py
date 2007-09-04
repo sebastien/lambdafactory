@@ -274,7 +274,7 @@ class AbstractResolver:
 		happen at stage 2 because we have to wait for every class to be
 		registered properly."""
 		# TODO: Multiple inheritance is too complicated right now
-		for p in element.getSuperClasses():
+		for p in element.getParentClasses():
 			slot         = None
 			this_module  = tuple(e for e in context if isinstance(e,interfaces.IModule))
 			this_program = tuple(e for e in context if isinstance(e,interfaces.IProgram))
@@ -420,6 +420,12 @@ class AbstractResolver:
 	def flowImportOperation( self, operation, dataflow):
 		self.stage2.append((self._flowImportOperationStage2, (operation, dataflow)))
 
+	def _importedAbsoluteName( self, to_resolve ):
+		if not to_resolve: return []
+		res = self._importedAbsoluteName(to_resolve.getContext())
+		res.append(to_resolve.getReference().getReferenceName())
+		return res
+
 	def _flowImportOperationStage2( self, program, operation, dataflow):
 		to_resolve = operation.getImportedElement()
 		while isinstance(to_resolve, interfaces.IResolution):
@@ -432,6 +438,8 @@ class AbstractResolver:
 		resolve_slot, resolved = dataflow.resolve(to_resolve)
 		if operation.getAlias():
 			to_resolve = operation.getAlias().getReferenceName()
+		#imported_module_name = self._importedAbsoluteName()
+		#program.environment.importModule(module_name)
 		program.getDataFlow().declareVariable(to_resolve,resolved,operation)
 
 # EOF

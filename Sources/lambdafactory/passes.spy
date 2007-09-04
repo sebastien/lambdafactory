@@ -1,23 +1,77 @@
 @import reporter
 @import interfaces
 
+# ============================================================================
+#
+# Pass Context
+#
+# ============================================================================
+
 @class PassContext
+| The 'PassContext' represents the current state of one or more passes when
+| walking the program. It offers access to the 'environment' (gives access
+| to the program and various passes).
+|
+| A single context can be shared among various passes.
     
-	@property context  = []
-	@property reporter = None
+	@property environment = None
+	@property context     = []
 
     # REWRITE: @constructor reporter=reporter.DefaultReporter
-	@constructor reporter=(reporter DefaultReporter)
-		
+	@constructor environment
+		self environment = environment
 	@end
 
+	@method run
+		walk ( environment getProgram() )
+	@end
 	
+	@method walk element
+		context push (element)
+		var continue_walking = True
+		# We iterate on the program passes, if every pass 
+		for program_pass in environment getPasses()
+			var handle = program_pass getHandle(element)
+			if handle
+				# TODO: Optimize by removing passes not interested in
+				# going deeper
+				if handle (self, element) != False
+					continue_walking = True
+				end
+			end
+		end
+		# If we continue the walking, then we recurse on context slots and
+		# in operations (if we're in a process).
+		if continue_walking != False
+			# Is the element a Context ? -> walk slots
+			if isinstance(element, interfaces IContext)
+				for name_and_value in element getSlots()
+					walk (name_and_value[1])
+				end
+			end
+			# Is the element a Process ? -> walk operations
+			if isinstance(element, interfaces IProcess)
+				for operation in element getOperations()
+					walk (operation)
+				end
+			end
+		end
+		context pop()
+	@end
+
 	@group ContextAccessors
 	
 		@method filterContext interface
 		@as internal
 			@embed Python
 			|return filter(lambda x:isinstance(x,interface), self.context) 
+			@end
+		@end
+		
+		@method filter list, interface
+		@as internal
+			@embed Python
+			|return filter(lambda x:isinstance(x,interface), list) 
 			@end
 		@end
 		
@@ -51,13 +105,17 @@
 			return findInContext (interfaces IClass)
 		@end
 
+		@method getCurrentProcess
+			return findInContext (interfaces IProcess)
+		@end
+		
 		@method getCurrentClassParents theClass
 			var parents = []
 			if theClass is None
 				theClass = getCurrentClass()
 			end
 			var current_class = theClass
-			for parent_class_ref in current_class getSuperClasses()
+			for parent_class_ref in current_class getParentClasses()
 				var parent_class_name = parent_class_ref getReferenceName()
 				var resolution = resolve ( parent_class_name, current_class )
 				var target, context = resolution
@@ -85,37 +143,86 @@
 	@end
 @end
 
-@class Pass
+# ============================================================================
+#
+# Abstract Pass
+#
+# ============================================================================
 
-	@property isWalking = False
+@class Pass
 	
-	@property matches  = []
+	@shared HANDLES  = []
+	@shared NAME     = ""
 	
-	@method walk element
-		# Is the element a Context ? -> walk slots
-		if isinstance(element, interfaces IContext)
-		end
-		# Is the element a Process ? -> walk operations
-		if isintance(element, interfaces IProcess)
-		end
-		# Is the element matched -> walk it
-		# TODO: assert not isWalking
-		print element
+	@constructor
 	@end
-	
-	@method isHandled element:IElement
+
+	@method getHandle element:IElement
 	| Tells if the pass handles the given element. This basically iterates
 	| on the 'handles' property values (which are interfaces), when one
-	| interface matches the given 'element', then the corresponding 'doXXX'
+	| interface matches the given 'element', then the corresponding 'onXXX'
 	| method is invoked, where 'XXX' is the interface
 	| name (without the leading 'I').
-		for interface in handles
+		for interface in HANDLES
 			# REWRITE: element is an interface
 			if isinstance(element, interface)
 				# REWRITE return self `(interface getClass() getName())
-				return getattr(self, interface __class__ __name__ [1:])
+				var handler_name = "on" + interface __name__ [1:]
+				if not hasattr(self, handler_name)
+					raise ERR_PASS_HANDLER_NOT_DEFINED(handler_name)
+				end
+				return getattr(self, handler_name )
 			end
 		end
+		return None
+	@end
+
+@end
+
+# ============================================================================
+#
+# Importation Pass
+#
+# ============================================================================
+
+@class ImportationPass: Pass
+| The importation pass will look for importation operations ('IImportation'),
+| will try to resolve the importations (according to the current environment)
+| and will trigger the loading and parsing of each module into the current
+| program.
+
+	@shared HANDLES = [ interfaces IModule ]
+	@shared NAME    = "Importation"
+
+	@constructor
+		Pass __init__ (self)
+	@end
+	
+	@method getModuleImportations context, module
+		var module_init = module getSlot(interfaces Constants ModuleInit)
+		return context filter(module_init getOperations(), interfaces IImportOperation)
+	@end
+
+	@method _importedAbsoluteName toResolve
+		if not toResolve
+			return []
+		else
+			var res = _importedAbsoluteName(toResolve getContext())
+			res append(toResolve getReference() getReferenceName())
+			return res
+		end
+	@end
+
+	@method getImportedSymbol importation
+		return _importedAbsoluteName( importation getImportedElement() )
+	@end
+	
+	@method onModule context, module
+		var imports = getModuleImportations(context, module)
+		for i in imports
+			print ("Imports:", getImportedSymbol(i))
+		end
+		return False
 	@end
 	
 @end
@@ -128,12 +235,8 @@
 
 @class TransformAsynchronousInvocations: Pass
 
-	@property matches = [ interfaces IClosure ]
-	
-	@constructor
-		super()
-	@end
-	
+	@shared HANDLES = [ interfaces IClosure ]
+	@shared NAME    = "AsynchronousInvocationsExpansion"
 @end
 
 # EOF	

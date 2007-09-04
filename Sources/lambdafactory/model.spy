@@ -309,7 +309,7 @@
 		return slotValuesImplementing(IClassMethod)
 	@end
 		
-	@method getSuperClasses
+	@method getParentClasses
 		return parentClasses
 	@end
 		
@@ -387,6 +387,24 @@
 
 # TODO: Add more features here
 @class Program: Context, IProgram
+
+	@property factory
+
+	@constructor name=Undefined
+		#REWRITE: super( name )
+		Context __init__ ( self,  name)
+	@end
+	@method setFactory factory
+	| Sets the factory that was used to create this program
+		self factory = factory
+	@end
+	
+	@method getFactory
+	| Gets the factory that was used to create this program. It can be
+	| used to create more elements in the program.
+		return factory
+	@end
+	
 @end
 
 # ------------------------------------------------------------------------------

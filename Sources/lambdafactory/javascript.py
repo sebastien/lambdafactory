@@ -85,7 +85,7 @@ class Writer(AbstractWriter):
 
 	def writeClass( self, classElement ):
 		"""Writes a class element."""
-		parents = classElement.getSuperClasses()
+		parents = classElement.getParentClasses()
 		parent  = "undefined"
 		if len(parents) == 1:
 			parent = self.write(parents[0])
@@ -204,7 +204,7 @@ class Writer(AbstractWriter):
 		attributes    = []
 		for a in current_class.getAttributes():
 			if not a.getDefaultValue(): continue
-			attributes.append("__this__.%s = %s" % (a.getReferenceName(), self.write(a.getDefaultValue())))
+			attributes.append("__this__.%s = %s" % (a.getName(), self.write(a.getDefaultValue())))
 		return self._format(
 			self._document(element),
 			"initialize:function(%s){" % (
@@ -238,14 +238,14 @@ class Writer(AbstractWriter):
 			if argument.isRest():
 				assert i >= l - 2
 				result.append("%s = %s(arguments,%d)" % (
-					argument.getReferenceName(),
+					argument.getName(),
 					self.jsPrefix + self.jsCore + "sliceArguments",
 					i
 				))
 			if not (argument.getDefaultValue() is None):
 				result.append("%s = %s || %s" % (
-					argument.getReferenceName(),
-					argument.getReferenceName(),
+					argument.getName(),
+					argument.getName(),
 					self.write(argument.getDefaultValue())
 				))
 			i += 1
@@ -310,7 +310,7 @@ class Writer(AbstractWriter):
 	def writeArgument( self, argElement ):
 		"""Writes an argument element."""
 		return "%s" % (
-			argElement.getReferenceName(),
+			argElement.getName(),
 		)
 
 	def writeAttribute( self, element ):
@@ -320,16 +320,16 @@ class Writer(AbstractWriter):
 		else: default_value="undefined"
 		return self._format(
 			self._document(element),
-			"%s:%s" % (element.getReferenceName(), default_value)
+			"%s:%s" % (element.getName(), default_value)
 		)
 
 	def writeClassAttribute( self, element ):
 		"""Writes an argument element."""
 		default_value = element.getDefaultValue()
 		if default_value:
-			res = "%s:%s" % (element.getReferenceName(), self.write(default_value))
+			res = "%s:%s" % (element.getName(), self.write(default_value))
 		else:
-			res = "%s:undefined" % (element.getReferenceName())
+			res = "%s:undefined" % (element.getName())
 		return self._format(self._document(element), res)
 
 	def writeModuleAttribute( self, element ):
@@ -339,7 +339,7 @@ class Writer(AbstractWriter):
 		else: default_value = 'undefined'
 		return self._format(
 			self._document(element),
-			"%s=%s" % (element.getReferenceName(), default_value)
+			"%s=%s" % (element.getName(), default_value)
 		)
 
 	def writeReference( self, element ):
@@ -471,9 +471,9 @@ class Writer(AbstractWriter):
 		s = allocation.getSlotToAllocate()
 		v = allocation.getDefaultValue()
 		if v:
-			return "var %s=%s;" % (s.getReferenceName(), self.write(v))
+			return "var %s=%s;" % (s.getName(), self.write(v))
 		else:
-			return "var %s;" % (s.getReferenceName())
+			return "var %s;" % (s.getName())
 
 	def writeAssignation( self, assignation ):
 		"""Writes an assignation operation."""
@@ -552,7 +552,7 @@ class Writer(AbstractWriter):
 	RE_TEMPLATE = re.compile("\$\{[^\}]+\}")
 	def _rewriteInvocation(self, invocation, closure, template):
 		arguments = tuple([self.write(a) for a in invocation.getArguments()])
-		parameters = tuple([a.getReferenceName() for a  in closure.getArguments()])
+		parameters = tuple([a.getName() for a  in closure.getArguments()])
 		args = {}
 		for i in range(len(arguments)):
 			args[parameters[i]] = arguments[i]
@@ -579,8 +579,11 @@ class Writer(AbstractWriter):
 		self.inInvocation = True
 		t = self.write(invocation.getTarget())
 		target_type = invocation.getTarget().getResultAbstractType()
-		concrete_type = target_type.concreteType()
-		rewrite = self._closureIsRewrite(concrete_type)
+		if target_type:
+			concrete_type = target_type.concreteType()
+			rewrite = self._closureIsRewrite(concrete_type)
+		else:
+			rewrite = ""
 		if rewrite:
 			return self._rewriteInvocation(invocation, concrete_type, "\n".join([r.getCode() for r in rewrite]))
 		else:
@@ -763,7 +766,7 @@ class Writer(AbstractWriter):
 		return embed.getCode()
 	
 	def _document( self, element ):
-		if element.hasDocumentation():
+		if element.getDocumentation():
 			doc = element.getDocumentation()
 			res = []
 			for line in doc.getContent().split("\n"):

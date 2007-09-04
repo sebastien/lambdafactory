@@ -100,7 +100,7 @@ class Writer(AbstractWriter):
 
 	def writeClass( self, classElement ):
 		"""Writes a class element."""
-		parents = classElement.getSuperClasses()
+		parents = classElement.getParentClasses()
 		parent  = None
 		if len(parents) == 1:
 			parent = self.write(parents[0])

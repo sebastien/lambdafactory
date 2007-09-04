@@ -1,5 +1,7 @@
+== LambdaFactory Refactoring
+== What to do until 1.0
 
-Strategy for LF 2.0:
+Strategy for making LambdaFactory self-hosted:
 
  - Parallel re-implementation
  - Rewrite Interfaces first, with a proper hierarchy and S-Expressions support
@@ -12,21 +14,91 @@ Strategy for LF 2.0:
  - Common command-line interface
  - Importance of elements name: some are (classes, functions, modules), some
    aren't (program, closure, iterations, selection, etc)
-	
-Abstract Type
-|
-|
-Element -> Dataflow <----+
-|                        |
-(when process)         (alter)
-|                        |
-+--------> Operations ---+
-           |
-           (when evaluable)
-           |
-           Value Abstract Type
+
+Conceptual model
+================
+
+Ideas
+
+    - A program is composed of elements (''program model elements'')
+
+    - Each element represents either a structural (program, module, class, block),
+      procedural (closure, functions, methods), operational (conditionals,
+      repetitions, instanciations) or state-related (globals, variables,
+      attributes) element.
+
+    - Each element has an associated abstract type, and an associated concrete
+      type, which may be itself. For instance, the concrete type of a 'Class'
+      program element is the program element itself (or is it ?)
+
+>   [Abstract Type] <------+
+>       |                  |
+>       |                  |
+>       |                  |
+>       |   +-------[Dataflow Slot]
+>       |   |              |
+>       |   |              |
+>       |   v              |
+>   [Element] ------> [Dataflow] <---+
+>       |                            |
+>       |                            |
+>   (is process)                  (alter)
+>       |                            |
+>       |                            |
+>       +---> [Operations] ----------+
+>                  |
+>                  (when evaluable)
+>                  |
+>           [Result Abstract Type]
 
 Passes:
 
   [ ] Element pass
   [ ] Data-flow pass
+
+
+Refactoring the module architecture
+===================================
+
+>   lambdafactory                      (main package)
+>   
+>       main.spy                       (main, command-line interface)
+>   
+>       model                          (the core)
+>           interfaces.spy             (program model interface)
+>           base.spy                   (default implementation)
+>   
+>       passes                         (transformation passes)
+>           resolving.spy              (add dataflow pass)
+>           typing.spy                 (add type information pass)
+>           async.spy                  (rewrite asynchronous invocations)
+>           sdoc.spy                   (create documentation)
+>   
+>       frontends                      (directory for plugins)
+>           interfaces.py              (front-end interfaces - NOT SURE)
+>           sugar                      (the sugar front-end)
+>               parser.py              (the main sugar parser)
+>   
+>       backends                       (available back-ends)
+>           javascript
+>               runtime.js             (back-end specific runtime)
+>               importer.spy           (importing mechanisms)
+>               writer.spy             (code generation)
+>               runner.spy             (interpreter/compiler wrapper)
+>           actionscript
+>               runtime.as
+>               importer.spy
+>               writer.spy
+>               runner.spy
+>           python
+>               runtime.py
+>               importer.spy
+>                writer.spy
+>                 runner.spy
+>   
+>         lib                          (default lambda-factory library)
+>             core
+>                 datatypes.sg
+>                operations.sg
+
+# EOF - sw=4 ts=4 et syn=kiwi

@@ -177,7 +177,7 @@ class AbstractWriter:
 		res = []
 		if theClass is None: theClass = self.getCurrentClass()
 		cur = theClass
-		for ref in cur.getSuperClasses():
+		for ref in cur.getParentClasses():
 			ref = ref.getReferenceName()
 			target, context = self.resolve(ref, cur.getDataFlow())
 			if target:

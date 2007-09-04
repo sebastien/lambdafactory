@@ -182,6 +182,17 @@
 		
 @end
 
+@protocol IAssignable
+| Assignable elements are elements that can be bound to slots. In many
+| languages, only a subset of elements can be assigned. For instance, in
+| Java, you cannot assign a package to something:
+|
+| >     Object my_package = java.lang.Object
+|
+| while in some other languages (like JavaScript), you could do that.
+@end
+
+
 # FIXME: Elements can be named (Function, Class, Slots), and then
 # references can reference these names (getReferenceName)
 @protocol IReferencable: IAssignable
@@ -201,15 +212,6 @@
 
 @end
 
-@protocol IAssignable
-| Assignable elements are elements that can be bound to slots. In many
-| languages, only a subset of elements can be assigned. For instance, in
-| Java, you cannot assign a package to something:
-|
-| >     Object my_package = java.lang.Object
-|
-| while in some other languages (like JavaScript), you could do that.
-@end
 
 @protocol IEvaluable
 | An evaluable is an element that can produce a value. Evaluable elements
@@ -446,7 +448,7 @@
 	@abstract @method getName 
 	|	Returns this class name. It can be `None` if the class is anonymous.
 
-	@abstract @method getSuperClasses 
+	@abstract @method getParentClasses 
 	|	Returns the list of inherited classes references.
 
 @end
@@ -470,6 +472,15 @@
 @protocol IProgram: IContext
 |	The program is the core context and entry point for almost every
 |	operation offered by LambdaFactory.
+
+	@abstract @method setFactory factory
+	| Sets the factory that was used to create this program
+
+	@abstract @method getFactory
+	| Gets the factory that was used to create this program. It can be
+	| used to create more elements in the program.
+
+
 @end
 
 # TODO: Maybe processed are contexts as well ?

@@ -124,7 +124,7 @@ class Writer(javascript.Writer):
 
 	def writeClass( self, classElement ):
 		"""Writes a class element."""
-		parents = classElement.getSuperClasses()
+		parents = classElement.getParentClasses()
 		parent  = ""
 		if len(parents) == 1:
 			parent = "extends %s " % (self.write(parents[0]))
