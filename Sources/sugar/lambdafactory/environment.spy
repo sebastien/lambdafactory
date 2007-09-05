@@ -1,5 +1,5 @@
 @module lambdafactory.environment
-@import os
+@import os, sys
 @import DefaultReporter from lambdafactory.reporter
 @import Factory from lambdafactory.modelbase
 
@@ -52,9 +52,11 @@
 	@property writer:<Class|None>
 	@property reader:<Class|None>
 	@property runner:<Class|None>
+	@property environment
 	@property readExtensions = []
 	
-	@constructor name
+	@constructor name, environment
+		self environment = environment
 		self name = name
 		self basePath = basePath
 		self runtime  = loadModule "runtime"
@@ -81,7 +83,7 @@
 			var module = eval "m"
 			return getattr(module, "MAIN_CLASS")
 		catch e
-			# print ("PROBLEM WHEN LOADING", moduleName, e)
+			environment report error ("Language " + name + ", cannot import module " + moduleName + ": " + str(e))
 			return None
 		end
 	@end
@@ -177,7 +179,7 @@
 	| Loads the given language plug-in and returns a dictionary containing
 	| its features.
 		if not (name in languages keys())
-			languages[name] = new Language(name)
+			languages[name] = new Language(name, self)
 		end
 		return languages[name]
 	@end

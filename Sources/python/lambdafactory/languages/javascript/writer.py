@@ -37,7 +37,7 @@ class Writer(AbstractWriter):
 		"""Returns the JavaScript code for the runtime that is necassary to run
 		the program."""
 		this_file = os.path.abspath(__file__)
-		js_runtime = os.path.join(os.path.dirname(this_file), "runtimes", "js", "extend+runtime.js")
+		js_runtime = os.path.join(os.path.dirname(this_file), "runtime.js")
 		f = file(js_runtime, 'r') ; text = f.read() ; f.close()
 		return text
 

@@ -1,7 +1,8 @@
 @module lambdafactory.main
 | Command-line interface and main module for LambdaFactory
-@import os, sys, optparse
+@import os, sys, optparse, tempfile
 @import Environment from lambdafactory.environment
+@import FileSplitter from lambdafactory.modelwriter
 
 @class Command
 
@@ -31,11 +32,12 @@
 		if type(arguments) != list
 			arguments = list(arguments)
 		end
+		var status        = 0
 		var option_parser = optparse OptionParser()
 		var options       = []
 		var args          = []
 		@embed Python
-		|option_parser.add_option("-r", "--run",  action="store_true", dest="run",
+		|option_parser.add_option("-r", "--run",  action="store_true", dest="run", default=True,
 		|	help=self.OPT_RUN)
 		|option_parser.add_option("-c", "--compile", action="store_true", dest="compile",
 		|help=self.OPT_COMPILE)
@@ -62,18 +64,46 @@
 		var source_path = args[0]
 		parseSource(source_path)
 		transformProgram()
-		if options compile
-			# REWRITE: language = options get "lang" ? guessLanguage(source_path) ? raise ERR_NOT_LANGUAGE_SPECIFIED
-			var language = options lang
-			if not language
-				language = guessLanguage(source_path)
-			end
-			if not language
-				raise ERR_NO_LANGUAGE_SPECIFIED(source_path)
-			end
-			print (writeProgram (language))
+		# REWRITE: language = options get "lang" ? guessLanguage(source_path) ? raise ERR_NOT_LANGUAGE_SPECIFIED
+		# We get the language to which we'd like to translate the program to
+		var language = options lang
+		if not language
+			language = guessLanguage(source_path)
 		end
-		
+		if not language
+			raise ERR_NO_LANGUAGE_SPECIFIED(source_path)
+		end
+		# We compile, run or simply test
+		if options compile
+			var program_source = writeProgram (language)
+			if not options output
+				output write( program_source + "\n" )
+			if os path isdir (options output)
+				var splitter = modelwriter FileSplitter(options output)
+				splitter fromString ( program_source )
+			else
+				var f = file(options output, mode = "a")
+				f write(program_source)
+			end
+		if options run
+			var program_source = writeProgram (language, True)
+			var file_and_path = tempfile mkstemp()
+			os write(file_and_path[0],program_source )
+			os close(file_and_path[0])
+			var args_str = " " join(args[1:])
+			var interpreter = None
+			var path = file_and_path[1]
+			var compilers = None
+			# FIXME: LambdaFactory should support compilers and runners
+			if (options lang in ["js","javascript"] or not options lang)
+				interpreter = os getenv("SUGAR_JS") or "js"
+				command = interpreter + " " + path + " " + args_str
+			else
+				raise ERR_NO_RUNTIME_AVAILABLE(language)
+			end
+			status = (os system(command) / 256) or status
+			os unlink(path)
+		end
 	@end
 	
 	@method parseSource sourcePath
@@ -96,13 +126,17 @@
 		return None
 	@end
 	
-	@method writeProgram inLanguage
+	@method writeProgram inLanguage, includeRuntime=False
 		var language = environment loadLanguage (inLanguage)
 		# FIXME: The language should be initialized for the environment
 		var writer   = language writer()
 		# FIXME: Writer should take environ
 		writer report = environment report
-		return writer write (environment getProgram ())
+		var program_source = writer write (environment getProgram ())
+		if includeRuntime
+			program_source = writer getRuntimeSource() + program_source
+		end
+		return program_source
 	@end
 	
 	@method createEnvironment
