@@ -27,7 +27,8 @@
 	@end
 	
 	@method walk element
-		context push (element)
+		# REWRITE: context push(element)
+		context append (element)
 		var continue_walking = True
 		# We iterate on the program passes, if every pass 
 		for program_pass in environment getPasses()
@@ -220,7 +221,7 @@
 				var imported_module_name = i getImportOrigin()
 				var imported_module = context environment importModule (imported_module_name)
 			else
-				context environment error ("ImportationPass: operation not implemented " + repr(i))
+				context environment report error ("ImportationPass: operation not implemented " + repr(i))
 			end
 		end
 		return False

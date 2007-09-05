@@ -48,7 +48,7 @@
 	@property parsers={}
 	@property passes=[]
 	@property writer=None
-	@property reporter=DefaultReporter
+	@property report=DefaultReporter
 	@property importer=None
 	
 	@constructor program

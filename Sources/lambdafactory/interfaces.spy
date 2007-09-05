@@ -463,6 +463,12 @@
 
 @protocol IModule: IContext
 
+	@abstract @method addImportOperation operation
+	| Returns the list of import operations declared in this module
+	|  
+	@abstract @method getImportOperations
+	| Returns the list of import operations declared in this module 
+	
 	@abstract @method getClasses
 	| Returns the list of classes defined in this module. This is mainly a
 	| convenience function.

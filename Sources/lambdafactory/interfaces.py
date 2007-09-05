@@ -382,6 +382,7 @@ class IContext(IElement, IDataFlowOwner):
 	def getParent(self):
 		"""Returns the parent context for this context (if any)"""
 		raise Exception("Abstract method IContext.getParent not implemented")
+	
 
 class IClass(IContext, IReferencable):
 	def setParentClasses(self):
@@ -438,6 +439,15 @@ class IInterface(IAbstractClass):
 	pass
 
 class IModule(IContext):
+	def addImportOperation(self, operation):
+		"""Returns the list of import operations declared in this module
+		"""
+		raise Exception("Abstract method IModule.addImportOperation not implemented")
+	
+	def getImportOperations(self):
+		"""Returns the list of import operations declared in this module """
+		raise Exception("Abstract method IModule.getImportOperations not implemented")
+	
 	def getClasses(self):
 		"""Returns the list of classes defined in this module. This is mainly a
 		convenience function."""
@@ -455,6 +465,10 @@ class IProgram(IContext):
 	def getModule(self, moduleAbsoluteName):
 		"""Returns the module (if any) with the given absolute name"""
 		raise Exception("Abstract method IProgram.getModule not implemented")
+	
+	def getModules(self):
+		"""Returns the list of modules declared/imported in this program"""
+		raise Exception("Abstract method IProgram.getModules not implemented")
 	
 	def setFactory(self, factory):
 		"""Sets the factory that was used to create this program"""

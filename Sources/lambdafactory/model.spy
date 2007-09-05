@@ -377,6 +377,21 @@
 
 @class Module: Context, IModule, IAssignable, IReferencable
 
+	@property importOperations = []
+	
+	@constructor name=Undefined
+		#REWRITE: super( name )
+		Context __init__ ( self,  name)
+	@end
+	
+	@method addImportOperation operation
+		importOperations append (operation)
+	@end
+	
+	@method getImportOperations
+		return importOperations
+	@end
+		
 	@method getClasses
 		@embed Python
 		| return [value for name, value in self.getSlots() if isinstance(value, IClass)]

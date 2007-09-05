@@ -7,7 +7,7 @@
 # License   : Revised BSD License
 # -----------------------------------------------------------------------------
 # Creation  : 02-Nov-2006
-# Last mod  : 14-Aug-2007
+# Last mod  : 05-Sep-2007
 # -----------------------------------------------------------------------------
 
 import interfaces, reporter
@@ -449,7 +449,11 @@ class AbstractResolver:
 			imported_element = operation.getImportedElement()
 			imported_alias = operation.getAlias() or imported_element
 			module = program.getModule(import_origin)
-			df_slot, scope = module.getDataFlow().resolve(imported_element)
-			dataflow.declareImported(imported_alias, df_slot.getValue(), module)
+			if module:
+				df_slot, scope = module.getDataFlow().resolve(imported_element)
+				dataflow.declareImported(imported_alias, df_slot.getValue(), module)
+			else:
+				self.report.error("Resolver: Import operation: module not found: %s" % (import_origin))
+				
 
 # EOF

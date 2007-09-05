@@ -19,8 +19,7 @@ class PassContext:
 		self.walk(self.environment.getProgram())
 	
 	def walk(self, element):
-		self_1188932123_583=self.context
-		self_1188932123_583.append(element)
+		self.context.append(element)
 		continue_walking=True
 		for program_pass in self.environment.getPasses():
 			handle=program_pass.getHandle(element)
@@ -37,8 +36,7 @@ class PassContext:
 			if isinstance(element, interfaces.IProcess):
 				for operation in element.getOperations():
 					self.walk(operation)
-		self_1188932123_5144=self.context
-		self_1188932123_5144.pop()
+		self.context.pop()
 	
 	def filterContext(self, interface):
 		return filter(lambda x:isinstance(x,interface), self.context) 
@@ -84,8 +82,7 @@ class PassContext:
 			target=resolution[0]
 			context=resolution[1]
 			parent_class = self.value
-			self_1188932123_5212=parents
-			self_1188932123_5212.append(parent_class)
+			parents.append(parent_class)
 	
 	def resolve(self, referenceOrName, contextOrDataFlow=None):
 		if contextOrDataFlow is None: contextOrDataFlow = None
@@ -143,6 +140,8 @@ class ImportationPass(Pass):
 			elif isinstance(i, interfaces.IImportSymbolOperation):
 				imported_module_name=i.getImportOrigin()
 				imported_module=context.environment.importModule(imported_module_name)
+			elif True:
+				context.environment.report.error(("ImportationPass: operation not implemented " + repr(i)))
 		return False
 	
 

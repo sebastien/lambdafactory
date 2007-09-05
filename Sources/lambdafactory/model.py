@@ -48,8 +48,7 @@ class Element:
 		return self.source
 	
 	def annotate(self, annotation):
-		self_1188936592_1745=self.annotations
-		self_1188936592_1745.append(annotation)
+		self.annotations.append(annotation)
 	
 	def getAnnotations(self, withName):
 		 return [a for a in self.annotations if a.getName() == withName]
@@ -147,8 +146,7 @@ class Context(Element):
 			raise ERR_SLOT_VALUE_NOT_ASSIGNABLE
 		if ((assignParent and isinstance(evaluable, IContext)) or hasattr(evaluable, "setParent")):
 			evaluable.setParent(self)
-		self_1188936592_223=self.slots
-		self_1188936592_223.append([name, evaluable])
+		self.slots.append([name, evaluable])
 	
 	def hasSlot(self, name):
 		for slot in self.slots:
@@ -188,8 +186,7 @@ class Class(Context, IClass, IReferencable, IAssignable):
 			value=slot[1]
 			if ((without == None) or (not isinstance(value, without))):
 				if isinstance(value, interface):
-					self_1188936592_2172=res
-					self_1188936592_2172.append(value)
+					res.append(value)
 		return res
 	
 	def getAttributes(self):
@@ -224,8 +221,7 @@ class Class(Context, IClass, IReferencable, IAssignable):
 		for the_class in classes:
 			if (not (isinstance(the_class, IReference) or isinstance(the_class, IResolution))):
 				raise ERR_PARENT_CLASS_REFERENCE_EXPECTED
-			self_1188936592_2233=self.parentClasses
-			self_1188936592_2233.append(the_class)
+			self.parentClasses.append(the_class)
 	
 	def getInheritedClassMethods(self, resolver):
 		"""Returns the inherited class methods as a dict of lists. This operation
@@ -270,6 +266,17 @@ class Interface(Class, IInterface):
 	pass
 
 class Module(Context, IModule, IAssignable, IReferencable):
+	def __init__ (self, name=None):
+		self.importOperations = []
+		if name is None: name = None
+		Context.__init__(self, name)
+	
+	def addImportOperation(self, operation):
+		self.importOperations.append(operation)
+	
+	def getImportOperations(self):
+		return self.importOperations
+	
 	def getClasses(self):
 		 return [value for name, value in self.getSlots() if isinstance(value, IClass)]
 		
@@ -282,14 +289,14 @@ class Program(Context, IProgram):
 		Context.__init__(self, name)
 	
 	def addModule(self, module):
-		self_1188936592_2654=self.modules
-		self_1188936592_2654.append(module)
+		self.modules.append(module)
 	
 	def getModule(self, moduleAbsoluteName):
 		for module in self.modules:
 			if (module.getName() == moduleAbsoluteName):
 				return module
-	def getModules(self,):
+	
+	def getModules(self):
 		return self.modules
 	
 	def setFactory(self, factory):
@@ -311,8 +318,7 @@ class Process(Context, IContext, IProcess, IAbstractable):
 	def addOperation(self, operation):
 		if self.isAbstract():
 			raise ERR_ABSTRACT_PROCESS_NO_OPERATIONS
-		self_1188936592_2611=self.operations
-		self_1188936592_2611.append(operation)
+		self.operations.append(operation)
 	
 	def getOperations(self):
 		return self.operations
@@ -320,8 +326,7 @@ class Process(Context, IContext, IProcess, IAbstractable):
 	def asList(self):
 		res=[]
 		for o in self.operations:
-			self_1188936592_2792=res
-			self_1188936592_2792.append(o.asList())
+			res.append(o.asList())
 		return tuple([self.__class__.__name__, tuple(self.operations)])
 	
 
@@ -393,13 +398,11 @@ class Operation(Element, IEvaluable, IOperation):
 	
 	def setOpArgument(self, i, argument):
 		while (len(self.opArguments) < i):
-			self_1188936592_2933=self.opArguments
-			self_1188936592_2933.append(None)
+			self.opArguments.append(None)
 		self.opArguments[i] = argument
 	
 	def addOpArgument(self, argument):
-		self_1188936592_2910=self.opArguments
-		self_1188936592_2910.append(argument)
+		self.opArguments.append(argument)
 	
 	def getOpArguments(self):
 		return self.opArguments
@@ -412,14 +415,11 @@ class Operation(Element, IEvaluable, IOperation):
 		for a in self.opArguments:
 			if (not (type(a) in [tuple, list])):
 				if a:
-					self_1188936592_2940=args
-					self_1188936592_2940.append(a.asList())
+					args.append(a.asList())
 				elif True:
-					self_1188936592_318=args
-					self_1188936592_318.append(a)
+					args.append(a)
 			elif True:
-				self_1188936592_37=args
-				self_1188936592_37.append(a)
+				args.append(a)
 		return tuple([self.__class__.__name__, tuple(args)])
 	
 
@@ -606,8 +606,7 @@ class List(Value, IList):
 		Value.__init__(self)
 	
 	def addValue(self, value):
-		self_1188936592_34100=self.values
-		self_1188936592_34100.append(value)
+		self.values.append(value)
 	
 	def getValues(self):
 		return self.values
@@ -622,8 +621,7 @@ class Dict(Value, IDict):
 		Value.__init__(self)
 	
 	def setValue(self, key, value):
-		self_1188936592_3561=self.items
-		self_1188936592_3561.append([key, value])
+		self.items.append([key, value])
 	
 	def getItems(self):
 		return self.items

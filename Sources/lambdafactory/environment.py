@@ -27,7 +27,7 @@ class Importer:
 		module_path=self.findSugarModule(moduleName)
 		if module_path:
 			self.environment.reporter.info("Importing module", moduleName, "from", module_path)
-			module = self.environment.parseModule(module_path, moduleName)
+			module=self.environment.parseModule(module_path, moduleName)
 			self.environment.getProgram().addModule(module)
 			self.environment.reporter.info("done.")
 	
@@ -38,7 +38,7 @@ class Environment:
 		self.parsers = {}
 		self.passes = []
 		self.writer = None
-		self.reporter = DefaultReporter
+		self.report = DefaultReporter
 		self.importer = None
 		self.program = program
 		self.importer = Importer(self)
@@ -51,8 +51,7 @@ class Environment:
 		pass
 	
 	def addPass(self, programPass):
-		self_1188936253_1364=self.passes
-		self_1188936253_1364.append(programPass)
+		self.passes.append(programPass)
 	
 	def getPass(self, name):
 		for p in self.passes:
@@ -74,6 +73,7 @@ class Environment:
 	def parseModule(self, path, name):
 		extension=os.path.splitext(path)[-1][1:].lower()
 		parser=self.parsers.get(extension)
-		return parser.parse(path, name)[1]
+		source_and_module=parser.parse(path, name)
+		return source_and_module[1]
 	
 
