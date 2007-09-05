@@ -15,6 +15,9 @@ all:  $(BUILD_DIR) $(SUGAR_PRODUCT) $(PYTHON_PRODUCT)
 clean:
 	rm -rf $(BUILD_DIR)/build.id $(BUILD_DIR)/lambdafactory
 
+reset: clean
+	cd $(BUILD_DIR) && hg update -C
+
 $(BUILD_DIR):
 	hg init $(BUILD_DIR)
 

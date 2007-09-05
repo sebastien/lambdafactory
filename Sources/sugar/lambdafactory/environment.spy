@@ -1,6 +1,7 @@
 @module lambdafactory.environment
 @import os
-@import DefaultReporter from reporter
+@import DefaultReporter from lambdafactory.reporter
+@import Factory from lambdafactory.modelbase
 
 @class Importer
 | The Environment importer class acts like a "hub" for language-specific
@@ -13,7 +14,6 @@
 	@constructor environment
 		self environment = environment
 	@end
-	
 
 	@method findSugarModule moduleName
 		var paths = [ os getcwd() ]
@@ -43,18 +43,68 @@
 
 @end
 
+@class Language
+	
+	@property name:String
+	@property basePath:String
+	@property runtime:<Class|None>
+	@property importer:<Class|None>
+	@property writer:<Class|None>
+	@property reader:<Class|None>
+	@property runner:<Class|None>
+	@property readExtensions = []
+	
+	@constructor name
+		self name = name
+		self basePath = basePath
+		self runtime  = loadModule "runtime"
+		self importer = loadModule "importer"
+		self writer   = loadModule "writer"
+		self reader   = loadModule "reader"
+		self runner   = loadModule "runner"
+	@end
+
+	@method addRecognizedExtension extension
+		readExtensions append (extension lower())
+	@end
+
+	@method recognizes path
+		var extension = os path splitext (path)[-1][1:] lower()
+		return extension in readExtensions
+	@end
+		
+	@method loadModule moduleName
+	| Dynamically loads the language module
+		try
+			# print ("import lambdafactory.languages." + name + "." + moduleName + " as m")
+			exec ("import lambdafactory.languages." + name + "." + moduleName + " as m")
+			var module = eval "m"
+			return getattr(module, "MAIN_CLASS")
+		catch e
+			# print ("PROBLEM WHEN LOADING", moduleName, e)
+			return None
+		end
+	@end
+
+@end
+
 @class Environment
 	
+	@property factory=None
 	@property program=None
 	@property parsers={}
 	@property passes=[]
 	@property writer=None
 	@property report=DefaultReporter
 	@property importer=None
+	@property languages={}
+	# FIXME: This should be a pass
+	@property resolver=None
 	
-	@constructor program
-		self program = program
+	@constructor
 		importer = new Importer(self)
+		factory  = new Factory()
+		program  = factory createProgram ()
 	@end
 
 	@method addParser parser, extensions
@@ -96,11 +146,40 @@
 		return importer importModule(name)
 	@end
 
-	@method parseModule path, name
+	@method parseFile path
 		var extension = os path splitext (path)[-1][1:] lower()
 		var parser = parsers get (extension)
-		var source_and_module = parser parse(path, name)
+		var source_and_module = parser parse(path)
 		return source_and_module[1]
 	@end
 	
+	# FIXME: The language should be initialized for the environment
+	@method listAvailableLanguages
+	| Returns a list of available languages
+		var base_dir = os path join(os path dirname(os path abspath (__file__)),"languages")
+		var languages = []
+		for name in os listdir(base_dir)
+			if os path isdir(os path join(base_dir, name))
+				languages append (name)
+			end
+		end
+		return languages
+	@end
+	
+	@method loadLanguages
+		for language in listAvailableLanguages()
+			loadLanguage(language)
+		end
+	@end
+
+	@method loadLanguage name
+	@as internal
+	| Loads the given language plug-in and returns a dictionary containing
+	| its features.
+		if not (name in languages keys())
+			languages[name] = new Language(name)
+		end
+		return languages[name]
+	@end
+
 @end

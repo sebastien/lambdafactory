@@ -8,19 +8,16 @@
 # License   : Revised BSD License
 # -----------------------------------------------------------------------------
 # Creation  : 03-Aug-2007
-# Last mod  : 04-Sep-2007
+# Last mod  : 05-Sep-2007
 # -----------------------------------------------------------------------------
 
 # TODO: When constructor is empty, should assign default attributes anyway
 # TODO: Support for variable and keyword arguments
 
-from modelwriter import AbstractWriter, flatten
-from resolver import AbstractResolver
-import interfaces, reporter
+from lambdafactory.modelwriter import AbstractWriter, flatten
+import lambdafactory.interfaces as interfaces
+import lambdafactory.reporter as reporter
 import os.path, re, time, string, random
-
-class Resolver(AbstractResolver):
-	pass
 
 #------------------------------------------------------------------------------
 #
@@ -32,7 +29,6 @@ class Writer(AbstractWriter):
 
 	def __init__( self, reporter=reporter.DefaultReporter ):
 		AbstractWriter.__init__(self, reporter)
-		self.resolver = Resolver(reporter=reporter)
 		self.runtimePrefix = "__LambdaFactory__."
 		self.supportedEmbedLanguages = ["python"]
 
@@ -70,7 +66,11 @@ class Writer(AbstractWriter):
 		if name == interfaces.Constants.ModuleInit: name = "init"
 		if name == interfaces.Constants.MainFunction: name = "main"
 		return name
-	
+
+	def writeProgram( self, programElement ):
+		"""Writes a Program element."""
+		return "\n".join(map(self.write, programElement.getModules()))
+
 	def writeModule( self, moduleElement):
 		"""Writes a Module element."""
 		main = False
@@ -805,4 +805,5 @@ class Writer(AbstractWriter):
 		else:
 			return None
 
+MAIN_CLASS = Writer
 # EOF

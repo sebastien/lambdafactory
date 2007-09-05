@@ -1,0 +1,122 @@
+@module lambdafactory.main
+| Command-line interface and main module for LambdaFactory
+@import os, sys, optparse
+@import Environment from lambdafactory.environment
+
+@class Command
+
+	@shared OPT_LANG       = "Specifies the target language (js, java, pnuts, actionscript)"
+	@shared OPT_OUTPUT     = "Specifies the output where the files will be generated (stdout, file or folder)"
+	@shared OPT_VERBOSE    = "Verbose parsing output (useful for debugging)"
+	@shared OPT_API        = "Generates SDoc API documentation (give the apifilename)"
+	@shared OPT_TEST       = "Tells wether the source code is valid or not"
+	@shared OPT_DEFINE     = "Defines a specific target (for @specific)"
+	@shared OPT_RUN        = "Directly runs the script (default)"
+	@shared OPT_COMPILE    = "Compiles the given code to the output (current) directory"
+	@shared OPT_RUNTIME    = "Outputs the runtime as well when compiled"
+	@shared OPT_VERSION    = "Ensures that Sugar is at least of the given version"
+	
+	@property programName
+	@property environment:Environment
+	
+	@constructor programName="lambdaf"
+		self programName = programName
+		createEnvironment()
+		environment loadLanguages()
+		setupEnvironment()
+		setupPasses()
+	@end
+	
+	@method run arguments, output=sys stdout
+		if type(arguments) != list
+			arguments = list(arguments)
+		end
+		var option_parser = optparse OptionParser()
+		var options       = []
+		var args          = []
+		@embed Python
+		|option_parser.add_option("-r", "--run",  action="store_true", dest="run",
+		|	help=self.OPT_RUN)
+		|option_parser.add_option("-c", "--compile", action="store_true", dest="compile",
+		|help=self.OPT_COMPILE)
+		|option_parser.add_option("-R", "--runtime", action="store_true", dest="runtime",
+		|help=self.OPT_RUNTIME)
+		|option_parser.add_option("-l", "--lang", action="store", dest="lang",
+		|	help=self.OPT_LANG)
+		|option_parser.add_option("-o", "--output", action="store", dest="output", 
+		|	help=self.OPT_OUTPUT)
+		|option_parser.add_option("-v", "--verbose", action="store_true", dest="verbose",
+		|	help=self.OPT_VERBOSE)
+		|option_parser.add_option("-m", "--module", action="store_true", dest="module",
+		|	help=self.OPT_VERBOSE)
+		|option_parser.add_option("-a", "--api", action="store", dest="api",
+		|	help=self.OPT_API)
+		|option_parser.add_option("-t", "--test", action="store_true", dest="test", 
+		|	help=self.OPT_TEST)
+		|option_parser.add_option("-D", "--define", action="append", dest="targets", 
+		|	help=self.OPT_DEFINE)
+		|option_parser.add_option("-V", None, action="store", dest="version", 
+		|	help=self.OPT_VERSION)
+		|options, args = option_parser.parse_args(args=arguments)
+		@end
+		var source_path = args[0]
+		parseSource(source_path)
+		transformProgram()
+		if options compile
+			# REWRITE: language = options get "lang" ? guessLanguage(source_path) ? raise ERR_NOT_LANGUAGE_SPECIFIED
+			var language = options lang
+			if not language
+				language = guessLanguage(source_path)
+			end
+			if not language
+				raise ERR_NO_LANGUAGE_SPECIFIED(source_path)
+			end
+			print (writeProgram (language))
+		end
+		
+	@end
+	
+	@method parseSource sourcePath
+		return environment parseFile (sourcePath) 
+	@end
+	
+	@method transformProgram
+		# FIXME: This should be a pass
+		# FIXME: Typing should be a pass
+		environment resolver flow (environment getProgram())
+		# FIXME: Writing should be a pass as well
+	@end
+	
+	@method guessLanguage sourcePath
+		for name_and_value in environment languages items()
+			if name_and_value[1] recognizes (sourcePath)
+				return name_and_value[0]
+			end
+		end
+		return None
+	@end
+	
+	@method writeProgram inLanguage
+		var language = environment loadLanguage (inLanguage)
+		# FIXME: The language should be initialized for the environment
+		var writer   = language writer()
+		# FIXME: Writer should take environ
+		writer report = environment report
+		return writer write (environment getProgram ())
+	@end
+	
+	@method createEnvironment
+		environment = Environment()
+	@end
+	
+	@method setupEnvironment
+	@end
+
+	@method setupPasses
+		# Passes:
+		#  Importation
+		#  Resolution
+		#  Typing
+	@end
+	
+@end

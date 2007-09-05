@@ -137,7 +137,7 @@ class AbstractWriter:
 	# This list is used in the the write method
 	# NOTE: When adding elements, be sure to put the *particular first*
 	INTERFACES = (
-		"Module", "Class",
+		"Program", "Module", "Class",
 		"Destructor", "Constructor","ClassMethod", "Method", "Function", "Closure", "Block",
 		"ModuleAttribute", "ClassAttribute", "Attribute", "Argument", "Operator", "Reference",
 		"Number", "String", "List", "Dict",
@@ -317,6 +317,10 @@ class Writer(AbstractWriter):
 	program representation. You can call the main @write method to get the
 	representatio of any model element."""
 
+	def writeProgram( self, programElement ):
+		"""Writes a Program element."""
+		return self._format(map(self.write, programElement.getModules()))
+		
 	def writeModule( self, moduleElement ):
 		"""Writes a Module element."""
 		return self._format("@module %s" % (moduleElement.getName()),

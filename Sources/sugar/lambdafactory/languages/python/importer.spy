@@ -121,5 +121,6 @@
 			var v = None
 		end
 	@end
-
 @end
+
+@shared MAIN_CLASS = Importer

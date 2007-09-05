@@ -43,7 +43,13 @@ DISTROCONTENT   = $(DOCUMENTATION) $(SOURCES) $(SCRIPTS) $(TESTS) $(RESOURCES) \
 
 PACKAGE         = lambdafactory
 MAIN            = main.py
-MODULES         = lambdafactory.interfaces lambdafactory.modelbase lambdafactory.modeltypes lambdafactory.modelwriter lambdafactory.typecast
+MODULES         = lambdafactory.interfaces \
+                  lambdafactory.modelbase \
+                  lambdafactory.modelwriter \
+                  lambdafactory.modeltypes \
+                  lambdafactory.typecast \
+                  lambdafactory.passes \
+                  lambdafactory.reporter
 
 TEST_MAIN       = $(TESTS)/$(PROJECT)Test.py
 SOURCE_FILES    = $(shell find $(SOURCES) -name "*.py")
