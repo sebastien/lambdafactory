@@ -186,6 +186,7 @@ class AbstractResolver:
 		"ImportOperation",
 	
 		"Program",
+		"Module",
 		"Process",
 		"Context"	
 		
@@ -256,10 +257,13 @@ class AbstractResolver:
 				if not isinstance(element, the_interface): continue
 				if not hasattr(self, "flow" + name ):
 					raise Exception("Resolver does not define flow method for: " + name)
+				# FIXME: I don't get that
 				if dataflow:
 					res = getattr(self, "flow" + name)(element, dataflow)
 					break
 				else:
+					# This only happens when flowing import operations from the
+					# module
 					res = getattr(self, "flow" + name)(element)
 					break
 			if not element.hasDataFlow():
@@ -267,6 +271,12 @@ class AbstractResolver:
 		self.context.pop()
 		return res
 
+	def flowModule( self, element ):
+		dataflow = self.flowContext(element)
+		for import_op in element.getImportOperations():
+			self._flow(import_op, dataflow)
+		return dataflow
+		
 	def flowClass( self, element ):
 		dataflow = self.flowContext(element)
 		self.stage3.append((self._flowClassStage3, (self.captureContext(), element, dataflow)))
@@ -442,7 +452,8 @@ class AbstractResolver:
 
 	def _flowImportOperationStage2( self, program, operation, dataflow):
 		#FIXME: Thiss is a hack, should use getCurrentModule instead
-		current_module = dataflow.parents[0].element
+		#current_module = dataflow.parents[0].element
+		current_module = dataflow.element
 		dataflow       = current_module.getDataFlow()
 		if isinstance( operation, interfaces.IImportSymbolOperation):
 			import_origin = operation.getImportOrigin()

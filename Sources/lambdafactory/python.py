@@ -8,7 +8,7 @@
 # License   : Revised BSD License
 # -----------------------------------------------------------------------------
 # Creation  : 03-Aug-2007
-# Last mod  : 04-Aug-2007
+# Last mod  : 04-Sep-2007
 # -----------------------------------------------------------------------------
 
 # TODO: When constructor is empty, should assign default attributes anyway
@@ -87,14 +87,11 @@ class Writer(AbstractWriter):
 			code.append("__version__ = '%s'" % (version.getContent()))
 		module_init = []
 		imports     = []
+		imports.extend(moduleElement.getImportOperations())
 		for name, value in moduleElement.getSlots():
 			# TODO: Sort values according to their dependencies
 			if name == interfaces.Constants.ModuleInit:
-				for o in value.getOperations():
-					if isinstance(o, interfaces.IImportOperation):
-						imports.append(self.write(o))
-					else:
-						module_init.append(self.write(o))
+				module_init = value.getOperations()
 			else:
 				code.append(self.write(value))
 			if name == interfaces.Constants.MainFunction:
@@ -105,7 +102,7 @@ class Writer(AbstractWriter):
 			# order.
 			imports.reverse()
 			for i in imports:
-				code.insert(imports_offset, i)
+				code.insert(imports_offset, self.write(i))
 		# We take care of the module_init
 		if module_init:
 			code.extend(module_init)
