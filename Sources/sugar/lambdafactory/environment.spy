@@ -1,3 +1,4 @@
+@module lambdafactory.environment
 @import os
 @import DefaultReporter from reporter
 

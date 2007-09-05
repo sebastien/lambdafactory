@@ -1,3 +1,4 @@
+@module lambdafactory.model
 | This module is the default implementation of the LambdaFactory interfaces.
 | It defines objects that allow you to build a complete OO program model on
 | which you can apply transformation passes, and from which you can generate

@@ -1,3 +1,4 @@
+@module lambdafactory.passes
 @import reporter
 @import interfaces
 
