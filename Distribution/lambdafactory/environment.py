@@ -123,15 +123,17 @@ class Environment:
 	def importModule(self, name):
 		return self.importer.importModule(name)
 	
-	def parseFile(self, path):
+	def parseFile(self, path, moduleName=None):
+		if moduleName is None: moduleName = None
 		extension=os.path.splitext(path)[-1][1:].lower()
 		parser=self.parsers.get(extension)
-		source_and_module=parser.parse(path)
+		source_and_module=parser.parse(path, moduleName)
 		return source_and_module[1]
 	
-	def parseSource(self, source, extenstion):
+	def parseSource(self, source, extenstion, moduleName=None):
+		if moduleName is None: moduleName = None
 		parser=self.parsers.get(extenstion)
-		source_and_module=parser.parseSource(source)
+		source_and_module=parser.parseSource(source, moduleName)
 		return source_and_module[1]
 	
 	def listAvailableLanguages(self):

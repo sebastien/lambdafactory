@@ -161,16 +161,16 @@
 		return importer importModule(name)
 	@end
 
-	@method parseFile path
+	@method parseFile path, moduleName=None
 		var extension = os path splitext (path)[-1][1:] lower()
 		var parser = parsers get (extension)
-		var source_and_module = parser parse(path)
+		var source_and_module = parser parse(path, moduleName)
 		return source_and_module[1]
 	@end
 
-	@method parseSource source, extenstion
+	@method parseSource source, extenstion, moduleName=None
 		var parser = parsers get (extenstion)
-		var source_and_module = parser parseSource(source)
+		var source_and_module = parser parseSource(source, moduleName)
 		return source_and_module[1]
 	@end
 	

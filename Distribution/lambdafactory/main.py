@@ -19,6 +19,7 @@ class Command:
 	OPT_RUNTIME = "Outputs the runtime as well when compiled"
 	OPT_VERSION = "Ensures that Sugar is at least of the given version"
 	OPT_SOURCE = "Directly gives the source"
+	OPT_MODULE = "Specifies the module name"
 	def __init__ (self, programName=None):
 		self.programName = None
 		self.environment = None
@@ -57,8 +58,8 @@ class Command:
 			help=self.OPT_OUTPUT)
 		option_parser.add_option("-v", "--verbose", action="store_true", dest="verbose",
 			help=self.OPT_VERBOSE)
-		option_parser.add_option("-m", "--module", action="store_true", dest="module",
-			help=self.OPT_VERBOSE)
+		option_parser.add_option("-m", "--module", action="store", dest="module",
+			help=self.OPT_MODULE)
 		option_parser.add_option("-a", "--api", action="store", dest="api",
 			help=self.OPT_API)
 		option_parser.add_option("-t", "--test", action="store_true", dest="test", 
@@ -73,10 +74,10 @@ class Command:
 		
 		language=options.lang
 		if options.source:
-			self.parseSource(args[0], options.source)
+			self.parseSource(args[0], options.source, options.module)
 		elif True:
 			source_path=args[0]
-			self.parseFile(source_path)
+			self.parseFile(source_path, options.module)
 			if (not language):
 				language = self.guessLanguage(source_path)
 		self.transformProgram()
@@ -109,11 +110,13 @@ class Command:
 			status = ((os.system(command) / 256) or status)
 			os.unlink(path)
 	
-	def parseFile(self, sourcePath):
-		return self.environment.parseFile(sourcePath)
+	def parseFile(self, sourcePath, moduleName=None):
+		if moduleName is None: moduleName = None
+		return self.environment.parseFile(sourcePath, moduleName)
 	
-	def parseSource(self, source, extension):
-		return self.environment.parseSource(source, extension)
+	def parseSource(self, source, extension, moduleName=None):
+		if moduleName is None: moduleName = None
+		return self.environment.parseSource(source, extension, moduleName)
 	
 	def transformProgram(self):
 		self.environment.runPasses()

@@ -19,7 +19,8 @@
 	@shared OPT_RUNTIME    = "Outputs the runtime as well when compiled"
 	@shared OPT_VERSION    = "Ensures that Sugar is at least of the given version"
 	@shared OPT_SOURCE     = "Directly gives the source"
-
+	@shared OPT_MODULE     = "Specifies the module name"
+	
 	@property programName
 	@property environment:Environment
 	
@@ -61,8 +62,8 @@
 		|	help=self.OPT_OUTPUT)
 		|option_parser.add_option("-v", "--verbose", action="store_true", dest="verbose",
 		|	help=self.OPT_VERBOSE)
-		|option_parser.add_option("-m", "--module", action="store_true", dest="module",
-		|	help=self.OPT_VERBOSE)
+		|option_parser.add_option("-m", "--module", action="store", dest="module",
+		|	help=self.OPT_MODULE)
 		|option_parser.add_option("-a", "--api", action="store", dest="api",
 		|	help=self.OPT_API)
 		|option_parser.add_option("-t", "--test", action="store_true", dest="test", 
@@ -77,10 +78,10 @@
 		@end
 		var language = options lang
 		if options source
-			parseSource(args[0], options source)
+			parseSource(args[0], options source, options module)
 		else
 			var source_path = args[0]
-			parseFile(source_path)
+			parseFile(source_path, options module)
 			# REWRITE: language = options get "lang" ? guessLanguage(source_path) ? raise ERR_NOT_LANGUAGE_SPECIFIED
 			# We get the language to which we'd like to translate the program to
 			if not language
@@ -124,12 +125,12 @@
 		end
 	@end
 	
-	@method parseFile sourcePath
-		return environment parseFile (sourcePath) 
+	@method parseFile sourcePath, moduleName=None
+		return environment parseFile (sourcePath, moduleName) 
 	@end
 
-	@method parseSource source, extension
-		return environment parseSource (source, extension) 
+	@method parseSource source, extension, moduleName=None
+		return environment parseSource (source, extension, moduleName) 
 	@end
 		
 	@method transformProgram
