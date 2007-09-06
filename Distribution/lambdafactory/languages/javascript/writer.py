@@ -56,6 +56,10 @@ class Writer(AbstractWriter):
 		if name == interfaces.Constants.ModuleInit: name = "init"
 		if name == interfaces.Constants.MainFunction: name = "main"
 		return name
+
+	def writeProgram( self, programElement ):
+		"""Writes a Program element."""
+		return "\n".join(map(self.write, programElement.getModules()))
 		
 	def writeModule( self, moduleElement):
 		"""Writes a Module element."""
@@ -341,8 +345,7 @@ class Writer(AbstractWriter):
 	def writeReference( self, element ):
 		"""Writes an argument element."""
 		symbol_name  = element.getReferenceName()
-		value_slot, scope = self.resolve(symbol_name)
-		value = value_slot and value_slot.getValue()
+		value, scope = self.resolve(symbol_name)
 		if scope and scope.hasSlot(symbol_name):
 			value = scope.getSlot(symbol_name)
 		if symbol_name == "self":

@@ -13,7 +13,7 @@
 
 # FIXME: Evaluable == Expression ?
 
-from model import *
+import model
 import modeltypes as mt
 
 def assertImplements(v,i):
@@ -43,15 +43,16 @@ class Factory:
 	`Invocation`, `Function`, etc. you just have to give this module to the
 	factory constructor and it will be used to generate the given element."""
 
-	MainFunction  = Constants.MainFunction
-	CurrentModule = Constants.CurrentModule
-	Constructor   = Constants.Constructor
-	Destructor    = Constants.Destructor
-	ModuleInit    = Constants.ModuleInit
-	CurrentValue  = Constants.CurrentValue
 
-	def __init__( self, module ):
+
+	def __init__( self, module=model ):
 		self._module = module
+		self.MainFunction  = model.Constants.MainFunction
+		self.CurrentModule = model.Constants.CurrentModule
+		self.Constructor   = model.Constants.Constructor
+		self.Destructor    = model.Constants.Destructor
+		self.ModuleInit    = model.Constants.ModuleInit
+		self.CurrentValue  = model.Constants.CurrentValue
 
 	def _getImplementation( self, name ):
 		if not hasattr(self._module, name ):

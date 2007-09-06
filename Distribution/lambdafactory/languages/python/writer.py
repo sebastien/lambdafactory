@@ -67,6 +67,10 @@ class Writer(AbstractWriter):
 		if name == interfaces.Constants.MainFunction: name = "main"
 		return name
 
+	def writeProgram( self, programElement ):
+		"""Writes a Program element."""
+		return "\n".join(map(self.write, programElement.getModules()))
+
 	def writeModule( self, moduleElement):
 		"""Writes a Module element."""
 		main = False
@@ -87,7 +91,7 @@ class Writer(AbstractWriter):
 		for name, value in moduleElement.getSlots():
 			# TODO: Sort values according to their dependencies
 			if name == interfaces.Constants.ModuleInit:
-				module_init = map(self.write, value.getOperations())
+				module_init = value.getOperations()
 			else:
 				code.append(self.write(value))
 			if name == interfaces.Constants.MainFunction:

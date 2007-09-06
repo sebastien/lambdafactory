@@ -181,13 +181,13 @@ class AbstractWriter:
 		cur = theClass
 		for ref in cur.getParentClasses():
 			ref = ref.getReferenceName()
-			target, context = self.resolveAbsoluteOrLocal(ref, cur.getDataFlow())
+			target, context = self.resolve(ref, cur.getDataFlow())
 			if target:
 				parent = target.value
 				assert parent
 				res.append(parent)
 			else:
-				sys.stderr.write("[!] Cannot resolve parent class: %s\n" % (ref))
+				sys.stderr.write("[!]Cannot resolve parent class: %s\n" % (ref))
 		return res
 
 	def getCurrentClassAncestors( self, theClass = None ):
@@ -268,27 +268,6 @@ class AbstractWriter:
 			raise Exception("No dataflow available in: %s" % (self.contexts))
 			return (None,None)
 
-	def resolveAbsoluteOrLocal( self, name, dataflow=None ):
-		current_context = self.contexts[-1]
-		if not dataflow: 
-			dataflow = self.getCurrentDataFlow()
-		if dataflow:
-			res = dataflow.resolveAbsoluteOrLocal(name)
-			if not res[0] or not res[1]:
-				#raise Exception("Unresolved symbol:" + name )
-				self.report.error("Unresolved symbol:" + name, current_context)
-			assert len(res) == 2
-			return res
-		else:
-			i = len(self.contexts) - 2
-			while i >= 0:
-				element = self.contexts[i]
-				if element.hasDataFlow():
-					return self.resolveAbsoluteOrLocal(name, element.getDataFlow())
-				i -= 1
-			raise Exception("No dataflow available in: %s" % (self.contexts))
-			return (None,None)
-			
 	def write( self, element ):
 		res = None
 		if element is None: return ""
@@ -304,14 +283,6 @@ class AbstractWriter:
 					self.contexts.pop()
 					return result
 		raise Exception("Element implements unsupported interface: " + str(element))
-
-	def writeProgram( self, programElement ):
-		"""Writes a Program element."""
-		res = []
-		for module in programElement.getModules():
-			if not module.isImported():
-				res.append(self.write(module))
-		return "\n".join(res)
 
 	def _format( self, *values ):
 		return format(*values)

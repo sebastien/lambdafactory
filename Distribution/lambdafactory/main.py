@@ -87,7 +87,7 @@ class Command:
 			if (not options.output):
 				output.write((program_source + "\n"))
 			elif os.path.isdir(options.output):
-				splitter=modelwriter.FileSplitter(options.output)
+				splitter=FileSplitter(options.output)
 				splitter.fromString(program_source)
 			elif True:
 				f=file(options.output, mode = "a")

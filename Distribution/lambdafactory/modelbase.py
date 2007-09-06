@@ -16,13 +16,25 @@
 import model
 import modeltypes as mt
 
+def assertImplements(v,i):
+	return True
+
+class ModelException(Exception):
+	pass
+
+class ModelBadArgument(Exception):
+	def __init__( self, someClass, expectedClass, argument ):
+		Exception.__init__(self, "Bad argument: %s expected %s, got %s" \
+		% (someClass, expectedClass, argument))
+
+
+
 # ------------------------------------------------------------------------------
 #
 # FACTORY
 #
 # ------------------------------------------------------------------------------
 
-# # FIXME: Move this somewhere else
 class Factory:
 	"""This class takes a module and look for classes with the same name as the
 	`createXXX` methods and instanciates them.
@@ -31,18 +43,20 @@ class Factory:
 	`Invocation`, `Function`, etc. you just have to give this module to the
 	factory constructor and it will be used to generate the given element."""
 
+
+
 	def __init__( self, module=model ):
 		self._module = module
-		self.MainFunction  = module.Constants.MainFunction
-		self.CurrentModule = module.Constants.CurrentModule
-		self.Constructor   = module.Constants.Constructor
-		self.Destructor    = module.Constants.Destructor
-		self.ModuleInit    = module.Constants.ModuleInit
-		self.CurrentValue  = module.Constants.CurrentValue
+		self.MainFunction  = model.Constants.MainFunction
+		self.CurrentModule = model.Constants.CurrentModule
+		self.Constructor   = model.Constants.Constructor
+		self.Destructor    = model.Constants.Destructor
+		self.ModuleInit    = model.Constants.ModuleInit
+		self.CurrentValue  = model.Constants.CurrentValue
 
 	def _getImplementation( self, name ):
 		if not hasattr(self._module, name ):
-			raise Exception("Module %s does not implement: %s" % \
+			raise ModelException("Module %s does not implement: %s" % \
 			(self._module, name))
 		else:
 			return getattr(self._module, name)
