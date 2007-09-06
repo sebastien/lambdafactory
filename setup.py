@@ -44,8 +44,19 @@ setup(
     keywords    = "program representation, structural analysis, documentation",
     url         =  WEBSITE,
     download_url=  WEBSITE + "/%s-%s.tar.gz" % (NAME.lower(), VERSION) ,
-    package_dir = { "": "Sources" },
-    packages    = ["lambdafactory"],
+    package_dir = { "": "Distribution" },
+    packages    = [
+		"lambdafactory",
+		"lambdafactory.languages",
+		"lambdafactory.languages.python",
+		"lambdafactory.languages.javascript",
+		"lambdafactory.languages.actionscript",
+	],
+    package_data= {
+		"lambdafactory.languages.python": ["*.*"],
+		"lambdafactory.languages.javascript": ["*.*"],
+		"lambdafactory.languages.actionscript": ["*.*"]
+	},
     #scripts     = ["Scripts/"],
     classifiers = [
       "Development Status :: 4 - Beta",
