@@ -3,6 +3,7 @@
 @import os, sys, optparse, tempfile
 @import Environment from lambdafactory.environment
 @import FileSplitter from lambdafactory.modelwriter
+@import lambdafactory.passes as passes
 
 @class Command
 
@@ -111,10 +112,9 @@
 	@end
 	
 	@method transformProgram
+		environment runPasses()
 		# FIXME: This should be a pass
-		# FIXME: Typing should be a pass
 		environment resolver flow (environment getProgram())
-		# FIXME: Writing should be a pass as well
 	@end
 	
 	@method guessLanguage sourcePath
@@ -149,8 +149,11 @@
 	@method setupPasses
 		# Passes:
 		#  Importation
+		environment addPass (new passes ImportationPass() )
 		#  Resolution
+		# environment addPass (new passes ResolutionPass() )
 		#  Typing
+		# environment addPass (new passes TypingPass() )
 	@end
 	
 @end

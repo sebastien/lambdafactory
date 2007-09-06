@@ -319,6 +319,12 @@
 	|	the resolution operation to actually resolve a value from the name.
 @end
 
+@protocol IAbsoluteReference: IReference
+| An absolute reference is a specific kind of reference that does not
+| necessarily resolve in the current context, but will rather use the program
+| root context as a starting point.
+@end
+
 @protocol IOperator: IReference
 
 	@abstract @method setPriority priority 
@@ -464,15 +470,26 @@
 
 @protocol IModule: IContext
 
+	@abstract @method isImported:<True|False>
+	| A stub module is a module that does not have any bound implementation.
+	| Stub modules are typically used by Programs when adding a module such
+	| as 'a.b.c' where 'a' and 'a.b' will be stub modules unless they were
+	| or will be imported.
+
+	@abstract @method setImported value=True
+
 	@abstract @method addImportOperation operation
 	| Returns the list of import operations declared in this module
 	|  
-	@abstract @method getImportOperations
+	@abstract @method getImportOperations:<[IClass]>
 	| Returns the list of import operations declared in this module 
 	
-	@abstract @method getClasses
+	@abstract @method getClasses:<[IClass]>
 	| Returns the list of classes defined in this module. This is mainly a
 	| convenience function.
+
+	@abstract @method getParentName:<String|None>
+	| Returns the parent name of this module (if any) 
 
 @end
 

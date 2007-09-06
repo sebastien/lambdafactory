@@ -23,7 +23,14 @@ class Reporter:
 		self._onWarning = []
 		self._onError   = []
 		self._alreadyDone = {}
+		self._indent    = 0
 
+	def indent( self ):
+		self._indent += 1
+
+	def dedent( self ):
+		self._indent -= 1
+		
 	def isDone(self, message, element, update=True):
 		key = "%s:%s" % (message, element)
 		if self._alreadyDone.has_key(key):
@@ -43,7 +50,7 @@ class Reporter:
 		map( lambda c:c(message, element), self._onError)
 
 	def info( self, *message):
-		sys.stderr.write("--- %s\n" % (" ".join(map(str, message))))
+		sys.stderr.write("--- %s%s\n" % ((" " * self._indent) , " ".join(map(str, message))))
 
 	def onError( self, callback ):
 		self._onError.append(callback)

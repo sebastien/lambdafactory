@@ -332,7 +332,7 @@
 		for class_ref in getParentClasses()
 			var parent_name = class_ref getReferenceName()
 			# We must be in the dataflow phase
-			slot_and_scope = getDataFlow() resolve(parent_name)
+			slot_and_scope = getDataFlow() resolveAbsoluteOrLocal(parent_name)
 			var slot, scope = slot_and_scope 
 			var the_class = slot getValue()
 			for method in the_class getClassMethods()
@@ -356,7 +356,7 @@
 		for class_ref in getParentClasses()
 			var parent_name = class_ref getReferenceName()
 			# We must be in the dataflow phase
-			slot_and_scope = getDataFlow() resolve(parent_name)
+			slot_and_scope = getDataFlow() resolveAbsoluteOrLocal(parent_name)
 			var slot, scope = slot_and_scope 
 			var the_class    = slot getValue()
 			for attr in the_class getClassAttributes()
@@ -379,12 +379,25 @@
 @class Module: Context, IModule, IAssignable, IReferencable
 
 	@property importOperations = []
+	@property imported = False
 	
 	@constructor name=Undefined
 		#REWRITE: super( name )
 		Context __init__ ( self,  name)
 	@end
 	
+	@method getParentName
+		return "." join (name split "." [0:-1]) or None
+	@end
+
+	@method isImported
+		return imported
+	@end
+	
+	@method setImported value=True
+		imported = value
+	@end
+
 	@method addImportOperation operation
 		importOperations append (operation)
 	@end
@@ -413,7 +426,11 @@
 	@end
 
 	@method addModule module
-		# FIXME: Assert not added twice, nor name collision
+		if module in modules
+			print ("MODULE", module,module getName())
+			print (modules)
+			raise (ERR_MODULE_ADDED_TWICE(module))
+		end
 		modules append (module)
 	@end
 	
@@ -909,6 +926,16 @@
 		return tuple([self __class__ __name__, referenceName])
 	@end
 	
+@end
+
+@class AbsoluteReference: Reference, IAbsoluteReference
+
+	@property referenceName:String
+	
+	@constructor name:String
+		Reference __init__ (self, name)
+	@end
+		
 @end
 
 @class Operator: Reference, IOperator

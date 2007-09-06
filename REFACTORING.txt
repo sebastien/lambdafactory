@@ -33,6 +33,13 @@ Ideas
       type, which may be itself. For instance, the concrete type of a 'Class'
       program element is the program element itself (or is it ?)
 
+Add a resolution scheme:
+
+ - Program, Scope
+   Program uses Namespace (modules)
+   Scope uses the context (and dataflow)
+
+
 >   [Abstract Type] <------+
 >       |                  |
 >       |                  |

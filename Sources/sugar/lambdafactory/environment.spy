@@ -2,6 +2,7 @@
 @import os, sys
 @import DefaultReporter from lambdafactory.reporter
 @import Factory from lambdafactory.modelbase
+@import PassContext from lambdafactory.passes
 
 @class Importer
 | The Environment importer class acts like a "hub" for language-specific
@@ -34,10 +35,12 @@
 	@method importModule moduleName
 		var module_path = findSugarModule(moduleName)
 		if module_path
-			environment reporter info ("Importing module", moduleName, "from", module_path)
-			var module = environment parseModule (module_path, moduleName)
-			environment getProgram() addModule(module)
-			environment reporter info ("done.")
+			environment report info ("Importing module", moduleName, "from", module_path, "...")
+			environment report indent()
+			# The module is automatically addded to the program
+			var module = environment parseFile (module_path)
+			module setImported(True)
+			environment report dedent()
 		end
 	@end
 
@@ -83,7 +86,10 @@
 			var module = eval "m"
 			return getattr(module, "MAIN_CLASS")
 		catch e
-			environment report error ("Language " + name + ", cannot import module " + moduleName + ": " + str(e))
+			var error = str(e)
+			if not (error startswith "No module")
+				environment report error ("Language " + name + ", cannot import module " + moduleName + ": " + str(e))
+			end
 			return None
 		end
 	@end
@@ -134,6 +140,12 @@
 	
 	@method getPasses
 		return passes
+	@end
+	
+	@method runPasses
+		var context = new PassContext(self)
+		context run ()
+		return context
 	@end
 	
 	@method getProgram

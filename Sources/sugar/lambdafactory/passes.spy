@@ -205,14 +205,9 @@
 	@constructor
 		Pass __init__ (self)
 	@end
-	
-	@method getModuleImportations context, module
-		var module_init = module getSlot(interfaces Constants ModuleInit)
-		return context filter(module_init getOperations(), interfaces IImportOperation)
-	@end
 
 	@method onModule context, module
-		var imports = getModuleImportations(context, module)
+		var imports = module getImportOperations()
 		for i in imports
 			if isinstance(i, interfaces IImportModuleOperation)
 				var imported_module_name = i getImportedModuleName()

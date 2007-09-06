@@ -35,6 +35,9 @@ class DataFlowSlot:
 	def getValue(self):
 		return self.value
 
+	def getOrigin(self):
+		return self.origin
+
 	def getAbstractType(self):
 		return self.type
 
@@ -59,7 +62,7 @@ class DataFlowSlot:
 		# FIXME: Do resolution of operation to get the final type
 		return self.type
 
-	def __str__(self):
+	def __repr__(self):
 		return '<Slot("%s"=%s):%s@%s%s>' % (self.name, self.value, self.type, self.slotType, self.origin)
 
 class DataFlow(interfaces.IDataFlow):
@@ -83,6 +86,8 @@ class DataFlow(interfaces.IDataFlow):
 	IMPORTED    = "Imported"
 
 	def __init__( self, element, parent=None ):
+		# FIXME: Resolution should happen in pass, no program required
+		self.program  = None
 		self.element  = element
 		self.slots    = []
 		self.parents  = []
@@ -143,6 +148,25 @@ class DataFlow(interfaces.IDataFlow):
 					return r
 			return (None,None)
 
+	# FIXME: Should go into pass
+	def resolveAbsolute(self, name):
+		root = self.getRoot()
+		return (None, None)
+
+	# FIXME: Should go into pass
+	def resolveAbsoluteOrLocal(self, name):
+		# FIXME:
+		name_parts = name.split(".")
+		if len(name_parts) == 1:
+			res = self.resolve(name)
+			return res
+		else:
+			parent_module = ".".join(name_parts[:-1])
+			symbol_name   = name_parts[-1]
+			module = self.program.getModule(parent_module)
+			res = module.getDataFlow().resolve(symbol_name)
+			return res
+			
 	def defines( self, name ):
 		slot = self.getSlot(name)
 		if slot:
@@ -228,6 +252,8 @@ class AbstractResolver:
 		B, which cannot be created before A has a dataflow), and making the
 		flowing process simpler.
 		"""
+		# FIXME: Hack
+		self.program = program
 		self._flow(program)
 		while self.stage2:
 			f, a = self.stage2.pop()
@@ -265,9 +291,13 @@ class AbstractResolver:
 					# This only happens when flowing import operations from the
 					# module
 					res = getattr(self, "flow" + name)(element)
+					res.program = self.program
 					break
 			if not element.hasDataFlow():
 				element.setDataFlow(self.getCurrentDataFlow())
+		# FIXME: HACK
+		if res:
+			res.program = self.program
 		self.context.pop()
 		return res
 
@@ -295,12 +325,12 @@ class AbstractResolver:
 			imported_class = p.getReferenceName()
 			if this_module:
 				this_module = this_module[0]
-				slot, defined_in = this_module.getDataFlow().resolve(p.getReferenceName())
+				slot, defined_in = this_module.getDataFlow().resolveAbsoluteOrLocal(p.getReferenceName())
 			if slot is None and this_program:
 				this_program = this_program[0]
-				slot, defined_in = this_program.getDataFlow().resolve(p.getReferenceName())
+				slot, defined_in = this_program.getDataFlow().resolveAbsoluteOrLocal(p.getReferenceName())
 			if not defined_in or not slot or not slot.getValue():
-				self.report.error("Undefined parent class:" + p.getReferenceName(), element)
+				self.report.error("Resolver._flowClassStage3: Undefined parent class:" + p.getReferenceName(), element)
 			else:
 				parent_class = slot.getValue()
 				class_flow   = parent_class.getDataFlow()
@@ -464,7 +494,7 @@ class AbstractResolver:
 				df_slot, scope = module.getDataFlow().resolve(imported_element)
 				dataflow.declareImported(imported_alias, df_slot.getValue(), module)
 			else:
-				self.report.error("Resolver: Import operation: module not found: %s" % (import_origin))
+				self.report.error("Resolver._flowImportOperationStage2, module not found: '%s'" % (import_origin))
 				
 
 # EOF
