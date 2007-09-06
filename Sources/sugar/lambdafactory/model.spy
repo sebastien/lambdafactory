@@ -427,8 +427,6 @@
 
 	@method addModule module
 		if module in modules
-			print ("MODULE", module,module getName())
-			print (modules)
 			raise (ERR_MODULE_ADDED_TWICE(module))
 		end
 		modules append (module)

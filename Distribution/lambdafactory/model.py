@@ -302,8 +302,6 @@ class Program(Context, IProgram):
 	
 	def addModule(self, module):
 		if (module in self.modules):
-			print ("MODULE", module, module.getName())
-			print (self.modules)
 			raise ERR_MODULE_ADDED_TWICE(module)
 		self.modules.append(module)
 	

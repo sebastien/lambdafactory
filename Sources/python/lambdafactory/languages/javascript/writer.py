@@ -57,10 +57,6 @@ class Writer(AbstractWriter):
 		if name == interfaces.Constants.MainFunction: name = "main"
 		return name
 
-	def writeProgram( self, programElement ):
-		"""Writes a Program element."""
-		return "\n".join(map(self.write, programElement.getModules()))
-		
 	def writeModule( self, moduleElement):
 		"""Writes a Module element."""
 		code = [
