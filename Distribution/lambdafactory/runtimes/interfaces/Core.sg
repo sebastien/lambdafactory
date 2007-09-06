@@ -1,0 +1,88 @@
+# -----------------------------------------------------------------------------
+# Project           :   LambdaFactory - Runtime Interface
+# Author            :   Sebastien Pierre                  <sebastien@akoha.org>
+# -----------------------------------------------------------------------------
+# Creation date     :   11-Jun-2007
+# Last mod.         :   11-Jun-2007
+# -----------------------------------------------------------------------------
+
+@module Core
+@version 0.74
+
+@protocol Runtime
+
+	@abstract @method range   start:Number, end:Number
+	@abstract @method iterate value:any,  callback:Function, context:any
+
+@end
+
+# -----------------------------------------------------------------------------
+#
+# Core Protocols
+#
+# -----------------------------------------------------------------------------
+
+@protocol Iterable
+
+	@abstract @method hasNext:Boolean
+	@abstract @method next:value
+
+@end
+
+@protocol Enumerable
+
+	@abstract @method count:Number
+	@abstract @method access:any index:Number
+
+@end
+
+@protocol Sliceable
+	@abstract @method slice from:Number, to:Number
+@end
+
+@protocol Callable
+	@abstract @method apply arguments
+@end
+
+# -----------------------------------------------------------------------------
+#
+# Object Protocols
+#
+# -----------------------------------------------------------------------------
+
+@protocol Object
+@end
+
+@protocol ReflectiveObject: Object
+
+	@abstract @method getMethod:Callable name:String
+	@abstract @method getMethodIn:Callable name:String, parent:Class
+	@abstract @method getField:any name:String
+	@abstract @method getClass:Class
+
+@end
+
+@protocol DynamicObject: Object
+
+	@abstract @method getSlot:any name:String
+	@abstract @method setSlot:any name:String, value:any
+
+@end
+
+# -----------------------------------------------------------------------------
+#
+# Class
+#
+# -----------------------------------------------------------------------------
+
+@protocol Class: Object
+
+	@abstract @method getName:String
+	@abstract @method getFullName:String
+
+	@abstract @method getConstructor:Callable
+	@abstract @method getDestructor:Callable
+
+@end
+
+# EOF vim: syn=sugar noet sw=4 ts=4

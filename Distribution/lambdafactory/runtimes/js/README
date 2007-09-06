@@ -1,0 +1,6 @@
+== About the JavaScript Runtime
+
+The LambdaFactory JavaScript runtime uses the
+[Extend](http://www.ivy.fr/js/extend) library to support its object model. You
+should always include this runtime before running JavaScript-translated
+LambdaFactory programs.
