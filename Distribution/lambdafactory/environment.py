@@ -21,8 +21,9 @@ class Importer:
 		module_path=moduleName.replace(".", "/")
 		for path in paths:
 			for ext in ".sg .sjs .sjava .spnuts .spy".split():
-				if os.path.exists((module_path + ext)):
-					return (module_path + ext)
+				file_path=os.path.join(path, (module_path + ext))
+				if os.path.exists(file_path):
+					return file_path
 		return None
 	
 	def importModule(self, moduleName):
