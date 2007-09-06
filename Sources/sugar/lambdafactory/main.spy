@@ -4,6 +4,7 @@
 @import Environment from lambdafactory.environment
 @import FileSplitter from lambdafactory.modelwriter
 @import lambdafactory.passes as passes
+@import StringIO from StringIO
 
 @class Command
 
@@ -17,7 +18,8 @@
 	@shared OPT_COMPILE    = "Compiles the given code to the output (current) directory"
 	@shared OPT_RUNTIME    = "Outputs the runtime as well when compiled"
 	@shared OPT_VERSION    = "Ensures that Sugar is at least of the given version"
-	
+	@shared OPT_SOURCE     = "Directly gives the source"
+
 	@property programName
 	@property environment:Environment
 	
@@ -27,6 +29,15 @@
 		environment loadLanguages()
 		setupEnvironment()
 		setupPasses()
+	@end
+
+ 	@method runAsString args
+	| Runs Sugar, but instead of printing the result to the given
+	| output, it returns a Python string with the result. It is very useful
+	| when embedding LambdaFactory somewhere.
+		var output = new StringIO()
+		run (args, output)
+		return "" + output getvalue()
 	@end
 	
 	@method run arguments, output=sys stdout
@@ -56,23 +67,29 @@
 		|	help=self.OPT_API)
 		|option_parser.add_option("-t", "--test", action="store_true", dest="test", 
 		|	help=self.OPT_TEST)
+		|option_parser.add_option("-s", "--source", action="store", dest="source", 
+		|	help=self.OPT_SOURCE)
 		|option_parser.add_option("-D", "--define", action="append", dest="targets", 
 		|	help=self.OPT_DEFINE)
 		|option_parser.add_option("-V", None, action="store", dest="version", 
 		|	help=self.OPT_VERSION)
 		|options, args = option_parser.parse_args(args=arguments)
 		@end
-		var source_path = args[0]
-		parseSource(source_path)
-		transformProgram()
-		# REWRITE: language = options get "lang" ? guessLanguage(source_path) ? raise ERR_NOT_LANGUAGE_SPECIFIED
-		# We get the language to which we'd like to translate the program to
 		var language = options lang
-		if not language
-			language = guessLanguage(source_path)
+		if options script
+			parseSource(args[0], options script)
+		else
+			var source_path = args[0]
+			parseFile(source_path)
+			# REWRITE: language = options get "lang" ? guessLanguage(source_path) ? raise ERR_NOT_LANGUAGE_SPECIFIED
+			# We get the language to which we'd like to translate the program to
+			if not language
+				language = guessLanguage(source_path)
+			end
 		end
+		transformProgram()
 		if not language
-			raise ERR_NO_LANGUAGE_SPECIFIED(source_path)
+			raise ERR_NO_LANGUAGE_SPECIFIED
 		end
 		# We compile, run or simply test
 		if options compile
@@ -107,10 +124,14 @@
 		end
 	@end
 	
-	@method parseSource sourcePath
+	@method parseFile sourcePath
 		return environment parseFile (sourcePath) 
 	@end
-	
+
+	@method parseSource source, extension
+		return environment parseSource (source, extension) 
+	@end
+		
 	@method transformProgram
 		environment runPasses()
 		# FIXME: This should be a pass

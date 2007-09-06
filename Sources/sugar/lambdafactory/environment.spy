@@ -166,6 +166,12 @@
 		var source_and_module = parser parse(path)
 		return source_and_module[1]
 	@end
+
+	@method parseSource source, extenstion
+		var parser = parsers get (extenstion)
+		var source_and_module = parser parseSource(source)
+		return source_and_module[1]
+	@end
 	
 	# FIXME: The language should be initialized for the environment
 	@method listAvailableLanguages

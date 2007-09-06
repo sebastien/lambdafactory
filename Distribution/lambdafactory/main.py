@@ -5,6 +5,7 @@ import os, sys, optparse, tempfile
 from lambdafactory.environment import Environment
 from lambdafactory.modelwriter import FileSplitter
 import lambdafactory.passes as passes
+from StringIO import StringIO
 __module_name__ = 'lambdafactory.main'
 class Command:
 	OPT_LANG = "Specifies the target language (js, java, pnuts, actionscript)"
@@ -17,6 +18,7 @@ class Command:
 	OPT_COMPILE = "Compiles the given code to the output (current) directory"
 	OPT_RUNTIME = "Outputs the runtime as well when compiled"
 	OPT_VERSION = "Ensures that Sugar is at least of the given version"
+	OPT_SOURCE = "Directly gives the source"
 	def __init__ (self, programName=None):
 		self.programName = None
 		self.environment = None
@@ -26,6 +28,14 @@ class Command:
 		self.environment.loadLanguages()
 		self.setupEnvironment()
 		self.setupPasses()
+	
+	def runAsString(self, args):
+		"""Runs Sugar, but instead of printing the result to the given
+		output, it returns a Python string with the result. It is very useful
+		when embedding LambdaFactory somewhere."""
+		output=StringIO()
+		self.run(args, output)
+		return ("" + output.getvalue())
 	
 	def run(self, arguments, output=None):
 		if output is None: output = sys.stdout
@@ -53,20 +63,25 @@ class Command:
 			help=self.OPT_API)
 		option_parser.add_option("-t", "--test", action="store_true", dest="test", 
 			help=self.OPT_TEST)
+		option_parser.add_option("-s", "--source", action="store", dest="source", 
+			help=self.OPT_SOURCE)
 		option_parser.add_option("-D", "--define", action="append", dest="targets", 
 			help=self.OPT_DEFINE)
 		option_parser.add_option("-V", None, action="store", dest="version", 
 			help=self.OPT_VERSION)
 		options, args = option_parser.parse_args(args=arguments)
 		
-		source_path=args[0]
-		self.parseSource(source_path)
-		self.transformProgram()
 		language=options.lang
+		if options.source:
+			self.parseSource(args[0], options.source)
+		elif True:
+			source_path=args[0]
+			self.parseFile(source_path)
+			if (not language):
+				language = self.guessLanguage(source_path)
+		self.transformProgram()
 		if (not language):
-			language = self.guessLanguage(source_path)
-		if (not language):
-			raise ERR_NO_LANGUAGE_SPECIFIED(source_path)
+			raise ERR_NO_LANGUAGE_SPECIFIED
 		if options.compile:
 			program_source=self.writeProgram(language)
 			if (not options.output):
@@ -94,8 +109,11 @@ class Command:
 			status = ((os.system(command) / 256) or status)
 			os.unlink(path)
 	
-	def parseSource(self, sourcePath):
+	def parseFile(self, sourcePath):
 		return self.environment.parseFile(sourcePath)
+	
+	def parseSource(self, source, extension):
+		return self.environment.parseSource(source, extension)
 	
 	def transformProgram(self):
 		self.environment.runPasses()

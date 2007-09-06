@@ -128,6 +128,11 @@ class Environment:
 		source_and_module=parser.parse(path)
 		return source_and_module[1]
 	
+	def parseSource(self, source, extenstion):
+		parser=self.parsers.get(extenstion)
+		source_and_module=parser.parseSource(source)
+		return source_and_module[1]
+	
 	def listAvailableLanguages(self):
 		"""Returns a list of available languages"""
 		base_dir=os.path.join(os.path.dirname(os.path.abspath(__file__)), "languages")
