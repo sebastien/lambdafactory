@@ -202,12 +202,14 @@ class AbstractResolver:
 		
 		"Class",
 		
+		"Selection",
 		"Iteration",
 		"Repetition",
 		"Evaluation",
 		"Allocation",
 		"Assignation",
 		"ImportOperation",
+#		"Operation",
 	
 		"Program",
 		"Module",
@@ -393,6 +395,11 @@ class AbstractResolver:
 			if flow: flow.addParent(dataflow)
 		return dataflow
 
+#	def flowOperation( self, operation, dataflow=None):
+#		for arg in operation.getOpArguments():
+#			self._flow(arg, dataflow)
+#		return None
+
 	def flowAllocation( self, operation, dataflow ):
 		name = operation.getSlotToAllocate().getName()
 		dataflow.declareVariable(name, operation.getDefaultValue(), operation)
@@ -401,6 +408,12 @@ class AbstractResolver:
 	def flowAssignation(self, operation, dataflow):
 		# TODO
 		self.stage3.append((self._flowAssignationStage3, (self.captureContext(), operation, dataflow)))
+
+	def flowSelection(self, operation, dataflow):
+		dataflow = DataFlow(operation)
+		for rule in operation.getRules():
+			child_flow = self._flow(rule)
+		return dataflow
 
 	def getContextDataflow(self, context):
 		i = len(context) - 1

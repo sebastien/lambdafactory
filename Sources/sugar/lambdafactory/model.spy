@@ -67,7 +67,12 @@
 	@end
 
 	@method annotate annotation:IAnnotation
-		annotations append (annotation)
+		if type(annotation) in [tuple, list]
+			map(annotate, annotation)
+		else
+			assert (isinstance(annotation, IAnnotation))
+			annotations append (annotation)
+		end
 	@end
 	
 	@method getAnnotations withName
@@ -337,8 +342,8 @@
 			var the_class = slot getValue()
 			for method in the_class getClassMethods()
 				name     = method getName()
-				methods = res setdefault(name, [])
-				methods append(meth)
+				methods  = res setdefault(name, [])
+				methods append(method)
 			end
 			for name_and_method in the_class getInheritedClassMethods(resolver) items ()
 				meths = res setdefault(name_and_method[0], [])

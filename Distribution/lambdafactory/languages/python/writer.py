@@ -72,6 +72,7 @@ class Writer(AbstractWriter):
 		main = False
 		code = [
 			"#" + self.SNIP % ("%s.py" % (self.getAbsoluteName(moduleElement).replace(".", "/"))),
+			"#!/usr/bin/env python",
 			self._document(moduleElement),
 			"import sys",
 			"__module__ = sys.modules[__name__]"

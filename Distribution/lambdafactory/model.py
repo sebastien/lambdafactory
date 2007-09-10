@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 """This module is the default implementation of the LambdaFactory interfaces.
 It defines objects that allow you to build a complete OO program model on
 which you can apply transformation passes, and from which you can generate
@@ -47,7 +48,11 @@ class Element:
 		return self.source
 	
 	def annotate(self, annotation):
-		self.annotations.append(annotation)
+		if (type(annotation) in [tuple, list]):
+			map(self.annotate , annotation)
+		elif True:
+			assert(isinstance(annotation, IAnnotation))
+			self.annotations.append(annotation)
 	
 	def getAnnotations(self, withName):
 		 return [a for a in self.annotations if a.getName() == withName]
@@ -236,7 +241,7 @@ class Class(Context, IClass, IReferencable, IAssignable):
 			for method in the_class.getClassMethods():
 				self.name = method.getName()
 				methods = res.setdefault(self.name, [])
-				methods.append(meth)
+				methods.append(method)
 			for name_and_method in the_class.getInheritedClassMethods(resolver).items():
 				meths = res.setdefault(name_and_method[0], [])
 				meths.extend(name_and_method[1])

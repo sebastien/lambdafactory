@@ -39,6 +39,9 @@ Add a resolution scheme:
    Program uses Namespace (modules)
    Scope uses the context (and dataflow)
 
+ - Resolution should happen for a specific operation: if the resolved symbol is
+   declared later in the current scope or a child scope, then it may not be
+   available (see 'bug-scoping.sg' in Sugar)
 
 >   [Abstract Type] <------+
 >       |                  |
