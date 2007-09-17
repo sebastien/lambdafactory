@@ -180,7 +180,16 @@
 
 	@abstract @method setAnnotation name, annotation
 	| Sets the annotation with the given name to this element
-		
+
+	@abstract @method getParent:<IElement|None>
+	| Returns this element parent
+
+	@abstract @method hasParent:<IElement|False>
+	| Tells if this element has a parent or not
+
+	@abstract @method setParent element:<IElement>
+	| Sets this element parent
+
 @end
 
 @protocol IAssignable

@@ -142,7 +142,7 @@
 	@end
 
 	@method setParent parent
-		assert (self parent is None)
+		assert (self parent is None or parent == self parent)
 		if parent
 			parent = parent
 			parent addChild(self)
@@ -237,6 +237,7 @@
 	@property resultAbtractType = Undefined
 	@property sourceLocation    = [-1,-1,-1]
 	@property dataflow          = Undefined
+	@property parent            = Undefined
 	
 	@constructor name=Undefined
 		self name = name
@@ -256,11 +257,29 @@
 	@method hasName
 		return isinstance(self,IReferencable) or isinstance(self,IAnnotation)
 	@end
-	
+
+
+	@method getParent
+		return parent
+	@end
+
+	@method hasParent
+		if parent
+			return parent
+		else
+			return False
+		end
+	@end
+
+	@method setParent parent
+		assert (self parent is None or parent == self parent)
+		self parent = parent
+	@end
+
 	@method setSource source
 		self source = source
 	@end
-	
+
 	@method getSource
 		return source
 	@end
@@ -604,6 +623,7 @@
 
 	@method addImportOperation operation
 		importOperations append (operation)
+		operation setParent ( self )
 	@end
 	
 	@method getImportOperations
@@ -634,6 +654,7 @@
 			raise (ERR_MODULE_ADDED_TWICE(module))
 		end
 		modules append (module)
+		module setParent (self)
 	@end
 	
 	@method getModule moduleAbsoluteName
@@ -679,6 +700,7 @@
 		if isAbstract()
 			raise ERR_ABSTRACT_PROCESS_NO_OPERATIONS
 		end
+		operation setParent(self)
 		operations append (operation)
 	@end
 
@@ -816,8 +838,21 @@
 		#	raise ModelException("Incompatible argument:  %s expected arg %s as  %s, got %s" \
 		#	%  offset, self.ARGS[offset], argument))
 		opArguments append (argument)
+		setValueParent(argument)
 	@end
-	
+
+	@method setValueParent value
+	| Sets the value parent to this
+		if type(value) in [tuple, list]
+			map(setValueParent, value)
+		else
+			# FIXME: This should always be true
+			if isinstance (value, Element )
+				value setParent(self)
+			end
+		end
+	@end
+
 	@method getOpArguments
 		return opArguments
 	@end
@@ -905,6 +940,7 @@
 			res = res[0]
 		end
 		res append (evaluable)
+		setValueParent(evaluable)
 	@end
 
 	@method getRules
@@ -1082,6 +1118,7 @@
 
 	@method addValue value:IElement
 		values append (value)
+		value setParent(self)
 	@end
 	
 	@method getValues

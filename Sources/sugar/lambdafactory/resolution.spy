@@ -1,0 +1,78 @@
+@module lambdafactory.resolution
+@import interfaces from lambdafactory
+@import Pass from lambdafactory.passes
+
+# ============================================================================
+#
+# Resolution Pass
+#
+# ============================================================================
+
+@class ResolutionPass: Pass
+| The importation pass will look for importation operations ('IImportation'),
+| will try to resolve the importations (according to the current environment)
+| and will trigger the loading and parsing of each module into the current
+| program.
+
+	@shared HANDLES = [
+		interfaces IProgram
+		interfaces IModule
+		interfaces IProcess
+		interfaces IContext
+	]
+	@shared NAME    = "Resolution"
+
+	@constructor
+		Pass __init__ (self)
+	@end
+
+	@method getParentDataFlow
+	| Returns the dataflow of the parent element. It is supposed to exist.
+		if self context hasParentElement()
+			return self context getParentElement() getDataFlow()
+		else
+			return None
+		end
+	@end
+
+	@method ensureDataFlow element
+	@as internal
+	| Ensures that the given element has an attached DataFlow
+		var dataflow = element getDataFlow()
+		if not dataflow
+			dataflow = self context getFactory() createDataFlow(element)
+			dataflow setParent ( getParentDataFlow() )
+			element setDataFlow( dataflow )
+		end
+		return dataflow
+	@end
+
+	@method onProgram element
+		# Programs have thir own dataflows
+		var dataflow = ensureDataFlow (element)
+		# FIXME: Factor this in some specific file
+		dataflow declareEnvironment("Undefined", None)
+		dataflow declareEnvironment("True", None)
+		dataflow declareEnvironment("False", None)
+		dataflow declareEnvironment("Null", None)
+	@end
+
+	@method onModule element
+		# Modules have thir own dataflows
+		var dataflow = ensureDataFlow (element)
+		self context environment report info "MODULE RESOLVED"
+	@end
+
+	@method onProcess element
+		# Processes have thir own dataflows
+		var dataflow = ensureDataFlow (element)
+	@end
+
+	@method onContext element
+		# Contexts have thir own dataflows
+		var dataflow = ensureDataFlow (element)
+	@end
+
+@end
+
+# EOF
