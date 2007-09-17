@@ -7,13 +7,212 @@
 @import pprint
 @import modeltypes
 
-
 # ------------------------------------------------------------------------------
 #
 # Data Flow Elements
 #
 # ------------------------------------------------------------------------------
 
+@class DataFlowSlot: IDataFlowSlot
+
+	@property name
+	@property value
+	@property origin
+	@property abstractType
+	@property slotType
+	@property operations = []
+	
+ 	@constructor name, value, origin, slotType
+		self name = name
+		self value = value
+		self origin = origin
+		self slotType = slotType
+	@end
+
+	@method getName
+		return name
+	@end
+		
+	@method getValue
+		return value
+	@end
+
+	@method getOrigin
+		return origin
+	@end
+
+	
+	@method getAbstractType
+		return abstractType
+	@end
+
+	@method addOperation operation
+	| Adds an operation made to this dataflow slot.
+		operations append(operation)
+	@end
+
+	@method __repr__
+		@embed Python
+		|return '<Slot("%s"=%s):%s@%s%s>' % (self.name, self.value, self.type, self.slotType, self.origin)
+		@end
+	@end
+
+@end
+
+@class DataFlow: IDataFlow
+| The DataFlow are ''dynamic contexts'' bound to the various program model
+| elements. DataFlows are typically owned by elements which implement
+| 'IContext', and are linked together by rules defined in the 'Resolver'
+| class.
+|
+| The dataflow bound to most expressions is the one of the enclosing closure
+| (wether it is a function, or method. The dataflow of a method is bound to
+| its parent class, which dataflow is also bound to the parent class dataflow.
+|
+| While 'DataFlow' and 'Context' may appear very similar, they are not the
+| same: contexts are elements that keep track of declared slots, while the
+| dataflow make use of the context to weave the elements togeher.
+
+
+	@shared ARGUMENT    = "Argument"
+	@shared ENVIRONMENT = "Environment"
+	@shared LOCAL       = "Local"
+	@shared IMPORTED    = "Imported"
+
+	@property program:<IProgram>
+	@property element:<IElement>
+	@property parent:<IElement>
+	@property slots:<[IDataFlowSlot>    = []
+	@property children:<[IDataFlow]>    = []
+	
+	@constructor element, parent=Undefined
+		# FIXME: Resolution should happen in pass, no program required
+		self element  = element
+		self children = []
+		if parent
+			addParent(parent)
+		end
+		element setDataFlow(self)
+	@end
+	
+	# FIXME: ARgument should be 'element' rather than 'value'
+	@method declareArgument  name, value
+		self _declare(name, value, None, ARGUMENT)
+	@end
+	
+	@method  declareEnvironment name, value
+		self _declare(name, value, None, ENVIRONMENT)
+	@end
+	
+	@method  declareVariable name, value, origin
+		self _declare(name, value, origin, LOCAL)
+	@end
+	
+	@method  declareImported  name, value, origin
+		self _declare(name, value, origin, IMPORTED)
+	@end
+
+	@method  _declare name, value, origin, slotType
+	| Declares the given slot with the given name, value, origin
+	| and type. This is used internaly by the other 'declare' methods.
+		slots append(new DataFlowSlot(name, value, [origin], slotType))
+	@end
+
+	@method getSlots
+	| Returns the slots defiend for this dataflow.
+		return slots
+	@end
+	
+	@method hasSlot name
+		for slot in slots
+			if slot getName() == name
+				return slot
+			end
+		end
+		return False
+	@end
+	
+	
+	@method getSlot name
+		return hasSlot (name)
+	@end
+
+	@method getParent
+		return [parent]
+	@end
+
+	@method setParent parent
+		assert (self parent is None)
+		if parent
+			parent = parent
+			parent addChild(self)
+		end
+	@end
+
+	@method addChild child
+		assert (not (child in children))
+		children append(child)
+	@end
+	
+	@method getChildren
+		return children
+	@end
+
+	@method resolve name
+	| Returns a couple '(DataFlow slot, IElement)' or '(None,None)'
+	| corresponding to the resolution of the given 'name' in this dataflow.
+		var slot = getSlot(name)
+		if slot
+			return tuple([slot, element])
+		if parent
+			var r = parent resolve(name)
+			if r != tuple([None,None])
+				return r
+			end
+		end
+		return tuple([None, None])
+	@end
+	
+	# FIXME: Should go into pass
+	@method resolveAbsolute name
+		var root = getRoot()
+		return tuple([None, None])
+	@end
+
+	# FIXME: Should go into pass
+	@method resolveAbsoluteOrLocal name
+		@embed Python
+		|# FIXME:
+		|name_parts = name.split(".")
+		|if len(name_parts) == 1:
+		|	res = self.resolve(name)
+		|	return res
+		|else:
+		|	parent_module = ".".join(name_parts[:-1])
+		|	symbol_name   = name_parts[-1]
+		|	module = self.program.getModule(parent_module)
+		|	res = module.getDataFlow().resolve(symbol_name)
+		|	return res
+		@end
+	@end
+	
+	@method defines name
+		var slot = getSlot(name)
+		if slot
+			return tuple([slot, element])
+		else
+			for child in getChildren()
+				var res = child defines(name)
+				# FIXME: I think it should be child.getSlot(name), child
+				if res
+					return child
+				end
+			end
+		end
+		return tuple([None,None])
+	@end
+
+@end
 
 # ------------------------------------------------------------------------------
 #
@@ -28,7 +227,7 @@
 | Property defined in this class may not be relevant to every subclass, but at
 | least they provide a common infrastructure and limit the number of
 | subclasses.
-	
+
 	@shared COUNT               = 0
 	@property id                = Undefined
 	@property name              = Undefined

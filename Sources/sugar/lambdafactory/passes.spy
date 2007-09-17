@@ -33,11 +33,12 @@
 		var continue_walking = True
 		# We iterate on the program passes, if every pass 
 		for program_pass in environment getPasses()
+			program_pass setContext (self)
 			var handle = program_pass getHandle(element)
 			if handle
 				# TODO: Optimize by removing passes not interested in
 				# going deeper
-				if handle (self, element) != False
+				if handle (element) != False
 					continue_walking = True
 				end
 			end
@@ -45,7 +46,7 @@
 		# If we continue the walking, then we recurse on context slots and
 		# in operations (if we're in a process).
 		if continue_walking != False
-			# Is the element a Context ? -> walk slots
+			# Is the element a Program ? -> walk modules
 			if isinstance(element, interfaces IProgram)
 				for module in element getModules()
 					walk (module)
@@ -61,6 +62,20 @@
 			if isinstance(element, interfaces IProcess)
 				for operation in element getOperations()
 					walk (operation)
+				end
+			end
+			# Is the element an Operation ? -> walk arguments
+			if isinstance(element, interfaces IOperation)
+				for op_arg in element getOpArguments()
+					# TODO: Rewrite me
+					if type(op_arg) in [tuple, list]
+						for arg in op_arg
+							assert (isinstance(arg, interfaces IElement))
+							walk(arg)
+						end
+					else
+						walk (op_arg)
+					end
 				end
 			end
 		end
@@ -92,7 +107,31 @@
 				return None
 			end
 		@end
+
+		@method getParentElement
+		@as alias
+			return context[-2]
+		@end
+
+		@method hasParentElement
+			return len(context) > 1
+		@end
+
+		@method getCurrentElement
+		@as alias
+			return res[-1]
+		@end
 		
+		@method getProgram
+		@as alias
+			return environment getProgram()
+		@end
+
+		@method getFactory
+		@as alias
+			return environment getFactory()
+		@end
+
 		@method isIn interface
 			return findInContext (interface ) != None
 		@end
@@ -158,11 +197,17 @@
 # ============================================================================
 
 @class Pass
-	
+
 	@shared HANDLES  = []
 	@shared NAME     = ""
-	
+	@property context = Undefined
+
 	@constructor
+	@end
+
+	@method setContext context
+		print ("SETTING CONTEXT", self, context)
+		self context = context
 	@end
 
 	@method getHandle element:IElement
@@ -205,8 +250,7 @@
 	@constructor
 		Pass __init__ (self)
 	@end
-
-	@method onModule context, module
+	@method onModule module
 		var imports = module getImportOperations()
 		for i in imports
 			if isinstance(i, interfaces IImportModuleOperation)

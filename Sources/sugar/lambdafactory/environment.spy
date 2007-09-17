@@ -154,7 +154,7 @@
 	@end
 	
 	@method getFactory
-		return program getFactory()
+		return factory
 	@end
 	
 	@method importModule name

@@ -508,6 +508,5 @@ class AbstractResolver:
 				dataflow.declareImported(imported_alias, df_slot.getValue(), module)
 			else:
 				self.report.error("Resolver._flowImportOperationStage2, module not found: '%s'" % (import_origin))
-				
 
 # EOF

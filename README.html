@@ -11,12 +11,12 @@ body {
 	padding: 20pt;
 	padding-top: 10pt;
 	background: rgb(255,255,255);
-	font:  10.5pt/15pt sans-serif;
+	font:  9.5pt/15pt "Helvetica Neue",Helvetica,sans-serif;
 	color: rgb(80,80,80);
 }
 
 h1, h2, h3, h4 {
-	font-family: "Trebuchet MS",sans-serif;
+	font-family: "Trebuchet MS",Helvetica,sans-serif;
 	color: rgb(22, 130, 178);
 	font-weight: normal;
 	padding-top: 0.5em;
@@ -78,7 +78,7 @@ aimg {
 }
 
 .kiwiMeta {
-	width: 100%;
+	max-width: 700px;
 	padding: 5pt;
 	margin-bottom:  2em;
 	border-top:  1px solid rgb(150, 220, 238);
@@ -93,24 +93,43 @@ aimg {
 	font-weight: bold;
 }
 
-.kiwiContent h1, .kiwiContent h2{
-	padding-bottom: 5pt;
-	border-bottom:  1px dotted rgb(150, 220, 238);
+.kiwiContent {
+	padding-left: 10pt;
+	max-width: 700px;
+}
+
+.kiwiContent .heading .number {
+	padding-right: 8pt;
+}
+
+.kiwiContent .heading .number .lastDot {
+	display: none;
+}
+
+
+.kiwiContent .heading .number .level0 .lastDot {
+	display: inline;
 }
 
 .kiwiContent h1 {
-	font-size: 1.5em;
-	font-weight: normal;
-	padding-top: 1.5em;
+	font-size: 1.8em;
+	font-weight: bold;
+	margin-top: 1.5em;
+	margin-left: -10pt;
 	padding-bottom: 0.5em;
+	border-bottom:  2px solid rgb(150, 220, 238);
 }
 
 .kiwiContent h2 {
-	font-size: 1.3em;
+	font-size: 1.4em;
+	font-weight: bold;
+	padding-bottom: 0.5em;
+	border-bottom:  1px dotted rgb(150, 220, 238);
 }
 
 .kiwiContent h3 {
-	font-size: 1.1em;
+	font-size: 1.2em;
+	font-weight: normal;
 }
 
 .kiwiContent pre {
@@ -184,6 +203,7 @@ aimg {
 	margin: 0;
 	padding: 5pt;
 	font-size: 90%;
+	min-width: 125px;
 	background-color: rgb(250,250,250);
 	border-bottom: 1px solid rgb(150, 220, 238);
 }

@@ -4,6 +4,7 @@
 @import Environment from lambdafactory.environment
 @import FileSplitter from lambdafactory.modelwriter
 @import lambdafactory.passes as passes
+@import lambdafactory.resolution as resolution
 @import StringIO from StringIO
 
 @class Command
@@ -172,6 +173,7 @@
 		# Passes:
 		#  Importation
 		environment addPass (new passes ImportationPass() )
+		environment addPass (new resolution ResolutionPass())
 		#  Resolution
 		# environment addPass (new passes ResolutionPass() )
 		#  Typing
@@ -179,3 +181,5 @@
 	@end
 	
 @end
+
+# EOF
