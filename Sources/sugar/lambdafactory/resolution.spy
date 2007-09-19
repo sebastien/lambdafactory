@@ -1,5 +1,5 @@
 @module lambdafactory.resolution
-@import interfaces from lambdafactory
+@import lambdafactory.interfaces as interfaces
 @import Pass from lambdafactory.passes
 
 # ============================================================================
@@ -141,12 +141,55 @@
 | resolution has failed (and there is an inconsistency in the program model).
 
 	@shared HANDLES = [
+		interfaces IModule
 		interfaces IClass
 	]
 	@shared NAME    = "ClassParentsResolution"
 
 	@constructor
 		Pass __init__ (self)
+	@end
+
+	@method onModule element
+	| Processes the module import operations and adds them to the module
+	| dataflow
+		var imports = element getImportOperations()
+		var FAILED =  tuple([None,None])
+		for i in imports
+			if isinstance(i, interfaces IImportModuleOperation)
+				var absolute_name  = i getImportedModuleName()
+				var alias          = i getAlias()
+				var slot_and_value = self context resolveAbsolute(absolute_name)
+				if slot_and_value == FAILED
+					self context environment report error ("Imported module not found in scope:", absolute_name, "in", element getName())
+				if alias
+					element getDataFlow() declareImported ( alias, slot_and_value[1], i)
+				end
+			if isinstance(i, interfaces IImportSymbolOperation)
+				var module_name = i getImportOrigin()
+				var symbol_name = i getImportedElement()
+				var slot_and_value = self context resolveAbsolute(module_name)
+				if slot_and_value == FAILED
+					self context environment report error ("Imported module not found in scope:", module_name, "in", element getName())
+				else
+					var symbol_slot_and_value = self context resolve ( symbol_name, slot_and_value[1] )
+					if symbol_slot_and_value == FAILED
+						self context environment report error ("Symbol not found in module scope:", symbol_name, "in", module_name)
+					else
+						var alias = i getAlias()
+						var value = symbol_slot_and_value[1]
+						if alias
+							element getDataFlow() declareImported ( alias, value, i)
+						else
+							element getDataFlow() declareImported ( symbol_name, value, i)
+						end
+					end
+				end
+			else
+				# TEST: When resolution works well, self should not be necessary
+				self context environment report error ("DataFlowBinding: operation not implemented " + repr(i))
+			end
+		end
 	@end
 
 	@method onClass element
@@ -157,6 +200,10 @@
 			else
 				var parent_class = slot_and_value[1]
 				element getDataFlow() addSource (parent_class getDataFlow())
+				# FIXME: Resolution should be SLOT_AND_VALUE and it seems like
+				# it's SLOT_AND_CONTEXT
+				print ("CLASS ", element getName(), "bound to parent", parent_class getName())
+				print ("SLOT AND VALUE", slot_and_value)
 			end
 		end
 	@end

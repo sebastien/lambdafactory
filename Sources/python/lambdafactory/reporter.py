@@ -49,7 +49,7 @@ class Reporter:
 		map( lambda c:c(message), self._onError)
 
 	def info( self, *message):
-		sys.stderr.write("--- %s%s\n" % ((" " * self._indent) , " ".join(map(str, message))))
+		sys.stderr.write(" -  %s%s\n" % ((" " * self._indent) , " ".join(map(str, message))))
 
 	def onError( self, callback ):
 		self._onError.append(callback)

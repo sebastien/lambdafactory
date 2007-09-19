@@ -752,6 +752,14 @@
 		return modules
 	@end 
 	
+	@method getModuleNames
+		var res = []
+		for m in modules
+			res append ( m getName() )
+		end
+		return res
+	@end 
+
 	@method setFactory factory
 	| Sets the factory that was used to create this program
 		self factory = factory

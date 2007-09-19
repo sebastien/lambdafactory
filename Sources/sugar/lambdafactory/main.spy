@@ -27,6 +27,7 @@
 	@shared OPT_VERSION    = "Ensures that Sugar is at least of the given version"
 	@shared OPT_SOURCE     = "Directly gives the source"
 	@shared OPT_MODULE     = "Specifies the module name"
+	@shared OPT_LIB        = "Specifies a path where the library is"
 	
 	@property programName
 	@property environment:Environment
@@ -79,6 +80,8 @@
 		|	help=self.OPT_SOURCE)
 		|option_parser.add_option("-D", "--define", action="append", dest="targets", 
 		|	help=self.OPT_DEFINE)
+		|option_parser.add_option("-L", "--lib", action="append", dest="libraries", 
+		|	help=self.OPT_DEFINE)
 		|option_parser.add_option("-V", None, action="store", dest="version", 
 		|	help=self.OPT_VERSION)
 		|options, args = option_parser.parse_args(args=arguments)
@@ -93,6 +96,11 @@
 			# We get the language to which we'd like to translate the program to
 			if not language
 				language = guessLanguage(source_path)
+			end
+		end
+		if options libraries
+			for l in options libraries
+				environment addLibraryPath (l)
 			end
 		end
 		transformProgram()

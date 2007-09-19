@@ -23,7 +23,10 @@
 	@end
 
 	@method findSugarModule moduleName
-		var paths = [ os getcwd() ]
+		var paths = []
+		for path in environment libraryPaths
+			paths append (path)
+		end
 		if os environ get "SUGARPATH"
 			paths extend (os environ get "SUGARPATH" split ":")
 		end
@@ -48,6 +51,9 @@
 			var module = environment parseFile (module_path)
 			module setImported(True)
 			environment report dedent()
+			return module
+		else
+			environment report error ("Module not found:", moduleName)
 		end
 	@end
 
@@ -82,6 +88,7 @@
 		self runner   = loadModule "runner"
 	@end
 
+
 	@method addRecognizedExtension extension
 		readExtensions append (extension lower())
 	@end
@@ -90,7 +97,7 @@
 		var extension = os path splitext (path)[-1][1:] lower()
 		return extension in readExtensions
 	@end
-		
+
 	@method loadModule moduleName
 	| Dynamically loads the language module
 		try
@@ -133,6 +140,7 @@
 	@property report=DefaultReporter
 	@property importer=None
 	@property languages={}
+	@property libraryPaths   = []
 	# FIXME: This should be a pass
 	@property resolver=None
 	
@@ -140,6 +148,10 @@
 		importer = new Importer(self)
 		factory  = new Factory()
 		program  = factory createProgram ()
+	@end
+
+	@method addLibraryPath path:String
+		libraryPaths append(path)
 	@end
 
 	@method addParser parser, extensions
@@ -171,7 +183,6 @@
 	
 	@method runPasses
 		for p in passes
-			print ("***** RUNNING PASS", p)
 			p run(self)
 		end
 	@end

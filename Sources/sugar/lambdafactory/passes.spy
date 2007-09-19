@@ -1,6 +1,6 @@
 @module lambdafactory.passes
-@import reporter
-@import interfaces
+@import lambdafactory.reporter as reporter
+@import lambdafactory.interfaces as interfaces
 
 # ============================================================================
 #
@@ -199,22 +199,47 @@
 			end
 			return contextOrDataFlow resolve (referenceOrName)
 		@end
-	
+
 		@method resolveAbsolute referenceOrName
 		| Resolves the given reference or string expressed in absolute style
 		|('.'-separated list of names), starting from the root dataflow (the program
 		| dataflow).
-			var current_dataflow = getCurrentElement() getDataFlow() getRoot()
+			var program          = getProgram()
+			var program_dataflow = program getDataFlow()
 			var slot_and_value   = None
+			var matching_module  = None
+			if not program_dataflow
+				raise ERR_NO_DATAFLOW_AVAILABLE
+			end
 			if isinstance(referenceOrName, interfaces IReference)
 				referenceOrName = referenceOrName getReferenceName()
 			end
-			for ref_name in referenceOrName split "."
-				# No dataflow is available, so resolution fails
-				# FIXME: Maybe raise an exception here
-				if not current_dataflow
-					raise ERR_NO_DATAFLOW_AVAILABLE
+			# We get the module with the name that matches most of the reference
+			# name
+			# FIXME: There might be some edge cases with functions having the
+			# same name as a child module (then creating ambiguity)
+			for module in program getModules()
+				var mname       = module getName()
+				var mname_len   = len(mname)
+				# DEBUG:
+				# environment report info ("LOOKING FOR ", referenceOrName, "in", mname, matching_module)
+				if mname == referenceOrName
+					matching_module = module
+					return tuple([None, module])
 				end
+				var match_index = mname find (referenceOrName) 
+				if match_index == 0 and referenceOrName[mname_len] == "."
+					if not matching_module
+						matching_module = module
+					if len(module getName()) > len(matching_module getName())
+						matching_module = module
+					end
+				end
+			end
+			if not matching_module
+				return tuple([None,None])
+			else
+				var symbol_name = referenceOrName
 				# We do a resolution from the current data flow
 				slot_and_value = current_dataflow resolve (ref_name)
 				if not slot_and_value[0]
@@ -322,13 +347,18 @@
 		Pass __init__ (self)
 	@end
 	@method onModule module
+
 		var imports = module getImportOperations()
 		for i in imports
 			if isinstance(i, interfaces IImportModuleOperation)
 				var imported_module_name = i getImportedModuleName()
 				var imported_module_origin = i getAlias()
-				var imported = context environment importModule (imported_module_name)
+				var imported_module = context environment importModule (imported_module_name)
 			if isinstance(i, interfaces IImportSymbolOperation)
+				var imported_module_name = i getImportOrigin()
+				var imported_module = context environment importModule (imported_module_name)
+			if isinstance(i, interfaces IImportSymbolsOperation)
+				print (i getOpArguments())
 				var imported_module_name = i getImportOrigin()
 				var imported_module = context environment importModule (imported_module_name)
 			else
@@ -352,4 +382,4 @@
 	@shared NAME    = "AsynchronousInvocationsExpansion"
 @end
 
-# EOF	
+# EOF
