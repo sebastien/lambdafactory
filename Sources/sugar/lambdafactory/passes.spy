@@ -26,7 +26,7 @@
 	@method run
 		walk ( environment getProgram() )
 	@end
-	
+
 	@method walk element
 		# REWRITE: context push(element)
 		context append (element)
@@ -119,7 +119,7 @@
 
 		@method getCurrentElement
 		@as alias
-			return res[-1]
+			return context[-1]
 		@end
 		
 		@method getProgram
@@ -146,6 +146,10 @@
 
 		@method getCurrentMethod
 			return findInContext (interfaces IMethod)
+		@end
+
+		@method getCurrentContext
+			return findInContext (interfaces IContext)
 		@end
 
 		@method getCurrentClass
@@ -177,8 +181,12 @@
 	@group Resolution
 	
 		@method resolve referenceOrName, contextOrDataFlow=None
+		| Resolves the given 'IReference' or String sing the given context
+		| ('IContext') or dataflow ('IDataFlow'). This usually requires that
+		| you've applied a pass to create the dataflow (see the
+		| 'lambdafactory.resolution.BasicDataFlow' pass).
 			if contextOrDataFlow is None
-				contextOrDataFlow = getCurrentContext() getDataFlow()
+				contextOrDataFlow = getCurrentElement() getDataFlow()
 			if isinstance( contextOrDataFlow, interfaces IElement )
 				contextOrDataFlow = contextOrDataFlow getDataFlow()
 			end
@@ -198,8 +206,8 @@
 
 @class Pass
 
-	@shared HANDLES  = []
-	@shared NAME     = ""
+	@shared   HANDLES  = []
+	@shared   NAME     = ""
 	@property context = Undefined
 
 	@constructor
@@ -207,6 +215,12 @@
 
 	@method setContext context
 		self context = context
+		return context
+	@end
+
+	@method run environment
+	| Runs the pass with the given environment
+		setContext(new PassContext(environment)) run ()
 	@end
 
 	@method getHandle element:IElement

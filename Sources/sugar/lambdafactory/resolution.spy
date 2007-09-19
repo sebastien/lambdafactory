@@ -4,21 +4,45 @@
 
 # ============================================================================
 #
-# Resolution Pass
+# BasicDataFlow
 #
 # ============================================================================
 
-@class ResolutionPass: Pass
-| The importation pass will look for importation operations ('IImportation'),
-| will try to resolve the importations (according to the current environment)
-| and will trigger the loading and parsing of each module into the current
-| program.
+@class BasicDataFlow: Pass
+| The basic dataflow pass will associate DataFlow objects to elements which
+| don't have any already, and will make sure that Context slots are defined
+| in the dataflow, as well as allocations.
+|
+| It is safe to apply this pass more than once on the program, but as it will
+| keep the existing dataflow information, you should make sure that if you
+| modified the program model in the meantime, you clear the dataflow out of the
+| elements that you changed.
+|
+| TODO: Implement an 'invalidateDataFlow' when an operation is replaced/deleted,
+| so that we ensure that the DF remains consitent.
+|
+| Rules:
+| 
+| - DataFlows are created for Context and Processes
+| - DataFlowSlots begin with nothing or an allocation
+| - DataFlowSlots operations are the operations that reference the slot (stage 2)
+|
+| Stages:
+|
+| 1) Create dataflows for Contexts, Processes, Importations and Allocations
+| 2) Properly flow classes (so that resolution in parents can happen)
+| 3) Attaches operations that reference a value to the original slot (this
+|    prepares the path for the typing pass)
 
 	@shared HANDLES = [
 		interfaces IProgram
 		interfaces IModule
+		interfaces IClass
+		interfaces IMethod
 		interfaces IProcess
 		interfaces IContext
+		interfaces IAllocation
+		interfaces IOperation
 	]
 	@shared NAME    = "Resolution"
 
@@ -40,7 +64,9 @@
 	| Ensures that the given element has an attached DataFlow
 		var dataflow = element getDataFlow()
 		if not dataflow
+			self context environment report info ("CREATING DATAFLOW FOR", element)
 			dataflow = self context getFactory() createDataFlow(element)
+			self context environment report info ("PARENT DF FOR", getParentDataFlow())
 			dataflow setParent ( getParentDataFlow() )
 			element setDataFlow( dataflow )
 		end
@@ -60,7 +86,20 @@
 	@method onModule element
 		# Modules have thir own dataflows
 		var dataflow = ensureDataFlow (element)
-		self context environment report info "MODULE RESOLVED"
+	@end
+
+	@method onClass element
+		# Programs have thir own dataflows
+		var dataflow = ensureDataFlow (element)
+		dataflow declareEnvironment("super", None)
+		dataflow declareEnvironment("self", None)
+	@end
+
+	@method onMethod element
+		# Programs have thir own dataflows
+		var dataflow = ensureDataFlow (element)
+		dataflow declareEnvironment("super", None)
+		dataflow declareEnvironment("self", None)
 	@end
 
 	@method onProcess element
@@ -71,6 +110,51 @@
 	@method onContext element
 		# Contexts have thir own dataflows
 		var dataflow = ensureDataFlow (element)
+		for name_and_value in element getSlots()
+			dataflow declareVariable(name_and_value[0], name_and_value[1], element)
+		end
+	@end
+
+	@method onAllocation element
+		onOperation(element)
+		var dataflow = element getDataFlow()
+		var name = element getSlotToAllocate() getName()
+		dataflow declareVariable( name, element getDefaultValue(), element)
+	@end
+
+	@method onOperation element
+		var dataflow = element getDataFlow()
+		if not dataflow
+			dataflow = getParentDataFlow()
+			element setDataFlow(dataflow)
+		end
+	@end
+
+@end
+
+
+@class DataFlowBinding: Pass
+| This pass will target classes, resolving their parent classes and binding the
+| dataflow slot to the proper value. If the binding fails, an exception will be
+| raised, meaning that either the passes were not set up properly, or that the
+| resolution has failed (and there is an inconsistency in the program model).
+
+	@shared HANDLES = [
+		interfaces IClass
+	]
+	@shared NAME    = "ClassParentsResolution"
+
+	@constructor
+		Pass __init__ (self)
+	@end
+
+	@method onClass element
+		self context environment report info ("PARENT CLASSES", element getName(), element getParentClasses())
+		for parent_class in element getParentClasses()
+			self context environment report info ("PARENT  ", parent_class, "from", self context getCurrentElement())
+			self context environment report info ("RESOLVED", self context resolve (parent_class))
+			self context environment report info ("SLOTS   ", self context getCurrentElement() getDataFlow() getAvailableSlotNames(), "\n")
+		end
 	@end
 
 @end

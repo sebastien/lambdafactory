@@ -190,6 +190,14 @@
 	@abstract @method setParent element:<IElement>
 	| Sets this element parent
 
+	@abstract @method detach:<IElement>
+	| Detaches the element from its parent (in case it was already attached).
+	| This should return this element, and set the parent to None.
+
+	@abstract @method copy:<IElement>
+	| Performs a deep clone of this element. Any mutation to the original won't
+	| change the copy.
+
 @end
 
 @protocol IAssignable

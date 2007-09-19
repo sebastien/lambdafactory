@@ -4,6 +4,12 @@
 @import Factory from lambdafactory.modelbase
 @import PassContext from lambdafactory.passes
 
+# ------------------------------------------------------------------------------
+#
+# IMPORTER
+#
+# ------------------------------------------------------------------------------
+
 @class Importer
 | The Environment importer class acts like a "hub" for language-specific
 | importers. It will try, according to the current environment settings,
@@ -46,6 +52,12 @@
 	@end
 
 @end
+
+# ------------------------------------------------------------------------------
+#
+# LANGUAGE
+#
+# ------------------------------------------------------------------------------
 
 @class Language
 	
@@ -97,8 +109,22 @@
 
 @end
 
+# ------------------------------------------------------------------------------
+#
+# ENVIRONMENT
+#
+# ------------------------------------------------------------------------------
+
 @class Environment
-	
+|
+| Passes
+| ======
+|
+| Passes are lists of passes (see 'lambdafactory.passes') that transform the
+| program. The order of passe is important, as some passes depend on each other.
+| It is up to the 'lambdafactory.main.Command' subclass to set up the passes
+| appropriately.
+
 	@property factory=None
 	@property program=None
 	@property parsers={}
@@ -126,7 +152,7 @@
 		# TODO: Support for multiple importers
 		# self importer = importer
 	@end
-	
+
 	@method addPass programPass
 		passes append (programPass)
 	@end
@@ -138,15 +164,15 @@
 			end
 		end
 	@end
-	
+
 	@method getPasses
 		return passes
 	@end
 	
 	@method runPasses
-		var context = new PassContext(self)
-		context run ()
-		return context
+		for p in passes
+			p run(self)
+		end
 	@end
 	
 	@method getProgram

@@ -7,6 +7,12 @@
 @import lambdafactory.resolution as resolution
 @import StringIO from StringIO
 
+# ------------------------------------------------------------------------------
+#
+# COMMAND
+#
+# ------------------------------------------------------------------------------
+
 @class Command
 
 	@shared OPT_LANG       = "Specifies the target language (js, java, pnuts, actionscript)"
@@ -137,7 +143,7 @@
 	@method transformProgram
 		environment runPasses()
 		# FIXME: This should be a pass
-		environment resolver flow (environment getProgram())
+		# environment resolver flow (environment getProgram())
 	@end
 	
 	@method guessLanguage sourcePath
@@ -172,8 +178,10 @@
 	@method setupPasses
 		# Passes:
 		#  Importation
-		environment addPass (new passes ImportationPass() )
-		environment addPass (new resolution ResolutionPass())
+		# TODO: Add groups of passes
+		environment addPass ( new passes ImportationPass() )
+		environment addPass ( new resolution BasicDataFlow() )
+		environment addPass ( new resolution DataFlowBinding() )
 		#  Resolution
 		# environment addPass (new passes ResolutionPass() )
 		#  Typing

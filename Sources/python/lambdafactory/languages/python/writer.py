@@ -153,7 +153,7 @@ class Writer(AbstractWriter):
 			empty,
 			""
 		)
-	
+
 	def writeMethod( self, methodElement ):
 		"""Writes a method element."""
 		method_name = methodElement.getName()
@@ -163,7 +163,7 @@ class Writer(AbstractWriter):
 		default_body = ["pass"]
 		if methodElement.isAbstract():
 			default_body = [
-				'raise Exception("Abstract method %s.%s not implemented")' % (
+				'raise Exception("Abstract method %s.%s not implemented in: " + str(self))' % (
 					self.getCurrentClass().getName(),
 					method_name
 				)
