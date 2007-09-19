@@ -102,7 +102,13 @@ class Element:
 	
 	def asList(self):
 		return [self.__class__.__name__]
+	def detach(self):
+	    return self
+
+	def copy(self):
+	    return self
 	
+
 
 class Annotation(Element, IAnnotation):
 	def __init__ (self, name=None, content=None):

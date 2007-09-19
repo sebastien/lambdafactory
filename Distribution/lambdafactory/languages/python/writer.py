@@ -163,7 +163,7 @@ class Writer(AbstractWriter):
 		default_body = ["pass"]
 		if methodElement.isAbstract():
 			default_body = [
-				'raise Exception("Abstract method %s.%s not implemented")' % (
+				'raise Exception("Abstract method %s.%s not implemented:"+str(self))' % (
 					self.getCurrentClass().getName(),
 					method_name
 				)
