@@ -17,10 +17,14 @@
     
 	@property environment = None
 	@property context     = []
+	@property passes      = []
 
     # REWRITE: @constructor reporter=reporter.DefaultReporter
-	@constructor environment
+	@constructor environment, programPass=None
 		self environment = environment
+		if programPass
+			passes append (programPass)
+		end
 	@end
 
 	@method run
@@ -32,7 +36,7 @@
 		context append (element)
 		var continue_walking = True
 		# We iterate on the program passes, if every pass 
-		for program_pass in environment getPasses()
+		for program_pass in passes
 			program_pass setContext (self)
 			var handle = program_pass getHandle(element)
 			if handle
@@ -175,7 +179,7 @@
 				parents append (parent_class)
 			end
 		@end
-		
+
 	@end
 	
 	@group Resolution
@@ -195,7 +199,61 @@
 			end
 			return contextOrDataFlow resolve (referenceOrName)
 		@end
+	
+		@method resolveAbsolute referenceOrName
+		| Resolves the given reference or string expressed in absolute style
+		|('.'-separated list of names), starting from the root dataflow (the program
+		| dataflow).
+			var current_dataflow = getCurrentElement() getDataFlow() getRoot()
+			var slot_and_value   = None
+			if isinstance(referenceOrName, interfaces IReference)
+				referenceOrName = referenceOrName getReferenceName()
+			end
+			for ref_name in referenceOrName split "."
+				# No dataflow is available, so resolution fails
+				# FIXME: Maybe raise an exception here
+				if not current_dataflow
+					raise ERR_NO_DATAFLOW_AVAILABLE
+				end
+				# We do a resolution from the current data flow
+				slot_and_value = current_dataflow resolve (ref_name)
+				if not slot_and_value[0]
+					# If it fails, we fail the resolution
+					return slot_and_value
+				else
+					# Otherwise we proceed
+					current_dataflow = slot_and_value[0] getDataFlow()
+				end
+			end
+			# We now have the proper slot and value
+			return slot_and_value
+		@end
+
+		@method resolveAbsoluteOrLocal referenceOrName, contextOrDataFlow=None
+		| Tries an absolute resolution first, then will look in the local scope if
+		| it fails.
+			var slot_and_value = resolveAbsolute (referenceOrName)
+			if not slot_and_value[0]
+				return resolve(referenceOrName, contextOrDataFlow)
+			else
+				return slot_and_value
+			end
+		@end
+
+		@method resolveLocalOrAbsolute referenceOrName, contextOrDataFlow=None
+		| Tries a local resolution first, then will look in the program scope if
+		| it fails.
+			var slot_and_value = resolve(referenceOrName, contextOrDataFlow)
+			if not slot_and_value[0]
+				return resolveAbsolute (referenceOrName)
+			else
+				return slot_and_value
+			end
+		@end
+
+
 	@end
+
 @end
 
 # ============================================================================
@@ -220,7 +278,7 @@
 
 	@method run environment
 	| Runs the pass with the given environment
-		setContext(new PassContext(environment)) run ()
+		new PassContext(environment, self) run ()
 	@end
 
 	@method getHandle element:IElement

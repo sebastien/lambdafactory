@@ -80,16 +80,18 @@
 
 	@property program:<IProgram>
 	@property element:<IElement>
-	@property parent:<IElement>
-	@property slots:<[IDataFlowSlot>    = []
-	@property children:<[IDataFlow]>    = []
+	@property parent:<IDataFlow>
+	@property sources:<[IDafaFlow]>      = []
+	@property destinations:<[IDafaFlow]> = []
+	@property slots:<[IDataFlowSlot>     = []
+	@property children:<[IDataFlow]>     = []
 	
 	@constructor element, parent=Undefined
 		# FIXME: Resolution should happen in pass, no program required
 		self element  = element
 		self children = []
 		if parent
-			addParent(parent)
+			setParent (parent)
 		end
 		element setDataFlow(self)
 	@end
@@ -114,7 +116,35 @@
 	@method  _declare name, value, origin, slotType
 	| Declares the given slot with the given name, value, origin
 	| and type. This is used internaly by the other 'declare' methods.
+		var previous_slot = getSlot(name)
+		if previous_slot
+			# FIXME: Maybe trigger a warning when resetting the slot
+			slots remove(previous_slot)
+		end
 		slots append(new DataFlowSlot(name, value, [origin], slotType))
+	@end
+
+	@method addSource dataflow
+		if not (dataflow in sources)
+			sources append (dataflow)
+			dataflow addDestination( self )
+		end
+	@end
+
+	@method getSources
+		return sources
+	@end
+
+	@method addDestination dataflow
+	@as internal
+		if not (dataflow in destinations)
+			destinations append (dataflow)
+			dataflow addSource( self )
+		end
+	@end
+
+	@method getDestinations
+		return destinations
 	@end
 
 	@method getSlots
@@ -129,7 +159,7 @@
 			end
 		end
 		if parent
-			parent getAvailableSlots (slotList)
+			parent _getAvailableSlots (slotList)
 		end
 		return slotList
 	@end
@@ -157,14 +187,22 @@
 	@end
 
 	@method getParent
-		return [parent]
+		return parent
+	@end
+
+	@method getRoot
+		if parent
+			return parent getRoot()
+		else
+			return self
+		end
 	@end
 
 	@method setParent parent
 		assert (self parent is None or parent == self parent)
 		if parent
-			parent = parent
-			parent addChild(self)
+			self parent = parent
+			self parent addChild(self)
 		end
 	@end
 
@@ -180,40 +218,38 @@
 	@method resolve name
 	| Returns a couple '(DataFlow slot, IElement)' or '(None,None)'
 	| corresponding to the resolution of the given 'name' in this dataflow.
+	|
+	| The resolution scheme first looks into this datalfow, see if the slot
+	| is defined. It then looks in the sources, sequentially and if this fails,
+	| it will look into the parent.
+	|
+	| Alternative resolution schemes can be implemented depending on the target
+	| programming languages semantics, but this resolution operation should
+	| always be implemented in the same way. If you wish to have another
+	| way of doing resolution, you should provide a specific method in the
+	| DataFlow implementation, and also maybe provide more specific resolution
+	| operation in the 'PassContext' class.
 		var slot = getSlot(name)
 		if slot
 			return tuple([slot, element])
+		end
+		if sources
+			for source in getSources()
+				var slot_and_value = source resolve (name)
+				if slot_and_value[0] != None
+					return slot_and_value
+				end
+			end
+		end
 		if parent
 			var r = parent resolve(name)
-			if r != tuple([None,None])
+			if r[0] != None
 				return r
 			end
 		end
 		return tuple([None, None])
 	@end
-	
-	# FIXME: Should go into pass
-	@method resolveAbsolute name
-		var root = getRoot()
-		return tuple([None, None])
-	@end
 
-	# FIXME: Should go into pass
-	@method resolveAbsoluteOrLocal name
-		@embed Python
-		|# FIXME:
-		|name_parts = name.split(".")
-		|if len(name_parts) == 1:
-		|	res = self.resolve(name)
-		|	return res
-		|else:
-		|	parent_module = ".".join(name_parts[:-1])
-		|	symbol_name   = name_parts[-1]
-		|	module = self.program.getModule(parent_module)
-		|	res = module.getDataFlow().resolve(symbol_name)
-		|	return res
-		@end
-	@end
 	
 	@method defines name
 		var slot = getSlot(name)

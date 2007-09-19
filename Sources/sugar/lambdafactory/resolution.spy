@@ -64,9 +64,7 @@
 	| Ensures that the given element has an attached DataFlow
 		var dataflow = element getDataFlow()
 		if not dataflow
-			self context environment report info ("CREATING DATAFLOW FOR", element)
 			dataflow = self context getFactory() createDataFlow(element)
-			self context environment report info ("PARENT DF FOR", getParentDataFlow())
 			dataflow setParent ( getParentDataFlow() )
 			element setDataFlow( dataflow )
 		end
@@ -81,11 +79,13 @@
 		dataflow declareEnvironment("True", None)
 		dataflow declareEnvironment("False", None)
 		dataflow declareEnvironment("Null", None)
+		# TODO: We register modules in the dataflow
 	@end
 
 	@method onModule element
 		# Modules have thir own dataflows
 		var dataflow = ensureDataFlow (element)
+		onContext(element)
 	@end
 
 	@method onClass element
@@ -93,6 +93,7 @@
 		var dataflow = ensureDataFlow (element)
 		dataflow declareEnvironment("super", None)
 		dataflow declareEnvironment("self", None)
+		onContext(element)
 	@end
 
 	@method onMethod element
@@ -149,11 +150,14 @@
 	@end
 
 	@method onClass element
-		self context environment report info ("PARENT CLASSES", element getName(), element getParentClasses())
-		for parent_class in element getParentClasses()
-			self context environment report info ("PARENT  ", parent_class, "from", self context getCurrentElement())
-			self context environment report info ("RESOLVED", self context resolve (parent_class))
-			self context environment report info ("SLOTS   ", self context getCurrentElement() getDataFlow() getAvailableSlotNames(), "\n")
+		for parent_class_ref in element getParentClasses()
+			var slot_and_value = self context resolveLocalOrAbsolute(parent_class_ref)
+			if not slot_and_value[0]
+				self context environment report error ("Parent class not found:", parent_class_ref getReferenceName(), "in", element getName())
+			else
+				var parent_class = slot_and_value[1]
+				element getDataFlow() addSource (parent_class getDataFlow())
+			end
 		end
 	@end
 

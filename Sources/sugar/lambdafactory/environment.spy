@@ -171,6 +171,7 @@
 	
 	@method runPasses
 		for p in passes
+			print ("***** RUNNING PASS", p)
 			p run(self)
 		end
 	@end

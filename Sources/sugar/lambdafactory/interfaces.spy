@@ -101,12 +101,29 @@
 	@abstract @method hasSlot:<True|False> name:String
 	| Tells if this dataflow @methodines a slot with the given name.
 
-	# FIXME: Why would dataflows have more than one parent ?
-	@abstract @method getParents:<[IDataFlow]>
+	@abstract @method getRoot:<IDataFlow>
+	| Returns the root of this dataflow (the root of the parent or this dataflow
+	| if it has no parent)
+
+	@abstract @method getParent:<IDataFlow>
 	| Returns the list of parent dataflows for this dataflow.
 
-	@abstract @method addParent:None parent:IDataFlow
+	@abstract @method setParent parent:IDataFlow
 	| Add the given dataflow as a parent of this dataflow.
+
+	@abstract @method getSources
+	| Returns the dataflows that are _sources_, meaning that if a slot is not
+	| resolved by this dataflow, it will look in the parent and then in the
+	| sources (depending on the resolution scheme, but this is the default)
+
+	@abstract @method addSource dataflow:IDataFlow
+
+	@abstract @method getDestinations
+	| Returns the dataflows that are _destinations_, meaning that these
+	| dataflows will resolve if this dataflow if resolution fails, according tot
+	| the resolution scheme used.
+
+	@abstract @method addDestination dataflow:IDataFlow
 
 	@abstract  @method addChild child:IDataflow
 	| Adds the given dataflow as a child of this dataflow.
