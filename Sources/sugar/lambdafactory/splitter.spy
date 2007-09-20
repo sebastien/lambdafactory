@@ -23,7 +23,7 @@
 
 	@constructor outputPath
 	| Initializes the file splitter with the given output directory
-		outputDir = outputDir
+		self outputDir = outputPath
 	@end
 
 	@method start
@@ -40,7 +40,7 @@
 	@end
 
 	@method newFile path
-		var path    = os path join(outputDir, path)
+		path  = os path join(outputDir, path)
 		var parents = os path dirname(path)
 		if not os path exists(parents)
 			os makedirs(parents)

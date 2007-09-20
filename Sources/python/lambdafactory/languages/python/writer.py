@@ -379,7 +379,6 @@ class Writer(AbstractWriter):
 			return "super(%s, self)" % (
 				self.getAbsoluteNameFromModule(self.getCurrentClass(), self.getCurrentModule())
 			)
-		
 		# If there is no scope, then the symmbol is undefined
 		if not scope:
 			if symbol_name == "print": return "print "
@@ -400,7 +399,7 @@ class Writer(AbstractWriter):
 				else:
 					return "self.%s" % (symbol_name)
 			elif isinstance(value, interfaces.IClassAttribute):
-				if self.isInClassMethod():
+				if self.isIn(interfaces.IClassMethod):
 					return "self.%s" % (symbol_name)
 				else:
 					return "self.__class__.%s" % (symbol_name)
@@ -430,7 +429,8 @@ class Writer(AbstractWriter):
 				names = [scope.getName(), symbol_name]
 				while scope.getParent():
 					scope = scope.getParent()
-					names.insert(0, scope.getName())
+					if scope.hasName():
+						names.insert(0, scope.getName())
 				return ".".join(names)
 		# FIXME: This is an exception... iteration being an operation, not a
 		# context...

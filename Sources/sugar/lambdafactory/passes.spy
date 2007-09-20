@@ -205,11 +205,36 @@
 			for parent_class_ref in current_class getParentClasses()
 				var parent_class_name = parent_class_ref getReferenceName()
 				var resolution = resolve ( parent_class_name, current_class )
-				var target, context = resolution
-				parent_class = target value
+				var slot, parent_class = resolution
 				# TODO: assert parent
-				parents append (parent_class)
+				if parent_class
+					parents append (parent_class)
+				else
+					environment report error ("Unable to resolve parent class:", parent_class_name, "from", current_class getName())
+				end
 			end
+			return parents
+		@end
+
+		@method getCurrentClassAncestors theClass=None
+			var ancestors = []
+			if theClass is None
+				theClass = self getCurrentClass()
+			end
+			var parents = getCurrentClassParents(theClass)
+			for parent in parents
+				# FIXME: This is necessary, so I'm not sure this works
+				# properly...
+				if not (parent in ancestors)
+					for ancestor in getCurrentClassAncestors(parent)
+						if not (ancestor in ancestors)
+							ancestors append(ancestor)
+						end
+					end
+				end
+			end
+			ancestors extend(parents)
+			return ancestors
 		@end
 
 	@end
