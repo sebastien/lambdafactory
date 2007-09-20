@@ -68,6 +68,8 @@ class Command:
 			help=self.OPT_SOURCE)
 		option_parser.add_option("-D", "--define", action="append", dest="targets", 
 			help=self.OPT_DEFINE)
+		option_parser.add_option("-L", "--library", action="append", dest="libraries", 
+			help="FIXME")
 		option_parser.add_option("-V", None, action="store", dest="version", 
 			help=self.OPT_VERSION)
 		options, args = option_parser.parse_args(args=arguments)

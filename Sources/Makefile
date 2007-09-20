@@ -1,6 +1,7 @@
 # LambdaFactory Makefile
 SUGARC         = sugar
 SUGAR_DIR      = sugar
+SUGAR_FLAGS    = -L$(SUGAR_DIR)
 BUILD_DIR      = ../Build
 DIST_DIR       = ../Distribution
 PYTHON_DIR     = python
@@ -29,7 +30,7 @@ $(DIST_DIR):
 	mkdir $(DIST_DIR)
 
 $(BUILD_DIR)/%.py: $(SUGAR_DIR)/%.spy
-	$(SUGARC) -c -o$(BUILD_DIR) $< 
+	$(SUGARC)  -c -o$(BUILD_DIR) $(SUGAR_FLAGS) $< 
 	@date "+%Y-%m-%d-%HH%MM%S" > $(BUILD_DIR)/build.id
 
 $(BUILD_DIR)/%: $(PYTHON_DIR)/%
