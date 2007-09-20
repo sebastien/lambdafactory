@@ -352,6 +352,7 @@
 	@abstract @method getReferenceName
 	|	Returns the name which this reference contains. The name is used by
 	|	the resolution operation to actually resolve a value from the name.
+
 @end
 
 @protocol IAbsoluteReference: IReference

@@ -17,34 +17,50 @@
     
 	@property environment = None
 	@property context     = []
-	@property passes      = []
+	@property programPass = None
 
     # REWRITE: @constructor reporter=reporter.DefaultReporter
-	@constructor environment, programPass=None
+	@constructor environment=None, programPass=None
 		self environment = environment
-		if programPass
-			passes append (programPass)
-		end
+		self programPass = programPass
+	@end
+
+	@method setEnvironment environment
+		self environment = environment
+	@end
+
+	@method setPass programPass
+		self programPass = programPass
 	@end
 
 	@method run
 		walk ( environment getProgram() )
 	@end
 
+	@method handle element
+	| Handles a sungle element, without recursing through its children
+		var handle = programPass getHandle(element)
+		if handle
+			return handle (element)
+		else
+			return None
+		end
+	@end
+
 	@method walk element
+	| Walks the given element, recursively walking the child elements when the
+	| handler does not return False
 		# REWRITE: context push(element)
 		context append (element)
 		var continue_walking = True
 		# We iterate on the program passes, if every pass 
-		for program_pass in passes
-			program_pass setContext (self)
-			var handle = program_pass getHandle(element)
-			if handle
-				# TODO: Optimize by removing passes not interested in
-				# going deeper
-				if handle (element) != False
-					continue_walking = True
-				end
+		# FIXME: There should be only one pass/context
+		var handle = programPass getHandle(element)
+		if handle
+			# TODO: Optimize by removing passes not interested in
+			# going deeper
+			if handle (element) != False
+				continue_walking = True
 			end
 		end
 		# If we continue the walking, then we recurse on context slots and
@@ -148,6 +164,22 @@
 			return findInContext (interfaces IFunction)
 		@end
 
+		@method getCurrentModule
+			return findInContext (interfaces IModule)
+		@end
+
+		@method getCurrentDataFlow
+			var i = len(context) - 1
+			while i >= 0
+				var dataflow = context[i] getDataFlow()
+				if dataflow
+					return dataflow
+				end
+				i -= 1
+			end
+			return None
+		@end
+
 		@method getCurrentMethod
 			return findInContext (interfaces IMethod)
 		@end
@@ -190,7 +222,7 @@
 		| you've applied a pass to create the dataflow (see the
 		| 'lambdafactory.resolution.BasicDataFlow' pass).
 			if contextOrDataFlow is None
-				contextOrDataFlow = getCurrentElement() getDataFlow()
+				contextOrDataFlow = getCurrentDataFlow()
 			if isinstance( contextOrDataFlow, interfaces IElement )
 				contextOrDataFlow = contextOrDataFlow getDataFlow()
 			end
@@ -276,7 +308,6 @@
 			end
 		@end
 
-
 	@end
 
 @end
@@ -287,23 +318,16 @@
 #
 # ============================================================================
 
-@class Pass
+# FIXME: Maybe we should aggregate PassContext and Pass... have to study this in
+# detail
+@class Pass: PassContext
 
 	@shared   HANDLES  = []
 	@shared   NAME     = ""
-	@property context = Undefined
 
-	@constructor
-	@end
-
-	@method setContext context
-		self context = context
-		return context
-	@end
-
-	@method run environment
-	| Runs the pass with the given environment
-		new PassContext(environment, self) run ()
+	@constructor 
+		PassContext __init__ (self)
+		setPass(self)
 	@end
 
 	@method getHandle element:IElement
@@ -318,6 +342,7 @@
 				# REWRITE return self `(interface getClass() getName())
 				var handler_name = "on" + interface __name__ [1:]
 				if not hasattr(self, handler_name)
+					self environment report error ("Handler does not define pass for:", handler_name)
 					raise ERR_PASS_HANDLER_NOT_DEFINED(handler_name)
 				end
 				return getattr(self, handler_name )
@@ -346,6 +371,7 @@
 	@constructor
 		Pass __init__ (self)
 	@end
+
 	@method onModule module
 
 		var imports = module getImportOperations()
@@ -353,16 +379,16 @@
 			if isinstance(i, interfaces IImportModuleOperation)
 				var imported_module_name = i getImportedModuleName()
 				var imported_module_origin = i getAlias()
-				var imported_module = context environment importModule (imported_module_name)
+				var imported_module = environment importModule (imported_module_name)
 			if isinstance(i, interfaces IImportSymbolOperation)
 				var imported_module_name = i getImportOrigin()
-				var imported_module = context environment importModule (imported_module_name)
+				var imported_module = environment importModule (imported_module_name)
 			if isinstance(i, interfaces IImportSymbolsOperation)
 				print (i getOpArguments())
 				var imported_module_name = i getImportOrigin()
-				var imported_module = context environment importModule (imported_module_name)
+				var imported_module = environment importModule (imported_module_name)
 			else
-				context environment report error ("ImportationPass: operation not implemented " + repr(i))
+				environment report error ("ImportationPass: operation not implemented " + repr(i))
 			end
 		end
 		return False

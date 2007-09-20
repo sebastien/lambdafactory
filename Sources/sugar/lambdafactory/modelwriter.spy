@@ -103,19 +103,52 @@
 		interfaces IEmbed
 	]
 
-	# FIXME: I'm not sure this should be a property...
-	@property codelines
 	@property _generatedSymbols = {}
-
 
 	@constructor
 		#FIXME: Rewrite
 		Pass __init__ (self)
 	@end
 
-	@method writeProgram element
+	@method write element
+		var res = None
+		if element is None
+			return ""
+		else
+			if type(element) in [str, unicode]
+				return element
+			else
+				@embed Python
+				|this_interfaces = self.HANDLES
+				|for  the_interface in this_interfaces:
+				|	name = the_interface.__name__[1:]
+				|	if isinstance(element, the_interface):
+				|		if not hasattr(self, "on" + name ):
+				|			raise Exception("Writer does not define write method for: " + name)
+				|		else:
+				|			self.context.append(element)
+				|			result = getattr(self, "on" + name)(element)
+				|			self.context.pop()
+				|			return result
+				|raise Exception("Element implements unsupported interface: " + str(element))
+				@end
+			end
+		end
+	@end
+
+	@method run
+		return self write (self environment getProgram())
+	@end
+
+	@method onProgram element
 	| Writes a Program element
-		codelines = []
+		var lines = []
+		for module in element getModules()
+			if not module isImported()
+				lines append (self write(module))
+			end
+		end
+		return "\n" join(lines)
 	@end
 
 	@method _format values...

@@ -169,7 +169,8 @@
 		var writer   = language writer()
 		# FIXME: Writer should take environ
 		writer report = environment report
-		var program_source = writer write (environment getProgram ())
+		writer setEnvironment (environment)
+		var program_source = writer run ()
 		if includeRuntime
 			program_source = writer getRuntimeSource() + program_source
 		end

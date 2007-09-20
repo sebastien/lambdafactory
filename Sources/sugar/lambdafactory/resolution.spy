@@ -44,6 +44,7 @@
 		interfaces IContext
 		interfaces IAllocation
 		interfaces IOperation
+		interfaces IValue
 	]
 	@shared NAME    = "Resolution"
 
@@ -53,8 +54,8 @@
 
 	@method getParentDataFlow
 	| Returns the dataflow of the parent element. It is supposed to exist.
-		if self context hasParentElement()
-			return self context getParentElement() getDataFlow()
+		if self hasParentElement()
+			return self getParentElement() getDataFlow()
 		else
 			return None
 		end
@@ -65,7 +66,7 @@
 	| Ensures that the given element has an attached DataFlow
 		var dataflow = element getDataFlow()
 		if not dataflow
-			dataflow = self context getFactory() createDataFlow(element)
+			dataflow = self getFactory() createDataFlow(element)
 			dataflow setParent ( getParentDataFlow() )
 			element setDataFlow( dataflow )
 		end
@@ -140,6 +141,14 @@
 		end
 	@end
 
+	@method onValue element
+		var dataflow = element getDataFlow()
+		if not dataflow
+			dataflow = getParentDataFlow()
+			element setDataFlow(dataflow)
+		end
+	@end
+
 @end
 
 
@@ -168,22 +177,22 @@
 			if isinstance(i, interfaces IImportModuleOperation)
 				var absolute_name  = i getImportedModuleName()
 				var alias          = i getAlias()
-				var slot_and_value = self context resolveAbsolute(absolute_name)
+				var slot_and_value = self resolveAbsolute(absolute_name)
 				if slot_and_value == FAILED
-					self context environment report error ("Imported module not found in scope:", absolute_name, "in", element getName())
+					self environment report error ("Imported module not found in scope:", absolute_name, "in", element getName())
 				if alias
 					element getDataFlow() declareImported ( alias, slot_and_value[1], i)
 				end
 			if isinstance(i, interfaces IImportSymbolOperation)
 				var module_name = i getImportOrigin()
 				var symbol_name = i getImportedElement()
-				var slot_and_value = self context resolveAbsolute(module_name)
+				var slot_and_value = self resolveAbsolute(module_name)
 				if slot_and_value == FAILED
-					self context environment report error ("Imported module not found in scope:", module_name, "in", element getName())
+					self environment report error ("Imported module not found in scope:", module_name, "in", element getName())
 				else
-					var symbol_slot_and_value = self context resolve ( symbol_name, slot_and_value[1] )
+					var symbol_slot_and_value = self resolve ( symbol_name, slot_and_value[1] )
 					if symbol_slot_and_value == FAILED
-						self context environment report error ("Symbol not found in module scope:", symbol_name, "in", module_name)
+						self environment report error ("Symbol not found in module scope:", symbol_name, "in", module_name)
 					else
 						var alias = i getAlias()
 						var value = symbol_slot_and_value[1]
@@ -196,30 +205,20 @@
 				end
 			else
 				# TEST: When resolution works well, self should not be necessary
-				self context environment report error ("DataFlowBinding: operation not implemented " + repr(i))
+				self environment report error ("DataFlowBinding: operation not implemented " + repr(i))
 			end
 		end
 	@end
 
 	@method onClass element
 		for parent_class_ref in element getParentClasses()
-			print ("RESOLVING LOCAL OR ABSOLUTE", parent_class_ref getReferenceName())
-			var slot_and_value = self context resolveLocalOrAbsolute(parent_class_ref)
+			var slot_and_value = self resolveLocalOrAbsolute(parent_class_ref)
 			if not slot_and_value[0]
-				self context environment report error ("Parent class not found:", parent_class_ref getReferenceName(), "in", element getName())
+				self environment report error ("Parent class not found:", parent_class_ref getReferenceName(), "in", element getName())
 			else
 				var parent_class = slot_and_value[1]
 				assert (isinstance(parent_class, interfaces IClass))
 				element getDataFlow() addSource (parent_class getDataFlow())
-				print ("PARENT CLASS", parent_class)
-				# We ensure that resolution happens properly
-				#for slot in parent_class getDataFlow() getSlots()
-				#	print ("SLOT", slot)
-				#end
-				# FIXME: Resolution should be SLOT_AND_VALUE and it seems like
-				# it's SLOT_AND_CONTEXT
-				#print ("CLASS ", element getName(), "bound to parent", parent_class getName())
-				#print ("SLOT AND VALUE", slot_and_value)
 			end
 		end
 	@end

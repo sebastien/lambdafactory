@@ -167,6 +167,7 @@
 
 	@method addPass programPass
 		passes append (programPass)
+		programPass setEnvironment(self)
 	@end
 	
 	@method getPass name
@@ -183,7 +184,7 @@
 	
 	@method runPasses
 		for p in passes
-			p run(self)
+			p run()
 		end
 	@end
 	

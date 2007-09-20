@@ -21,12 +21,21 @@
 	@property abstractType
 	@property slotType
 	@property operations = []
+	@property dataflow
 	
  	@constructor name, value, origin, slotType
 		self name = name
 		self value = value
 		self origin = origin
 		self slotType = slotType
+	@end
+
+	@method setDataFlow dataflow
+		self dataflow = dataflow
+	@end
+
+	@method getDataFlow
+		return dataflow
 	@end
 
 	@method getName
@@ -121,7 +130,7 @@
 			# FIXME: Maybe trigger a warning when resetting the slot
 			slots remove(previous_slot)
 		end
-		slots append(new DataFlowSlot(name, value, [origin], slotType))
+		addSlot(new DataFlowSlot(name, value, [origin], slotType))
 	@end
 
 	@method addSource dataflow
@@ -145,6 +154,12 @@
 
 	@method getDestinations
 		return destinations
+	@end
+
+	@method addSlot slot
+		# FIXME: Assert no duplicate slot
+		self slots append(slot)
+		slot setDataFlow(self)
 	@end
 
 	@method getSlots
@@ -184,6 +199,10 @@
 	
 	@method getSlot name
 		return hasSlot (name)
+	@end
+
+	@method getElement
+		return element
 	@end
 
 	@method getParent
