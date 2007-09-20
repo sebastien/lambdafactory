@@ -1,0 +1,141 @@
+@module lambdafactory.modelwriter
+@import lambdafactory.interfaces as interfaces
+@import Pass from lambdafactory.passes
+@import SNIP from lambdafactory.splitter
+
+@shared PREFIX     = "\t"
+
+@function _format value, level=-1 
+| Format helper operation. See @format
+	@embed Python
+	|if type(value) in (list, tuple):
+	|	res = []
+	|	for v in value:
+	|		if v is None: continue
+	|		res.extend(_format(v, level+1))
+	|	return res
+	|else:
+	|	if value is None: return ""
+	|	assert type(value) in (str, unicode), "Unsupported type: %s" % (value)
+	|	return ["\n".join((level*PREFIX)+v for v in value.split("\n"))]
+	@end
+@end
+
+@function format values...
+| Formats a combination of string ang tuples. Strings are joined by
+| newlines, and the content of the inner tuples gets indented
+	return "\n" join (_format(values))
+@end
+
+@function _flatten value, res
+| Flatten helper operation. See 'flatten'
+	if type(value) in [tuple, list]
+		for v in value
+			_flatten(v, res)
+		end
+	else
+		res append(value)
+	end
+@end
+
+@function flatten lists...
+| Flattens the given lists in a single list
+	var res = []
+	_flatten(lists, res)
+	return res
+@end
+
+@function notEmpty p
+| Returns None if the given parameter is empty.
+	return p and p or None
+@end
+
+#------------------------------------------------------------------------------
+#
+#  Abstract Writer
+#
+#------------------------------------------------------------------------------
+
+@class AbstractWriter: Pass
+
+	@shared HANDLES = [
+		interfaces IProgram
+		interfaces IClass
+		interfaces IModule
+		interfaces IDestructor
+		interfaces IConstructor
+		interfaces IClassMethod
+		interfaces IMethod
+		interfaces IFunction
+		interfaces IClosure
+		interfaces IBlock
+		interfaces IModuleAttribute
+		interfaces IClassAttribute
+		interfaces IAttribute
+		interfaces IArgument
+		interfaces IOperator
+		interfaces IReference
+		interfaces INumber
+		interfaces IString
+		interfaces IList
+		interfaces IDict
+		interfaces IEnumeration
+		interfaces IAllocation
+		interfaces IAssignation
+		interfaces IComputation
+		interfaces IInvocation
+		interfaces IInstanciation
+		interfaces IResolution
+		interfaces ISelection
+		interfaces IRepetition
+		interfaces IIteration
+		interfaces IAccessOperation
+		interfaces ISliceOperation
+		interfaces IEvaluation
+		interfaces ITermination
+		interfaces IBreaking
+		interfaces IExcept
+		interfaces IInterception
+		interfaces IImportSymbolOperation
+		interfaces IImportSymbolsOperation
+		interfaces IImportModuleOperation
+		interfaces IImportModulesOperation
+		interfaces IEmbed
+	]
+
+	# FIXME: I'm not sure this should be a property...
+	@property codelines
+	@property _generatedSymbols = {}
+
+
+	@constructor
+		#FIXME: Rewrite
+		Pass __init__ (self)
+	@end
+
+	@method writeProgram element
+	| Writes a Program element
+		codelines = []
+	@end
+
+	@method _format values...
+		@embed Python
+		|return format(*values)
+		@end
+	@end
+
+	@method _unique name
+		var i = 0
+		while True
+			new_name = name + str(i)
+			if self _generatedSymbols get(new_name) == None
+				self _generatedSymbols[new_name] = True
+				return new_name
+			end
+			i += 1
+		end
+	@end
+
+@end
+
+# EOF

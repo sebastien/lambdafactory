@@ -76,41 +76,56 @@ Refactoring the module architecture
 >   
 >       main.spy                       (main, command-line interface)
 >   
->       model                          (the core)
+>       core                           (the core)
+>           environment.spy            (aggregates interfaces, passes, etc)
 >           interfaces.spy             (program model interface)
->           base.spy                   (default implementation)
->			typesystem.py              (the type system)
+>           model.spy                  (default model implementation)
+>           types.spy                  (the type system)
 >   
 >       passes                         (transformation passes)
+>           writing.py                 (writing passes)
 >           resolving.spy              (add dataflow pass)
 >           typing.spy                 (add type information pass)
 >           async.spy                  (rewrite asynchronous invocations)
 >           sdoc.spy                   (create documentation)
 >           uml.spy                    (UML diagram)
 >   
+>       tools
+>           splitter.spy               (Splitter utility)
+>   
 >       languages                      (available languages)
+>   
 >           javascript
->				runtime/               (language-specific files)
->               	runtime.js         (specific runtime library)
+>               runtime/               (language-specific files)
+>                     runtime.js       (specific runtime library)
+>                     ...
 >               importer.spy           (importing mechanisms)
 >               writer.spy             (code generation)
 >               reader.spy             (source code reading)
 >               runner.spy             (interpreter/compiler wrapper)
->				interfaces.spy         (additional interfaces)
->           actionscript
+>               interfaces.spy         (additional interfaces)
+>   
+>           actionscript               (ActionScript back-end)
 >               runtime.as
 >               importer.spy
 >               writer.spy
 >               runner.spy
->           python
+>   
+>           python                     (Python back-end)
 >               runtime.py
 >               importer.spy
->                writer.spy
->                 runner.spy
+>               writer.spy
+>               runner.spy
+>   
+>           sugar                      (Sugar front-end and back-end)
+>               reader.spy
+>               writer.spy
+>               runner.spy
 >   
 >         library                       (default lambda-factory library)
->             core
->                 datatypes.sg
->                operations.sg
+>             core                      (core module)
+>                datatypes.sg           (core.datatypes module)
+>                operations.sg          (core.operations module)
+>             ...
 
 # EOF - sw=4 ts=4 et syn=kiwi
