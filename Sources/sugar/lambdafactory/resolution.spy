@@ -39,6 +39,7 @@
 		interfaces IModule
 		interfaces IClass
 		interfaces IMethod
+		interfaces IClosure
 		interfaces IProcess
 		interfaces IContext
 		interfaces IAllocation
@@ -101,6 +102,14 @@
 		var dataflow = ensureDataFlow (element)
 		dataflow declareEnvironment("super", None)
 		dataflow declareEnvironment("self", None)
+		onClosure(element)
+	@end
+
+	@method onClosure element
+		var dataflow = ensureDataFlow (element)
+		for argument in element getArguments()
+			dataflow declareArgument(argument getName(), argument)
+		end
 	@end
 
 	@method onProcess element
@@ -194,16 +203,23 @@
 
 	@method onClass element
 		for parent_class_ref in element getParentClasses()
+			print ("RESOLVING LOCAL OR ABSOLUTE", parent_class_ref getReferenceName())
 			var slot_and_value = self context resolveLocalOrAbsolute(parent_class_ref)
 			if not slot_and_value[0]
 				self context environment report error ("Parent class not found:", parent_class_ref getReferenceName(), "in", element getName())
 			else
 				var parent_class = slot_and_value[1]
+				assert (isinstance(parent_class, interfaces IClass))
 				element getDataFlow() addSource (parent_class getDataFlow())
+				print ("PARENT CLASS", parent_class)
+				# We ensure that resolution happens properly
+				#for slot in parent_class getDataFlow() getSlots()
+				#	print ("SLOT", slot)
+				#end
 				# FIXME: Resolution should be SLOT_AND_VALUE and it seems like
 				# it's SLOT_AND_CONTEXT
-				print ("CLASS ", element getName(), "bound to parent", parent_class getName())
-				print ("SLOT AND VALUE", slot_and_value)
+				#print ("CLASS ", element getName(), "bound to parent", parent_class getName())
+				#print ("SLOT AND VALUE", slot_and_value)
 			end
 		end
 	@end

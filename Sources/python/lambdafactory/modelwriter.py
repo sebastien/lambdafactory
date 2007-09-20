@@ -96,6 +96,7 @@ class FileSplitter:
 		path = os.path.join(self.outputDir, path)
 		parents = os.path.dirname(path)
 		if not os.path.exists(parents): os.makedirs(parents)
+		assert path != "%s"
 		print "Writing to ", path
 		self.currentFile = file(path, 'w')
 

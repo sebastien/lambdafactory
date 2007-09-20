@@ -222,7 +222,7 @@
 				var mname       = module getName()
 				var mname_len   = len(mname)
 				# DEBUG:
-				# environment report info ("LOOKING FOR ", referenceOrName, "in", mname, matching_module)
+				#environment report info ("LOOKING FOR ", referenceOrName, "in", mname, matching_module)
 				if mname == referenceOrName
 					matching_module = module
 					return tuple([None, module])
@@ -242,7 +242,7 @@
 				var symbol_name = referenceOrName
 				# We do a resolution from the current data flow
 				slot_and_value = current_dataflow resolve (ref_name)
-				if not slot_and_value[0]
+				if not slot_and_value[1]
 					# If it fails, we fail the resolution
 					return slot_and_value
 				else

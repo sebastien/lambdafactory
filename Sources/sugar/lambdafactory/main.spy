@@ -2,7 +2,7 @@
 | Command-line interface and main module for LambdaFactory
 @import os, sys, optparse, tempfile
 @import Environment from lambdafactory.environment
-@import FileSplitter from lambdafactory.modelwriter
+@import FileSplitter from lambdafactory.splitter
 @import lambdafactory.passes as passes
 @import lambdafactory.resolution as resolution
 @import StringIO from StringIO

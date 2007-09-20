@@ -27,8 +27,8 @@ import os.path, re, time, string, random
 
 class Writer(AbstractWriter):
 
-	def __init__( self, reporter=reporter.DefaultReporter ):
-		AbstractWriter.__init__(self, reporter)
+	def __init__( self ):
+		AbstractWriter.__init__(self)
 		self.runtimePrefix = "__LambdaFactory__."
 		self.supportedEmbedLanguages = ["python"]
 

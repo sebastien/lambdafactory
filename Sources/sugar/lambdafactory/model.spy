@@ -3,9 +3,9 @@
 | It defines objects that allow you to build a complete OO program model on
 | which you can apply transformation passes, and from which you can generate
 | code using the different back-ends.
-@import * from interfaces
+@import * from lambdafactory.interfaces
 @import pprint
-@import modeltypes
+@import lambdafactory.modeltypes
 
 # ------------------------------------------------------------------------------
 #
@@ -96,7 +96,7 @@
 		element setDataFlow(self)
 	@end
 	
-	# FIXME: ARgument should be 'element' rather than 'value'
+	# FIXME: Argument should be 'element' rather than 'value'
 	@method declareArgument  name, value
 		self _declare(name, value, None, ARGUMENT)
 	@end
@@ -217,7 +217,9 @@
 
 	@method resolve name
 	| Returns a couple '(DataFlow slot, IElement)' or '(None,None)'
-	| corresponding to the resolution of the given 'name' in this dataflow.
+	| corresponding to the resolution of the given 'name' in this dataflow. The
+	| slot is the slot that holds the element, and the given element is the
+	| element value bound to the slot.
 	|
 	| The resolution scheme first looks into this datalfow, see if the slot
 	| is defined. It then looks in the sources, sequentially and if this fails,
@@ -231,7 +233,7 @@
 	| operation in the 'PassContext' class.
 		var slot = getSlot(name)
 		if slot
-			return tuple([slot, element])
+			return tuple([slot, slot getValue()])
 		end
 		if sources
 			for source in getSources()
@@ -902,7 +904,7 @@
 		var op_copy = None
 		var op_arguments = []
 		# REWRITE
-		op_copy = Element _copy()
+		op_copy = Element _copy(self)
 		for a in opArguments
 			op_copy addOpArgument (a copy() detach())
 		end
