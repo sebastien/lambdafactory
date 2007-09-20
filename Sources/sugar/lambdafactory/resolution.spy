@@ -182,6 +182,9 @@
 					self environment report error ("Imported module not found in scope:", absolute_name, "in", element getName())
 				if alias
 					element getDataFlow() declareImported ( alias, slot_and_value[1], i)
+					assert (element getDataFlow() getElement() == element)
+					assert (element getDataFlow() resolve (alias)[0] getDataFlow() == element getDataFlow() )
+					assert (element getDataFlow() resolve (alias)[0] getDataFlow() getElement() == element)
 				end
 			if isinstance(i, interfaces IImportSymbolOperation)
 				var module_name = i getImportOrigin()
@@ -196,10 +199,15 @@
 					else
 						var alias = i getAlias()
 						var value = symbol_slot_and_value[1]
+						assert (element getDataFlow() getElement() == element)
 						if alias
 							element getDataFlow() declareImported ( alias, value, i)
+							assert (element getDataFlow() resolve (alias)[0] getDataFlow() == element getDataFlow() )
+							assert (element getDataFlow() resolve (alias)[0] getDataFlow() getElement() == element)
 						else
 							element getDataFlow() declareImported ( symbol_name, value, i)
+							assert (element getDataFlow() resolve (symbol_name)[0] getDataFlow() == element getDataFlow() )
+							assert (element getDataFlow() resolve (symbol_name)[0] getDataFlow() getElement() == element)
 						end
 					end
 				end

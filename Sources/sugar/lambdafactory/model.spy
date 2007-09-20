@@ -234,6 +234,20 @@
 		return children
 	@end
 
+	@method resolveInSources name
+		if sources
+			for source in getSources()
+				var slot_and_value = source resolveInSources (name)
+				if slot_and_value[1] != None
+					return slot_and_value
+				end
+			end
+			return tuple([None,None])
+		else
+			return tuple([None,None])
+		end
+	@end
+
 	@method resolve name
 	| Returns a couple '(DataFlow slot, IElement)' or '(None,None)'
 	| corresponding to the resolution of the given 'name' in this dataflow. The
@@ -255,11 +269,9 @@
 			return tuple([slot, slot getValue()])
 		end
 		if sources
-			for source in getSources()
-				var slot_and_value = source resolve (name)
-				if slot_and_value[0] != None
-					return slot_and_value
-				end
+			var slot_and_value = resolveInSources (name)
+			if slot_and_value[0] != None
+				return slot_and_value
 			end
 		end
 		if parent

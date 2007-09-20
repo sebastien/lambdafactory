@@ -201,6 +201,9 @@
 			if theClass is None
 				theClass = getCurrentClass()
 			end
+			if not theClass
+				return tuple([])
+			end
 			var current_class = theClass
 			for parent_class_ref in current_class getParentClasses()
 				var parent_class_name = parent_class_ref getReferenceName()
@@ -220,6 +223,9 @@
 			var ancestors = []
 			if theClass is None
 				theClass = self getCurrentClass()
+			end
+			if not theClass
+				return tuple([])
 			end
 			var parents = getCurrentClassParents(theClass)
 			for parent in parents

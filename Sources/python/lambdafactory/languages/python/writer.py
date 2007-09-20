@@ -354,37 +354,46 @@ class Writer(AbstractWriter):
 			"%s = %s" % (element.getName(), default_value)
 		)
 
-	def onReference( self, element ):
-		"""Writes an argument element."""
-		symbol_name  = element.getReferenceName()
-		slot, value = self.resolve(symbol_name)
-		scope = None
-		if slot:
-			scope = slot.getDataFlow().getElement()
-		if symbol_name == "self":
+	def _writeSpecificSymbol( self, symbolName ):
+		if symbolName == "self":
 			return "self"
-		if symbol_name == "target":
+		if symbolName == "target":
 			return "self"
-		elif symbol_name == "Undefined":
+		elif symbolName == "Undefined":
 			return "None"
-		elif symbol_name == "True":
+		elif symbolName == "True":
 			return "True"
-		elif symbol_name == "False":
+		elif symbolName == "False":
 			return "False"
-		elif symbol_name == "None":
+		elif symbolName == "None":
 			return "None"
-		elif symbol_name == "super":
+		elif symbolName == "super":
 			assert self.resolve("self")[0], "Super must be used inside method"
 			# FIXME: Should check that the element has a method in parent scope
 			return "super(%s, self)" % (
 				self.getAbsoluteNameFromModule(self.getCurrentClass(), self.getCurrentModule())
 			)
+		else:
+			assert None
+
+	SPECIFIC_SYMBOLS = "self target super Undefined True False None".split()
+
+	def onReference( self, element ):
+		"""Writes an argument element."""
+		symbol_name  = element.getReferenceName()
+		slot, value = self.resolve(symbol_name)
+		scope = None
+		ancestors = self.getCurrentClassAncestors() or []
+		if slot:
+			scope = slot.getDataFlow().getElement()
+		if symbol_name in self.SPECIFIC_SYMBOLS:
+			return self._writeSpecificSymbol(symbol_name)
 		# If there is no scope, then the symmbol is undefined
 		if not scope:
 			if symbol_name == "print": return "print "
 			else: return symbol_name
 		# It is a method of the current class
-		elif self.getCurrentClass() == scope:
+		elif self.getCurrentClass() == scope or scope in ancestors:
 			if isinstance(value, interfaces.IInstanceMethod):
 				# Here we need to wrap the method if they are given as values (
 				# that means used outside of direct invocations), because when
@@ -410,13 +419,16 @@ class Writer(AbstractWriter):
 			return symbol_name
 		# It is a property of a module
 		elif isinstance(scope, interfaces.IModule):
+			local_slot = self.getCurrentDataFlow().getParent().getSlot(symbol_name)
+			self.resolve(symbol_name)
 			if scope == self.getCurrentModule():
 				return symbol_name
 			names = [scope.getName(), symbol_name]
-			while scope.getParent():
-				scope = scope.getParent()
-				if not isinstance(scope, interfaces.IProgram):
-					names.insert(0, scope.getName())
+			cur_scope = scope
+			while cur_scope.getParent():
+				cur_scope = cur_scope.getParent()
+				if cur_scope.hasName():
+					names.insert(0, cur_scope.getName())
 			return ".".join(names)
 		# It is a property of a class
 		elif isinstance(scope, interfaces.IClass):
