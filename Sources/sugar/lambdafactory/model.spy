@@ -237,7 +237,11 @@
 	@method resolveInSources name
 		if sources
 			for source in getSources()
-				var slot_and_value = source resolveInSources (name)
+				var slot_and_value = source resolveLocally (name)
+				if slot_and_value[1] != None
+					return slot_and_value
+				end
+				slot_and_value = source resolveInSources (name)
 				if slot_and_value[1] != None
 					return slot_and_value
 				end
@@ -245,6 +249,15 @@
 			return tuple([None,None])
 		else
 			return tuple([None,None])
+		end
+	@end
+
+	@method resolveLocally name
+		var slot = getSlot(name)
+		if slot
+			return tuple([slot, slot getValue()])
+		else
+			return tuple([None, None])
 		end
 	@end
 
