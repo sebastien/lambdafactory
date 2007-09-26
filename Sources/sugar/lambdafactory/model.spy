@@ -183,6 +183,23 @@
 		return _getAvailableSlots() values()
 	@end
 
+	@method getSourcesSlots slots=None
+	| Returns the list of slots defined in the sources, using the sources axis.
+		if slots is None
+			slots = {}
+		else
+			for slot in getSlots()
+				if slots get(slot getName()) is None
+					slots [slot getName()] = slot
+				end
+			end
+		end
+		for source in getSources()
+			source getSourcesSlots( slots)
+		end
+		return slots values()
+	@end
+
 	@method getAvailableSlotNames
 		return _getAvailableSlots() keys()
 	@end
@@ -599,7 +616,7 @@
 @end
 
 @class Class: Context, IClass, IReferencable, IAssignable
-	
+
 	@property parentClasses:<[IClass]> = []
 	
 	@constructor name=Undefined, parentClasses=Undefined
@@ -665,7 +682,7 @@
 	@method getParentClasses
 		return parentClasses
 	@end
-		
+
 	@method setParentClasses classes
 		parentClasses = []
 		for the_class in classes
@@ -675,54 +692,27 @@
 			parentClasses append (the_class)
 		end
 	@end
-	
-	# REWRITE ME
-	@method getInheritedClassMethods resolver
-	| Returns the inherited class methods as a dict of lists. This operation
-	| needs a resolver to resolve the classes from their references.
-		var res = {}
-		for class_ref in getParentClasses()
-			var parent_name = class_ref getReferenceName()
-			# We must be in the dataflow phase
-			slot_and_scope = getDataFlow() resolveAbsoluteOrLocal(parent_name)
-			var slot, scope = slot_and_scope 
-			var the_class = slot getValue()
-			for method in the_class getClassMethods()
-				name     = method getName()
-				methods  = res setdefault(name, [])
-				methods append(method)
-			end
-			for name_and_method in the_class getInheritedClassMethods(resolver) items ()
-				meths = res setdefault(name_and_method[0], [])
-				meths extend (name_and_method[1])
+
+	@method getInheritedLike protocol
+		res = {}
+		for slot in getDataFlow() getSourcesSlots()
+			if isinstance(slot getValue(), protocol)
+				res[slot getName()] = slot getValue()
 			end
 		end
 		return res
+
 	@end
 
-	# REWRITE ME
-	@method getInheritedClassAttributes resolver
-	| Returns the inherited class attributes as a dict of lists. This operation
-	| needs a resolver to resolve the classes from their references.
-		var res = {}
-		for class_ref in getParentClasses()
-			var parent_name = class_ref getReferenceName()
-			# We must be in the dataflow phase
-			slot_and_scope = getDataFlow() resolveAbsoluteOrLocal(parent_name)
-			var slot, scope = slot_and_scope 
-			var the_class    = slot getValue()
-			for attr in the_class getClassAttributes()
-				name = attr getName()
-				attrs = res setdefault(name, [])
-				attrs append(attr)
-			end
-			for name_and_attrs in the_class getInheritedClassAttributes(resolver) items()
-				attrs = res setdefault(name_and_attrs[0], [])
-				attrs extend(name_and_attrs[1])
-			end
-		end
-		return res
+	@method getInheritedClassMethods
+	| Returns the inherited class methods as a dict of slots
+		return getInheritedLike(IClassMethod)
 	@end
+
+	@method getInheritedClassAttributes
+		return getInheritedLike(IClassAttribute)
+	@end
+
 @end
 
 @class Interface: Class, IInterface

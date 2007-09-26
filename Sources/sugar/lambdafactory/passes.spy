@@ -415,7 +415,6 @@
 				var imported_module_name = i getImportOrigin()
 				var imported_module = environment importModule (imported_module_name)
 			if isinstance(i, interfaces IImportSymbolsOperation)
-				print (i getOpArguments())
 				var imported_module_name = i getImportOrigin()
 				var imported_module = environment importModule (imported_module_name)
 			else

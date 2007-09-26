@@ -91,7 +91,7 @@ class Writer(AbstractWriter):
 		# We create a map of class methods, including inherited class methods
 		# so that we can copy the implementation of these
 		classOperations = {}
-		for name, meths in classElement.getInheritedClassMethods(self).items():
+		for name, meths in classElement.getInheritedClassMethods().items():
 			# FIXME: Maybe use wrapper instead
 			classOperations[name] = self._writeClassMethodProxy(classElement, meths[0])
 		# Here, we've got to cheat a little bit. Each class method will 
@@ -100,8 +100,9 @@ class Writer(AbstractWriter):
 			classOperations[meth.getName()] = meth
 		classOperations = classOperations.values()
 		classAttributes = {}
-		for name, attributes in classElement.getInheritedClassAttributes(self).items():
-			classAttributes[name] = self.write(attributes[0])
+		# FIXME: This is inconsistent
+		for name, attribute in classElement.getInheritedClassAttributes().items():
+			classAttributes[name] = self.write(attribute)
 		for attribute in classElement.getClassAttributes():
 			classAttributes[attribute.getName()] = self.write(attribute)
 		classAttributes = classAttributes.values()
@@ -383,12 +384,12 @@ class Writer(AbstractWriter):
 				else:
 					return "__this__.getMethod('%s') " % (symbol_name)
 			elif isinstance(value, interfaces.IClassMethod):
-				if self.isInInstanceMethod():
+				if self.isIn(interfaces.IInstanceMethod):
 					return "__this__.getClass().%s" % (symbol_name)
 				else:
 					return "__this__.%s" % (symbol_name)
 			elif isinstance(value, interfaces.IClassAttribute):
-				if self.isInClassMethod():
+				if self.isIn(interfaces.IClassMethod):
 					return "__this__.%s" % (symbol_name)
 				else:
 					return "__this__.getClass().%s" % (symbol_name)
