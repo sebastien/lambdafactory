@@ -141,6 +141,7 @@
 	@property importer=None
 	@property languages={}
 	@property libraryPaths   = []
+	@property options={}
 	# FIXME: This should be a pass
 	@property resolver=None
 	
@@ -203,13 +204,13 @@
 	@method parseFile path, moduleName=None
 		var extension = os path splitext (path)[-1][1:] lower()
 		var parser = parsers get (extension)
-		var source_and_module = parser parse(path, moduleName)
+		var source_and_module = parser parse( path, moduleName)
 		return source_and_module[1]
 	@end
 
 	@method parseSource source, extenstion, moduleName=None
 		var parser = parsers get (extenstion)
-		var source_and_module = parser parseSource(source, moduleName)
+		var source_and_module = parser parseSource( source, moduleName)
 		return source_and_module[1]
 	@end
 	

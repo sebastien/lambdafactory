@@ -87,6 +87,11 @@
 		|options, args = option_parser.parse_args(args=arguments)
 		@end
 		var language = options lang
+		if options targets
+			for option_target in options targets
+				environment options [option_target] = True
+			end
+		end
 		if options source
 			parseSource(args[0], options source, options module)
 		else
