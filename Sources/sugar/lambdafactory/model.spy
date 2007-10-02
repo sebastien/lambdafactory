@@ -411,6 +411,9 @@
 	@end
 
 	@method annotate annotation:IAnnotation
+		if not annotation
+			return None
+		end
 		if type(annotation) in [tuple, list]
 			map(annotate, annotation)
 		else
@@ -1386,7 +1389,9 @@
 
 @class Argument: Slot, IArgument
 
+	# FIXME: This should rather be a state
 	@property rest = False
+	@property keywordRest = False
 	@property optional = False
 	@property keywords = False
 
@@ -1407,6 +1412,14 @@
 	@end
 
 	@method setRest value
+		rest = value and value
+	@end
+
+	@method isKeywordsRest
+		return rest
+	@end
+
+	@method setKeywordsRest value
 		rest = value and value
 	@end
 

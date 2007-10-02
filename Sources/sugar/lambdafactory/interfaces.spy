@@ -1,5 +1,4 @@
 @module lambdafactory.interfaces
-
 # Encoding: iso-8859-1
 # vim: tw=80 ts=4 sw=4 noet
 # -----------------------------------------------------------------------------
@@ -9,7 +8,7 @@
 # License   : Revised BSD License
 # -----------------------------------------------------------------------------
 # Creation  : 02-Nov-2006
-# Last mod  : 04-Sep-2007
+# Last mod  : 02-Oct-2007
 # -----------------------------------------------------------------------------
 
 # TODO: Add a Flowable interface that tells that the element can have
@@ -394,10 +393,20 @@
 	|	Sets this argument as optional or not.
 
 	@abstract @method isRest
-	|	Tells if the argument is variable or not.
+	|	Tells if this argument represents ''the rest'' of arguments in the
+	|	invocation
 
 	@abstract @method setRest value
-	|	Sets this argument as variable or not.
+	|	Tells this argument represents ''the rest'' of arguments in the
+	|	invocation
+
+	@abstract @method setKeywordsRest value
+	|	Tells this arguments represents ''the rest'' of the keyword argument in
+	|	the invocation
+
+	@abstract @method isKeywordsRest 
+	|	Tells if this arguments represents ''the rest'' of the keyword argument in
+	|	the invocation
 
 	@abstract @method isKeywords
 	|	Tells if the argument is keywords list or not.

@@ -13,7 +13,7 @@ class Importer:
 	def __init__ (self, environment):
 		self.environment = None
 		self.environment = environment
-	
+
 	def findSugarModule(self, moduleName):
 		paths=[os.getcwd()]
 		if os.environ.get("SUGARPATH"):
@@ -25,7 +25,7 @@ class Importer:
 				if os.path.exists(file_path):
 					return file_path
 		return None
-	
+
 	def importModule(self, moduleName):
 		module_path=self.findSugarModule(moduleName)
 		if module_path:
@@ -34,7 +34,6 @@ class Importer:
 			module=self.environment.parseFile(module_path)
 			module.setImported(True)
 			self.environment.report.dedent()
-	
 
 class Language:
 	def __init__ (self, name, environment):
@@ -81,6 +80,7 @@ class Environment:
 		self.factory = None
 		self.program = None
 		self.parsers = {}
+		self.options = {}
 		self.passes = []
 		self.writer = None
 		self.report = DefaultReporter
