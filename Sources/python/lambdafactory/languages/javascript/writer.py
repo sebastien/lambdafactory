@@ -8,7 +8,7 @@
 # License   : Revised BSD License
 # -----------------------------------------------------------------------------
 # Creation  : 02-Nov-2006
-# Last mod  : 21-Sep-2007
+# Last mod  : 04-Oct-2007
 # -----------------------------------------------------------------------------
 
 # TODO: When constructor is empty, should assign default attributes anyway
@@ -91,9 +91,9 @@ class Writer(AbstractWriter):
 		# We create a map of class methods, including inherited class methods
 		# so that we can copy the implementation of these
 		classOperations = {}
-		for name, meths in classElement.getInheritedClassMethods().items():
+		for name, method in classElement.getInheritedClassMethods().items():
 			# FIXME: Maybe use wrapper instead
-			classOperations[name] = self._writeClassMethodProxy(classElement, meths[0])
+			classOperations[name] = self._writeClassMethodProxy(classElement, method)
 		# Here, we've got to cheat a little bit. Each class method will 
 		# generate an '_imp' suffixed method that will be invoked by the 
 		for meth in classElement.getClassMethods():
@@ -765,9 +765,15 @@ class Writer(AbstractWriter):
 
 	def onEmbed( self, embed ):
 		lang = embed.getLanguage().lower().strip()
-		assert lang in self.supportedEmbedLanguages
-		return embed.getCode()
-	
+		if not lang in self.supportedEmbedLanguages:
+			self.environment.report.error ("JavaScript writer cannot embed language:", lang)
+			res = [ "// Unable to embed the following code" ]
+			for l in embed.getCode().split("\n"):
+				res.append("// " + l)
+			return "\n".join(res)
+		else:
+			return embed.getCode()
+
 	def _document( self, element ):
 		if element.getDocumentation():
 			doc = element.getDocumentation()

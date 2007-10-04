@@ -16,7 +16,7 @@
 	|	return res
 	|else:
 	|	if value is None: return ""
-	|	assert type(value) in (str, unicode), "Unsupported type: %s" % (value)
+	|	assert type(value) in (str, unicode), "Type not suitable for formatting: %s" % (value)
 	|	return ["\n".join((level*PREFIX)+v for v in value.split("\n"))]
 	@end
 @end

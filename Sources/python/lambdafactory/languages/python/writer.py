@@ -8,7 +8,7 @@
 # License   : Revised BSD License
 # -----------------------------------------------------------------------------
 # Creation  : 03-Aug-2007
-# Last mod  : 05-Sep-2007
+# Last mod  : 04-Oct-2007
 # -----------------------------------------------------------------------------
 
 # TODO: When constructor is empty, should assign default attributes anyway
@@ -91,7 +91,8 @@ class Writer(AbstractWriter):
 			if name == interfaces.Constants.ModuleInit:
 				module_init = value.getOperations()
 			else:
-				code.append(self.write(value))
+				value_code = self.write(value)
+				code.append(value_code)
 			if name == interfaces.Constants.MainFunction:
 				main = value
 		# We take care of the imports
@@ -103,7 +104,9 @@ class Writer(AbstractWriter):
 				code.insert(imports_offset, self.write(i))
 		# We take care of the module_init
 		if module_init:
-			code.extend(module_init)
+			init_code = ["def __module_init__():", map(self.write,module_init)]
+			init_code.append("__module_init__()")
+			code.extend(init_code)
 		# We take care or the main function
 		if main:
 			code.extend([
@@ -403,7 +406,7 @@ class Writer(AbstractWriter):
 				else:
 					return "self.%s " % (symbol_name)
 			elif isinstance(value, interfaces.IClassMethod):
-				if self.isInInstanceMethod():
+				if self.isIn(interfaces.IInstanceMethod):
 					return "self.__class__.%s" % (symbol_name)
 				else:
 					return "self.%s" % (symbol_name)
@@ -484,7 +487,7 @@ class Writer(AbstractWriter):
 			self.write(e) for e in element.getValues()
 		]))
 
-	def onDictKey( self, key ):
+	def _writeDictKey( self, key ):
 		if isinstance(key, interfaces.IString):
 			return self.write(key)
 		else:
@@ -493,7 +496,7 @@ class Writer(AbstractWriter):
 		
 	def onDict( self, element ):
 		return '{%s}' % (", ".join([
-			"%s:%s" % ( self.writeDictKey(k),self.write(v))
+			"%s:%s" % ( self._writeDictKey(k),self.write(v))
 			for k,v in element.getItems()
 			])
 		)
@@ -638,7 +641,7 @@ class Writer(AbstractWriter):
 			", ".join(map(self.write, operation.getArguments()))
 		)
 
-	def onSelectionInExpression( self, selection ):
+	def _writeSelectionInExpression( self, selection ):
 		rules  = selection.getRules()
 		result = []
 		text   = ""
@@ -662,7 +665,7 @@ class Writer(AbstractWriter):
 		# closure (because we can have a closure being assigned to something.)
 		if self.isIn(interfaces.IAssignation) > self.isIn(interfaces.IClosure) \
 		or self.isIn(interfaces.IAllocation) > self.isIn(interfaces.IClosure):
-			return self.writeSelectionInExpression(selection)
+			return self._writeSelectionInExpression(selection)
 		rules = selection.getRules()
 		result = []
 		for i in range(0,len(rules)):
@@ -803,12 +806,18 @@ class Writer(AbstractWriter):
 		res = ["import"]
 		res.append(", ".join(element.getImportedModuleNames()))
 		return " ".join(res)
-	
+
 	def onEmbed( self, embed ):
 		lang = embed.getLanguage().lower().strip()
-		assert lang in self.supportedEmbedLanguages
-		return embed.getCode()
-	
+		if not lang in self.supportedEmbedLanguages:
+			self.environment.report.error ("Python writer cannot embed language:", lang)
+			res = [ "# Unable to embed the following code" ]
+			for l in embed.getCode().split("\n"):
+				res.append("# " + l)
+			return "\n".join(res)
+		else:
+			return embed.getCode()
+
 	def _document( self, element ):
 		if element.getDocumentation():
 			doc = element.getDocumentation()
