@@ -137,6 +137,9 @@
 			if (options lang in ["js","javascript"] or not options lang)
 				interpreter = os getenv("SUGAR_JS") or "js"
 				command = interpreter + " " + path + " " + args_str
+			if (options lang in ["pnuts"])
+				interpreter = os getenv("SUGAR_PNUTS") or "pnuts"
+				command = interpreter + " " + path + " " + args_str
 			else
 				raise ERR_NO_RUNTIME_AVAILABLE(language)
 			end

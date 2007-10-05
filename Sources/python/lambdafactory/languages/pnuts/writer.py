@@ -8,16 +8,14 @@
 # License   : Revised BSD License
 # -----------------------------------------------------------------------------
 # Creation  : 05-Jul-2006
-# Last mod  : 18-Jul-2007
+# Last mod  : 05-Oct-2007
 # -----------------------------------------------------------------------------
 
-from modelwriter import AbstractWriter, flatten
-from resolver import AbstractResolver
-import interfaces, reporter
-import os.path
-
-class Resolver(AbstractResolver):
-	pass
+from lambdafactory.modelwriter import AbstractWriter, flatten
+import lambdafactory.interfaces as interfaces
+import lambdafactory.reporter as reporter
+from lambdafactory.splitter import SNIP
+import os.path,re,time,string, random
 
 #------------------------------------------------------------------------------
 #
@@ -27,11 +25,11 @@ class Resolver(AbstractResolver):
 
 class Writer(AbstractWriter):
 
-	def __init__( self, reporter=reporter.DefaultReporter ):
-		AbstractWriter.__init__(self, reporter)
-		self.resolver = Resolver(reporter=reporter)
+	def __init__( self ):
+		AbstractWriter.__init__(self)
 		self.jsPrefix = ""
 		self.jsCore   = "Extend."
+		self.supportedEmbedLanguages = ["pnuts"]
 		self.inInvocation = False
 
 	def getRuntimeSource(s):
@@ -56,7 +54,7 @@ class Writer(AbstractWriter):
 		if name == interfaces.Constants.MainFunction: name = "main"
 		return name
 
-	def writeModule( self, moduleElement):
+	def onModule( self, moduleElement):
 		"""Writes a Module element."""
 		pnuts_name = self.getAbsoluteName(moduleElement)
 		# TODO: Move imports to the top
@@ -64,7 +62,7 @@ class Writer(AbstractWriter):
 		code = ['package("%s")' % (pnuts_name)]
 		for name, value in module_slots:
 			if isinstance(value, interfaces.IModuleAttribute):
-				code.append("%s = " % (moduleElement.getName(), self.write(value)))
+				code.append("%s = %s" % (moduleElement.getName(), self.write(value)))
 			elif isinstance(value, interfaces.IClass):
 				code.append(self.write(value))
 			elif isinstance(value, interfaces.IFunction):
@@ -89,7 +87,7 @@ class Writer(AbstractWriter):
 			*code
 		)
 
-	def writeImportOperation( self, importElement):
+	def onImportOperation( self, importElement):
 		imported_name = self.write(importElement.getImportedElement())
 		imported_elem = imported_name.split(".")[-1]
 		code = ['import("%s")' % (imported_name)]
@@ -98,7 +96,7 @@ class Writer(AbstractWriter):
 				code[-1] += " ; %s=%s" % (importElement.getAlias().getReferenceName(), imported_elem)
 		return "\n".join(code)
 
-	def writeClass( self, classElement ):
+	def onClass( self, classElement ):
 		"""Writes a class element."""
 		parents = classElement.getParentClasses()
 		parent  = None
@@ -109,17 +107,17 @@ class Writer(AbstractWriter):
 		# We create a map of class methods, including inherited class methods
 		# so that we can copy the implementation of these
 		classOperations = {}
-		for name, meths in classElement.getInheritedClassMethods(self).items():
+		for name, meths in classElement.getInheritedClassMethods().items():
 			# FIXME: Maybe use wrapper instead
-			classOperations[name] = self._writeClassMethodProxy(classElement, meths[0])
+			classOperations[name] = self._writeClassMethodProxy(classElement, meths)
 		# Here, we've got to cheat a little bit. Each class method will 
 		# generate an '_imp' suffixed method that will be invoked by the 
 		for meth in classElement.getClassMethods():
 			classOperations[meth.getName()] = meth
 		classOperations = classOperations.values()
 		classAttributes = {}
-		for name, attributes in classElement.getInheritedClassAttributes(self).items():
-			classAttributes[name] = self.write(attributes[0])
+		for name, attribute in classElement.getInheritedClassAttributes().items():
+			classAttributes[name] = self.write(attribute)
 		for attribute in classElement.getClassAttributes():
 			classAttributes[attribute.getName()] = self.write(attribute)
 		classAttributes = classAttributes.values()
@@ -159,7 +157,7 @@ class Writer(AbstractWriter):
 		result.append("}")
 		return self._format(result)
 
-	def writeMethod( self, methodElement ):
+	def onMethod( self, methodElement ):
 		"""Writes a method element."""
 		method_name = methodElement.getName()
 		if method_name == interfaces.Constants.Constructor: method_name = "init"
@@ -172,12 +170,12 @@ class Writer(AbstractWriter):
 			),
 			["__this__=this"],
 			self._writeClosureArguments(methodElement),
-			self.writeFunctionWhen(methodElement),
+			self._writeFunctionWhen(methodElement),
 			map(self.write, methodElement.getOperations()),
 			"}"
 		)
 
-	def writeClassMethod( self, methodElement ):
+	def onClassMethod( self, methodElement ):
 		"""Writes a class method element."""
 		method_name = methodElement.getName()
 		args        = methodElement.getArguments()
@@ -186,7 +184,7 @@ class Writer(AbstractWriter):
 			"function %s_%s(%s){" % (self.getCurrentClass().getName(),method_name, ", ".join(map(self.write, args))),
 			["__this__ = this"],
 			self._writeClosureArguments(methodElement),
-			self.writeFunctionWhen(methodElement),
+			self._writeFunctionWhen(methodElement),
 			map(self.write, methodElement.getOperations()),
 			"}"
 		)
@@ -208,13 +206,13 @@ class Writer(AbstractWriter):
 			'}'
 		)
 
-	def writeConstructor( self, element ):
+	def onConstructor( self, element ):
 		"""Writes a method element."""
 		current_class = self.getCurrentClass()
 		attributes    = []
 		for a in current_class.getAttributes():
 			if not a.getDefaultValue(): continue
-			attributes.append("__this__.%s = %s" % (a.getReferenceName(), self.write(a.getDefaultValue())))
+			attributes.append("__this__.%s = %s" % (a.getName(), self.write(a.getDefaultValue())))
 		return self._format(
 			self._document(element),
 			"%s(%s){" % (
@@ -228,7 +226,7 @@ class Writer(AbstractWriter):
 			"}"
 		)
 
-	def writeClosure( self, closure ):
+	def onClosure( self, closure ):
 		"""Writes a closure element."""
 		return self._format(
 			self._document(closure),
@@ -238,7 +236,7 @@ class Writer(AbstractWriter):
 			"}"
 		)
 	
-	def writeClosureBody(self, closure):
+	def onClosureBody(self, closure):
 		return self._format('{', map(self.write, closure.getOperations()), '}')
 
 	def _writeClosureArguments(self, closure):
@@ -249,26 +247,26 @@ class Writer(AbstractWriter):
 			if argument.isRest():
 				assert i >= l - 2
 				result.append("%s = %s(arguments,%d)" % (
-					argument.getReferenceName(),
+					argument.getName(),
 					self.jsPrefix + self.jsCore + "sliceArguments",
 					i
 				))
 			i += 1
 		return result
 
-	def writeFunctionWhen(self, function ):
+	def _writeFunctionWhen(self, function ):
 		res = []
 		for a in function.getAnnotations("when"):
 			res.append("if (!(%s)) {return}" % (self.write(a.getContent())))
 		return self._format(res) or None
 
-	def writeFunctionPost(self, function ):
+	def onFunctionPost(self, function ):
 		res = []
 		for a in function.getAnnotations("post"):
 			res.append("if (!(%s)) {throw new Exception('Assertion failed')}" % (self.write(a.getContent())))
 		return self._format(res) or None
 
-	def writeFunction( self, function ):
+	def onFunction( self, function ):
 		"""Writes a function element."""
 		parent = function.getParent()
 		name   = function.getName()
@@ -285,7 +283,7 @@ class Writer(AbstractWriter):
 				),
 				[self._document(function)],
 				self._writeClosureArguments(function),
-				self.writeFunctionWhen(function),
+				self._writeFunctionWhen(function),
 				map(self.write, function.getOperations()),
 				"}"
 			]
@@ -296,7 +294,7 @@ class Writer(AbstractWriter):
 					", ".join(map(self.write, function.getArguments()))
 				),
 				self._writeClosureArguments(function),
-				self.writeFunctionWhen(function),
+				self._writeFunctionWhen(function),
 				map(self.write, function.getOperations()),
 				"}"
 			]
@@ -309,7 +307,7 @@ class Writer(AbstractWriter):
 			res.append("return result")
 		return self._format(res)
 
-	def writeBlock( self, block ):
+	def onBlock( self, block ):
 		"""Writes a block element."""
 		return self._format(
 			"{",
@@ -317,51 +315,53 @@ class Writer(AbstractWriter):
 			"}"
 		)
 
-	def writeArgument( self, argElement ):
+	def onArgument( self, argElement ):
 		"""Writes an argument element."""
 		return "%s" % (
-			argElement.getReferenceName(),
+			argElement.getName(),
 		)
 
-	def writeAttribute( self, element ):
+	def onAttribute( self, element ):
 		"""Writes an argument element."""
 		default_value = element.getDefaultValue()
 		if default_value:
 			return self._format(
 				self._document(element),
-				"%s = %s" % (element.getReferenceName(), default_value)
+				"%s = %s" % (element.getName(), default_value)
 			)
 		else:
 			return self._format(
 				self._document(element),
-				"Object %s" % (element.getReferenceName())
+				"Object %s" % (element.getName())
 			)
 
-	def writeClassAttribute( self, element ):
+	def onClassAttribute( self, element ):
 		"""Writes an argument element."""
 		default_value = element.getDefaultValue()
 		if default_value:
-			res = "%s:%s" % (element.getReferenceName(), self.write(default_value))
+			res = "%s:%s" % (element.getName(), self.write(default_value))
 		else:
-			res = "%s:undefined" % (element.getReferenceName())
+			res = "%s:undefined" % (element.getName())
 		return self._format(self._document(element), res)
 
-	def writeModuleAttribute( self, element ):
+	def onModuleAttribute( self, element ):
 		"""Writes an argument element."""
 		default_value = element.getDefaultValue()
 		if default_value: default_value = self.write(default_value)
 		else: default_value = 'undefined'
 		return self._format(
 			self._document(element),
-			"%s=%s" % (element.getReferenceName(), default_value)
+			"%s=%s" % (element.getName(), default_value)
 		)
 
-	def writeReference( self, element ):
+	def onReference( self, element ):
 		"""Writes an argument element."""
 		symbol_name  = element.getReferenceName()
-		value, scope = self.resolve(symbol_name)
-		if scope and scope.hasSlot(symbol_name):
-			value = scope.getSlot(symbol_name)
+		slot, value = self.resolve(symbol_name)
+		if slot:
+			scope = slot.getDataFlow().getElement()
+		else:
+			scope = None
 		if symbol_name == "self":
 			return "__this__"
 		if symbol_name == "target":
@@ -393,12 +393,12 @@ class Writer(AbstractWriter):
 				else:
 					return "__this__.getMethod('%s') " % (symbol_name)
 			elif isinstance(value, interfaces.IClassMethod):
-				if self.isInInstanceMethod():
+				if self.isIn(interfaces.IInstanceMethod):
 					return "__this__.getClass().%s" % (symbol_name)
 				else:
 					return "__this__.%s" % (symbol_name)
 			elif isinstance(value, interfaces.IClassAttribute):
-				if self.isInClassMethod():
+				if self.isIn(interfaces.IClassMethod):
 					return "__this__.%s" % (symbol_name)
 				else:
 					return "__this__.getClass().%s" % (symbol_name)
@@ -444,58 +444,58 @@ class Writer(AbstractWriter):
 				"not":"!",
 				"or":"||"
 	}
-	def writeOperator( self, operator ):
+	def onOperator( self, operator ):
 		"""Writes an operator element."""
 		o = operator.getReferenceName()
 		o = self.PNUTS_OPERATORS.get(o) or o
 		return "%s" % (o)
 
-	def writeNumber( self, number ):
+	def onNumber( self, number ):
 		"""Writes a number element."""
 		return "%s" % (number.getActualValue())
 
-	def writeString( self, element ):
+	def onString( self, element ):
 		"""Writes a string element."""
 		return '"%s"' % (element.getActualValue().replace('"', '\\"'))
 
-	def writeList( self, element ):
+	def onList( self, element ):
 		"""Writes a list element."""
 		return '[%s]' % (", ".join([
 			self.write(e) for e in element.getValues()
 		]))
 
-	def writeDictKey( self, key ):
+	def _writeDictKey( self, key ):
 		if isinstance(key, interfaces.IString):
 			return self.write(key)
 		else:
 			# FIXME: Raise an error, because JavaScript only allow strings as keys
 			return "(%s)" % (self.write(key))
 
-	def writeDict( self, element ):
+	def onDict( self, element ):
 		# TODO: Rule: keys have to be strings
 		return '{%s}' % (", ".join([
-			"%s=>%s" % ( self.writeDictKey(k),self.write(v))
+			"%s=>%s" % ( self._writeDictKey(k),self.write(v))
 			for k,v in element.getItems()
 			])
 		)
 		
-	def writeAllocation( self, allocation ):
+	def onAllocation( self, allocation ):
 		"""Writes an allocation operation."""
 		s = allocation.getSlotToAllocate()
 		v = allocation.getDefaultValue()
 		if v:
-			return "%s=%s" % (s.getReferenceName(), self.write(v))
+			return "%s=%s" % (s.getName(), self.write(v))
 		else:
-			return "%s" % (s.getReferenceName())
+			return "%s" % (s.getName())
 
-	def writeAssignation( self, assignation ):
+	def onAssignation( self, assignation ):
 		"""Writes an assignation operation."""
 		return "%s = %s" % (
 			self.write(assignation.getTarget()),
 			self.write(assignation.getAssignedValue())
 		)
 
-	def writeEnumeration( self, operation ):
+	def onEnumeration( self, operation ):
 		"""Writes an enumeration operation."""
 		start = operation.getStart() 
 		end   = operation.getEnd() 
@@ -508,7 +508,7 @@ class Writer(AbstractWriter):
 		if step: res += " step " + self._write(step)
 		return res
 
-	def writeResolution( self, resolution ):
+	def onResolution( self, resolution ):
 		"""Writes a resolution operation."""
 		resolved_name = resolution.getReference().getReferenceName()
 		if resolution.getContext():
@@ -519,7 +519,7 @@ class Writer(AbstractWriter):
 		else:
 			return "%s" % (resolved_name)
 
-	def writeComputation( self, computation ):
+	def onComputation( self, computation ):
 		"""Writes a computation operation."""
 		# FIXME: For now, we supposed operator is prefix or infix
 		operands = filter(lambda x:x!=None,computation.getOperands())
@@ -542,11 +542,11 @@ class Writer(AbstractWriter):
 					self.write(operator),
 					self.write(operands[1])
 				)
-		if self._filterContext(interfaces.IComputation):
+		if self.isIn(interfaces.IComputation):
 			res = "(%s)" % (res)
 		return res
 
-	def writeInvocation( self, invocation ):
+	def onInvocation( self, invocation ):
 		"""Writes an invocation operation."""
 		self.inInvocation = True
 		t = self.write(invocation.getTarget())
@@ -556,14 +556,14 @@ class Writer(AbstractWriter):
 			", ".join(map(self.write, invocation.getArguments()))
 		)
 	
-	def writeInstanciation( self, operation ):
+	def onInstanciation( self, operation ):
 		"""Writes an invocation operation."""
 		return "new %s(%s)" % (
 			self.write(operation.getInstanciable()),
 			", ".join(map(self.write, operation.getArguments()))
 		)
 
-	def writeSelectionInExpression( self, selection ):
+	def _writeSelectionInExpression( self, selection ):
 		rules  = selection.getRules()
 		result = []
 		text   = ""
@@ -582,12 +582,12 @@ class Writer(AbstractWriter):
 			text += ")"
 		return text
 	
-	def writeSelection( self, selection ):
+	def onSelection( self, selection ):
 		# If we are in an assignataion and allocation which is contained in a
 		# closure (because we can have a closure being assigned to something.)
 		if self.isIn(interfaces.IAssignation) > self.isIn(interfaces.IClosure) \
 		or self.isIn(interfaces.IAllocation) > self.isIn(interfaces.IClosure):
-			return self.writeSelectionInExpression(selection)
+			return self._writeSelectionInExpression(selection)
 		rules = selection.getRules()
 		result = []
 		for i in range(0,len(rules)):
@@ -621,10 +621,12 @@ class Writer(AbstractWriter):
 			result.extend(rule_code)
 		return self._format(*result)
 
-	def writeIteration( self, iteration ):
+	def onIteration( self, iteration ):
 		"""Writes a iteration operation."""
 		it_name = self._unique("_iterator")
 		args = map(self.write, iteration.getClosure().getArguments())
+		if not args:
+			args = ["_V_"]
 		assert len(args) == 1
 		return self._format(
 			"for (%s : %s ){" % (
@@ -636,18 +638,18 @@ class Writer(AbstractWriter):
 
 		)
 
-	def writeRepetition( self, repetition ):
+	def onRepetition( self, repetition ):
 		return self._format(
 			"while (%s)" % (self.write(repetition.getCondition())),
 			self.write(repetition.getProcess())
 		)
 
-	def writeAccessOperation( self, operation ):
+	def onAccessOperation( self, operation ):
 		return self._format(
 			"%s[%s]" % (self.write(operation.getTarget()), self.write(operation.getIndex()))
 		)
 
-	def writeSliceOperation( self, operation ):
+	def onSliceOperation( self, operation ):
 		start = operation.getSliceStart()
 		end   = operation.getSliceEnd()
 		if start: start = self.write(start)
@@ -661,25 +663,51 @@ class Writer(AbstractWriter):
 				end
 		))
 
-	def writeEvaluation( self, operation ):
+	def onEvaluation( self, operation ):
 		"""Writes an evaluation operation."""
 		return "%s" % ( self.write(operation.getEvaluable()) )
 
-	def writeTermination( self, termination ):
+	def onTermination( self, termination ):
 		"""Writes a termination operation."""
 		return "return %s" % ( self.write(termination.getReturnedEvaluable()) )
 
-	def writeBreaking( self, breking ):
+	def onBreaking( self, breking ):
 		"""Writes a break operation."""
 		return "break"
+
+	def onExcept( self, exception ):
+		"""Writes a except operation."""
+		return "throw (" + self.write(exception.getValue()) + ")"
 	
-	def writeEmbed( self, embed ):
+	def onInterception( self, interception ):
+		"""Writes an interception operation."""
+		try_block   = interception.getProcess()
+		try_catch   = interception.getIntercept()
+		try_finally = interception.getConclusion()
+		res         = ["try {", map(self.write, try_block.getOperations()), "}"]
+		if try_catch:
+			res.insert(1,[
+				"catch( Exception, function(%s){" % ( self.write(try_catch.getArguments()[0])) ,
+				map(self.write, try_catch.getOperations()),
+				"})"
+			])
+		if try_finally:
+			res.extend(["finally {", map(self.write, try_finally.getOperations()), "}"])
+		return self._format(*res)
+
+	def onEmbed( self, embed ):
 		lang = embed.getLanguage().lower().strip()
-		assert lang in ("js", "javascript")
-		return embed.getCodeString()
-	
+		if not lang in self.supportedEmbedLanguages:
+			self.environment.report.error ("Pnuts writer cannot embed language:", lang)
+			res = [ "// Unable to embed the following code" ]
+			for l in embed.getCode().split("\n"):
+				res.append("// " + l)
+			return "\n".join(res)
+		else:
+			return embed.getCode()
+
 	def _document( self, element ):
-		if element.hasDocumentation():
+		if element.getDocumentation():
 			doc = element.getDocumentation()
 			res = []
 			for line in doc.getContent().split("\n"):
@@ -687,5 +715,7 @@ class Writer(AbstractWriter):
 			return "\n".join(res)
 		else:
 			return None
+
+MAIN_CLASS = Writer
 
 # EOF
