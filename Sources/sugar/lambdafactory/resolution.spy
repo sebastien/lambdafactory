@@ -151,7 +151,6 @@
 
 @end
 
-
 @class DataFlowBinding: Pass
 | This pass will target classes, resolving their parent classes and binding the
 | dataflow slot to the proper value. If the binding fails, an exception will be

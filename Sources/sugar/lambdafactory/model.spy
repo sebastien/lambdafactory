@@ -59,6 +59,22 @@
 		operations append(operation)
 	@end
 
+	@method isImported
+		return slotType == DataFlow IMPORTED
+	@end
+
+	@method isLocal
+		return slotType == DataFlow LOCAL
+	@end
+
+	@method isArgument
+		return slotType == DataFlow ARGUMENT
+	@end
+
+	@method isEnvironment
+		return slotType == DataFlow ENVIRONMENT
+	@end
+
 	@method __repr__
 		@embed Python
 		|return '<Slot("%s"=%s):%s@%s%s>' % (self.name, self.value, "TYPE", self.slotType, self.origin)
@@ -1150,7 +1166,7 @@
 @end
 
 @class ImportSymbolOperation: Operation, IImportSymbolOperation
-	
+
 	@constructor arguments...
 		@embed Python
 		|Operation.__init__(self, *arguments)
