@@ -44,13 +44,12 @@ class Reporter:
 		self.warnings.append(message)
 		map( lambda c:c(message, element), self._onWarning)
 
-	def error( self, message, element=None ):
-		if self.isDone(message, element): return
+	def error( self, *message ):
 		self.errors.append(message)
-		map( lambda c:c(message, element), self._onError)
+		map( lambda c:c(message), self._onError)
 
 	def info( self, *message):
-		sys.stderr.write("--- %s%s\n" % ((" " * self._indent) , " ".join(map(str, message))))
+		sys.stderr.write(" -  %s%s\n" % ((" " * self._indent) , " ".join(map(str, message))))
 
 	def onError( self, callback ):
 		self._onError.append(callback)
@@ -58,8 +57,8 @@ class Reporter:
 	def onWarning( self, callback ):
 		self._onWarning.append(callback)
 
-	def echoError( self, message, element ):
-		sys.stderr.write("[!] %s at %s\n" % (message, element))
+	def echoError( self, message ):
+		sys.stderr.write("[!] %s\n" % (" ".join(map(str,message))))
 
 	def echoWarning( self, message, element ):
 		sys.stderr.write("[-] %s at %s\n" % (message, element))

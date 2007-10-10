@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 import sys
 __module__ = sys.modules[__name__]
 __module_name__ = 'lambdafactory.interfaces'
@@ -15,11 +16,11 @@ class IAnnotation:
 	program, but annotates/gives meta-information about is elements."""
 	def getContent(self):
 		"""Returns the content of this annotation."""
-		raise Exception("Abstract method IAnnotation.getContent not implemented")
+		raise Exception("Abstract method IAnnotation.getContent not implemented in: " + str(self))
 	
 	def getName(self):
 		"""Returns the name of this annotation."""
-		raise Exception("Abstract method IAnnotation.getName not implemented")
+		raise Exception("Abstract method IAnnotation.getName not implemented in: " + str(self))
 	
 
 class IComment(IAnnotation):
@@ -34,13 +35,13 @@ class IDocumentation(IAnnotation):
 
 class ISyntactic:
 	def getOffset(self):
-		raise Exception("Abstract method ISyntactic.getOffset not implemented")
+		raise Exception("Abstract method ISyntactic.getOffset not implemented in: " + str(self))
 	
 	def getLine(self):
-		raise Exception("Abstract method ISyntactic.getLine not implemented")
+		raise Exception("Abstract method ISyntactic.getLine not implemented in: " + str(self))
 	
 	def getColumn(self):
-		raise Exception("Abstract method ISyntactic.getColumn not implemented")
+		raise Exception("Abstract method ISyntactic.getColumn not implemented in: " + str(self))
 	
 
 class IDataFlow:
@@ -57,80 +58,103 @@ class IDataFlow:
 	same: contexts are elements that keep track of declared slots, while the
 	dataflow make use of the context to weave the elements togeher."""
 	def declareArgument(self, name, value):
-		raise Exception("Abstract method IDataFlow.declareArgument not implemented")
+		raise Exception("Abstract method IDataFlow.declareArgument not implemented in: " + str(self))
 	
 	def declareEnvironment(self, name, value):
 		"""Declares an environment variable with the given name, value
 		and origin."""
-		raise Exception("Abstract method IDataFlow.declareEnvironment not implemented")
+		raise Exception("Abstract method IDataFlow.declareEnvironment not implemented in: " + str(self))
 	
 	def declareVariable(self, name, value, origin=None):
 		"""Declares a (local) variable with the given name, value and
 		origin"""
 		if origin is None: origin = None
-		raise Exception("Abstract method IDataFlow.declareVariable not implemented")
+		raise Exception("Abstract method IDataFlow.declareVariable not implemented in: " + str(self))
 	
 	def getSlots(self):
 		"""Returns the lsit of slots @methodiend for this dataflow."""
-		raise Exception("Abstract method IDataFlow.getSlots not implemented")
+		raise Exception("Abstract method IDataFlow.getSlots not implemented in: " + str(self))
 	
 	def hasSlot(self, name):
 		"""Tells if this dataflow @methodines a slot with the given name."""
-		raise Exception("Abstract method IDataFlow.hasSlot not implemented")
+		raise Exception("Abstract method IDataFlow.hasSlot not implemented in: " + str(self))
 	
-	def getParents(self):
+	def getRoot(self):
+		"""Returns the root of this dataflow (the root of the parent or this dataflow
+		if it has no parent)"""
+		raise Exception("Abstract method IDataFlow.getRoot not implemented in: " + str(self))
+	
+	def getParent(self):
 		"""Returns the list of parent dataflows for this dataflow."""
-		raise Exception("Abstract method IDataFlow.getParents not implemented")
+		raise Exception("Abstract method IDataFlow.getParent not implemented in: " + str(self))
 	
-	def addParent(self, parent):
+	def setParent(self, parent):
 		"""Add the given dataflow as a parent of this dataflow."""
-		raise Exception("Abstract method IDataFlow.addParent not implemented")
+		raise Exception("Abstract method IDataFlow.setParent not implemented in: " + str(self))
+	
+	def getSources(self):
+		"""Returns the dataflows that are _sources_, meaning that if a slot is not
+		resolved by this dataflow, it will look in the parent and then in the
+		sources (depending on the resolution scheme, but this is the default)"""
+		raise Exception("Abstract method IDataFlow.getSources not implemented in: " + str(self))
+	
+	def addSource(self, dataflow):
+		raise Exception("Abstract method IDataFlow.addSource not implemented in: " + str(self))
+	
+	def getDestinations(self):
+		"""Returns the dataflows that are _destinations_, meaning that these
+		dataflows will resolve if this dataflow if resolution fails, according tot
+		the resolution scheme used."""
+		raise Exception("Abstract method IDataFlow.getDestinations not implemented in: " + str(self))
+	
+	def addDestination(self, dataflow):
+		raise Exception("Abstract method IDataFlow.addDestination not implemented in: " + str(self))
 	
 	def addChild(self, child):
 		"""Adds the given dataflow as a child of this dataflow."""
-		raise Exception("Abstract method IDataFlow.addChild not implemented")
+		raise Exception("Abstract method IDataFlow.addChild not implemented in: " + str(self))
 	
 	def getChildren(self):
 		"""Returns a list of the child dataflows for this dataflow."""
-		raise Exception("Abstract method IDataFlow.getChildren not implemented")
+		raise Exception("Abstract method IDataFlow.getChildren not implemented in: " + str(self))
 	
 	def resolve(self, name):
 		"""Returns a couple '(DataFlow slot, IElement)' or '(None,None)'
 		corresponding to the resolution of the given 'name' in this dataflow."""
-		raise Exception("Abstract method IDataFlow.resolve not implemented")
+		raise Exception("Abstract method IDataFlow.resolve not implemented in: " + str(self))
 	
 	def defines(self, name):
 		"""Tells if this dataflow, or any of its child dataflows defines
 		the given name (symbol)"""
-		raise Exception("Abstract method IDataFlow.defines not implemented")
+		raise Exception("Abstract method IDataFlow.defines not implemented in: " + str(self))
 	
 	def getSlot(self, name):
 		"""Returns the slot with the given name, if any."""
-		raise Exception("Abstract method IDataFlow.getSlot not implemented")
+		raise Exception("Abstract method IDataFlow.getSlot not implemented in: " + str(self))
 	
 
 class IDataFlowSlot:
 	def addOperation(self):
-		raise Exception("Abstract method IDataFlowSlot.addOperation not implemented")
+		raise Exception("Abstract method IDataFlowSlot.addOperation not implemented in: " + str(self))
 	
 	def getOperations(self):
 		"""Returns the (ordered) list of operations that affected the slot.
 		Operations usually constrain the dataflow abstract type, and
 		exception/warnings/errors may be raised by the type system
 		when a type constraint fails."""
-		raise Exception("Abstract method IDataFlowSlot.getOperations not implemented")
+		raise Exception("Abstract method IDataFlowSlot.getOperations not implemented in: " + str(self))
 	
 	def getOrigin(self):
-		raise Exception("Abstract method IDataFlowSlot.getOrigin not implemented")
+		raise Exception("Abstract method IDataFlowSlot.getOrigin not implemented in: " + str(self))
 	
 	def getOriginalValue(self):
-		raise Exception("Abstract method IDataFlowSlot.getOriginalValue not implemented")
+		raise Exception("Abstract method IDataFlowSlot.getOriginalValue not implemented in: " + str(self))
 	
 	def getName(self):
-		raise Exception("Abstract method IDataFlowSlot.getName not implemented")
+		raise Exception("Abstract method IDataFlowSlot.getName not implemented in: " + str(self))
 	
 	def getAbstractType(self):
-		raise Exception("Abstract method IDataFlowSlot.getAbstractType not implemented")
+		raise Exception("Abstract method IDataFlowSlot.getAbstractType not implemented in: " + str(self))
 	
 
 class IDataFlowOwner:
@@ -142,23 +166,45 @@ class IElement:
 	"""The core @protocol for every element."""
 	def getAbstractType(self):
 		"""Returns the abstract type for this element"""
-		raise Exception("Abstract method IElement.getAbstractType not implemented")
+		raise Exception("Abstract method IElement.getAbstractType not implemented in: " + str(self))
 	
 	def setAbstractType(self, type):
 		"""Sets the abstract type for this element"""
-		raise Exception("Abstract method IElement.setAbstractType not implemented")
+		raise Exception("Abstract method IElement.setAbstractType not implemented in: " + str(self))
 	
 	def getDataFlow(self):
 		"""Returns the dataflow accessible/bound to this element"""
-		raise Exception("Abstract method IElement.getDataFlow not implemented")
+		raise Exception("Abstract method IElement.getDataFlow not implemented in: " + str(self))
 	
 	def getAnnotation(self, name):
 		"""Gets the annotation with the given name associated to this element"""
-		raise Exception("Abstract method IElement.getAnnotation not implemented")
+		raise Exception("Abstract method IElement.getAnnotation not implemented in: " + str(self))
 	
 	def setAnnotation(self, name, annotation):
 		"""Sets the annotation with the given name to this element"""
-		raise Exception("Abstract method IElement.setAnnotation not implemented")
+		raise Exception("Abstract method IElement.setAnnotation not implemented in: " + str(self))
+	
+	def getParent(self):
+		"""Returns this element parent"""
+		raise Exception("Abstract method IElement.getParent not implemented in: " + str(self))
+	
+	def hasParent(self):
+		"""Tells if this element has a parent or not"""
+		raise Exception("Abstract method IElement.hasParent not implemented in: " + str(self))
+	
+	def setParent(self, element):
+		"""Sets this element parent"""
+		raise Exception("Abstract method IElement.setParent not implemented in: " + str(self))
+	
+	def detach(self):
+		"""Detaches the element from its parent (in case it was already attached).
+		This should return this element, and set the parent to None."""
+		raise Exception("Abstract method IElement.detach not implemented in: " + str(self))
+	
+	def copy(self):
+		"""Performs a deep clone of this element. Any mutation to the original won't
+		change the copy."""
+		raise Exception("Abstract method IElement.copy not implemented in: " + str(self))
 	
 
 class IAssignable:
@@ -180,11 +226,11 @@ class IReferencable(IAssignable):
 	"local names" (like `List := Data.List`)"""
 	def getName(self):
 		"""Returns the local name for this referencable element"""
-		raise Exception("Abstract method IReferencable.getName not implemented")
+		raise Exception("Abstract method IReferencable.getName not implemented in: " + str(self))
 	
 	def getAbsoluteName(self):
 		"""Returns the absolute name for this element"""
-		raise Exception("Abstract method IReferencable.getAbsoluteName not implemented")
+		raise Exception("Abstract method IReferencable.getAbsoluteName not implemented in: " + str(self))
 	
 
 class IEvaluable:
@@ -193,12 +239,12 @@ class IEvaluable:
 	def getResultAbstractType(self):
 		"""Returns the abstract type of the result of the evaluation of this
 		evaluable"""
-		raise Exception("Abstract method IEvaluable.getResultAbstractType not implemented")
+		raise Exception("Abstract method IEvaluable.getResultAbstractType not implemented in: " + str(self))
 	
 	def setResultAbstractType(self, abstractType):
 		"""Sets the abstract type for this operation result. This is usually
 		invoked in the typing phase."""
-		raise Exception("Abstract method IEvaluable.setResultAbstractType not implemented")
+		raise Exception("Abstract method IEvaluable.setResultAbstractType not implemented in: " + str(self))
 	
 
 class IInstanciable:
@@ -212,7 +258,7 @@ class IInvocable:
 	def getArguments(self):
 		"""Returns a list of arguments (which are names associated with optional
 		type information."""
-		raise Exception("Abstract method IInvocable.getArguments not implemented")
+		raise Exception("Abstract method IInvocable.getArguments not implemented in: " + str(self))
 	
 
 class IAbstractable:
@@ -221,11 +267,11 @@ class IAbstractable:
 	methods, functions, operations, and sometimes modules and @protocoles."""
 	def isAbstract(self):
 		"""Tells wether the given abstractable is abstract or not."""
-		raise Exception("Abstract method IAbstractable.isAbstract not implemented")
+		raise Exception("Abstract method IAbstractable.isAbstract not implemented in: " + str(self))
 	
 	def setAbstract(self, isAbstract):
 		"""Sets wether the given abstractable is abstract or not."""
-		raise Exception("Abstract method IAbstractable.setAbstract not implemented")
+		raise Exception("Abstract method IAbstractable.setAbstract not implemented in: " + str(self))
 	
 
 class IValue(IElement, IEvaluable):
@@ -239,7 +285,7 @@ class ILiteral(IValue):
 	evaluation is direct."""
 	def getActualValue(self):
 		"""Returns the (implementation language) value for this literal"""
-		raise Exception("Abstract method ILiteral.getActualValue not implemented")
+		raise Exception("Abstract method ILiteral.getActualValue not implemented in: " + str(self))
 	
 
 class INumber(ILiteral):
@@ -251,11 +297,11 @@ class IString(ILiteral):
 class IList(IValue):
 	def addValue(self, value):
 		"""Adds a value to this list."""
-		raise Exception("Abstract method IList.addValue not implemented")
+		raise Exception("Abstract method IList.addValue not implemented in: " + str(self))
 	
 	def getValues(self):
 		"""Returns the values within this list."""
-		raise Exception("Abstract method IList.getValues not implemented")
+		raise Exception("Abstract method IList.getValues not implemented in: " + str(self))
 	
 
 class IDict(IValue):
@@ -264,11 +310,11 @@ class IDict(IValue):
 	def setValue(self, key, value):
 		"""Sets the value to be associated to the given key (which must be an
 		evaluable)."""
-		raise Exception("Abstract method IDict.setValue not implemented")
+		raise Exception("Abstract method IDict.setValue not implemented in: " + str(self))
 	
 	def getItems(self):
 		"""Returns the items contained in this dict"""
-		raise Exception("Abstract method IDict.getItems not implemented")
+		raise Exception("Abstract method IDict.getItems not implemented in: " + str(self))
 	
 
 class IReference(IValue, IReferencable):
@@ -277,7 +323,7 @@ class IReference(IValue, IReferencable):
 	def getReferenceName(self):
 		"""Returns the name which this reference contains. The name is used by
 		the resolution operation to actually resolve a value from the name."""
-		raise Exception("Abstract method IReference.getReferenceName not implemented")
+		raise Exception("Abstract method IReference.getReferenceName not implemented in: " + str(self))
 	
 
 class IAbsoluteReference(IReference):
@@ -289,11 +335,11 @@ class IAbsoluteReference(IReference):
 class IOperator(IReference):
 	def setPriority(self, priority):
 		"""Sets the priority for this operator"""
-		raise Exception("Abstract method IOperator.setPriority not implemented")
+		raise Exception("Abstract method IOperator.setPriority not implemented in: " + str(self))
 	
 	def getPriority(self):
 		"""Gets the priority for this operator"""
-		raise Exception("Abstract method IOperator.getPriority not implemented")
+		raise Exception("Abstract method IOperator.getPriority not implemented in: " + str(self))
 	
 
 class ISlot(IReferencable):
@@ -301,7 +347,7 @@ class ISlot(IReferencable):
 	def getTypeDescription(self):
 		"""Returns type information (constraints) that are associated to this
 		argument."""
-		raise Exception("Abstract method ISlot.getTypeDescription not implemented")
+		raise Exception("Abstract method ISlot.getTypeDescription not implemented in: " + str(self))
 	
 
 class IArgument(ISlot):
@@ -313,45 +359,57 @@ class IArgument(ISlot):
 	the named arguments of the rest of the arguments list."""
 	def isOptional(self):
 		"""Tells if the argument is optional or not."""
-		raise Exception("Abstract method IArgument.isOptional not implemented")
+		raise Exception("Abstract method IArgument.isOptional not implemented in: " + str(self))
 	
 	def setOptional(self, value):
 		"""Sets this argument as optional or not."""
-		raise Exception("Abstract method IArgument.setOptional not implemented")
+		raise Exception("Abstract method IArgument.setOptional not implemented in: " + str(self))
 	
 	def isRest(self):
-		"""Tells if the argument is variable or not."""
-		raise Exception("Abstract method IArgument.isRest not implemented")
+		"""Tells if this argument represents ''the rest'' of arguments in the
+		invocation"""
+		raise Exception("Abstract method IArgument.isRest not implemented in: " + str(self))
 	
 	def setRest(self, value):
-		"""Sets this argument as variable or not."""
-		raise Exception("Abstract method IArgument.setRest not implemented")
+		"""Tells this argument represents ''the rest'' of arguments in the
+		invocation"""
+		raise Exception("Abstract method IArgument.setRest not implemented in: " + str(self))
+	
+	def setKeywordsRest(self, value):
+		"""Tells this arguments represents ''the rest'' of the keyword argument in
+		the invocation"""
+		raise Exception("Abstract method IArgument.setKeywordsRest not implemented in: " + str(self))
+	
+	def isKeywordsRest(self):
+		"""Tells if this arguments represents ''the rest'' of the keyword argument in
+		the invocation"""
+		raise Exception("Abstract method IArgument.isKeywordsRest not implemented in: " + str(self))
 	
 	def isKeywords(self):
 		"""Tells if the argument is keywords list or not."""
-		raise Exception("Abstract method IArgument.isKeywords not implemented")
+		raise Exception("Abstract method IArgument.isKeywords not implemented in: " + str(self))
 	
 	def setKeywords(self, value):
 		"""Sets this argument as keywords list  or not."""
-		raise Exception("Abstract method IArgument.setKeywords not implemented")
+		raise Exception("Abstract method IArgument.setKeywords not implemented in: " + str(self))
 	
 	def setDefaultValue(self, value):
 		"""Sets the @methodault value for this argument."""
-		raise Exception("Abstract method IArgument.setDefaultValue not implemented")
+		raise Exception("Abstract method IArgument.setDefaultValue not implemented in: " + str(self))
 	
 	def getDefaultValue(self):
 		"""Returns the @methodault value for this slot."""
-		raise Exception("Abstract method IArgument.getDefaultValue not implemented")
+		raise Exception("Abstract method IArgument.getDefaultValue not implemented in: " + str(self))
 	
 
 class IAttribute(ISlot):
 	def setDefaultValue(self):
 		"""Sets the @methodault value for this attribute"""
-		raise Exception("Abstract method IAttribute.setDefaultValue not implemented")
+		raise Exception("Abstract method IAttribute.setDefaultValue not implemented in: " + str(self))
 	
 	def getDefaultValue(self):
 		"""Gets the @methodault value for this attribute"""
-		raise Exception("Abstract method IAttribute.getDefaultValue not implemented")
+		raise Exception("Abstract method IAttribute.getDefaultValue not implemented in: " + str(self))
 	
 
 class IModuleAttribute(IAttribute):
@@ -365,74 +423,74 @@ class IContext(IElement, IDataFlowOwner):
 	(aka values) to names."""
 	def setSlot(self, name, evaluable):
 		"""Binds the given evaluable to the named slot."""
-		raise Exception("Abstract method IContext.setSlot not implemented")
+		raise Exception("Abstract method IContext.setSlot not implemented in: " + str(self))
 	
 	def getSlot(self, name):
 		"""Returns the given evaluable bound to named slot."""
-		raise Exception("Abstract method IContext.getSlot not implemented")
+		raise Exception("Abstract method IContext.getSlot not implemented in: " + str(self))
 	
 	def hasSlot(self, name):
 		"""Tells if the context has a slot with the given name."""
-		raise Exception("Abstract method IContext.hasSlot not implemented")
+		raise Exception("Abstract method IContext.hasSlot not implemented in: " + str(self))
 	
 	def getSlots(self):
 		"""Returns (key, evaluable) pairs representing the slots within this
 		context."""
-		raise Exception("Abstract method IContext.getSlots not implemented")
+		raise Exception("Abstract method IContext.getSlots not implemented in: " + str(self))
 	
 	def setParent(self, context):
 		"""Sets the parent context for this context."""
-		raise Exception("Abstract method IContext.setParent not implemented")
+		raise Exception("Abstract method IContext.setParent not implemented in: " + str(self))
 	
 	def getParent(self):
 		"""Returns the parent context for this context (if any)"""
-		raise Exception("Abstract method IContext.getParent not implemented")
+		raise Exception("Abstract method IContext.getParent not implemented in: " + str(self))
 	
 
 class IClass(IContext, IReferencable):
 	def setParentClasses(self):
 		"""gives the list of parent classes that will"""
-		raise Exception("Abstract method IClass.setParentClasses not implemented")
+		raise Exception("Abstract method IClass.setParentClasses not implemented in: " + str(self))
 	
 	def getAttributes(self):
 		"""Returns the (non-class) attributes defined within this class."""
-		raise Exception("Abstract method IClass.getAttributes not implemented")
+		raise Exception("Abstract method IClass.getAttributes not implemented in: " + str(self))
 	
 	def getClassAttributes(self):
 		"""Returns the class attributes defined within this class."""
-		raise Exception("Abstract method IClass.getClassAttributes not implemented")
+		raise Exception("Abstract method IClass.getClassAttributes not implemented in: " + str(self))
 	
 	def getOperations(self):
 		"""Returns the operations (methods and class methods) defined within this class."""
-		raise Exception("Abstract method IClass.getOperations not implemented")
+		raise Exception("Abstract method IClass.getOperations not implemented in: " + str(self))
 	
 	def getMethods(self):
 		"""Returns the methods defined within this class."""
-		raise Exception("Abstract method IClass.getMethods not implemented")
+		raise Exception("Abstract method IClass.getMethods not implemented in: " + str(self))
 	
 	def getConstructors(self):
 		"""Returns the constructors for this class"""
-		raise Exception("Abstract method IClass.getConstructors not implemented")
+		raise Exception("Abstract method IClass.getConstructors not implemented in: " + str(self))
 	
 	def getDestructors(self):
 		"""Returns the destructors for this class"""
-		raise Exception("Abstract method IClass.getDestructors not implemented")
+		raise Exception("Abstract method IClass.getDestructors not implemented in: " + str(self))
 	
 	def getInstanceMethods(self):
 		"""Returns the instance methods defined within this class."""
-		raise Exception("Abstract method IClass.getInstanceMethods not implemented")
+		raise Exception("Abstract method IClass.getInstanceMethods not implemented in: " + str(self))
 	
 	def getClassMethods(self):
 		"""Returns the class method defined within this class."""
-		raise Exception("Abstract method IClass.getClassMethods not implemented")
+		raise Exception("Abstract method IClass.getClassMethods not implemented in: " + str(self))
 	
 	def getName(self):
 		"""Returns this class name. It can be `None` if the class is anonymous."""
-		raise Exception("Abstract method IClass.getName not implemented")
+		raise Exception("Abstract method IClass.getName not implemented in: " + str(self))
 	
 	def getParentClasses(self):
 		"""Returns the list of inherited classes references."""
-		raise Exception("Abstract method IClass.getParentClasses not implemented")
+		raise Exception("Abstract method IClass.getParentClasses not implemented in: " + str(self))
 	
 
 class IAbstractClass(IClass, IAbstractable):
@@ -449,29 +507,29 @@ class IModule(IContext):
 		Stub modules are typically used by Programs when adding a module such
 		as 'a.b.c' where 'a' and 'a.b' will be stub modules unless they were
 		or will be imported."""
-		raise Exception("Abstract method IModule.isImported not implemented")
+		raise Exception("Abstract method IModule.isImported not implemented in: " + str(self))
 	
 	def setImported(self, value=None):
 		if value is None: value = True
-		raise Exception("Abstract method IModule.setImported not implemented")
+		raise Exception("Abstract method IModule.setImported not implemented in: " + str(self))
 	
 	def addImportOperation(self, operation):
 		"""Returns the list of import operations declared in this module
 		"""
-		raise Exception("Abstract method IModule.addImportOperation not implemented")
+		raise Exception("Abstract method IModule.addImportOperation not implemented in: " + str(self))
 	
 	def getImportOperations(self):
 		"""Returns the list of import operations declared in this module """
-		raise Exception("Abstract method IModule.getImportOperations not implemented")
+		raise Exception("Abstract method IModule.getImportOperations not implemented in: " + str(self))
 	
 	def getClasses(self):
 		"""Returns the list of classes defined in this module. This is mainly a
 		convenience function."""
-		raise Exception("Abstract method IModule.getClasses not implemented")
+		raise Exception("Abstract method IModule.getClasses not implemented in: " + str(self))
 	
 	def getParentName(self):
 		"""Returns the parent name of this module (if any) """
-		raise Exception("Abstract method IModule.getParentName not implemented")
+		raise Exception("Abstract method IModule.getParentName not implemented in: " + str(self))
 	
 
 class IProgram(IContext):
@@ -480,35 +538,35 @@ class IProgram(IContext):
 	def addModule(self, module):
 		"""Adds a module to this program. The module will be registered in
 		the global module catalogue."""
-		raise Exception("Abstract method IProgram.addModule not implemented")
+		raise Exception("Abstract method IProgram.addModule not implemented in: " + str(self))
 	
 	def getModule(self, moduleAbsoluteName):
 		"""Returns the module (if any) with the given absolute name"""
-		raise Exception("Abstract method IProgram.getModule not implemented")
+		raise Exception("Abstract method IProgram.getModule not implemented in: " + str(self))
 	
 	def getModules(self):
 		"""Returns the list of modules declared/imported in this program"""
-		raise Exception("Abstract method IProgram.getModules not implemented")
+		raise Exception("Abstract method IProgram.getModules not implemented in: " + str(self))
 	
 	def setFactory(self, factory):
 		"""Sets the factory that was used to create this program"""
-		raise Exception("Abstract method IProgram.setFactory not implemented")
+		raise Exception("Abstract method IProgram.setFactory not implemented in: " + str(self))
 	
 	def getFactory(self):
 		"""Gets the factory that was used to create this program. It can be
 		used to create more elements in the program."""
-		raise Exception("Abstract method IProgram.getFactory not implemented")
+		raise Exception("Abstract method IProgram.getFactory not implemented in: " + str(self))
 	
 
 class IProcess:
 	"""A process is a sequence of operations."""
 	def addOperation(self, operation):
 		"""Adds the given operation as a child of this process."""
-		raise Exception("Abstract method IProcess.addOperation not implemented")
+		raise Exception("Abstract method IProcess.addOperation not implemented in: " + str(self))
 	
 	def getOperations(self):
 		"""Returns the list of operations in this process."""
-		raise Exception("Abstract method IProcess.getOperations not implemented")
+		raise Exception("Abstract method IProcess.getOperations not implemented in: " + str(self))
 	
 
 class IGroup(IProcess):
@@ -526,27 +584,27 @@ class IBlock(IGroup):
 
 class IClosure(IProcess, IContext):
 	def getArguments(self):
-		raise Exception("Abstract method IClosure.getArguments not implemented")
+		raise Exception("Abstract method IClosure.getArguments not implemented in: " + str(self))
 	
 	def setArguments(self):
-		raise Exception("Abstract method IClosure.setArguments not implemented")
+		raise Exception("Abstract method IClosure.setArguments not implemented in: " + str(self))
 	
 
 class IFunction(IClosure, IReferencable, IAbstractable):
 	def getName(self):
 		"""Returns this @protocol name. It can be `None` if the @protocol is anonymous."""
-		raise Exception("Abstract method IFunction.getName not implemented")
+		raise Exception("Abstract method IFunction.getName not implemented in: " + str(self))
 	
 	def hasExplicitTermination(self):
 		"""Returns true if this function has an operation with a termination,
 		otherwise return false."""
-		raise Exception("Abstract method IFunction.hasExplicitTermination not implemented")
+		raise Exception("Abstract method IFunction.hasExplicitTermination not implemented in: " + str(self))
 	
 	def endsWithTermination(self):
 		"""Returns true if this function ends with a termination operation. This
 		is especially useful for back-ends which want to know if they have to
 		insert an explicit 'return' at the end (like Java)."""
-		raise Exception("Abstract method IFunction.endsWithTermination not implemented")
+		raise Exception("Abstract method IFunction.endsWithTermination not implemented in: " + str(self))
 	
 
 class IMethod(IFunction):
@@ -568,25 +626,25 @@ class IOperation(IElement):
 	def addOpArgument(self, argument):
 		"""Adds an argument to this operation. This should do checking of
 		arguments (by expected internal type and number)."""
-		raise Exception("Abstract method IOperation.addOpArgument not implemented")
+		raise Exception("Abstract method IOperation.addOpArgument not implemented in: " + str(self))
 	
 	def getOpArguments(self):
 		"""Returns the arguments to this operation."""
-		raise Exception("Abstract method IOperation.getOpArguments not implemented")
+		raise Exception("Abstract method IOperation.getOpArguments not implemented in: " + str(self))
 	
 	def getOpArgument(self, i):
 		"""Returns the ith arguments to this operation."""
-		raise Exception("Abstract method IOperation.getOpArgument not implemented")
+		raise Exception("Abstract method IOperation.getOpArgument not implemented in: " + str(self))
 	
 	def setOpArgument(self, i, value):
 		"""Sets the given argument of this operation, by argument index."""
-		raise Exception("Abstract method IOperation.setOpArgument not implemented")
+		raise Exception("Abstract method IOperation.setOpArgument not implemented in: " + str(self))
 	
 	def getOpArgumentsInternalTypes(self):
 		"""Returns the *internal types* for this operations arguments. This is
 		typically the list of interfaces or @protocols that the arguments must
 		comply to."""
-		raise Exception("Abstract method IOperation.getOpArgumentsInternalTypes not implemented")
+		raise Exception("Abstract method IOperation.getOpArgumentsInternalTypes not implemented in: " + str(self))
 	
 
 class IImportOperation(IOperation):
@@ -652,22 +710,22 @@ class IAssignation(IOperation):
 	def getTarget(self):
 		"""Returns this assignation target reference, which can be an evaluable
 		(in case you assign to self.something, or a reference)"""
-		raise Exception("Abstract method IAssignation.getTarget not implemented")
+		raise Exception("Abstract method IAssignation.getTarget not implemented in: " + str(self))
 	
 	def getAssignedValue(self):
 		"""Returns this assigned evaluable."""
-		raise Exception("Abstract method IAssignation.getAssignedValue not implemented")
+		raise Exception("Abstract method IAssignation.getAssignedValue not implemented in: " + str(self))
 	
 
 class IAllocation(IOperation):
 	ARGS = [ISlot, IEvaluable]
 	def getSlotToAllocate(self):
 		"""Returns slot to be allocated by this operation."""
-		raise Exception("Abstract method IAllocation.getSlotToAllocate not implemented")
+		raise Exception("Abstract method IAllocation.getSlotToAllocate not implemented in: " + str(self))
 	
 	def getDefaultValue(self):
 		"""Returns the expression that assigns the @methodault value."""
-		raise Exception("Abstract method IAllocation.getDefaultValue not implemented")
+		raise Exception("Abstract method IAllocation.getDefaultValue not implemented in: " + str(self))
 	
 
 class IResolution(IOperation):
@@ -675,11 +733,11 @@ class IResolution(IOperation):
 	ARGS = [IReferencable, IEvaluable]
 	def getReference(self):
 		"""Returns the reference to be resolved."""
-		raise Exception("Abstract method IResolution.getReference not implemented")
+		raise Exception("Abstract method IResolution.getReference not implemented in: " + str(self))
 	
 	def getContext(self):
 		"""Returns the (optional) context in which the resolution should occur."""
-		raise Exception("Abstract method IResolution.getContext not implemented")
+		raise Exception("Abstract method IResolution.getContext not implemented in: " + str(self))
 	
 
 class IComputation(IOperation):
@@ -806,11 +864,11 @@ class ISelection(IOperation):
 	ARGS = [[IMatchOperation]]
 	def addRule(self, evaluable):
 		"""Adds a rule to this operation."""
-		raise Exception("Abstract method ISelection.addRule not implemented")
+		raise Exception("Abstract method ISelection.addRule not implemented in: " + str(self))
 	
 	def getRules(self):
 		"""Returns the ordered set of rule for this selection."""
-		raise Exception("Abstract method ISelection.getRules not implemented")
+		raise Exception("Abstract method ISelection.getRules not implemented in: " + str(self))
 	
 
 class IIteration(IOperation):
@@ -863,7 +921,7 @@ class ITermination(IOperation):
 	ARGS = [IEvaluable]
 	def getReturnedEvaluable(self):
 		"""Returns the termination return evaluable."""
-		raise Exception("Abstract method ITermination.getReturnedEvaluable not implemented")
+		raise Exception("Abstract method ITermination.getReturnedEvaluable not implemented in: " + str(self))
 	
 
 class IInterruption(IOperation):
@@ -917,19 +975,19 @@ class IEmbed(IOperation):
 	ARGS = []
 	def getLanguage(self):
 		"""Returns the language in which the emebedded code is written."""
-		raise Exception("Abstract method IEmbed.getLanguage not implemented")
+		raise Exception("Abstract method IEmbed.getLanguage not implemented in: " + str(self))
 	
 	def setLanguage(self, language):
 		"""Sets the language in which the emebedded code is written."""
-		raise Exception("Abstract method IEmbed.setLanguage not implemented")
+		raise Exception("Abstract method IEmbed.setLanguage not implemented in: " + str(self))
 	
 	def getCode(self):
 		"""Returns the embedded code string."""
-		raise Exception("Abstract method IEmbed.getCode not implemented")
+		raise Exception("Abstract method IEmbed.getCode not implemented in: " + str(self))
 	
 	def setCode(self, code):
 		"""Sets the code of this embed operation."""
-		raise Exception("Abstract method IEmbed.setCode not implemented")
+		raise Exception("Abstract method IEmbed.setCode not implemented in: " + str(self))
 	
 
 class IEmbedTemplate(IEmbed):

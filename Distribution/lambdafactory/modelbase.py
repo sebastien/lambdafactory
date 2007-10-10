@@ -8,7 +8,7 @@
 # License   : Revised BSD License
 # -----------------------------------------------------------------------------
 # Creation  : 02-Nov-2006
-# Last mod  : 04-Sep-2007
+# Last mod  : 17-Sep-2007
 # -----------------------------------------------------------------------------
 
 # FIXME: Evaluable == Expression ?
@@ -26,8 +26,6 @@ class ModelBadArgument(Exception):
 	def __init__( self, someClass, expectedClass, argument ):
 		Exception.__init__(self, "Bad argument: %s expected %s, got %s" \
 		% (someClass, expectedClass, argument))
-
-
 
 # ------------------------------------------------------------------------------
 #
@@ -60,6 +58,12 @@ class Factory:
 			(self._module, name))
 		else:
 			return getattr(self._module, name)
+
+	def createDataFlow( self, element, parent=None ):
+		return self._getImplementation("DataFlow")(element, parent)
+
+	def createDataFlowSlot( self, name, value, origin, slotType ):
+		return self._getImplementation("DataFlowSlot")(name,value,origin,slotType)
 
 	def createProgram( self ):
 		return self._getImplementation("Program")()

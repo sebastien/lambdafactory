@@ -5,10 +5,250 @@ which you can apply transformation passes, and from which you can generate
 code using the different back-ends."""
 import sys
 __module__ = sys.modules[__name__]
-from interfaces import *
+from lambdafactory.interfaces import *
 import pprint
-import modeltypes
+import lambdafactory.modeltypes
 __module_name__ = 'lambdafactory.model'
+class DataFlowSlot(IDataFlowSlot):
+	def __init__ (self, name, value, origin, slotType):
+		self.name = None
+		self.value = None
+		self.origin = None
+		self.abstractType = None
+		self.slotType = None
+		self.operations = []
+		self.dataflow = None
+		self.name = name
+		self.value = value
+		self.origin = origin
+		self.slotType = slotType
+	
+	def setDataFlow(self, dataflow):
+		self.dataflow = dataflow
+	
+	def getDataFlow(self):
+		return self.dataflow
+	
+	def getName(self):
+		return self.name
+	
+	def getValue(self):
+		return self.value
+	
+	def getOrigin(self):
+		return self.origin
+	
+	def getAbstractType(self):
+		return self.abstractType
+	
+	def addOperation(self, operation):
+		"""Adds an operation made to this dataflow slot."""
+		self.operations.append(operation)
+	
+	def __repr__(self):
+		return '<Slot("%s"=%s):%s@%s%s>' % (self.name, self.value, "TYPE", self.slotType, self.origin)
+		
+	
+
+class DataFlow(IDataFlow):
+	"""The DataFlow are ''dynamic contexts'' bound to the various program model
+	elements. DataFlows are typically owned by elements which implement
+	'IContext', and are linked together by rules defined in the 'Resolver'
+	class.
+	
+	The dataflow bound to most expressions is the one of the enclosing closure
+	(wether it is a function, or method. The dataflow of a method is bound to
+	its parent class, which dataflow is also bound to the parent class dataflow.
+	
+	While 'DataFlow' and 'Context' may appear very similar, they are not the
+	same: contexts are elements that keep track of declared slots, while the
+	dataflow make use of the context to weave the elements togeher."""
+	ARGUMENT = "Argument"
+	ENVIRONMENT = "Environment"
+	LOCAL = "Local"
+	IMPORTED = "Imported"
+	def __init__ (self, element, parent=None):
+		self.program = None
+		self.element = None
+		self.parent = None
+		self.sources = []
+		self.destinations = []
+		self.slots = []
+		self.children = []
+		if parent is None: parent = None
+		self.element = element
+		self.children = []
+		if parent:
+			self.setParent(parent)
+		element.setDataFlow(self)
+	
+	def declareArgument(self, name, value):
+		self._declare(name, value, None, self.__class__.ARGUMENT)
+	
+	def declareEnvironment(self, name, value):
+		self._declare(name, value, None, self.__class__.ENVIRONMENT)
+	
+	def declareVariable(self, name, value, origin):
+		self._declare(name, value, origin, self.__class__.LOCAL)
+	
+	def declareImported(self, name, value, origin):
+		self._declare(name, value, origin, self.__class__.IMPORTED)
+	
+	def _declare(self, name, value, origin, slotType):
+		"""Declares the given slot with the given name, value, origin
+		and type. This is used internaly by the other 'declare' methods."""
+		previous_slot=self.getSlot(name)
+		if previous_slot:
+			self.slots.remove(previous_slot)
+		self.addSlot(DataFlowSlot(name, value, [origin], slotType))
+	
+	def addSource(self, dataflow):
+		if (not (dataflow in self.sources)):
+			self.sources.append(dataflow)
+			dataflow.addDestination(self)
+	
+	def getSources(self):
+		return self.sources
+	
+	def addDestination(self, dataflow):
+		if (not (dataflow in self.destinations)):
+			self.destinations.append(dataflow)
+			dataflow.addSource(self)
+	
+	def getDestinations(self):
+		return self.destinations
+	
+	def addSlot(self, slot):
+		self.slots.append(slot)
+		slot.setDataFlow(self)
+	
+	def getSlots(self):
+		"""Returns the slots defiend for this dataflow."""
+		return self.slots
+	
+	def _getAvailableSlots(self, slotList=None):
+		if slotList is None: slotList = {}
+		for slot in self.slots:
+			if (not slotList.get(slot.getName())):
+				slotList[slot.getName()] = slot
+		if self.parent:
+			self.parent._getAvailableSlots(slotList)
+		return slotList
+	
+	def getAvailableSlots(self):
+		return self._getAvailableSlots().values()
+	
+	def getSourcesSlots(self, slots=None):
+		"""Returns the list of slots defined in the sources, using the sources axis."""
+		if slots is None: slots = None
+		if (slots == None):
+			slots = {}
+		elif True:
+			for slot in self.getSlots():
+				if (slots.get(slot.getName()) == None):
+					slots[slot.getName()] = slot
+		for source in self.getSources():
+			source.getSourcesSlots(slots)
+		return slots.values()
+	
+	def getAvailableSlotNames(self):
+		return self._getAvailableSlots().keys()
+	
+	def hasSlot(self, name):
+		for slot in self.slots:
+			if (slot.getName() == name):
+				return slot
+		return False
+	
+	def getSlot(self, name):
+		return self.hasSlot(name)
+	
+	def getElement(self):
+		return self.element
+	
+	def getParent(self):
+		return self.parent
+	
+	def getRoot(self):
+		if self.parent:
+			return self.parent.getRoot()
+		elif True:
+			return self
+	
+	def setParent(self, parent):
+		assert(((self.parent == None) or (parent == self.parent)))
+		if parent:
+			self.parent = parent
+			self.parent.addChild(self)
+	
+	def addChild(self, child):
+		assert((not (child in self.children)))
+		self.children.append(child)
+	
+	def getChildren(self):
+		return self.children
+	
+	def resolveInSources(self, name):
+		if self.sources:
+			for source in self.getSources():
+				slot_and_value=source.resolveLocally(name)
+				if (slot_and_value[1] != None):
+					return slot_and_value
+				slot_and_value = source.resolveInSources(name)
+				if (slot_and_value[1] != None):
+					return slot_and_value
+			return tuple([None, None])
+		elif True:
+			return tuple([None, None])
+	
+	def resolveLocally(self, name):
+		slot=self.getSlot(name)
+		if slot:
+			return tuple([slot, slot.getValue()])
+		elif True:
+			return tuple([None, None])
+	
+	def resolve(self, name):
+		"""Returns a couple '(DataFlow slot, IElement)' or '(None,None)'
+		corresponding to the resolution of the given 'name' in this dataflow. The
+		slot is the slot that holds the element, and the given element is the
+		element value bound to the slot.
+		
+		The resolution scheme first looks into this datalfow, see if the slot
+		is defined. It then looks in the sources, sequentially and if this fails,
+		it will look into the parent.
+		
+		Alternative resolution schemes can be implemented depending on the target
+		programming languages semantics, but this resolution operation should
+		always be implemented in the same way. If you wish to have another
+		way of doing resolution, you should provide a specific method in the
+		DataFlow implementation, and also maybe provide more specific resolution
+		operation in the 'PassContext' class."""
+		slot=self.getSlot(name)
+		if slot:
+			return tuple([slot, slot.getValue()])
+		if self.sources:
+			slot_and_value=self.resolveInSources(name)
+			if (slot_and_value[0] != None):
+				return slot_and_value
+		if self.parent:
+			r=self.parent.resolve(name)
+			if (r[0] != None):
+				return r
+		return tuple([None, None])
+	
+	def defines(self, name):
+		slot=self.getSlot(name)
+		if slot:
+			return tuple([slot, self.element])
+		elif True:
+			for child in self.getChildren():
+				res=child.defines(name)
+				if res:
+					return child
+		return tuple([None, None])
+	
+
 class Element:
 	"""The Element class is a generic class that implements many of the
 	functionalities required to implement the full LambdaFactory program model.
@@ -26,6 +266,7 @@ class Element:
 		self.resultAbtractType = None
 		self.sourceLocation = [-1, -1, -1]
 		self.dataflow = None
+		self.parent = None
 		if name is None: name = None
 		self.name = name
 		self.id = self.__class__.COUNT
@@ -41,6 +282,24 @@ class Element:
 	def hasName(self):
 		return (isinstance(self, IReferencable) or isinstance(self, IAnnotation))
 	
+	def getParent(self):
+		return self.parent
+	
+	def hasParent(self):
+		if self.parent:
+			return self.parent
+		elif True:
+			return False
+	
+	def setParent(self, parent):
+		assert(((self.parent == None) or (parent == self.parent)))
+		self.parent = parent
+	
+	def detach(self):
+		if self.parent:
+			self.parent = None
+		return self
+	
 	def setSource(self, source):
 		self.source = source
 	
@@ -48,6 +307,8 @@ class Element:
 		return self.source
 	
 	def annotate(self, annotation):
+		if (not annotation):
+			return None
 		if (type(annotation) in [tuple, list]):
 			map(self.annotate , annotation)
 		elif True:
@@ -102,13 +363,22 @@ class Element:
 	
 	def asList(self):
 		return [self.__class__.__name__]
-	def detach(self):
-	    return self
-
-	def copy(self):
-	    return self
 	
-
+	def _copy(self, *arguments):
+		copy=None
+		copy = self.__class__(*arguments)
+		
+		copy.name = self.name
+		copy.source = self.source
+		for annotation in self.annotations:
+			copy.annotate(annotation.copy().detach())
+		copy.abstractType = self.abstractType
+		copy.resultAbtractType = self.resultAbtractType
+		copy.sourceLocation = self.sourceLocation
+		if self.dataflow:
+			copy.dataflow = self.dataflow.clone().attach(copy)
+		return copy
+	
 
 class Annotation(Element, IAnnotation):
 	def __init__ (self, name=None, content=None):
@@ -234,43 +504,19 @@ class Class(Context, IClass, IReferencable, IAssignable):
 				raise ERR_PARENT_CLASS_REFERENCE_EXPECTED
 			self.parentClasses.append(the_class)
 	
-	def getInheritedClassMethods(self, resolver):
-		"""Returns the inherited class methods as a dict of lists. This operation
-		needs a resolver to resolve the classes from their references."""
-		res={}
-		for class_ref in self.getParentClasses():
-			parent_name=class_ref.getReferenceName()
-			slot_and_scope = self.getDataFlow().resolveAbsoluteOrLocal(parent_name)
-			slot=slot_and_scope[0]
-			scope=slot_and_scope[1]
-			the_class=slot.getValue()
-			for method in the_class.getClassMethods():
-				self.name = method.getName()
-				methods = res.setdefault(self.name, [])
-				methods.append(method)
-			for name_and_method in the_class.getInheritedClassMethods(resolver).items():
-				meths = res.setdefault(name_and_method[0], [])
-				meths.extend(name_and_method[1])
+	def getInheritedLike(self, protocol):
+		res = {}
+		for slot in self.getDataFlow().getSourcesSlots():
+			if isinstance(slot.getValue(), protocol):
+				res[slot.getName()] = slot.getValue()
 		return res
 	
-	def getInheritedClassAttributes(self, resolver):
-		"""Returns the inherited class attributes as a dict of lists. This operation
-		needs a resolver to resolve the classes from their references."""
-		res={}
-		for class_ref in self.getParentClasses():
-			parent_name=class_ref.getReferenceName()
-			slot_and_scope = self.getDataFlow().resolveAbsoluteOrLocal(parent_name)
-			slot=slot_and_scope[0]
-			scope=slot_and_scope[1]
-			the_class=slot.getValue()
-			for attr in the_class.getClassAttributes():
-				self.name = attr.getName()
-				attrs = res.setdefault(self.name, [])
-				attrs.append(attr)
-			for name_and_attrs in the_class.getInheritedClassAttributes(resolver).items():
-				attrs = res.setdefault(name_and_attrs[0], [])
-				attrs.extend(name_and_attrs[1])
-		return res
+	def getInheritedClassMethods(self):
+		"""Returns the inherited class methods as a dict of slots"""
+		return self.getInheritedLike(IClassMethod)
+	
+	def getInheritedClassAttributes(self):
+		return self.getInheritedLike(IClassAttribute)
 	
 
 class Interface(Class, IInterface):
@@ -295,6 +541,7 @@ class Module(Context, IModule, IAssignable, IReferencable):
 	
 	def addImportOperation(self, operation):
 		self.importOperations.append(operation)
+		operation.setParent(self)
 	
 	def getImportOperations(self):
 		return self.importOperations
@@ -315,6 +562,7 @@ class Program(Context, IProgram):
 		if (module in self.modules):
 			raise ERR_MODULE_ADDED_TWICE(module)
 		self.modules.append(module)
+		module.setParent(self)
 	
 	def getModule(self, moduleAbsoluteName):
 		for module in self.modules:
@@ -323,6 +571,12 @@ class Program(Context, IProgram):
 	
 	def getModules(self):
 		return self.modules
+	
+	def getModuleNames(self):
+		res=[]
+		for m in self.modules:
+			res.append(m.getName())
+		return res
 	
 	def setFactory(self, factory):
 		"""Sets the factory that was used to create this program"""
@@ -343,6 +597,7 @@ class Process(Context, IContext, IProcess, IAbstractable):
 	def addOperation(self, operation):
 		if self.isAbstract():
 			raise ERR_ABSTRACT_PROCESS_NO_OPERATIONS
+		operation.setParent(self)
 		self.operations.append(operation)
 	
 	def getOperations(self):
@@ -416,6 +671,14 @@ class Operation(Element, IEvaluable, IOperation):
 		Element.__init__(self)
 		self.setOpArguments(arguments)
 	
+	def copy(self):
+		op_copy=None
+		op_arguments=[]
+		op_copy = Element._copy(self)
+		for a in self.opArguments:
+			op_copy.addOpArgument(a.copy().detach())
+		return op_copy
+	
 	def setOpArguments(self, arguments):
 		self.opArguments = []
 		for a in arguments:
@@ -428,6 +691,15 @@ class Operation(Element, IEvaluable, IOperation):
 	
 	def addOpArgument(self, argument):
 		self.opArguments.append(argument)
+		self._setOpArgumentParent(argument)
+	
+	def _setOpArgumentParent(self, value):
+		"""Sets the value parent to this"""
+		if (type(value) in [tuple, list]):
+			map(self._setOpArgumentParent , value)
+		elif True:
+			if isinstance(value, Element):
+				value.setParent(self)
 	
 	def getOpArguments(self):
 		return self.opArguments
@@ -494,6 +766,7 @@ class Selection(Operation, ISelection):
 		elif True:
 			res = res[0]
 		res.append(evaluable)
+		self._setOpArgumentParent(evaluable)
 	
 	def getRules(self):
 		if self.opArguments:
@@ -618,6 +891,11 @@ class Literal(Value, ILiteral):
 	def getActualValue(self):
 		return self.actualValue
 	
+	def copy(self):
+		value_copy=Value._copy(self)
+		value_copy.actualValue = self.actualValue
+		return value_copy
+	
 
 class Number(Literal, INumber):
 	pass
@@ -632,12 +910,20 @@ class List(Value, IList):
 	
 	def addValue(self, value):
 		self.values.append(value)
+		value.setParent(self)
 	
 	def getValues(self):
 		return self.values
 	
 	def getValue(self, i):
 		return self.values[i]
+	
+	def copy(self):
+		values_copy=[]
+		list_copy=Value._copy(self)
+		for v in self.values:
+			list_copy.addValue(v.copy().detach())
+		return list_copy
 	
 
 class Dict(Value, IDict):
@@ -663,6 +949,11 @@ class Reference(Value, IReference):
 	
 	def asList(self):
 		return tuple([self.__class__.__name__, self.referenceName])
+	
+	def copy(self):
+		ref_copy=Value._copy(self, self.name)
+		ref_copy.referenceName = self.referenceName
+		return ref_copy
 	
 
 class AbsoluteReference(Reference, IAbsoluteReference):
@@ -705,6 +996,7 @@ class Slot(Element, ISlot):
 class Argument(Slot, IArgument):
 	def __init__ (self, name, typeDescription):
 		self.rest = False
+		self.keywordRest = False
 		self.optional = False
 		self.keywords = False
 		Slot.__init__(self, name, typeDescription)
@@ -719,6 +1011,12 @@ class Argument(Slot, IArgument):
 		return self.rest
 	
 	def setRest(self, value):
+		self.rest = (value and value)
+	
+	def isKeywordsRest(self):
+		return self.rest
+	
+	def setKeywordsRest(self, value):
 		self.rest = (value and value)
 	
 	def isKeywords(self):

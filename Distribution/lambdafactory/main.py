@@ -1,10 +1,12 @@
+#!/usr/bin/env python
 """Command-line interface and main module for LambdaFactory"""
 import sys
 __module__ = sys.modules[__name__]
 import os, sys, optparse, tempfile
 from lambdafactory.environment import Environment
-from lambdafactory.modelwriter import FileSplitter
+from lambdafactory.splitter import FileSplitter
 import lambdafactory.passes as passes
+import lambdafactory.resolution as resolution
 from StringIO import StringIO
 __module_name__ = 'lambdafactory.main'
 class Command:
@@ -20,6 +22,7 @@ class Command:
 	OPT_VERSION = "Ensures that Sugar is at least of the given version"
 	OPT_SOURCE = "Directly gives the source"
 	OPT_MODULE = "Specifies the module name"
+	OPT_LIB = "Specifies a path where the library is"
 	def __init__ (self, programName=None):
 		self.programName = None
 		self.environment = None
@@ -68,13 +71,16 @@ class Command:
 			help=self.OPT_SOURCE)
 		option_parser.add_option("-D", "--define", action="append", dest="targets", 
 			help=self.OPT_DEFINE)
-		option_parser.add_option("-L", "--library", action="append", dest="libraries", 
-			help="FIXME")
+		option_parser.add_option("-L", "--lib", action="append", dest="libraries", 
+			help=self.OPT_DEFINE)
 		option_parser.add_option("-V", None, action="store", dest="version", 
 			help=self.OPT_VERSION)
 		options, args = option_parser.parse_args(args=arguments)
 		
 		language=options.lang
+		if options.targets:
+			for option_target in options.targets:
+				self.environment.options[option_target] = True
 		if options.source:
 			self.parseSource(args[0], options.source, options.module)
 		elif True:
@@ -82,6 +88,9 @@ class Command:
 			self.parseFile(source_path, options.module)
 			if (not language):
 				language = self.guessLanguage(source_path)
+		if options.libraries:
+			for l in options.libraries:
+				self.environment.addLibraryPath(l)
 		self.transformProgram()
 		if (not language):
 			raise ERR_NO_LANGUAGE_SPECIFIED
@@ -107,6 +116,9 @@ class Command:
 			if ((options.lang in ["js", "javascript"]) or (not options.lang)):
 				interpreter = (os.getenv("SUGAR_JS") or "js")
 				command = ((((interpreter + " ") + path) + " ") + args_str)
+			elif (options.lang in ["pnuts"]):
+				interpreter = (os.getenv("SUGAR_PNUTS") or "pnuts")
+				command = ((((interpreter + " ") + path) + " ") + args_str)
 			elif True:
 				raise ERR_NO_RUNTIME_AVAILABLE(language)
 			status = ((os.system(command) / 256) or status)
@@ -122,7 +134,6 @@ class Command:
 	
 	def transformProgram(self):
 		self.environment.runPasses()
-		self.environment.resolver.flow(self.environment.getProgram())
 	
 	def guessLanguage(self, sourcePath):
 		for name_and_value in self.environment.languages.items():
@@ -135,7 +146,8 @@ class Command:
 		language=self.environment.loadLanguage(inLanguage)
 		writer=language.writer()
 		writer.report = self.environment.report
-		program_source=writer.write(self.environment.getProgram())
+		writer.setEnvironment(self.environment)
+		program_source=writer.run()
 		if includeRuntime:
 			program_source = (writer.getRuntimeSource() + program_source)
 		return program_source
@@ -148,5 +160,7 @@ class Command:
 	
 	def setupPasses(self):
 		self.environment.addPass(passes.ImportationPass())
+		self.environment.addPass(resolution.BasicDataFlow())
+		self.environment.addPass(resolution.DataFlowBinding())
 	
 

@@ -30,8 +30,10 @@
 		if os environ get "SUGARPATH"
 			paths extend (os environ get "SUGARPATH" split ":")
 		end
-		var module_path = moduleName replace (".", "/")
+		var module_path = moduleName replace (".", os path sep)
 		for path in paths
+			# We normalize the path, so that paths like . and ~/ work fine
+			path = os path abspath ( os path expandvars ( os path expanduser (path)))
 			for ext in ".sg .sjs .sjava .spnuts .spy" split()
 				var file_path = os path join(path, module_path + ext)
 				if os path exists(file_path)

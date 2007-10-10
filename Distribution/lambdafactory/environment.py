@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 import sys
 __module__ = sys.modules[__name__]
 import os, sys
@@ -13,19 +14,22 @@ class Importer:
 	def __init__ (self, environment):
 		self.environment = None
 		self.environment = environment
-
+	
 	def findSugarModule(self, moduleName):
-		paths=[os.getcwd()]
+		paths=[]
+		for path in self.environment.libraryPaths:
+			paths.append(path)
 		if os.environ.get("SUGARPATH"):
 			paths.extend(os.environ.get("SUGARPATH").split(":"))
-		module_path=moduleName.replace(".", "/")
+		module_path=moduleName.replace(".", os.path.sep)
 		for path in paths:
+			path = os.path.abspath(os.path.expandvars(os.path.expanduser(path)))
 			for ext in ".sg .sjs .sjava .spnuts .spy".split():
 				file_path=os.path.join(path, (module_path + ext))
 				if os.path.exists(file_path):
 					return file_path
 		return None
-
+	
 	def importModule(self, moduleName):
 		module_path=self.findSugarModule(moduleName)
 		if module_path:
@@ -34,6 +38,10 @@ class Importer:
 			module=self.environment.parseFile(module_path)
 			module.setImported(True)
 			self.environment.report.dedent()
+			return module
+		elif True:
+			self.environment.report.error("Module not found:", moduleName)
+	
 
 class Language:
 	def __init__ (self, name, environment):
@@ -76,20 +84,32 @@ class Language:
 	
 
 class Environment:
+	"""
+	Passes
+	======
+	
+	Passes are lists of passes (see 'lambdafactory.passes') that transform the
+	program. The order of passe is important, as some passes depend on each other.
+	It is up to the 'lambdafactory.main.Command' subclass to set up the passes
+	appropriately."""
 	def __init__ (self):
 		self.factory = None
 		self.program = None
 		self.parsers = {}
-		self.options = {}
 		self.passes = []
 		self.writer = None
 		self.report = DefaultReporter
 		self.importer = None
 		self.languages = {}
+		self.libraryPaths = []
+		self.options = {}
 		self.resolver = None
 		self.importer = Importer(self)
 		self.factory = Factory()
 		self.program = self.factory.createProgram()
+	
+	def addLibraryPath(self, path):
+		self.libraryPaths.append(path)
 	
 	def addParser(self, parser, extensions):
 		for ext in extensions:
@@ -100,6 +120,7 @@ class Environment:
 	
 	def addPass(self, programPass):
 		self.passes.append(programPass)
+		programPass.setEnvironment(self)
 	
 	def getPass(self, name):
 		for p in self.passes:
@@ -110,15 +131,14 @@ class Environment:
 		return self.passes
 	
 	def runPasses(self):
-		context=PassContext(self)
-		context.run()
-		return context
+		for p in self.passes:
+			p.run()
 	
 	def getProgram(self):
 		return self.program
 	
 	def getFactory(self):
-		return self.program.getFactory()
+		return self.factory
 	
 	def importModule(self, name):
 		return self.importer.importModule(name)
