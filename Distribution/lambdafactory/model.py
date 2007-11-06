@@ -45,6 +45,18 @@ class DataFlowSlot(IDataFlowSlot):
 		"""Adds an operation made to this dataflow slot."""
 		self.operations.append(operation)
 	
+	def isImported(self):
+		return (self.slotType == DataFlow.IMPORTED)
+	
+	def isLocal(self):
+		return (self.slotType == DataFlow.LOCAL)
+	
+	def isArgument(self):
+		return (self.slotType == DataFlow.ARGUMENT)
+	
+	def isEnvironment(self):
+		return (self.slotType == DataFlow.ENVIRONMENT)
+	
 	def __repr__(self):
 		return '<Slot("%s"=%s):%s@%s%s>' % (self.name, self.value, "TYPE", self.slotType, self.origin)
 		
@@ -530,6 +542,7 @@ class Module(Context, IModule, IAssignable, IReferencable):
 		Context.__init__(self, name)
 	
 	def getParentName(self):
+		"""Returns 'grandparentname.parentname'"""
 		return (".".join(self.name.split(".")[0:-1]) or None)
 	
 	def isImported(self):

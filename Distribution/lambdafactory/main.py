@@ -81,20 +81,33 @@ class Command:
 		if options.targets:
 			for option_target in options.targets:
 				self.environment.options[option_target] = True
+		if options.api:
+			self.environment.addPass(passes.DocumentationPass())
 		if options.source:
 			self.parseSource(args[0], options.source, options.module)
 		elif True:
-			source_path=args[0]
-			self.parseFile(source_path, options.module)
-			if (not language):
-				language = self.guessLanguage(source_path)
+			if options.module:
+				if (len(args) > 1):
+					throw.Exception("Only one source file is accepted with the -m option")
+			for source_path in args:
+				self.parseFile(source_path, options.module)
+				if (not language):
+					language = self.guessLanguage(source_path)
 		if options.libraries:
 			for l in options.libraries:
 				self.environment.addLibraryPath(l)
 		self.transformProgram()
 		if (not language):
 			raise ERR_NO_LANGUAGE_SPECIFIED
-		if options.compile:
+		if options.api:
+			html_documentation = self.environment.getPass("Documentation").asHTML()
+			if (options.api == "-"):
+				output.write(html_documentation)
+			elif True:
+				f=file(options.api, mode = "w")
+				f.write(html_documentation)
+				f.close()
+		elif options.compile:
 			program_source=self.writeProgram(language)
 			if (not options.output):
 				output.write((program_source + "\n"))

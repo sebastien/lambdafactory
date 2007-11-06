@@ -174,8 +174,9 @@
 	@end
 	
 	@method getPass name
+		name = name lower()
 		for p in passes
-			if p getName() == name
+			if p getName() lower() == name 
 				return p
 			end
 		end

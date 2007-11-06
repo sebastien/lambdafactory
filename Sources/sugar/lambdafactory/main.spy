@@ -92,15 +92,24 @@
 				environment options [option_target] = True
 			end
 		end
+		if options api
+			environment addPass ( new passes DocumentationPass() )
+		end
 		if options source
 			parseSource(args[0], options source, options module)
 		else
-			var source_path = args[0]
-			parseFile(source_path, options module)
-			# REWRITE: language = options get "lang" ? guessLanguage(source_path) ? raise ERR_NOT_LANGUAGE_SPECIFIED
-			# We get the language to which we'd like to translate the program to
-			if not language
-				language = guessLanguage(source_path)
+			if options module
+				if len(args) > 1
+					throw Exception("Only one source file is accepted with the -m option")
+				end
+			end
+			for source_path in args
+				parseFile(source_path, options module)
+				# REWRITE: language = options get "lang" ? guessLanguage(source_path) ? raise ERR_NOT_LANGUAGE_SPECIFIED
+				# We get the language to which we'd like to translate the program to
+				if not language
+					language = guessLanguage(source_path)
+				end
 			end
 		end
 		if options libraries
@@ -113,6 +122,15 @@
 			raise ERR_NO_LANGUAGE_SPECIFIED
 		end
 		# We compile, run or simply test
+		if options api
+			html_documentation =  environment getPass "Documentation" asHTML() 
+			if options api == "-"
+				output write ( html_documentation )
+			else
+				var f = file(options api, mode = "w")
+				f write (html_documentation)
+				f close ()
+			end
 		if options compile
 			var program_source = writeProgram (language)
 			if not options output

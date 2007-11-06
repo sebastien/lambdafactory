@@ -373,6 +373,18 @@ class Writer(AbstractWriter):
 		if not scope:
 			if symbol_name == "print": return self.jsPrefix + self.jsCore + "print"
 			else: return symbol_name
+		# If the slot is imported
+		elif slot.isImported():
+			# We proces the importation to convert the slot to an absolute name
+			o = slot.origin[0]
+			if isinstance(o, interfaces.IImportModuleOperation):
+				return o.getImportedModuleName()
+			elif isinstance(o, interfaces.IImportSymbolOperation):
+				module_name = o.getImportOrigin()
+				symbol_name = o.getImportedElement()
+				return module_name + "." + symbol_name
+			else:
+				raise Exception("Importation operation not implemeted yet")
 		# It is a method of the current class
 		elif self.getCurrentClass() == scope:
 			if isinstance(value, interfaces.IInstanceMethod):

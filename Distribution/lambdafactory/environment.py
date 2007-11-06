@@ -123,8 +123,9 @@ class Environment:
 		programPass.setEnvironment(self)
 	
 	def getPass(self, name):
+		name = name.lower()
 		for p in self.passes:
-			if (p.getName() == name):
+			if (p.getName().lower() == name):
 				return p
 	
 	def getPasses(self):

@@ -502,6 +502,7 @@ class IInterface(IAbstractClass):
 	pass
 
 class IModule(IContext):
+	"""Note that a module 'getName' function returns the module absolute name"""
 	def isImported(self):
 		"""A stub module is a module that does not have any bound implementation.
 		Stub modules are typically used by Programs when adding a module such

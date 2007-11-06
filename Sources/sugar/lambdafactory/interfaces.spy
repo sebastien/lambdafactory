@@ -8,12 +8,13 @@
 # License   : Revised BSD License
 # -----------------------------------------------------------------------------
 # Creation  : 02-Nov-2006
-# Last mod  : 02-Oct-2007
+# Last mod  : 06-Nov-2007
 # -----------------------------------------------------------------------------
 
 # TODO: Add a Flowable interface that tells that the element can have
 # a dataflow
 # TODO: Add "walk" operations to walk the program
+# FIXME: Should Module.getName return the module absolute name ?
 
 @protocol Constants
 	@shared MainFunction:String    = "__main__"
@@ -514,6 +515,7 @@
 @end
 
 @protocol IModule: IContext
+| Note that a module 'getName' function returns the module absolute name
 
 	@abstract @method isImported:<True|False>
 	| A stub module is a module that does not have any bound implementation.
