@@ -442,7 +442,7 @@ class Writer(AbstractWriter):
 
 	JS_OPERATORS = {
 				"and":"&&",
-				"is":"==",
+				"is":"===",
 				"is not":"!=",
 				"not":"!",
 				"or":"||"
