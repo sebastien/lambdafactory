@@ -33,7 +33,7 @@
 	@end
 
 	@method end
-	| allback invoked after a 'fromXXX' method was invoked
+	| Callback invoked after a 'fromXXX' method was invoked
 		currentFile close()
 		currentFilePath = None
 		currentFile     = None

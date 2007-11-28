@@ -30,6 +30,7 @@ class Runtime(TypeCollection): pass
 COLLECTIONS = (Data, Operations, Structure, Behaviour, Runtime)
 
 # This is the list of abstract types
+
 Nil                            = typecast.Nil
 Nothing                        = typecast.Nothing
 Any                            = typecast.Any
