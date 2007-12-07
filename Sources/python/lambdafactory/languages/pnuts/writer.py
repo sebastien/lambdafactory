@@ -17,6 +17,9 @@ import lambdafactory.reporter as reporter
 from lambdafactory.splitter import SNIP
 import os.path,re,time,string, random
 
+# TODO: Pnuts does not really support absolute reference names, so maybe
+# when importing, we should consider java_awt_Frame instead of java.awt.Frame
+
 #------------------------------------------------------------------------------
 #
 #  Pnuts Writer
@@ -699,17 +702,14 @@ class Writer(AbstractWriter):
 			res = vres
 		if symbol_alias:
 			res.extend(["as", symbol_alias])
-		return " ".join(res)
+		return [";".join(res)]
 
 	def onImportSymbolsOperation( self, element ):
-		res = ["import"]
-		res.append(", ".join(element.getImportedElements()))
+		res = []
 		symbol_origin = element.getImportOrigin()
-		if symbol_origin:
-			vres = ["from", symbol_origin]
-			vres.extend(res)
-			res = vres
-		return " ".join(res)
+		for e in element.getImportedElements():
+			res.append('import("%s.%s")' % (symbol_origin, e))
+		return [";".join(res)]
 
 	def onImportModuleOperation( self, element ):
 		module_name = element.getImportedModuleName()
