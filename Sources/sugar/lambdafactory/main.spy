@@ -154,6 +154,7 @@
 			# FIXME: LambdaFactory should support compilers and runners
 			if (options lang in ["js","javascript"] or not options lang)
 				interpreter = os getenv("SUGAR_JS") or "js"
+				print ("USING", interpreter)
 				command = interpreter + " " + path + " " + args_str
 			if (options lang in ["pnuts"])
 				interpreter = os getenv("SUGAR_PNUTS") or "pnuts"
@@ -161,6 +162,7 @@
 			else
 				raise ERR_NO_RUNTIME_AVAILABLE(language)
 			end
+			print ("****", command)
 			status = (os system(command) / 256) or status
 			os unlink(path)
 		end

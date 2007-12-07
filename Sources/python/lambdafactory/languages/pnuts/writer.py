@@ -8,7 +8,7 @@
 # License   : Revised BSD License
 # -----------------------------------------------------------------------------
 # Creation  : 05-Jul-2006
-# Last mod  : 05-Oct-2007
+# Last mod  : 07-Dec-2007
 # -----------------------------------------------------------------------------
 
 from lambdafactory.modelwriter import AbstractWriter, flatten
@@ -33,7 +33,7 @@ class Writer(AbstractWriter):
 		self.inInvocation = False
 
 	def getRuntimeSource(s):
-		"""Returns the JavaScript code for the runtime that is necassary to run
+		"""Returns the Pnuts code for the runtime that is necassary to run
 		the program."""
 		this_file = os.path.abspath(__file__)
 		return ""
@@ -59,7 +59,9 @@ class Writer(AbstractWriter):
 		pnuts_name = self.getAbsoluteName(moduleElement)
 		# TODO: Move imports to the top
 		module_slots = moduleElement.getSlots()
-		code = ['package("%s")' % (pnuts_name)]
+		code = ['package("%s");' % (pnuts_name)]
+		for i in moduleElement.getImportOperations():
+			code.append(self.write(i))
 		for name, value in module_slots:
 			if isinstance(value, interfaces.IModuleAttribute):
 				code.append("%s = %s" % (moduleElement.getName(), self.write(value)))
@@ -86,15 +88,6 @@ class Writer(AbstractWriter):
 		return self._format(
 			*code
 		)
-
-	def onImportOperation( self, importElement):
-		imported_name = self.write(importElement.getImportedElement())
-		imported_elem = imported_name.split(".")[-1]
-		code = ['import("%s")' % (imported_name)]
-		if importElement.getAlias():
-			if importElement.getAlias().getReferenceName() != imported_elem:
-				code[-1] += " ; %s=%s" % (importElement.getAlias().getReferenceName(), imported_elem)
-		return "\n".join(code)
 
 	def onClass( self, classElement ):
 		"""Writes a class element."""
@@ -694,6 +687,47 @@ class Writer(AbstractWriter):
 		if try_finally:
 			res.extend(["finally {", map(self.write, try_finally.getOperations()), "}"])
 		return self._format(*res)
+
+	def onImportSymbolOperation( self, element ):
+		res = ["import"]
+		res.append(element.getImportedElement())
+		symbol_origin = element.getImportOrigin()
+		symbol_alias = element.getAlias()
+		if symbol_origin:
+			vres = ["from", symbol_origin]
+			vres.extend(res)
+			res = vres
+		if symbol_alias:
+			res.extend(["as", symbol_alias])
+		return " ".join(res)
+
+	def onImportSymbolsOperation( self, element ):
+		res = ["import"]
+		res.append(", ".join(element.getImportedElements()))
+		symbol_origin = element.getImportOrigin()
+		if symbol_origin:
+			vres = ["from", symbol_origin]
+			vres.extend(res)
+			res = vres
+		return " ".join(res)
+
+	def onImportModuleOperation( self, element ):
+		module_name = element.getImportedModuleName()
+		symbol_alias = element.getAlias()
+		if symbol_alias:
+			symbol_name = module_name.split(".")[-1]
+			if symbol_name != symbol_alias:
+				return ['import("%s") ; %s = %s' % ( module_name, symbol_alias, symbol_name)]
+			else:
+				return ['import("%s")' % ( module_name)]
+		else:
+			return ['import("%s")' %  (module_name)]
+
+	def onImportModulesOperation( self, element ):
+		res = []
+		for m in element.getImportedModuleNames():
+			res.append("import " + m)
+		return ";".join(res)
 
 	def onEmbed( self, embed ):
 		lang = embed.getLanguage().lower().strip()

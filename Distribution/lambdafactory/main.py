@@ -128,12 +128,14 @@ class Command:
 			compilers=None
 			if ((options.lang in ["js", "javascript"]) or (not options.lang)):
 				interpreter = (os.getenv("SUGAR_JS") or "js")
+				print ("USING", interpreter)
 				command = ((((interpreter + " ") + path) + " ") + args_str)
 			elif (options.lang in ["pnuts"]):
 				interpreter = (os.getenv("SUGAR_PNUTS") or "pnuts")
 				command = ((((interpreter + " ") + path) + " ") + args_str)
 			elif True:
 				raise ERR_NO_RUNTIME_AVAILABLE(language)
+			print ("****", command)
 			status = ((os.system(command) / 256) or status)
 			os.unlink(path)
 	

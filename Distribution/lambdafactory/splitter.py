@@ -24,7 +24,7 @@ class FileSplitter:
 		self.currentFile = None
 	
 	def end(self):
-		"""allback invoked after a 'fromXXX' method was invoked"""
+		"""Callback invoked after a 'fromXXX' method was invoked"""
 		self.currentFile.close()
 		self.currentFilePath = None
 		self.currentFile = None
