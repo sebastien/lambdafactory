@@ -1420,7 +1420,6 @@
 	@property rest = False
 	@property keywordRest = False
 	@property optional = False
-	@property keywords = False
 
 	@constructor name, typeDescription
 		Slot __init__ (self, name, typeDescription)
@@ -1448,14 +1447,6 @@
 
 	@method setKeywordsRest value
 		rest = value and value
-	@end
-
-	@method isKeyword
-		return keywords
-	@end
-
-	@method setKeyword value
-		keywords = value and value
 	@end
 
 @end

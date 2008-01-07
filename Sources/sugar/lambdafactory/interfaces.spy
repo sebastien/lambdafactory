@@ -409,12 +409,6 @@
 	|	Tells if this arguments represents ''the rest'' of the keyword argument in
 	|	the invocation
 
-	@abstract @method isKeyword
-	|	Tells if the argument is keywords list or not.
-
-	@abstract @method setKeyword value
-	|	Sets this argument as keywords list  or not.
-
 	@abstract @method setDefaultValue value
 	|	Sets the @methodault value for this argument.
 
