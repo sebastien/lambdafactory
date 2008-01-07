@@ -313,6 +313,7 @@ class Writer(AbstractWriter):
 		return "%s" % (
 			argElement.getName(),
 		)
+	
 
 	def onAttribute( self, element ):
 		"""Writes an argument element."""
@@ -603,10 +604,27 @@ class Writer(AbstractWriter):
 			return self._rewriteInvocation(invocation, concrete_type, "\n".join([r.getCode() for r in rewrite]))
 		else:
 			self.inInvocation = False
-			return "%s(%s)" % (
-							t,
-				", ".join(map(self.write, invocation.getArguments()))
+			if invocation.isByPositionOnly():			
+				return "%s(%s)" % (
+								t,
+					", ".join(map(self.write, invocation.getArguments()))
+					)
+			else:
+				return "Extend.invoke(%s,%s)" % (
+					t,
+					", ".join(map(self.write, invocation.getArguments()))
 				)
+	
+	def onParameter( self, parameter ):
+		r = self.write(parameter.getValue())
+		if parameter.isAsMap():
+			return "{'**':(%s)}" % (r)
+		elif parameter.isAsList():
+			return "{'*':(%s)}" % (r)
+		elif parameter.isByName():
+			return "{'^':%s,'='(%s)" % (str(parameter.getName()), r)
+		else:
+			return r
 
 	def onInstanciation( self, operation ):
 		"""Writes an invocation operation."""
