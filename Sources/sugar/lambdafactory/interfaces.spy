@@ -836,6 +836,11 @@
 @class IInvocation: IOperation
 	@shared ARGS = [ IEvaluable, [IEvaluable] ]
 
+	@abstract @method isByPositionOnly
+	| Tells if this invocation is only by position. Otherwise, some arguments
+	| are given by name, as list or as a map (and they should be handled in
+	| a specific way)
+	
 	@method getTarget 
 	|	Returns the invocation target reference.
 		return getOpArgument(0)

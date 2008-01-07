@@ -1083,6 +1083,16 @@
 @end
 
 @class Invocation: Operation, IInvocation, IEvaluable
+
+	@method isByPositionOnly
+		for arg in getOpArgument(1)
+			if arg isByName() or arg isAsMap()
+				return False
+			end
+		end
+		return True
+	@end
+	
 @end
 
 @class Instanciation: Operation, IInstanciation, IEvaluable
