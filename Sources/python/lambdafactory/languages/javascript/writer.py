@@ -62,7 +62,10 @@ class Writer(AbstractWriter):
 		"""Writes a Module element."""
 		code = [
 			"// " + SNIP % ("%s.js" % (self.getAbsoluteName(moduleElement).replace(".", "/"))),
-			self._document(moduleElement),"var %s={}" % (moduleElement.getName())
+			self._document(moduleElement),
+			"function _meta_(v,m){var ms=v['__meta__']||{};for(var k in m){ms[k]=m[k]};v['__meta__']=ms;return v}",
+			"var %s={}" % (moduleElement.getName()),
+			"var __this__=%s" % (moduleElement.getName())
 		]
 		version = moduleElement.getAnnotation("version")
 		if version:
@@ -154,7 +157,7 @@ class Writer(AbstractWriter):
 		if method_name == interfaces.Constants.Destructor:  method_name = "cleanup"
 		return self._format(
 			self._document(methodElement),
-			"%s:function(%s){" % (
+			"%s:_meta_(function(%s){" % (
 				method_name,
 				", ".join(map(self.write, methodElement.getArguments()))
 			),
@@ -162,8 +165,27 @@ class Writer(AbstractWriter):
 			self._writeClosureArguments(methodElement),
 			self.writeFunctionWhen(methodElement),
 			map(self.write, methodElement.getOperations()),
-			"}"
+			"},%s)" % ( self._writeFunctionMeta(methodElement) )
 		)
+
+	def _writeFunctionMeta( self, function ):
+		arguments = []
+		arity     = 0
+		for arg in function.getArguments():
+			a = {"name":arg.getName()}
+			if arg.isOptional():
+				a["flags"] = "?"
+			elif arg.isRest():
+				a["flags"] = "*"
+			elif arg.isKeywordsRest():
+				a["flags"] = "**"
+			elif arg.getDefaultValue():
+				a["flags"] = "="
+			arguments.append(a)
+		return self._format(["{",[
+			"arity:%d," % (len(arguments)),
+			"arguments:%s" % (arguments)
+			],"}"])
 
 	def writeFunctionWhen(self, methodElement):
 		return None
@@ -174,12 +196,12 @@ class Writer(AbstractWriter):
 		args        = methodElement.getArguments()
 		return self._format(
 			self._document(methodElement),
-			"%s:function(%s){" % (method_name, ", ".join(map(self.write, args))),
+			"%s:_meta_(function(%s){" % (method_name, ", ".join(map(self.write, args))),
 			["var __this__ = this;"],
 			self._writeClosureArguments(methodElement),
 			self.writeFunctionWhen(methodElement),
 			map(self.write, methodElement.getOperations()),
-			"}"
+			"},%s)" % ( self._writeFunctionMeta(methodElement) )
 		)
 		
 	def _writeClassMethodProxy(self, currentClass, inheritedMethodElement):
@@ -190,13 +212,13 @@ class Writer(AbstractWriter):
 		method_name = inheritedMethodElement.getName()
 		method_args = inheritedMethodElement.getArguments()
 		return self._format(
-			"%s:function(%s){" % (method_name, ", ".join(map(self.write, method_args))),
+			"%s:_meta_(function(%s){" % (method_name, ", ".join(map(self.write, method_args))),
 			["return %s.%s.apply(%s, arguments);" % (
 				self.getAbsoluteName(inheritedMethodElement.getParent()),
 				method_name,
 				self.getAbsoluteName(currentClass)
 			)],
-			'}'
+			'},%s)' % ( self._writeFunctionMeta(methodElement) )
 		)
 
 	def onConstructor( self, element ):
@@ -208,24 +230,24 @@ class Writer(AbstractWriter):
 			attributes.append("__this__.%s = %s" % (a.getName(), self.write(a.getDefaultValue())))
 		return self._format(
 			self._document(element),
-			"initialize:function(%s){" % (
+			"initialize:_meta_(function(%s){" % (
 				", ".join(map(self.write, element.getArguments()))
 			),
 			["var __this__=this"],
 			self._writeClosureArguments(element),
 			attributes or None,
 			map(self.write, element.getOperations()),
-			"}"
+			'},%s)' % ( self._writeFunctionMeta(element) )
 		)
 
 	def onClosure( self, closure ):
 		"""Writes a closure element."""
 		return self._format(
 			self._document(closure),
-			"function(%s){" % ( ", ".join(map(self.write, closure.getArguments()))),
+			"_meta_(function(%s){" % ( ", ".join(map(self.write, closure.getArguments()))),
 			self._writeClosureArguments(closure),
 			map(self.write, closure.getOperations()),
-			"}"
+			'},%s)' % ( self._writeFunctionMeta(closure) )
 		)
 	
 	def onClosureBody(self, closure):
@@ -270,7 +292,7 @@ class Writer(AbstractWriter):
 		name   = function.getName()
 		if parent and isinstance(parent, interfaces.IModule):
 			res = [
-				"function(%s){" % (
+				"_meta_(function(%s){" % (
 					", ".join(map(self.write, function.getArguments()))
 				),
 				[self._document(function)],
@@ -278,18 +300,18 @@ class Writer(AbstractWriter):
 				self._writeClosureArguments(function),
 				self.writeFunctionWhen(function),
 				map(self.write, function.getOperations()),
-				"}"
+				'},%s)' % ( self._writeFunctionMeta(function) )
 			]
 		else:
 			res = [
 				self._document(function),
-				"function(%s){" % (
+				"_meta_(function(%s){" % (
 					", ".join(map(self.write, function.getArguments()))
 				),
 				self._writeClosureArguments(function),
 				self.writeFunctionWhen(function),
 				map(self.write, function.getOperations()),
-				"}"
+				'},%s)' % ( self._writeFunctionMeta(function) )
 			]
 		if function.getAnnotations(withName="post"):
 			res[0] = "var __wrapped__ = " + res[0] + ";"
@@ -604,15 +626,34 @@ class Writer(AbstractWriter):
 			return self._rewriteInvocation(invocation, concrete_type, "\n".join([r.getCode() for r in rewrite]))
 		else:
 			self.inInvocation = False
-			if invocation.isByPositionOnly():			
+			if invocation.isByPositionOnly():
 				return "%s(%s)" % (
-								t,
+					t,
 					", ".join(map(self.write, invocation.getArguments()))
 					)
 			else:
-				return "Extend.invoke(%s,%s)" % (
+				normal_arguments = []
+				extra_arguments  = {}
+				current          = normal_arguments
+				for param in invocation.getArguments():
+					if  param.isAsMap():
+						current = extra_arguments
+						current["**"] = self.write(param.getValue())
+					elif param.isAsList():
+						current = extra_arguments
+						current["*"] = self.write(param.getValue())
+					elif param.isByName():
+						current = extra_arguments
+						current[param.getName()] = self.write(param.getValue())
+					else:
+						assert current == normal_arguments
+						current.append(self.write(param.getValue()))
+				normal_str = "[%s]" % (",".join(normal_arguments))
+				extra_str  = "{%s}" % (",".join("%s:%s" % (k,v) for k,v in extra_arguments.items()))
+				return "Extend.invoke(__this__,%s,%s,%s)" % (
 					t,
-					", ".join(map(self.write, invocation.getArguments()))
+					normal_str,
+					extra_str
 				)
 	
 	def onParameter( self, parameter ):
@@ -622,7 +663,7 @@ class Writer(AbstractWriter):
 		elif parameter.isAsList():
 			return "{'*':(%s)}" % (r)
 		elif parameter.isByName():
-			return "{'^':%s,'='(%s)" % (str(parameter.getName()), r)
+			return "{'^':%s,'=':(%s)}" % (repr(parameter.getName()), r)
 		else:
 			return r
 
