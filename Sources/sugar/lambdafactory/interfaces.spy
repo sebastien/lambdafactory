@@ -8,7 +8,7 @@
 # License   : Revised BSD License
 # -----------------------------------------------------------------------------
 # Creation  : 02-Nov-2006
-# Last mod  : 06-Nov-2007
+# Last mod  : 07-Jan-2007
 # -----------------------------------------------------------------------------
 
 # TODO: Add a Flowable interface that tells that the element can have
@@ -409,10 +409,10 @@
 	|	Tells if this arguments represents ''the rest'' of the keyword argument in
 	|	the invocation
 
-	@abstract @method isKeywords
+	@abstract @method isKeyword
 	|	Tells if the argument is keywords list or not.
 
-	@abstract @method setKeywords value
+	@abstract @method setKeyword value
 	|	Sets this argument as keywords list  or not.
 
 	@abstract @method setDefaultValue value
@@ -420,6 +420,22 @@
 
 	@abstract @method getDefaultValue
 	|	Returns the @methodault value for this slot.
+
+@end
+
+@protocol IParameter: IElement
+
+	@abstract @method isByName
+	@abstract @method getName
+	@abstract @method setByName n:String
+	
+	@abstract @method getValue
+	@abstract @method setValue v
+	
+	@abstract @method isAsList
+	@abstract @method isAsMap
+	@abstract @method setAsList v:Boolean=True
+	@abstract @method setAsMap  v:Boolean=True
 
 @end
 

@@ -1440,14 +1440,67 @@
 		rest = value and value
 	@end
 
-	@method isKeywords
+	@method isKeyword
 		return keywords
 	@end
 
-	@method setKeywords value
+	@method setKeyword value
 		keywords = value and value
 	@end
 
+@end
+
+@class Parameter: Element, IParameter
+
+	@property name    = None
+	@property value   = None
+	@property _asList = False
+	@property _asMap  = False
+	
+	@constructor name=None, value=None
+		Element __init__ ( self, name )
+		self name  = name
+		self value = value
+	@end
+	
+	@method isByName
+		return name != None
+	@end
+	
+	@method getName
+		return name
+	@end
+	
+	@method setByName n:String
+		self name = n
+	@end
+	
+	@method getValue
+		return value
+	@end
+	
+	@method setValue v
+		value = v
+	@end
+	
+	@method isAsList
+		return _asList
+	@end
+	
+	@method isAsMap
+		return _asMap
+	@end
+	
+	@method setAsList v:Boolean=True
+		_asMap  = False
+		_asList = True
+	@end
+	
+	@method setAsMap  v:Boolean=True
+		_asMap  = True
+		_asList = False
+	@end
+	
 @end
 
 @class Attribute: Slot, IAttribute

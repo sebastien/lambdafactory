@@ -78,7 +78,9 @@
 	@end
 
 	@method fromString text
-		return fromLines(text split("\n"), addEOL=True)
+		#FIXME
+		#return fromLines(text split("\n"), addEOL=True)
+		return fromLines(text split("\n"), True)
 	@end
 
 @end

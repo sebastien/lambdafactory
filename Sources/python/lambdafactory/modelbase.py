@@ -8,7 +8,7 @@
 # License   : Revised BSD License
 # -----------------------------------------------------------------------------
 # Creation  : 02-Nov-2006
-# Last mod  : 17-Sep-2007
+# Last mod  : 07-Jan-2007
 # -----------------------------------------------------------------------------
 
 # FIXME: Evaluable == Expression ?
@@ -40,7 +40,6 @@ class Factory:
 	For instance, if you define a module with classes like `Value`, `Literal`,
 	`Invocation`, `Function`, etc. you just have to give this module to the
 	factory constructor and it will be used to generate the given element."""
-
 
 
 	def __init__( self, module=model ):
@@ -195,6 +194,12 @@ class Factory:
 		arg = self._getImplementation("Argument")(name, typeinfo)
 		arg.setOptional(optional)
 		return arg
+	
+	def _param( self, name=None, value=None, asList=False, asMap=False ):
+		param = self._getImplementation("Parameter")(name,value)
+		if asList: param.setAsList()
+		if asMap:  param.setAsMap()
+		return param
 
 	def _attr( self, name, typeinfo=None, value=None):
 		return self._getImplementation("Attribute")(name, typeinfo, value)

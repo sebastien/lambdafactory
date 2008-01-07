@@ -73,6 +73,7 @@
 		interfaces IClassAttribute
 		interfaces IAttribute
 		interfaces IArgument
+		interfaces IParameter
 		interfaces IOperator
 		interfaces IReference
 		interfaces INumber
