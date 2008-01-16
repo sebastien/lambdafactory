@@ -290,8 +290,10 @@
 					matching_module = module
 					return tuple([None, module])
 				end
+				# We see if the referenceOrName starts with the current module
+				# name, meaning it is a submodule.
 				var match_index = mname find (referenceOrName) 
-				if match_index == 0 and referenceOrName[mname_len] == "."
+				if match_index == 0 and referenceOrName startswith (mname) and referenceOrName[mname_len] == "."
 					if not matching_module
 						matching_module = module
 					if len(module getName()) > len(matching_module getName())
