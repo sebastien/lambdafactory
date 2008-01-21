@@ -159,6 +159,9 @@
 			if (options lang in ["pnuts"])
 				interpreter = os getenv("SUGAR_PNUTS") or "pnuts"
 				command = interpreter + " " + path + " " + args_str
+			if (options lang in ["python"])
+				interpreter = os getenv("SUGAR_PYTHON") or "python"
+				command = interpreter + " " + path + " " + args_str
 			else
 				raise ERR_NO_RUNTIME_AVAILABLE(language)
 			end

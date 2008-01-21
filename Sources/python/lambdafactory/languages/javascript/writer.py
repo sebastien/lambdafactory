@@ -2,13 +2,13 @@
 # Encoding: iso-8859-1
 # vim: tw=80 ts=4 sw=4 noet
 # -----------------------------------------------------------------------------
-# Project   : XXX
+# Project   : LambdaFactory
 # -----------------------------------------------------------------------------
 # Author    : Sebastien Pierre                               <sebastien@ivy.fr>
 # License   : Revised BSD License
 # -----------------------------------------------------------------------------
 # Creation  : 02-Nov-2006
-# Last mod  : 04-Oct-2007
+# Last mod  : 21-Jan-2008
 # -----------------------------------------------------------------------------
 
 # TODO: When constructor is empty, should assign default attributes anyway
@@ -266,10 +266,11 @@ class Writer(AbstractWriter):
 					i
 				))
 			if not (argument.getDefaultValue() is None):
-				result.append("%s = %s || %s" % (
+				result.append("%s = %s === undefined ? %s : %s" % (
 					argument.getName(),
 					argument.getName(),
-					self.write(argument.getDefaultValue())
+					self.write(argument.getDefaultValue()),
+					argument.getName()
 				))
 			i += 1
 		return result
@@ -796,7 +797,9 @@ class Writer(AbstractWriter):
 		if end: end = self.write(end)
 		else: end = "undefined"
 		return self._format(
-			"S.Core.slice(%s,%s,%s)" % (
+			"%s%sslice(%s,%s,%s)" % (
+				self.jsPrefix,
+				self.jsCore,
 				self.write(operation.getTarget()),
 				start,
 				end
