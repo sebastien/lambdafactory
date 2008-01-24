@@ -8,7 +8,7 @@
 # License   : Revised BSD License
 # -----------------------------------------------------------------------------
 # Creation  : 05-Jul-2006
-# Last mod  : 07-Dec-2007
+# Last mod  : 24-Jan-2007
 # -----------------------------------------------------------------------------
 
 from lambdafactory.modelwriter import AbstractWriter, flatten
@@ -551,7 +551,20 @@ class Writer(AbstractWriter):
 			t,
 			", ".join(map(self.write, invocation.getArguments()))
 		)
-	
+
+	def onParameter( self, parameter ):
+		# FIXME: This is a copy/paste from the JavaScript backend... this one
+		# may require an additional runtime for Pnuts.
+		r = self.write(parameter.getValue())
+		if parameter.isAsMap():
+			return "{'**':(%s)}" % (r)
+		elif parameter.isAsList():
+			return "{'*':(%s)}" % (r)
+		elif parameter.isByName():
+			return "{'^':%s,'=':(%s)}" % (repr(parameter.getName()), r)
+		else:
+			return r
+
 	def onInstanciation( self, operation ):
 		"""Writes an invocation operation."""
 		return "new %s(%s)" % (
