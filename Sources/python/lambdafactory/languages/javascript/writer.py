@@ -8,7 +8,7 @@
 # License   : Revised BSD License
 # -----------------------------------------------------------------------------
 # Creation  : 02-Nov-2006
-# Last mod  : 21-Jan-2008
+# Last mod  : 01-Feb-2008
 # -----------------------------------------------------------------------------
 
 # TODO: When constructor is empty, should assign default attributes anyway
@@ -499,12 +499,27 @@ class Writer(AbstractWriter):
 			return "(%s)" % (self.write(key))
 		
 	def onDict( self, element ):
-		return '{%s}' % (", ".join([
-			"%s:%s" % ( self._writeDictKey(k),self.write(v))
-			for k,v in element.getItems()
-			])
-		)
-		
+		# We test the keys and see if we only have litterals or not
+		only_litterals = True
+		for k,v in element.getItems():
+			if not isinstance(k, interfaces.ILiteral):
+				only_litterals = False
+				break
+		# If we only have litterals, we can create the map "as is"
+		if only_litterals:
+			return '{%s}' % (", ".join([
+				"%s:%s" % ( self._writeDictKey(k),self.write(v))
+				for k,v in element.getItems()
+				])
+			)
+		# Otherwise we'll use Extend.createMapFromItems method
+		else:
+			return "%s%screateMapFromItems(%s)" % (
+				self.jsPrefix,
+				self.jsCore,
+				",".join("[%s,%s]" % ( self.write(k),self.write(v)) for k,v in element.getItems())
+			)
+
 	def onAllocation( self, allocation ):
 		"""Writes an allocation operation."""
 		s = allocation.getSlotToAllocate()
