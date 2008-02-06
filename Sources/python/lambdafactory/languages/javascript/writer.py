@@ -8,7 +8,7 @@
 # License   : Revised BSD License
 # -----------------------------------------------------------------------------
 # Creation  : 02-Nov-2006
-# Last mod  : 01-Feb-2008
+# Last mod  : 06-Feb-2008
 # -----------------------------------------------------------------------------
 
 # TODO: When constructor is empty, should assign default attributes anyway
@@ -574,6 +574,12 @@ class Writer(AbstractWriter):
 		else:
 			if operator.getReferenceName() == "has":
 					res = '(typeof(%s.%s)!="undefined")' % (
+					self.write(operands[0]),
+					self.write(operands[1])
+				)
+			elif operator.getReferenceName() == "in":
+					res = '(%sisIn(%s,%s))' % (
+					self.jsPrefix + self.jsCore,
 					self.write(operands[0]),
 					self.write(operands[1])
 				)
