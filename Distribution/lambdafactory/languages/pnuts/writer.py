@@ -8,7 +8,7 @@
 # License   : Revised BSD License
 # -----------------------------------------------------------------------------
 # Creation  : 05-Jul-2006
-# Last mod  : 07-Dec-2007
+# Last mod  : 24-Jan-2007
 # -----------------------------------------------------------------------------
 
 from lambdafactory.modelwriter import AbstractWriter, flatten
@@ -16,6 +16,9 @@ import lambdafactory.interfaces as interfaces
 import lambdafactory.reporter as reporter
 from lambdafactory.splitter import SNIP
 import os.path,re,time,string, random
+
+# TODO: Pnuts does not really support absolute reference names, so maybe
+# when importing, we should consider java_awt_Frame instead of java.awt.Frame
 
 #------------------------------------------------------------------------------
 #
@@ -548,7 +551,20 @@ class Writer(AbstractWriter):
 			t,
 			", ".join(map(self.write, invocation.getArguments()))
 		)
-	
+
+	def onParameter( self, parameter ):
+		# FIXME: This is a copy/paste from the JavaScript backend... this one
+		# may require an additional runtime for Pnuts.
+		r = self.write(parameter.getValue())
+		if parameter.isAsMap():
+			return "{'**':(%s)}" % (r)
+		elif parameter.isAsList():
+			return "{'*':(%s)}" % (r)
+		elif parameter.isByName():
+			return "{'^':%s,'=':(%s)}" % (repr(parameter.getName()), r)
+		else:
+			return r
+
 	def onInstanciation( self, operation ):
 		"""Writes an invocation operation."""
 		return "new %s(%s)" % (
@@ -699,17 +715,14 @@ class Writer(AbstractWriter):
 			res = vres
 		if symbol_alias:
 			res.extend(["as", symbol_alias])
-		return " ".join(res)
+		return [";".join(res)]
 
 	def onImportSymbolsOperation( self, element ):
-		res = ["import"]
-		res.append(", ".join(element.getImportedElements()))
+		res = []
 		symbol_origin = element.getImportOrigin()
-		if symbol_origin:
-			vres = ["from", symbol_origin]
-			vres.extend(res)
-			res = vres
-		return " ".join(res)
+		for e in element.getImportedElements():
+			res.append('import("%s.%s")' % (symbol_origin, e))
+		return [";".join(res)]
 
 	def onImportModuleOperation( self, element ):
 		module_name = element.getImportedModuleName()

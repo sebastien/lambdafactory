@@ -385,14 +385,6 @@ class IArgument(ISlot):
 		the invocation"""
 		raise Exception("Abstract method IArgument.isKeywordsRest not implemented in: " + str(self))
 	
-	def isKeywords(self):
-		"""Tells if the argument is keywords list or not."""
-		raise Exception("Abstract method IArgument.isKeywords not implemented in: " + str(self))
-	
-	def setKeywords(self, value):
-		"""Sets this argument as keywords list  or not."""
-		raise Exception("Abstract method IArgument.setKeywords not implemented in: " + str(self))
-	
 	def setDefaultValue(self, value):
 		"""Sets the @methodault value for this argument."""
 		raise Exception("Abstract method IArgument.setDefaultValue not implemented in: " + str(self))
@@ -400,6 +392,37 @@ class IArgument(ISlot):
 	def getDefaultValue(self):
 		"""Returns the @methodault value for this slot."""
 		raise Exception("Abstract method IArgument.getDefaultValue not implemented in: " + str(self))
+	
+
+class IParameter(IElement):
+	def isByName(self):
+		raise Exception("Abstract method IParameter.isByName not implemented in: " + str(self))
+	
+	def getName(self):
+		raise Exception("Abstract method IParameter.getName not implemented in: " + str(self))
+	
+	def setByName(self, n):
+		raise Exception("Abstract method IParameter.setByName not implemented in: " + str(self))
+	
+	def getValue(self):
+		raise Exception("Abstract method IParameter.getValue not implemented in: " + str(self))
+	
+	def setValue(self, v):
+		raise Exception("Abstract method IParameter.setValue not implemented in: " + str(self))
+	
+	def isAsList(self):
+		raise Exception("Abstract method IParameter.isAsList not implemented in: " + str(self))
+	
+	def isAsMap(self):
+		raise Exception("Abstract method IParameter.isAsMap not implemented in: " + str(self))
+	
+	def setAsList(self, v=None):
+		if v is None: v = True
+		raise Exception("Abstract method IParameter.setAsList not implemented in: " + str(self))
+	
+	def setAsMap(self, v=None):
+		if v is None: v = True
+		raise Exception("Abstract method IParameter.setAsMap not implemented in: " + str(self))
 	
 
 class IAttribute(ISlot):
@@ -778,6 +801,12 @@ class IComputation(IOperation):
 
 class IInvocation(IOperation):
 	ARGS = [IEvaluable, [IEvaluable]]
+	def isByPositionOnly(self):
+		"""Tells if this invocation is only by position. Otherwise, some arguments
+		are given by name, as list or as a map (and they should be handled in
+		a specific way)"""
+		raise Exception("Abstract method IInvocation.isByPositionOnly not implemented in: " + str(self))
+	
 	def getTarget(self):
 		"""Returns the invocation target reference."""
 		return self.getOpArgument(0)

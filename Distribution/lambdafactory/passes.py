@@ -195,7 +195,7 @@ class PassContext:
 				matching_module = module
 				return tuple([None, module])
 			match_index=mname.find(referenceOrName)
-			if ((match_index == 0) and (referenceOrName[mname_len] == ".")):
+			if (((match_index == 0) and referenceOrName.startswith(mname)) and (referenceOrName[mname_len] == ".")):
 				if (not matching_module):
 					matching_module = module
 				elif (len(module.getName()) > len(matching_module.getName())):

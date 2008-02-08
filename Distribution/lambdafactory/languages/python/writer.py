@@ -8,7 +8,7 @@
 # License   : Revised BSD License
 # -----------------------------------------------------------------------------
 # Creation  : 03-Aug-2007
-# Last mod  : 04-Oct-2007
+# Last mod  : 07-Jan-2007
 # -----------------------------------------------------------------------------
 
 # TODO: When constructor is empty, should assign default attributes anyway
@@ -633,7 +633,18 @@ class Writer(AbstractWriter):
 							t,
 				", ".join(map(self.write, invocation.getArguments()))
 				)
-	
+
+	def onParameter( self, parameter ):
+		r = self.write(parameter.getValue())
+		if parameter.isAsMap():
+			return "**(%s)" % (r)
+		elif parameter.isAsList():
+			return "*(%s)" % (r)
+		elif parameter.isByName():
+			return "%s=(%s)" % (parameter.getName(), r)
+		else:
+			return r
+
 	def onInstanciation( self, operation ):
 		"""Writes an invocation operation."""
 		return "%s(%s)" % (

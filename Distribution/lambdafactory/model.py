@@ -545,6 +545,11 @@ class Module(Context, IModule, IAssignable, IReferencable):
 		"""Returns 'grandparentname.parentname'"""
 		return (".".join(self.name.split(".")[0:-1]) or None)
 	
+	def getAbsoluteName(self):
+		"""A module name is already absolute, so 'getAbsoluteName' is the same as
+		'getName'"""
+		return self.name
+	
 	def isImported(self):
 		return self.imported
 	
@@ -654,7 +659,12 @@ class Function(Closure, IFunction, IReferencable):
 	def __init__ (self, name, arguments):
 		Closure.__init__(self, arguments, name)
 	
-	pass
+	def getAbsoluteName(self):
+		if self.getParent():
+			return ((self.getParent().getAbsoluteName() + ".") + self.name)
+		elif True:
+			return self.name
+	
 
 class Method(Function, IMethod):
 	pass
@@ -765,7 +775,12 @@ class Computation(Operation, IComputation, IEvaluable):
 	pass
 
 class Invocation(Operation, IInvocation, IEvaluable):
-	pass
+	def isByPositionOnly(self):
+		for arg in self.getOpArgument(1):
+			if (arg.isByName() or arg.isAsMap()):
+				return False
+		return True
+	
 
 class Instanciation(Operation, IInstanciation, IEvaluable):
 	pass
@@ -1011,7 +1026,6 @@ class Argument(Slot, IArgument):
 		self.rest = False
 		self.keywordRest = False
 		self.optional = False
-		self.keywords = False
 		Slot.__init__(self, name, typeDescription)
 	
 	def isOptional(self):
@@ -1032,11 +1046,49 @@ class Argument(Slot, IArgument):
 	def setKeywordsRest(self, value):
 		self.rest = (value and value)
 	
-	def isKeywords(self):
-		return self.keywords
+
+class Parameter(Element, IParameter):
+	def __init__ (self, name=None, value=None):
+		self.name = None
+		self.value = None
+		self._asList = False
+		self._asMap = False
+		if name is None: name = None
+		if value is None: value = None
+		Element.__init__(self, name)
+		self.name = name
+		self.value = value
 	
-	def setKeywords(self, value):
-		self.keywords = (value and value)
+	def isByName(self):
+		return (self.name != None)
+	
+	def getName(self):
+		return self.name
+	
+	def setByName(self, n):
+		self.name = n
+	
+	def getValue(self):
+		return self.value
+	
+	def setValue(self, v):
+		self.value = v
+	
+	def isAsList(self):
+		return self._asList
+	
+	def isAsMap(self):
+		return self._asMap
+	
+	def setAsList(self, v=None):
+		if v is None: v = True
+		self._asMap = False
+		self._asList = True
+	
+	def setAsMap(self, v=None):
+		if v is None: v = True
+		self._asMap = True
+		self._asList = False
 	
 
 class Attribute(Slot, IAttribute):

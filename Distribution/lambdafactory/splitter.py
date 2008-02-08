@@ -61,6 +61,6 @@ class FileSplitter:
 		return self.fromStream(lines, addEOL)
 	
 	def fromString(self, text):
-		return self.fromLines(text.split("\n"), addEOL = True)
+		return self.fromLines(text.split("\n"), addEOL=(True))
 	
 

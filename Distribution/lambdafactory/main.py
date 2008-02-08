@@ -104,7 +104,7 @@ class Command:
 			if (options.api == "-"):
 				output.write(html_documentation)
 			elif True:
-				f=file(options.api, mode = "w")
+				f=file(options.api, mode=("w"))
 				f.write(html_documentation)
 				f.close()
 		elif options.compile:
@@ -115,7 +115,7 @@ class Command:
 				splitter=FileSplitter(options.output)
 				splitter.fromString(program_source)
 			elif True:
-				f=file(options.output, mode = "a")
+				f=file(options.output, mode=("a"))
 				f.write(program_source)
 		elif options.run:
 			program_source=self.writeProgram(language, True)
@@ -132,6 +132,9 @@ class Command:
 				command = ((((interpreter + " ") + path) + " ") + args_str)
 			elif (options.lang in ["pnuts"]):
 				interpreter = (os.getenv("SUGAR_PNUTS") or "pnuts")
+				command = ((((interpreter + " ") + path) + " ") + args_str)
+			elif (options.lang in ["python"]):
+				interpreter = (os.getenv("SUGAR_PYTHON") or "python")
 				command = ((((interpreter + " ") + path) + " ") + args_str)
 			elif True:
 				raise ERR_NO_RUNTIME_AVAILABLE(language)
