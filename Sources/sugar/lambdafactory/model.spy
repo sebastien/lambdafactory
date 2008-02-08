@@ -752,6 +752,12 @@
 		return "." join (name split "." [0:-1]) or None
 	@end
 
+	@method getAbsoluteName
+	| A module name is already absolute, so 'getAbsoluteName' is the same as
+	| 'getName'
+		return name
+	@end
+
 	@method isImported
 		return imported
 	@end
@@ -907,7 +913,15 @@
 		#REWRITE: super arguments, name)
 		Closure __init__ ( self,  arguments, name)
 	@end
-	
+
+	@method getAbsoluteName
+		if getParent ()
+			return getParent () getAbsoluteName () + "." + name
+		else
+			return name
+		end
+	@end
+
 @end
 
 @class Method: Function, IMethod
@@ -1060,7 +1074,7 @@
 	@end
 	
 @end
-	
+
 @class Resolution: Operation, IResolution, IEvaluable, IReferencable
 
 	@method getReference
