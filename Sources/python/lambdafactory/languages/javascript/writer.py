@@ -8,7 +8,7 @@
 # License   : Revised BSD License
 # -----------------------------------------------------------------------------
 # Creation  : 02-Nov-2006
-# Last mod  : 06-Feb-2008
+# Last mod  : 13-Feb-2008
 # -----------------------------------------------------------------------------
 
 # TODO: When constructor is empty, should assign default attributes anyway
@@ -836,7 +836,7 @@ class Writer(AbstractWriter):
 
 	def onBreaking( self, breking ):
 		"""Writes a break operation."""
-		return "break"
+		return "return false"
 	
 	def onExcept( self, exception ):
 		"""Writes a except operation."""
