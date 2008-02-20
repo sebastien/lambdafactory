@@ -594,6 +594,8 @@ class Writer(AbstractWriter):
 		# We just want the raw reference name here, if we use _write() instead,
 		# we'll have improper scoping.
 		resolved_name = resolution.getReference().getReferenceName()
+		if not self._isSymbolValid(resolved_name):
+			resolved_name = self._rewriteSymbol(resolved_name)
 		if resolution.getContext():
 			if resolved_name == "super":
 				return "%s.getSuper()" % (self.write(resolution.getContext()))
