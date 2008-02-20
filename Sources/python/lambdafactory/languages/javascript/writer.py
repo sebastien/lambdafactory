@@ -12,6 +12,7 @@
 # -----------------------------------------------------------------------------
 
 # TODO: When constructor is empty, should assign default attributes anyway
+# TODO: Support optional meta-data
 
 from lambdafactory.modelwriter import AbstractWriter, flatten
 import lambdafactory.interfaces as interfaces
@@ -45,6 +46,10 @@ throw throws transient
 try var void
 volatile while with""".replace("\n", " ").split()
 
+OPTIONS = {
+	"ENABLE_METADATA":True
+}
+
 class Writer(AbstractWriter):
 
 	def __init__( self ):
@@ -53,6 +58,8 @@ class Writer(AbstractWriter):
 		self.jsCore   = "Extend."
 		self.supportedEmbedLanguages = ["ecmascript", "js", "javascript"]
 		self.inInvocation = False
+		self.options = {}
+		self.options.update(OPTIONS)
 
 	def _isSymbolValid( self, string ):
 		# FIXME: Warn if symbol is typeof, etc.
@@ -101,7 +108,7 @@ class Writer(AbstractWriter):
 		code = [
 			"// " + SNIP % ("%s.js" % (self.getAbsoluteName(moduleElement).replace(".", "/"))),
 			self._document(moduleElement),
-			"function _meta_(v,m){var ms=v['__meta__']||{};for(var k in m){ms[k]=m[k]};v['__meta__']=ms;return v}",
+			self.options["ENABLE_METADATA"] and "function _meta_(v,m){var ms=v['__meta__']||{};for(var k in m){ms[k]=m[k]};v['__meta__']=ms;return v}" or "",
 			"var %s={}" % (moduleElement.getName()),
 			"var __this__=%s" % (moduleElement.getName())
 		]
@@ -221,7 +228,6 @@ class Writer(AbstractWriter):
 				a["flags"] = "="
 			arguments.append(a)
 		return self._format(["{",[
-			"arity:%d," % (len(arguments)),
 			"arguments:%s" % (arguments)
 			],"}"])
 

@@ -127,8 +127,9 @@ class Factory:
 
 	# FIXME: ADD APPLICATION, which only takes values. Invocation takes
 	# parameters that can be named.
+	# FIXME: RENAME ARGS (for invoke) and PARAMS (for functions)
 	def invoke( self, evaluable, *arguments ):
-		arguments = map(self._ensureParam, arguments)
+		arguments = map(self._ensureParam,arguments)
 		return self._getImplementation("Invocation")(evaluable, arguments)
 
 	def instanciate( self, evaluable, *arguments ):
