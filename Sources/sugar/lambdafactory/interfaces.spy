@@ -595,7 +595,7 @@
 | which generally have a context of their own.
 @end
 
-@protocol IBlock: IGroup
+@protocol IBlock: IGroup, IAssignable
 |	A block is a specific type of (sub) process.
 @end
 

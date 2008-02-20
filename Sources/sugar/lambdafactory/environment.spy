@@ -196,6 +196,10 @@
 		return program
 	@end
 	
+	@method setProgram program
+		self program = program
+	@end
+
 	@method getFactory
 		return factory
 	@end

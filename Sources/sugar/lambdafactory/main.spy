@@ -178,13 +178,13 @@
 	@method parseSource source, extension, moduleName=None
 		return environment parseSource (source, extension, moduleName) 
 	@end
-		
+
 	@method transformProgram
 		environment runPasses()
 		# FIXME: This should be a pass
 		# environment resolver flow (environment getProgram())
 	@end
-	
+
 	@method guessLanguage sourcePath
 		for name_and_value in environment languages items()
 			if name_and_value[1] recognizes (sourcePath)
@@ -194,6 +194,14 @@
 		return None
 	@end
 	
+	@method setProgram program
+		return environment setProgram (program)
+	@end
+
+	@method getProgram
+		return environment getProgram ()
+	@end
+
 	@method writeProgram inLanguage, includeRuntime=False
 		var language = environment loadLanguage (inLanguage)
 		# FIXME: The language should be initialized for the environment

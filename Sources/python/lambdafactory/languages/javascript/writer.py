@@ -8,7 +8,7 @@
 # License   : Revised BSD License
 # -----------------------------------------------------------------------------
 # Creation  : 02-Nov-2006
-# Last mod  : 13-Feb-2008
+# Last mod  : 20-Feb-2008
 # -----------------------------------------------------------------------------
 
 # TODO: When constructor is empty, should assign default attributes anyway
@@ -25,6 +25,26 @@ import os.path,re,time,string, random
 #
 #------------------------------------------------------------------------------
 
+VALID_SYMBOL = re.compile("^[_A-Za-z][_A-Za-z0-9]*$")
+VALID_SYMBOL_CHARS = "_" + string.digits + string.letters
+# NOTE: This is not the complete list of keywords for JavaScript, we removed
+# some such as typeof, null, which may be used as functions/values in code.
+KEYWORDS = """abstract boolean break byte
+case catch char class
+continue const debugger default
+delete do double else
+enum export extends
+final finally float for
+function goto if implements
+import in int
+interface long native new
+package private protected
+public return short static
+super switch synchronized
+throw throws transient
+try var void
+volatile while with""".replace("\n", " ").split()
+
 class Writer(AbstractWriter):
 
 	def __init__( self ):
@@ -33,6 +53,24 @@ class Writer(AbstractWriter):
 		self.jsCore   = "Extend."
 		self.supportedEmbedLanguages = ["ecmascript", "js", "javascript"]
 		self.inInvocation = False
+
+	def _isSymbolValid( self, string ):
+		# FIXME: Warn if symbol is typeof, etc.
+		res = not self._isSymbolKeyword(string) and VALID_SYMBOL.match(string) != None
+		return res
+
+	def _isSymbolKeyword( self, string ):
+		return string in KEYWORDS
+
+	def _rewriteSymbol( self, string ):
+		"""Rewrites the given symbol so that it can be expressed in the target language."""
+		res = "_RW_"
+		for letter in string:
+			if letter not in VALID_SYMBOL_CHARS:
+				res += str(ord(letter))
+			else:
+				res += letter
+		return res
 
 	def getRuntimeSource(s):
 		"""Returns the JavaScript code for the runtime that is necassary to run
@@ -393,6 +431,8 @@ class Writer(AbstractWriter):
 			return "__this__.getSuper(%s.getParent())" % (
 				self.getAbsoluteName(self.getCurrentClass())
 			)
+		if not self._isSymbolValid(symbol_name):
+			symbol_name = self._rewriteSymbol(symbol_name)
 		# If there is no scope, then the symmbol is undefined
 		if not scope:
 			if symbol_name == "print": return self.jsPrefix + self.jsCore + "print"
@@ -546,11 +586,13 @@ class Writer(AbstractWriter):
 		else: end = "(%s)" % (self.write(end))
 		res = self.jsPrefix + self.jsCore + "range(%s,%s)" % (start, end)
 		step = operation.getStep()
-		if step: res += " step " + self._write(step)
+		if step: res += " step " + self.write(step)
 		return res
 
 	def onResolution( self, resolution ):
 		"""Writes a resolution operation."""
+		# We just want the raw reference name here, if we use _write() instead,
+		# we'll have improper scoping.
 		resolved_name = resolution.getReference().getReferenceName()
 		if resolution.getContext():
 			if resolved_name == "super":
@@ -637,6 +679,7 @@ class Writer(AbstractWriter):
 	def onInvocation( self, invocation ):
 		"""Writes an invocation operation."""
 		self.inInvocation = True
+		# FIXME: Target may not be a reference
 		t = self.write(invocation.getTarget())
 		target_type = invocation.getTarget().getResultAbstractType()
 		if target_type:

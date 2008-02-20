@@ -8,16 +8,16 @@
 # License           :   Revised BSD License
 # -----------------------------------------------------------------------------
 # Creation date     :   06-Nov-2006
-# Last mod.         :   06-Nov-2006
+# Last mod.         :   20-Feb-2008
 # -----------------------------------------------------------------------------
 
-import sys ; sys.path.insert(0, "Sources")
+import sys ; sys.path.insert(0, "Distribution")
 import lambdafactory
 from distutils.core import setup
 
 NAME        = "LambdaFactory"
 VERSION     = lambdafactory.__version__
-WEBSITE     = "http://www.ivy.fr/" + name.lower()
+WEBSITE     = "http://www.ivy.fr/" + NAME.lower()
 SUMMARY     = "Fine-grained object-oriented program structural representation."
 DESCRIPTION = """\
 LambdaFactory is a library to create object-oriented representation of programs.
@@ -36,9 +36,9 @@ representation of existing program structures.
 # ------------------------------------------------------------------------------
 
 setup(
-    name        = NAME
-    version     = VERSION
-    author      = "Sebastien Pierre", author_email = "sebastien@type-z.org",
+    name        = NAME,
+    version     = VERSION,
+    author      = "Sebastien Pierre", author_email = "sebastien@ivy.fr",
     description = SUMMARY, long_description = DESCRIPTION,
     license     = "Revised BSD License",
     keywords    = "program representation, structural analysis, documentation",

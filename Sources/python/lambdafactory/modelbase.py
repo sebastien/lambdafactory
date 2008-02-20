@@ -15,6 +15,7 @@
 
 import model
 import modeltypes as mt
+import interfaces
 
 def assertImplements(v,i):
 	return True
@@ -124,7 +125,10 @@ class Factory:
 	def compute( self, operatorName, leftOperand, rightOperand=None ):
 		return self._getImplementation("Computation")(operatorName, leftOperand, rightOperand)
 
+	# FIXME: ADD APPLICATION, which only takes values. Invocation takes
+	# parameters that can be named.
 	def invoke( self, evaluable, *arguments ):
+		arguments = map(self._ensureParam, arguments)
 		return self._getImplementation("Invocation")(evaluable, arguments)
 
 	def instanciate( self, evaluable, *arguments ):
@@ -184,6 +188,7 @@ class Factory:
 	def annotation( self, name, content ):
 		return self._getImplementation("Annotation")(name, content)
 	
+	# FIXME: RENAME TO SYMBOL
 	def _ref( self, name ):
 		return self._getImplementation("Reference")(name)
 
@@ -200,6 +205,12 @@ class Factory:
 		if asList: param.setAsList()
 		if asMap:  param.setAsMap()
 		return param
+
+	def _ensureParam( self, value ):
+		if isinstance(value, interfaces.IParameter):
+			return value
+		else:
+			return self._param(None, value)
 
 	def _attr( self, name, typeinfo=None, value=None):
 		return self._getImplementation("Attribute")(name, typeinfo, value)
