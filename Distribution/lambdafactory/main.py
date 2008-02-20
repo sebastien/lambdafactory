@@ -159,6 +159,12 @@ class Command:
 				return name_and_value[0]
 		return None
 	
+	def setProgram(self, program):
+		return self.environment.setProgram(program)
+	
+	def getProgram(self):
+		return self.environment.getProgram()
+	
 	def writeProgram(self, inLanguage, includeRuntime=None):
 		if includeRuntime is None: includeRuntime = False
 		language=self.environment.loadLanguage(inLanguage)

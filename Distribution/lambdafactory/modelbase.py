@@ -15,6 +15,7 @@
 
 import model
 import modeltypes as mt
+import interfaces
 
 def assertImplements(v,i):
 	return True
@@ -70,13 +71,18 @@ class Factory:
 	def createInterface( self ):
 		return self._getImplementation("Interface")()
 
-	def createBlock( self ):
-		return self._getImplementation("Block")()
+	def createBlock( self, *operations ):
+		r = self._getImplementation("Block")()
+		if operations: map(r.addOperation, operations)
+		return r
 
-	def createClosure( self, arguments ):
-		return self._getImplementation("Closure")(arguments)
+	def createClosure( self, arguments, *operations ):
+		r = self._getImplementation("Closure")(arguments)
+		if operations: map(r.addOperation, operations)
+		return r
 
 	def createFunction( self, name, arguments ):
+		# FIXME: Implement optional arguments for all of that
 		return self._getImplementation("Function")(name, arguments)
 
 	def createMethod( self, name, arguments=None ):
@@ -124,7 +130,11 @@ class Factory:
 	def compute( self, operatorName, leftOperand, rightOperand=None ):
 		return self._getImplementation("Computation")(operatorName, leftOperand, rightOperand)
 
+	# FIXME: ADD APPLICATION, which only takes values. Invocation takes
+	# parameters that can be named.
+	# FIXME: RENAME ARGS (for invoke) and PARAMS (for functions)
 	def invoke( self, evaluable, *arguments ):
+		arguments = map(self._ensureParam,arguments)
 		return self._getImplementation("Invocation")(evaluable, arguments)
 
 	def instanciate( self, evaluable, *arguments ):
@@ -133,8 +143,14 @@ class Factory:
 	def resolve( self, reference, context=None ):
 		return self._getImplementation("Resolution")(reference, context)
 
-	def select( self ):
-		return self._getImplementation("Selection")()
+	def select( self, *rules ):
+		s = self._getImplementation("Selection")()
+		if rules: map(s.addRule, rules)
+		return s
+	
+	def rule( self, evaluable, process ):
+		"""Alias for matchProcess"""
+		return self.matchProcess(evaluable, process)
 
 	def matchProcess( self, evaluable, process ):
 		return self._getImplementation("MatchProcessOperation")(evaluable, process)
@@ -184,6 +200,7 @@ class Factory:
 	def annotation( self, name, content ):
 		return self._getImplementation("Annotation")(name, content)
 	
+	# FIXME: RENAME TO SYMBOL
 	def _ref( self, name ):
 		return self._getImplementation("Reference")(name)
 
@@ -200,6 +217,12 @@ class Factory:
 		if asList: param.setAsList()
 		if asMap:  param.setAsMap()
 		return param
+
+	def _ensureParam( self, value ):
+		if isinstance(value, interfaces.IParameter):
+			return value
+		else:
+			return self._param(None, value)
 
 	def _attr( self, name, typeinfo=None, value=None):
 		return self._getImplementation("Attribute")(name, typeinfo, value)

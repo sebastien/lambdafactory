@@ -138,6 +138,9 @@ class Environment:
 	def getProgram(self):
 		return self.program
 	
+	def setProgram(self, program):
+		self.program = program
+	
 	def getFactory(self):
 		return self.factory
 	

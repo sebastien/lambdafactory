@@ -602,7 +602,7 @@ class IGroup(IProcess):
 	which generally have a context of their own."""
 	pass
 
-class IBlock(IGroup):
+class IBlock(IGroup, IAssignable):
 	"""A block is a specific type of (sub) process."""
 	pass
 
