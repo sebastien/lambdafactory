@@ -71,13 +71,18 @@ class Factory:
 	def createInterface( self ):
 		return self._getImplementation("Interface")()
 
-	def createBlock( self ):
-		return self._getImplementation("Block")()
+	def createBlock( self, *operations ):
+		r = self._getImplementation("Block")()
+		if operations: map(r.addOperation, operations)
+		return r
 
-	def createClosure( self, arguments ):
-		return self._getImplementation("Closure")(arguments)
+	def createClosure( self, arguments, *operations ):
+		r = self._getImplementation("Closure")(arguments)
+		if operations: map(r.addOperation, operations)
+		return r
 
 	def createFunction( self, name, arguments ):
+		# FIXME: Implement optional arguments for all of that
 		return self._getImplementation("Function")(name, arguments)
 
 	def createMethod( self, name, arguments=None ):
@@ -138,8 +143,14 @@ class Factory:
 	def resolve( self, reference, context=None ):
 		return self._getImplementation("Resolution")(reference, context)
 
-	def select( self ):
-		return self._getImplementation("Selection")()
+	def select( self, *rules ):
+		s = self._getImplementation("Selection")()
+		if rules: map(s.addRule, rules)
+		return s
+	
+	def rule( self, evaluable, process ):
+		"""Alias for matchProcess"""
+		return self.matchProcess(evaluable, process)
 
 	def matchProcess( self, evaluable, process ):
 		return self._getImplementation("MatchProcessOperation")(evaluable, process)
