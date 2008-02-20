@@ -227,9 +227,7 @@ class Writer(AbstractWriter):
 			elif arg.getDefaultValue():
 				a["flags"] = "="
 			arguments.append(a)
-		return self._format(["{",[
-			"arguments:%s" % (arguments)
-			],"}"])
+		return "{arguments:%s}" % (arguments)
 
 	def writeFunctionWhen(self, methodElement):
 		return None
