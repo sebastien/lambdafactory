@@ -632,6 +632,21 @@
 		return parent
 	@end
 
+	@method getAbsoluteName
+		if name
+			if parent
+				var parent_name =  parent getAbsoluteName ()
+				if parent_name
+					return parent_name + "." + name
+				else
+					return name
+				end
+			end
+		else
+			return Undefined
+		end
+	@end
+
 @end
 
 @class Class: Context, IClass, IReferencable, IAssignable
