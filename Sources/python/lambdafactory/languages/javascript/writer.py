@@ -253,6 +253,7 @@ class Writer(AbstractWriter):
 		implement this properly"""
 		method_name = inheritedMethodElement.getName()
 		method_args = inheritedMethodElement.getArguments()
+		print 
 		return self._format(
 			"%s:_meta_(function(%s){" % (method_name, ", ".join(map(self.write, method_args))),
 			["return %s.%s.apply(%s, arguments);" % (
@@ -260,7 +261,7 @@ class Writer(AbstractWriter):
 				method_name,
 				self.getAbsoluteName(currentClass)
 			)],
-			'},%s)' % ( self._writeFunctionMeta(methodElement) )
+			'},%s)' % ( self._writeFunctionMeta(inheritedMethodElement) )
 		)
 
 	def onConstructor( self, element ):

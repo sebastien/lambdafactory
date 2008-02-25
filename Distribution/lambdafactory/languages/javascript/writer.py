@@ -26,7 +26,7 @@ import os.path,re,time,string, random
 #
 #------------------------------------------------------------------------------
 
-VALID_SYMBOL = re.compile("^[_A-Za-z][_A-Za-z0-9]*$")
+VALID_SYMBOL = re.compile("^[\$_A-Za-z][\$_A-Za-z0-9]*$")
 VALID_SYMBOL_CHARS = "_" + string.digits + string.letters
 # NOTE: This is not the complete list of keywords for JavaScript, we removed
 # some such as typeof, null, which may be used as functions/values in code.
@@ -253,6 +253,7 @@ class Writer(AbstractWriter):
 		implement this properly"""
 		method_name = inheritedMethodElement.getName()
 		method_args = inheritedMethodElement.getArguments()
+		print 
 		return self._format(
 			"%s:_meta_(function(%s){" % (method_name, ", ".join(map(self.write, method_args))),
 			["return %s.%s.apply(%s, arguments);" % (
@@ -260,7 +261,7 @@ class Writer(AbstractWriter):
 				method_name,
 				self.getAbsoluteName(currentClass)
 			)],
-			'},%s)' % ( self._writeFunctionMeta(methodElement) )
+			'},%s)' % ( self._writeFunctionMeta(inheritedMethodElement) )
 		)
 
 	def onConstructor( self, element ):

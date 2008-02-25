@@ -462,6 +462,17 @@ class Context(Element):
 	def getParent(self):
 		return self.parent
 	
+	def getAbsoluteName(self):
+		if self.name:
+			if self.parent:
+				parent_name=self.parent.getAbsoluteName()
+				if parent_name:
+					return ((parent_name + ".") + self.name)
+				elif True:
+					return self.name
+		elif True:
+			return None
+	
 
 class Class(Context, IClass, IReferencable, IAssignable):
 	def __init__ (self, name=None, parentClasses=None):
