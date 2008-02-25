@@ -26,7 +26,7 @@ import os.path,re,time,string, random
 #
 #------------------------------------------------------------------------------
 
-VALID_SYMBOL = re.compile("^[_A-Za-z][_A-Za-z0-9]*$")
+VALID_SYMBOL = re.compile("^[\$_A-Za-z][\$_A-Za-z0-9]*$")
 VALID_SYMBOL_CHARS = "_" + string.digits + string.letters
 # NOTE: This is not the complete list of keywords for JavaScript, we removed
 # some such as typeof, null, which may be used as functions/values in code.
