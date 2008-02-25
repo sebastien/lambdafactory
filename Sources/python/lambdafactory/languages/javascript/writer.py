@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#APP_FINKr!/usr/bin/env python
 # Encoding: iso-8859-1
 # vim: tw=80 ts=4 sw=4 noet
 # -----------------------------------------------------------------------------
@@ -71,6 +71,9 @@ class Writer(AbstractWriter):
 
 	def _rewriteSymbol( self, string ):
 		"""Rewrites the given symbol so that it can be expressed in the target language."""
+		# FIXME: This is used by the hack in writeReference
+		if self._isSymbolValid(string):
+			return string
 		res = "_RW_"
 		for letter in string:
 			if letter not in VALID_SYMBOL_CHARS:
@@ -90,12 +93,12 @@ class Writer(AbstractWriter):
 	def getAbsoluteName( self, element ):
 		"""Returns the absolute name for the given element. This is the '.'
 		concatenation of the individual names of the parents."""
-		names = [element.getName()]
+		names = [self._rewriteSymbol(element.getName())]
 		while element.getParent():
 			element = element.getParent()
 			# FIXME: Some elements may not have a name
 			if not isinstance(element, interfaces.IProgram):
-				names.insert(0, element.getName())
+				names.insert(0, self._rewriteSymbol(element.getName()))
 		return ".".join(names)
 
 	def renameModuleSlot(self, name):
@@ -109,18 +112,18 @@ class Writer(AbstractWriter):
 			"// " + SNIP % ("%s.js" % (self.getAbsoluteName(moduleElement).replace(".", "/"))),
 			self._document(moduleElement),
 			self.options["ENABLE_METADATA"] and "function _meta_(v,m){var ms=v['__meta__']||{};for(var k in m){ms[k]=m[k]};v['__meta__']=ms;return v}" or "",
-			"var %s={}" % (moduleElement.getName()),
-			"var __this__=%s" % (moduleElement.getName())
+			"var %s={}" % (self._rewriteSymbol(moduleElement.getName())),
+			"var __this__=%s" % (self._rewriteSymbol(moduleElement.getName()))
 		]
 		version = moduleElement.getAnnotation("version")
 		if version:
-			code.append("%s._VERSION_='%s';" % (moduleElement.getName(),version.getContent()))
+			code.append("%s._VERSION_='%s';" % (self._rewriteSymbol(moduleElement.getName()),version.getContent()))
 		for name, value in moduleElement.getSlots():
 			if isinstance(value, interfaces.IModuleAttribute):
-				code.extend(["%s.%s" % (moduleElement.getName(), self.write(value))])
+				code.extend(["%s.%s" % (self._rewriteSymbol(moduleElement.getName()), self.write(value))])
 			else: 
-				code.extend(["%s.%s=%s" % (moduleElement.getName(), self.renameModuleSlot(name), self.write(value))])
-		code.append("%s.init()" % (moduleElement.getName()))
+				code.extend(["%s.%s=%s" % (self._rewriteSymbol(moduleElement.getName()), self.renameModuleSlot(name), self.write(value))])
+		code.append("%s.init()" % (self._rewriteSymbol(moduleElement.getName())))
 		return self._format(
 			*code
 		)
@@ -145,14 +148,14 @@ class Writer(AbstractWriter):
 		# Here, we've got to cheat a little bit. Each class method will 
 		# generate an '_imp' suffixed method that will be invoked by the 
 		for meth in classElement.getClassMethods():
-			classOperations[meth.getName()] = meth
+			classOperations[self._rewriteSymbol(self.meth.getName())] = meth
 		classOperations = classOperations.values()
 		classAttributes = {}
 		# FIXME: This is inconsistent
 		for name, attribute in classElement.getInheritedClassAttributes().items():
 			classAttributes[name] = self.write(attribute)
 		for attribute in classElement.getClassAttributes():
-			classAttributes[attribute.getName()] = self.write(attribute)
+			classAttributes[self._rewriteSymbol(attribute.getName())] = self.write(attribute)
 		classAttributes = classAttributes.values()
 		result = []
 		result.append(self._document(classElement))
@@ -197,7 +200,7 @@ class Writer(AbstractWriter):
 
 	def onMethod( self, methodElement ):
 		"""Writes a method element."""
-		method_name = methodElement.getName()
+		method_name = self._rewriteSymbol(methodElement.getName())
 		if method_name == interfaces.Constants.Constructor: method_name = "init"
 		if method_name == interfaces.Constants.Destructor:  method_name = "cleanup"
 		return self._format(
@@ -217,7 +220,7 @@ class Writer(AbstractWriter):
 		arguments = []
 		arity     = 0
 		for arg in function.getArguments():
-			a = {"name":arg.getName()}
+			a = {"name":self._rewriteSymbol(arg.getName())}
 			if arg.isOptional():
 				a["flags"] = "?"
 			elif arg.isRest():
@@ -234,7 +237,7 @@ class Writer(AbstractWriter):
 	
 	def onClassMethod( self, methodElement ):
 		"""Writes a class method element."""
-		method_name = methodElement.getName()
+		method_name = self._rewriteSymbol(methodElement.getName())
 		args        = methodElement.getArguments()
 		return self._format(
 			self._document(methodElement),
@@ -251,9 +254,8 @@ class Writer(AbstractWriter):
 		classes, so that inheriting operations from parent classes works
 		properly. This may look a bit dirty, but it's the only way I found to
 		implement this properly"""
-		method_name = inheritedMethodElement.getName()
+		method_name = self._rewriteSymbol(inheritedMethodElement.getName())
 		method_args = inheritedMethodElement.getArguments()
-		print 
 		return self._format(
 			"%s:_meta_(function(%s){" % (method_name, ", ".join(map(self.write, method_args))),
 			["return %s.%s.apply(%s, arguments);" % (
@@ -270,7 +272,7 @@ class Writer(AbstractWriter):
 		attributes    = []
 		for a in current_class.getAttributes():
 			if not a.getDefaultValue(): continue
-			attributes.append("__this__.%s = %s" % (a.getName(), self.write(a.getDefaultValue())))
+			attributes.append("__this__.%s = %s" % (self._rewriteSymbol(a.getName()), self.write(a.getDefaultValue())))
 		return self._format(
 			self._document(element),
 			"initialize:_meta_(function(%s){" % (
@@ -301,19 +303,20 @@ class Writer(AbstractWriter):
 		l = len(closure.getArguments())
 		result = []
 		for argument in closure.getArguments():
+			arg_name = self.write(argument)
 			if argument.isRest():
 				assert i >= l - 2
 				result.append("%s = %s(arguments,%d)" % (
-					argument.getName(),
+					arg_name,
 					self.jsPrefix + self.jsCore + "sliceArguments",
 					i
 				))
 			if not (argument.getDefaultValue() is None):
 				result.append("%s = %s === undefined ? %s : %s" % (
-					argument.getName(),
-					argument.getName(),
+					arg_name,
+					arg_name,
 					self.write(argument.getDefaultValue()),
-					argument.getName()
+					arg_name
 				))
 			i += 1
 		return result
@@ -333,7 +336,7 @@ class Writer(AbstractWriter):
 	def onFunction( self, function ):
 		"""Writes a function element."""
 		parent = function.getParent()
-		name   = function.getName()
+		name   = self._rewriteSymbol( function.getName() )
 		if parent and isinstance(parent, interfaces.IModule):
 			res = [
 				"_meta_(function(%s){" % (
@@ -377,9 +380,8 @@ class Writer(AbstractWriter):
 	def onArgument( self, argElement ):
 		"""Writes an argument element."""
 		return "%s" % (
-			argElement.getName(),
+			self._rewriteSymbol(argElement.getName()),
 		)
-	
 
 	def onAttribute( self, element ):
 		"""Writes an argument element."""
@@ -388,16 +390,16 @@ class Writer(AbstractWriter):
 		else: default_value="undefined"
 		return self._format(
 			self._document(element),
-			"%s:%s" % (element.getName(), default_value)
+			"%s:%s" % (self._rewriteSymbol(element.getName()), default_value)
 		)
 
 	def onClassAttribute( self, element ):
 		"""Writes an argument element."""
 		default_value = element.getDefaultValue()
 		if default_value:
-			res = "%s:%s" % (element.getName(), self.write(default_value))
+			res = "%s:%s" % (self._rewriteSymbol(element.getName()), self.write(default_value))
 		else:
-			res = "%s:undefined" % (element.getName())
+			res = "%s:undefined" % (self._rewriteSymbol(element.getName()))
 		return self._format(self._document(element), res)
 
 	def onModuleAttribute( self, element ):
@@ -407,7 +409,7 @@ class Writer(AbstractWriter):
 		else: default_value = 'undefined'
 		return self._format(
 			self._document(element),
-			"%s=%s" % (element.getName(), default_value)
+			"%s=%s" % (self._rewriteSymbol(element.getName()), default_value)
 		)
 
 	def onReference( self, element ):
@@ -437,7 +439,9 @@ class Writer(AbstractWriter):
 				self.getAbsoluteName(self.getCurrentClass())
 			)
 		if not self._isSymbolValid(symbol_name):
-			symbol_name = self._rewriteSymbol(symbol_name)
+			# FIXME: This is temporary, we should have an AbsoluteReference
+			# operation that uses symbols as content
+			symbol_name = ".".join(map(self._rewriteSymbol, symbol_name.split(".")))
 		# If there is no scope, then the symmbol is undefined
 		if not scope:
 			if symbol_name == "print": return self.jsPrefix + self.jsCore + "print"
@@ -481,11 +485,11 @@ class Writer(AbstractWriter):
 			return symbol_name
 		# It is a property of a module
 		elif isinstance(scope, interfaces.IModule):
-			names = [scope.getName(), symbol_name]
+			names = [self._rewriteSymbol(scope.getName()), symbol_name]
 			while scope.getParent():
 				scope = scope.getParent()
 				if not isinstance(scope, interfaces.IProgram):
-					names.insert(0, scope.getName())
+					names.insert(0, self._rewriteSymbol(scope.getName()))
 			return ".".join(names)
 		# It is a property of a class
 		elif isinstance(scope, interfaces.IClass):
@@ -570,9 +574,9 @@ class Writer(AbstractWriter):
 		s = allocation.getSlotToAllocate()
 		v = allocation.getDefaultValue()
 		if v:
-			return "var %s=%s;" % (s.getName(), self.write(v))
+			return "var %s=%s;" % (self._rewriteSymbol(s.getName()), self.write(v))
 		else:
-			return "var %s;" % (s.getName())
+			return "var %s;" % (self._rewriteSymbol(s.getName()))
 
 	def onAssignation( self, assignation ):
 		"""Writes an assignation operation."""
@@ -661,7 +665,7 @@ class Writer(AbstractWriter):
 	RE_TEMPLATE = re.compile("\$\{[^\}]+\}")
 	def _rewriteInvocation(self, invocation, closure, template):
 		arguments = tuple([self.write(a) for a in invocation.getArguments()])
-		parameters = tuple([a.getName() for a  in closure.getArguments()])
+		parameters = tuple([self._rewriteSymbol(a.getName()) for a  in closure.getArguments()])
 		args = {}
 		for i in range(len(arguments)):
 			args[parameters[i]] = arguments[i]
@@ -716,7 +720,7 @@ class Writer(AbstractWriter):
 						current["*"] = self.write(param.getValue())
 					elif param.isByName():
 						current = extra_arguments
-						current[param.getName()] = self.write(param.getValue())
+						current[self._rewriteSymbol(param.getName())] = self.write(param.getValue())
 					else:
 						assert current == normal_arguments
 						current.append(self.write(param.getValue()))
@@ -735,7 +739,8 @@ class Writer(AbstractWriter):
 		elif parameter.isAsList():
 			return "{'*':(%s)}" % (r)
 		elif parameter.isByName():
-			return "{'^':%s,'=':(%s)}" % (repr(parameter.getName()), r)
+			# FIXME: Maybe rewrite name
+			return "{'^':%s,'=':(%s)}" % (repr(self._rewriteSymbol(parameter.getName())), r)
 		else:
 			return r
 
@@ -829,7 +834,7 @@ class Writer(AbstractWriter):
 			# If start <= end then step >  0 
 			else:
 				if step < 0: step = -step
-			args  = map(lambda a:a.getName(), closure.getArguments())
+			args  = map(lambda a:self._rewriteSymbol(a.getName()), closure.getArguments())
 			if len(args) == 0: args.append("__iterator_value")
 			if len(args) == 1: args.append("__iterator_index")
 			i = args[1]
