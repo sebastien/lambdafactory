@@ -13,6 +13,7 @@
 
 # TODO: When constructor is empty, should assign default attributes anyway
 # TODO: Support optional meta-data
+# TODO: Provide a global rewrite operation
 
 from lambdafactory.modelwriter import AbstractWriter, flatten
 import lambdafactory.interfaces as interfaces
@@ -148,7 +149,7 @@ class Writer(AbstractWriter):
 		# Here, we've got to cheat a little bit. Each class method will 
 		# generate an '_imp' suffixed method that will be invoked by the 
 		for meth in classElement.getClassMethods():
-			classOperations[self._rewriteSymbol(self.meth.getName())] = meth
+			classOperations[self._rewriteSymbol(meth.getName())] = meth
 		classOperations = classOperations.values()
 		classAttributes = {}
 		# FIXME: This is inconsistent
