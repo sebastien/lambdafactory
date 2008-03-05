@@ -868,6 +868,9 @@
 		if isAbstract()
 			raise ERR_ABSTRACT_PROCESS_NO_OPERATIONS
 		end
+		if not isinstance(operation, IOperation)
+			raise ERR_NOT_AN_OPERATION
+		end
 		operation setParent(self)
 		operations append (operation)
 	@end
