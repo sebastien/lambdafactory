@@ -626,6 +626,8 @@ class Process(Context, IContext, IProcess, IAbstractable):
 	def addOperation(self, operation):
 		if self.isAbstract():
 			raise ERR_ABSTRACT_PROCESS_NO_OPERATIONS
+		if (not isinstance(operation, IOperation)):
+			raise ERR_NOT_AN_OPERATION
 		operation.setParent(self)
 		self.operations.append(operation)
 	
