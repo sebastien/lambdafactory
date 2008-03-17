@@ -93,6 +93,8 @@ class Command:
 				self.parseFile(source_path, options.module)
 				if (not language):
 					language = self.guessLanguage(source_path)
+				elif True:
+					language = self.environment.normalizeLanguage(language)
 		if options.libraries:
 			for l in options.libraries:
 				self.environment.addLibraryPath(l)
@@ -108,7 +110,7 @@ class Command:
 				f.write(html_documentation)
 				f.close()
 		elif options.compile:
-			program_source=self.writeProgram(language)
+			program_source=self.writeProgram(language, options.runtime)
 			if (not options.output):
 				output.write((program_source + "\n"))
 			elif os.path.isdir(options.output):
@@ -128,7 +130,6 @@ class Command:
 			compilers=None
 			if ((options.lang in ["js", "javascript"]) or (not options.lang)):
 				interpreter = (os.getenv("SUGAR_JS") or "js")
-				print ("USING", interpreter)
 				command = ((((interpreter + " ") + path) + " ") + args_str)
 			elif (options.lang in ["pnuts"]):
 				interpreter = (os.getenv("SUGAR_PNUTS") or "pnuts")

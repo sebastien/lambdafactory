@@ -2,13 +2,13 @@
 # Encoding: iso-8859-1
 # vim: tw=80 ts=4 sw=4 noet
 # -----------------------------------------------------------------------------
-# Project   : XXX
+# Project   : LambdaFactory - ActionScript back-end
 # -----------------------------------------------------------------------------
 # Author    : Sebastien Pierre                               <sebastien@ivy.fr>
 # License   : Revised BSD License
 # -----------------------------------------------------------------------------
 # Creation  : 01-Aug-2007
-# Last mod  : 05-sep-2007
+# Last mod  : 17-Mar-2008
 # -----------------------------------------------------------------------------
 
 # SEE: http://livedocs.adobe.com/specs/actionscript/3/
@@ -18,6 +18,7 @@ import os
 from lambdafactory import interfaces
 from lambdafactory import reporter
 from lambdafactory.languages.javascript import writer as javascript
+from lambdafactory.splitter import SNIP
 
 #------------------------------------------------------------------------------
 #
@@ -40,15 +41,15 @@ class Writer(javascript.Writer):
 		f = file(js_runtime, 'r') ; text = f.read() ; f.close()
 		return text
 
-	def writeProgram( self, programElement ):
+	def onProgram( self, programElement ):
 		"""Writes a Program element."""
 		return "\n".join(map(self.write, programElement.getModules()))
 
-	def writeModule( self, moduleElement):
+	def onModule( self, moduleElement):
 		"""Writes a Module element."""
 		files_code  = []
 		module_path = self.getAbsoluteName(moduleElement).replace(".", "/")
-		# Now we write every slot
+		# Now we on every slot
 		imports = []
 		classes = []
 		module_functions  = []
@@ -67,17 +68,17 @@ class Writer(javascript.Writer):
 		for op in module_init_ops:
 			if isinstance(op, interfaces.IAnnotation):
 				pass
-			elif isinstance(op, interfaces.IImportOperation):
-				imports.append(op)
 			else:
 				raise Exception("ActionScript does not allow code in module: %s" % (op))
+		imports.extend(moduleElement.getImportOperations())
+		imports.reverse()
 		for name, value in classes:
 			f = None
 			#if functions:
 			#	f = map(lambda n,f: self.write(f), functions)
 			#	functions = None
 			code = [
-				"// " + self.SNIP % ("%s/%s.as" % (module_path, value.getName())),
+				"// " + SNIP % ("%s/%s.as" % (module_path, value.getName())),
 				self._document(moduleElement),
 				"package %s {" % (self.getAbsoluteName(moduleElement)),
 				"import %s" % ( self.jsCore[:-1]),
@@ -104,7 +105,7 @@ class Writer(javascript.Writer):
 			module_code.extend(f)
 			module_code.append("}")
 			code = [
-				"// " + self.SNIP % ("%s/__module__.as" % (module_path)),
+				"// " + SNIP % ("%s/__module__.as" % (module_path)),
 				self._document(moduleElement),
 				"package %s {" % (self.getAbsoluteName(moduleElement)),
 				module_code,
@@ -115,7 +116,7 @@ class Writer(javascript.Writer):
 			*files_code
 		)
 
-	def writeImportOperation( self, importElement):
+	def onImportOperation( self, importElement):
 		imported_name = self.write(importElement.getImportedElement())
 		imported_elem = imported_name.split(".")[-1]
 		if importElement.getAlias():
@@ -123,7 +124,7 @@ class Writer(javascript.Writer):
 		else:
 			return "import %s" % (imported_name)
 
-	def writeClass( self, classElement ):
+	def onClass( self, classElement ):
 		"""Writes a class element."""
 		parents = classElement.getParentClasses()
 		parent  = ""
@@ -163,7 +164,7 @@ class Writer(javascript.Writer):
 		class_code.extend(map(self.write, classElement.getInstanceMethods()))
 		return self._format(code)
 
-	def writeAttribute( self, element ):
+	def onAttribute( self, element ):
 		"""Writes an argument element."""
 		default_value = element.getDefaultValue()
 		if default_value:
@@ -177,7 +178,7 @@ class Writer(javascript.Writer):
 				"public var %s" % (element.getReferenceName())
 			)
 
-	def writeClassAttribute( self, element ):
+	def onClassAttribute( self, element ):
 		"""Writes an argument element."""
 		res = ""
 		default_value = element.getDefaultValue()
@@ -192,7 +193,7 @@ class Writer(javascript.Writer):
 		res += "public static var %s:%s%s" % (element.getReferenceName(),the_type,rest)
 		return self._format(self._document(element), res)
 	
-	def writeConstructor( self, element ):
+	def onConstructor( self, element ):
 		"""Writes a constructor element."""
 		current_class = self.getCurrentClass()
 		attributes    = []
@@ -209,7 +210,7 @@ class Writer(javascript.Writer):
 			"}"
 		)
 
-	def writeMethod( self, methodElement ):
+	def onMethod( self, methodElement ):
 		"""Writes a method element."""
 		method_name = methodElement.getName()
 		class_name  = self.getCurrentClass().getName()
@@ -223,12 +224,12 @@ class Writer(javascript.Writer):
 			),
 			["var __this__=this"],
 			self._writeClosureArguments(methodElement),
-			self.writeFunctionWhen(methodElement),
+			self.onFunctionWhen(methodElement),
 			map(self.write, methodElement.getOperations()),
 			"}"
 		)
 
-	def writeClassMethod( self, methodElement ):
+	def onClassMethod( self, methodElement ):
 		"""Writes a class method element."""
 		method_name = methodElement.getName()
 		args        = methodElement.getArguments()
@@ -237,12 +238,12 @@ class Writer(javascript.Writer):
 			"public static function %s(%s){" % (method_name, ", ".join(map(self.write, args))),
 			["var __this__ = this;"],
 			self._writeClosureArguments(methodElement),
-			self.writeFunctionWhen(methodElement),
+			self.onFunctionWhen(methodElement),
 			map(self.write, methodElement.getOperations()),
 			"}"
 		)
 
-	def writeFunction( self, function ):
+	def onFunction( self, function ):
 		"""Writes a function element."""
 		parent = function.getParent()
 		name   = function.getName() or ""
@@ -255,7 +256,7 @@ class Writer(javascript.Writer):
 				", ".join(map(self.write, function.getArguments()))
 			),
 			self._writeClosureArguments(function),
-			self.writeFunctionWhen(function),
+			self.onFunctionWhen(function),
 			map(self.write, function.getOperations()),
 			"}"
 		]
@@ -264,11 +265,11 @@ class Writer(javascript.Writer):
 			if parent and isinstance(parent, interfaces.IModule):
 				res.insert(0, 'var __this__=%s;' % (self.getAbsoluteName(parent)))
 			res.append("var result = __wrapped__.apply(__this__, arguments);")
-			res.append(self.writeFunctionPost(function))
+			res.append(self.onFunctionPost(function))
 			res.append("return result;")
 		return self._format(res)
 
-	def writeClosure( self, closure ):
+	def onClosure( self, closure ):
 		"""Writes a closure element."""
 		arguments = ", ".join(map(self.write, closure.getArguments()))
 		if arguments: arguments += ","
@@ -281,14 +282,14 @@ class Writer(javascript.Writer):
 			"}"
 		)
 		
-	def writeArgument( self, argElement ):
+	def onArgument( self, argElement ):
 		"""Writes an argument element."""
 		return "%s=undefined" % (
 			argElement.getName(),
 		)
 
 
-	def writeModuleAttribute( self, element ):
+	def onModuleAttribute( self, element ):
 		"""Writes an argument element."""
 		default_value = element.getDefaultValue()
 		if default_value: default_value = self.write(default_value)
@@ -298,7 +299,7 @@ class Writer(javascript.Writer):
 			"public static var %s=%s" % (element.getReferenceName(), default_value)
 		)
 		
-	def writeReference( self, element ):
+	def onReference( self, element ):
 		"""Writes an argument element."""
 		symbol_name  = element.getReferenceName()
 		# FIXME: Does resolve really always return a dataflow slot ?
@@ -339,7 +340,46 @@ class Writer(javascript.Writer):
 			else:
 				# It's a probably a None value (it's not resolved :/)
 				return symbol_name
-		return javascript.Writer.writeReference(self, element)
+		return javascript.Writer.onReference(self, element)
+
+	def onImportSymbolOperation( self, element ):
+		res = ["import"]
+		res.append(element.getImportedElement())
+		symbol_origin = element.getImportOrigin()
+		symbol_alias = element.getAlias()
+		if symbol_origin:
+			vres = ["from", symbol_origin]
+			vres.extend(res)
+			res = vres
+		if symbol_alias:
+			res.extend(["as", symbol_alias])
+		return " ".join(res)
+
+	def onImportSymbolsOperation( self, element ):
+		res = ["import"]
+		res.append(", ".join(element.getImportedElements()))
+		symbol_origin = element.getImportOrigin()
+		if symbol_origin:
+			if res[-1] == "*":
+				return "import %s.*" % (symbol_origin)
+			else:
+				vres = ["from", symbol_origin]
+				vres.extend(res)
+				res = vres
+		return " ".join(res)
+
+	def onImportModuleOperation( self, element ):
+		res = ["import"]
+		res.append(element.getImportedModuleName())
+		symbol_alias = element.getAlias()
+		if symbol_alias:
+			res.extend(["as", symbol_alias])
+		return " ".join(res)
+
+	def onImportModulesOperation( self, element ):
+		res = ["import"]
+		res.append(", ".join(element.getImportedModuleNames()))
+		return " ".join(res)
 
 	def _document( self, element ):
 		if element.getDocumentation():

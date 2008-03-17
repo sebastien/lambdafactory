@@ -92,6 +92,7 @@ class Environment:
 	program. The order of passe is important, as some passes depend on each other.
 	It is up to the 'lambdafactory.main.Command' subclass to set up the passes
 	appropriately."""
+	ALIASES = {"actionscript":["actionscript", "as", "ascript"], "javascript":["javascript", "js", "jscript"], "python":["python", "py"], "pnuts":["pnuts"]}
 	def __init__ (self):
 		self.factory = None
 		self.program = None
@@ -173,11 +174,25 @@ class Environment:
 		for language in self.listAvailableLanguages():
 			self.loadLanguage(language)
 	
+	def normalizeLanguage(self, name):
+		for key_values in self.__class__.ALIASES.items():
+			key=key_values[0]
+			values=key_values[1]
+			if (key == name):
+				return key
+			elif True:
+				for v in values:
+					if (v == name):
+						return key
+		return None
+	
 	def loadLanguage(self, name):
 		"""Loads the given language plug-in and returns a dictionary containing
 		its features."""
+		name = self.normalizeLanguage(name)
 		if (not (name in self.languages.keys())):
-			self.languages[name] = Language(name, self)
+			language=Language(name, self)
+			self.languages[name] = language
 		return self.languages[name]
 	
 

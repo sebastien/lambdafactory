@@ -109,6 +109,8 @@
 				# We get the language to which we'd like to translate the program to
 				if not language
 					language = guessLanguage(source_path)
+				else
+					language = environment normalizeLanguage (language)
 				end
 			end
 		end
@@ -132,7 +134,7 @@
 				f close ()
 			end
 		if options compile
-			var program_source = writeProgram (language)
+			var program_source = writeProgram (language, options runtime)
 			if not options output
 				output write( program_source + "\n" )
 			if os path isdir (options output)
@@ -154,7 +156,6 @@
 			# FIXME: LambdaFactory should support compilers and runners
 			if (options lang in ["js","javascript"] or not options lang)
 				interpreter = os getenv("SUGAR_JS") or "js"
-				print ("USING", interpreter)
 				command = interpreter + " " + path + " " + args_str
 			if (options lang in ["pnuts"])
 				interpreter = os getenv("SUGAR_PNUTS") or "pnuts"

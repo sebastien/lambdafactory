@@ -68,7 +68,7 @@
 # ------------------------------------------------------------------------------
 
 @class Language
-	
+
 	@property name:String
 	@property basePath:String
 	@property runtime:<Class|None>
@@ -89,7 +89,6 @@
 		self reader   = loadModule "reader"
 		self runner   = loadModule "runner"
 	@end
-
 
 	@method addRecognizedExtension extension
 		readExtensions append (extension lower())
@@ -133,6 +132,13 @@
 | program. The order of passe is important, as some passes depend on each other.
 | It is up to the 'lambdafactory.main.Command' subclass to set up the passes
 | appropriately.
+
+	@shared ALIASES = {
+		actionscript : ["actionscript", "as", "ascript"]
+		javascript   : ["javascript",   "js", "jscript"]
+		python       : ["python",       "py"]
+		pnuts        : ["pnuts"]
+	}
 
 	@property factory=None
 	@property program=None
@@ -240,14 +246,35 @@
 		end
 	@end
 
+	@method normalizeLanguage name
+		for key_values  in ALIASES items ()
+			var key    = key_values[0]
+			var values = key_values[1]
+			if key == name
+				return key
+			else
+				for v in values
+					if v == name
+						return key
+					end
+				end
+			end
+		end
+		return None
+	@end
+
 	@method loadLanguage name
 	@as internal
 	| Loads the given language plug-in and returns a dictionary containing
 	| its features.
+		name = normalizeLanguage (name)
 		if not (name in languages keys())
-			languages[name] = new Language(name, self)
+			var language =  new Language(name, self)
+			languages[name] = language
 		end
 		return languages[name]
 	@end
 
 @end
+
+# EOF
