@@ -1,34 +1,32 @@
 #!/usr/bin/python
 # Encoding: ISO-8859-1
-# vim: tw=80 ts=4 sw=4 fenc=latin-1 noet
 # -----------------------------------------------------------------------------
-# Project           :   LambdaFactory         <http://www.ivy.fr/lambdafactory>
+# Project           :   LambdaFactory
 # -----------------------------------------------------------------------------
 # Author            :   Sebastien Pierre                 <sebastien@type-z.org>
 # License           :   Revised BSD License
 # -----------------------------------------------------------------------------
-# Creation date     :   06-Nov-2006
-# Last mod.         :   20-Feb-2008
+# Creation date     :   17-Mar-2008
+# Last mod.         :   17-Mar-2008
 # -----------------------------------------------------------------------------
 
-import sys ; sys.path.insert(0, "Distribution")
-import lambdafactory
 from distutils.core import setup
 
 NAME        = "LambdaFactory"
-VERSION     = lambdafactory.__version__
+VERSION     = "0.8.6"
 WEBSITE     = "http://www.ivy.fr/" + NAME.lower()
-SUMMARY     = "Fine-grained object-oriented program structural representation."
+SUMMARY     = "Programming language development toolkit"
 DESCRIPTION = """\
-LambdaFactory is a library to create object-oriented representation of programs.
-It can be used for writing new languages, manipulating existing language source
-code, generate API documentation, graph program structure, etc.
+LambdaFactory is a library/tool/framework that eases the development of
+programming languages by allowing you to plug-in your parser, drive the factory,
+create your program representation and translate it Python, JavaScript,
+ActionScript or Pnuts (and you can add your own).
 
-LambdaFactory integrates a type system that enables to easy addition of type
-verification on top of existing program models. LambdaFactory is also integrated
-with the SDoc <http://www.ivy.fr/sdoc> API generation tool, which allows easy
-representation of existing program structures.
+LambdaFactory provides a fine-grained OO model to represent your program, and
+also offers a flexible architecture to insert your own program transformation
+passes (documentation, representation, analysis, optimization)
 """
+
 # ------------------------------------------------------------------------------
 #
 # SETUP DECLARATION
@@ -45,31 +43,28 @@ setup(
     url         =  WEBSITE,
     download_url=  WEBSITE + "/%s-%s.tar.gz" % (NAME.lower(), VERSION) ,
     package_dir = { "": "Distribution" },
-    packages    = [
-		"lambdafactory",
-		"lambdafactory.languages",
-		"lambdafactory.languages.python",
-		"lambdafactory.languages.javascript",
-		"lambdafactory.languages.actionscript",
-	],
     package_data= {
-		"lambdafactory.languages.python": ["*.*"],
-		"lambdafactory.languages.javascript": ["*.*"],
-		"lambdafactory.languages.actionscript": ["*.*"]
-	},
-    #scripts     = ["Scripts/"],
+       "lambdafactory.languages.actionscript": ["*.as"],
+       "lambdafactory.languages.javascript": ["*.js"]
+    },
+    packages    = [
+        "lambdafactory",
+        "lambdafactory.languages",
+        "lambdafactory.languages.actionscript",
+        "lambdafactory.languages.javascript",
+        "lambdafactory.languages.pnuts"
+    ],
     classifiers = [
       "Development Status :: 4 - Beta",
+      "Environment :: Console",
       "Intended Audience :: Developers",
-      "Intended Audience :: Information Technology",
       "License :: OSI Approved :: BSD License",
+      # TODO: Add more here
       "Natural Language :: English",
-      "Topic :: System :: Filesystems",
-      "Topic :: Utilities",
       "Operating System :: POSIX",
       "Operating System :: Microsoft :: Windows",
       "Programming Language :: Python",
     ]
 )
 
-# EOF
+# EOF - vim: tw=80 ts=4 sw=4 noet 
