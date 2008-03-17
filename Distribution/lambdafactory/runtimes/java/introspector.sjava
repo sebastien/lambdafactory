@@ -1,9 +1,0 @@
-@import Class 
-
-@function introspectClass className:String
-	var class_obj = Class forName(className)
-	var result = {methods:{},fields:{}}
-	class_obj getMethods() :: {m|result["methods"] append (m)}
-	class_obj getFields()  :: {f|result["fields"]  append (f)}
-	return result
-@end
