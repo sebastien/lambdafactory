@@ -8,7 +8,7 @@
 # License   : Revised BSD License
 # -----------------------------------------------------------------------------
 # Creation  : 01-Aug-2007
-# Last mod  : 17-Mar-2008
+# Last mod  : 06-May-2008
 # -----------------------------------------------------------------------------
 
 # SEE: http://livedocs.adobe.com/specs/actionscript/3/
@@ -231,12 +231,13 @@ class Writer(javascript.Writer):
 
 	def onClassMethod( self, methodElement ):
 		"""Writes a class method element."""
+		class_name  = methodElement.getParent().getName()
 		method_name = methodElement.getName()
 		args        = methodElement.getArguments()
 		return self._format(
 			self._document(methodElement),
 			"public static function %s(%s){" % (method_name, ", ".join(map(self.write, args))),
-			["var __this__ = this;"],
+			["var __this__ = %s;" % (class_name)],
 			self._writeClosureArguments(methodElement),
 			self.onFunctionWhen(methodElement),
 			map(self.write, methodElement.getOperations()),
