@@ -11,7 +11,7 @@ SUGAR_PRODUCT  = $(SUGAR_SOURCES:$(SUGAR_DIR)/%.spy=$(BUILD_DIR)/%.py)
 PYTHON_PRODUCT = $(PYTHON_SOURCES:$(PYTHON_DIR)/%=$(BUILD_DIR)/%)
 
 all:  $(BUILD_DIR) $(SUGAR_PRODUCT) $(PYTHON_PRODUCT)
-	@cd $(BUILD_DIR) ; hg addremove * ; hg commit -m "Build `cat $(BUILD_DIR)/build.id`"
+	@cd $(BUILD_DIR) ; git add * ; git commit -a -m "Build `cat $(BUILD_DIR)/build.id`"
 	@echo Build: `cat $(BUILD_DIR)/build.id`
 
 dist: $(DIST_DIR) $(SUGAR_PRODUCT) $(PYTHON_PRODUCT)
@@ -21,10 +21,10 @@ clean:
 	rm -rf $(BUILD_DIR)/build.id $(BUILD_DIR)/lambdafactory
 
 reset: clean
-	cd $(BUILD_DIR) && hg update -C
+	cd $(BUILD_DIR) && git reset --hard
 
 $(BUILD_DIR):
-	hg init $(BUILD_DIR)
+	mkdir -p $(BUILD_DIR) && cd $(BUILD_DIR) && git init
 
 $(DIST_DIR):
 	mkdir $(DIST_DIR)
