@@ -292,10 +292,10 @@ class Writer(javascript.Writer):
 		value = argument.getDefaultValue()
 		# NOTE: We can only write the argument as default when it is a litteral,
 		# otherwise we have assign the value in the function body
-		if value and isinstance(value, interfaces.ILiteral):
+		if value:
 			return "%s=%s" % (
 				argument.getName(),
-				self.write(value)
+				isinstance(value, interfaces.ILiteral) and self.write(value) or "undefined"
 			)
 		else:
 			return argument.getName()
@@ -305,7 +305,7 @@ class Writer(javascript.Writer):
 		l = len(closure.getArguments())
 		result = []
 		for argument in closure.getArguments():
-			arg_name = self.write(argument)
+			arg_name = argument.getName()
 			arg_value = argument.getDefaultValue()
 			if argument.isRest():
 				assert i >= l - 2
