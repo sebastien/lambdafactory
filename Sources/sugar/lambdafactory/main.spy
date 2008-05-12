@@ -155,7 +155,7 @@
 			var compilers = None
 			# FIXME: LambdaFactory should support compilers and runners
 			if (options lang in ["js","javascript"] or not options lang)
-				interpreter = os getenv("SUGAR_JS") or "js"
+				interpreter = os getenv("SUGAR_JS") or "rhino"
 				command = interpreter + " " + path + " " + args_str
 			if (options lang in ["pnuts"])
 				interpreter = os getenv("SUGAR_PNUTS") or "pnuts"
