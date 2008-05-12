@@ -674,6 +674,7 @@
 		return res
 	@end
 
+
 	# REWRITE (Sugar macros)
 	# % for e in "Attributes ClassAttributes Operations Constructors" split()
 	#	@method get%{e}
@@ -735,7 +736,14 @@
 			end
 		end
 		return res
+	@end
 
+	@method getInheritedSlots
+		var r = []
+		for slot in getDataFlow() getSourcesSlots()
+			r append ([slot getName(), slot getValue()])
+		end
+		return r
 	@end
 
 	@method getInheritedClassMethods
@@ -789,13 +797,13 @@
 	@method getImportOperations
 		return importOperations
 	@end
-		
+
 	@method getClasses
 		@embed Python
 		| return [value for name, value in self.getSlots() if isinstance(value, IClass)]
 		@end
 	@end
-		
+
 @end
 
 # TODO: Add more features here

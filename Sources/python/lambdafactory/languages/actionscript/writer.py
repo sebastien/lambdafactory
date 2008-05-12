@@ -8,7 +8,7 @@
 # License   : Revised BSD License
 # -----------------------------------------------------------------------------
 # Creation  : 01-Aug-2007
-# Last mod  : 06-May-2008
+# Last mod  : 12-May-2008
 # -----------------------------------------------------------------------------
 
 # SEE: http://livedocs.adobe.com/specs/actionscript/3/
@@ -216,9 +216,13 @@ class Writer(javascript.Writer):
 		class_name  = self.getCurrentClass().getName()
 		if method_name == interfaces.Constants.Constructor: method_name = class_name
 		if method_name == interfaces.Constants.Destructor:  method_name = "destroy"
+		# FIXME: We should instead look if the method is already defined
+		overrides = method_name in map(lambda x:x[0], methodElement.getParent().getInheritedSlots())
+		overrides = overrides and " override" or ""
 		return self._format(
 			self._document(methodElement),
-			"public function %s(%s){" % (
+			"public%s function %s(%s){" % (
+				overrides,
 				method_name,
 				", ".join(map(self.write, methodElement.getArguments()))
 			),

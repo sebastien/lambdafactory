@@ -97,10 +97,10 @@
 	| origin
 
 	@abstract @method getSlots:<[IDataFlowSlot]>
-	| Returns the lsit of slots @methodiend for this dataflow.
+	| Returns the list of slots defined for this dataflow.
 
 	@abstract @method hasSlot:<True|False> name:String
-	| Tells if this dataflow @methodines a slot with the given name.
+	| Tells if this dataflow defines slot with the given name.
 
 	@abstract @method getRoot:<IDataFlow>
 	| Returns the root of this dataflow (the root of the parent or this dataflow
@@ -469,7 +469,9 @@
 
 	@abstract @method getSlots 
 	|	Returns (key, evaluable) pairs representing the slots within this
-	|	context.
+	|	context. In the case of context that may inherits slots, this only
+	|	returns the slots that are owned by the context (ie. it does not
+	|	include inherited slots)
 
 	@abstract @method setParent context 
 	|	Sets the parent context for this context.
@@ -479,14 +481,18 @@
 
 @end
 
+# FIXME: Add getInheritedXXX functions
 @protocol IClass: IContext, IReferencable
+
+	@abstract @method getInheritedSlots
+	|	gives the list of inherited slots
 
 	@abstract @method setParentClasses:<[IClass]>
 	|	gives the list of parent classes that will
 		
 	@abstract @method getAttributes
 	|	Returns the (non-class) attributes defined within this class.
-	
+
 	@abstract @method getClassAttributes 
 	|	Returns the class attributes defined within this class.
 	
