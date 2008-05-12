@@ -300,6 +300,7 @@ class Writer(AbstractWriter):
 		return self._format('{', map(self.write, closure.getOperations()), '}')
 
 	def _writeClosureArguments(self, closure):
+		# NOTE: Don't forget to update in AS backend as well
 		i = 0
 		l = len(closure.getArguments())
 		result = []
