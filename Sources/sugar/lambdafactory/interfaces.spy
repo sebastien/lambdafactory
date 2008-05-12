@@ -524,7 +524,7 @@
 |	An interface is an abstract @protocol that only has abstract elements.
 @end
 
-@protocol IModule: IContext
+@protocol IModule: IContext, IReferencable
 | Note that a module 'getName' function returns the module absolute name
 
 	@abstract @method isImported:<True|False>
@@ -575,7 +575,7 @@
 @end
 
 # TODO: Maybe processed are contexts as well ?
-@protocol IProcess
+@protocol IProcess: IElement
 |	A process is a sequence of operations.
 
 	@abstract @method addOperation operation
