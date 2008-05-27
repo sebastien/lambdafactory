@@ -221,8 +221,8 @@
 		return source_and_module[1]
 	@end
 
-	@method parseSource source, extenstion, moduleName=None
-		var parser = parsers get (extenstion)
+	@method parseSource source, extension, moduleName=None
+		var parser = parsers get (extension)
 		var source_and_module = parser parseSource( source, moduleName)
 		return source_and_module[1]
 	@end
