@@ -26,6 +26,8 @@ import os.path, re, time, string, random
 #
 #------------------------------------------------------------------------------
 
+RE_STRING_ESCAPE = re.compile('[^\\\]"')
+
 class Writer(AbstractWriter):
 
 	def __init__( self ):
@@ -479,7 +481,20 @@ class Writer(AbstractWriter):
 
 	def onString( self, element ):
 		"""Writes a string element."""
-		return '"%s"' % (element.getActualValue().replace('"', '\\"'))
+		s = element.getActualValue()
+		m = RE_STRING_ESCAPE.search(s)
+		if m:
+			r = []
+			o = 0
+			while m:
+				r.append(s[0:s.start()+1] + '\\"')
+				o = m.end()
+				m = RE_STRING_ESCAPE.search(s)
+			r.append(s[m:])
+			return '"%s"' % ("".join(r))
+		else:
+			if s and s[0] == '"':s = '\\' + s
+			return '"%s"' % (s)
 
 	def onList( self, element ):
 		"""Writes a list element."""
