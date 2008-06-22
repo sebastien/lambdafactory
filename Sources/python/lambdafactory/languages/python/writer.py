@@ -8,7 +8,7 @@
 # License   : Revised BSD License
 # -----------------------------------------------------------------------------
 # Creation  : 03-Aug-2007
-# Last mod  : 07-Jan-2007
+# Last mod  : 22-Jun-2008
 # -----------------------------------------------------------------------------
 
 # TODO: When constructor is empty, should assign default attributes anyway
@@ -25,8 +25,6 @@ import os.path, re, time, string, random
 #  Python Writer
 #
 #------------------------------------------------------------------------------
-
-RE_STRING_ESCAPE = re.compile('[^\\\]"')
 
 class Writer(AbstractWriter):
 
@@ -464,7 +462,7 @@ class Writer(AbstractWriter):
 
 	OPERATORS = {
 				"and":"and",
-				"is":"==",
+				"is":"is",
 				"is not":"!=",
 				"not":"not",
 				"or":"or"
@@ -482,19 +480,7 @@ class Writer(AbstractWriter):
 	def onString( self, element ):
 		"""Writes a string element."""
 		s = element.getActualValue()
-		m = RE_STRING_ESCAPE.search(s)
-		if m:
-			r = []
-			o = 0
-			while m:
-				r.append(s[0:s.start()+1] + '\\"')
-				o = m.end()
-				m = RE_STRING_ESCAPE.search(s)
-			r.append(s[m:])
-			return '"%s"' % ("".join(r))
-		else:
-			if s and s[0] == '"':s = '\\' + s
-			return '"%s"' % (s)
+		return repr(s)
 
 	def onList( self, element ):
 		"""Writes a list element."""

@@ -8,7 +8,7 @@
 # License   : Revised BSD License
 # -----------------------------------------------------------------------------
 # Creation  : 03-Aug-2007
-# Last mod  : 07-Jan-2007
+# Last mod  : 22-Jun-2008
 # -----------------------------------------------------------------------------
 
 # TODO: When constructor is empty, should assign default attributes anyway
@@ -462,7 +462,7 @@ class Writer(AbstractWriter):
 
 	OPERATORS = {
 				"and":"and",
-				"is":"==",
+				"is":"is",
 				"is not":"!=",
 				"not":"not",
 				"or":"or"
@@ -479,7 +479,8 @@ class Writer(AbstractWriter):
 
 	def onString( self, element ):
 		"""Writes a string element."""
-		return '"%s"' % (element.getActualValue().replace('"', '\\"'))
+		s = element.getActualValue()
+		return repr(s)
 
 	def onList( self, element ):
 		"""Writes a list element."""

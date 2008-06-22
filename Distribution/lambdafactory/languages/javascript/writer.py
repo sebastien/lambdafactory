@@ -534,9 +534,7 @@ class Writer(AbstractWriter):
 
 	def onString( self, element ):
 		"""Writes a string element."""
-		s = element.getActualValue()
-		s = s.replace('\\"','"').replace('"','\\"')
-		return '"' + s + '"'
+		return repr(s)
 
 	def onList( self, element ):
 		"""Writes a list element."""
