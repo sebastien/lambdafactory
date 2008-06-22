@@ -534,6 +534,12 @@ class Class(Context, IClass, IReferencable, IAssignable):
 				res[slot.getName()] = slot.getValue()
 		return res
 	
+	def getInheritedSlots(self):
+		r=[]
+		for slot in self.getDataFlow().getSourcesSlots():
+			r.append([slot.getName(), slot.getValue()])
+		return r
+	
 	def getInheritedClassMethods(self):
 		"""Returns the inherited class methods as a dict of slots"""
 		return self.getInheritedLike(IClassMethod)
@@ -924,8 +930,9 @@ class Value(Element, IValue, IEvaluable, IAssignable):
 	pass
 
 class Literal(Value, ILiteral):
-	def __init__ (self, actualValue):
+	def __init__ (self, actualValue=None):
 		self.actualValue = None
+		if actualValue is None: actualValue = None
 		Value.__init__(self)
 		self.actualValue = actualValue
 	

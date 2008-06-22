@@ -72,11 +72,11 @@ class IDataFlow:
 		raise Exception("Abstract method IDataFlow.declareVariable not implemented in: " + str(self))
 	
 	def getSlots(self):
-		"""Returns the lsit of slots @methodiend for this dataflow."""
+		"""Returns the list of slots defined for this dataflow."""
 		raise Exception("Abstract method IDataFlow.getSlots not implemented in: " + str(self))
 	
 	def hasSlot(self, name):
-		"""Tells if this dataflow @methodines a slot with the given name."""
+		"""Tells if this dataflow defines slot with the given name."""
 		raise Exception("Abstract method IDataFlow.hasSlot not implemented in: " + str(self))
 	
 	def getRoot(self):
@@ -458,7 +458,9 @@ class IContext(IElement, IDataFlowOwner):
 	
 	def getSlots(self):
 		"""Returns (key, evaluable) pairs representing the slots within this
-		context."""
+		context. In the case of context that may inherits slots, this only
+		returns the slots that are owned by the context (ie. it does not
+		include inherited slots)"""
 		raise Exception("Abstract method IContext.getSlots not implemented in: " + str(self))
 	
 	def setParent(self, context):
@@ -471,6 +473,10 @@ class IContext(IElement, IDataFlowOwner):
 	
 
 class IClass(IContext, IReferencable):
+	def getInheritedSlots(self):
+		"""gives the list of inherited slots"""
+		raise Exception("Abstract method IClass.getInheritedSlots not implemented in: " + str(self))
+	
 	def setParentClasses(self):
 		"""gives the list of parent classes that will"""
 		raise Exception("Abstract method IClass.setParentClasses not implemented in: " + str(self))
@@ -524,7 +530,7 @@ class IInterface(IAbstractClass):
 	"""An interface is an abstract @protocol that only has abstract elements."""
 	pass
 
-class IModule(IContext):
+class IModule(IContext, IReferencable):
 	"""Note that a module 'getName' function returns the module absolute name"""
 	def isImported(self):
 		"""A stub module is a module that does not have any bound implementation.
@@ -582,7 +588,7 @@ class IProgram(IContext):
 		raise Exception("Abstract method IProgram.getFactory not implemented in: " + str(self))
 	
 
-class IProcess:
+class IProcess(IElement):
 	"""A process is a sequence of operations."""
 	def addOperation(self, operation):
 		"""Adds the given operation as a child of this process."""

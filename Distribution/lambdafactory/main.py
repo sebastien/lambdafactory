@@ -23,6 +23,7 @@ class Command:
 	OPT_SOURCE = "Directly gives the source"
 	OPT_MODULE = "Specifies the module name"
 	OPT_LIB = "Specifies a path where the library is"
+	OPT_PREPROC = "Applies the given preprocessor to the source"
 	def __init__ (self, programName=None):
 		self.programName = None
 		self.environment = None
@@ -65,6 +66,8 @@ class Command:
 			help=self.OPT_MODULE)
 		option_parser.add_option("-a", "--api", action="store", dest="api",
 			help=self.OPT_API)
+		option_parser.add_option("-p", "--preprocess", action="append", dest="preprocess", 
+			help=self.OPT_PREPROC)
 		option_parser.add_option("-t", "--test", action="store_true", dest="test", 
 			help=self.OPT_TEST)
 		option_parser.add_option("-s", "--source", action="store", dest="source", 
@@ -129,7 +132,7 @@ class Command:
 			path=file_and_path[1]
 			compilers=None
 			if ((options.lang in ["js", "javascript"]) or (not options.lang)):
-				interpreter = (os.getenv("SUGAR_JS") or "js")
+				interpreter = (os.getenv("SUGAR_JS") or "rhino")
 				command = ((((interpreter + " ") + path) + " ") + args_str)
 			elif (options.lang in ["pnuts"]):
 				interpreter = (os.getenv("SUGAR_PNUTS") or "pnuts")

@@ -155,9 +155,9 @@ class Environment:
 		source_and_module=parser.parse(path, moduleName)
 		return source_and_module[1]
 	
-	def parseSource(self, source, extenstion, moduleName=None):
+	def parseSource(self, source, extension, moduleName=None):
 		if moduleName is None: moduleName = None
-		parser=self.parsers.get(extenstion)
+		parser=self.parsers.get(extension)
 		source_and_module=parser.parseSource(source, moduleName)
 		return source_and_module[1]
 	

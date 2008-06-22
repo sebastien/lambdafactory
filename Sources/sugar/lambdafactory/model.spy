@@ -1301,7 +1301,7 @@
 
 	@property actualValue = Undefined
 
-	@constructor actualValue
+	@constructor actualValue = Undefined
 		Value __init__ (self)
 		self actualValue = actualValue
 	@end

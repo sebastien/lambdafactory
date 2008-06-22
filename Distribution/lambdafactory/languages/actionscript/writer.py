@@ -8,7 +8,7 @@
 # License   : Revised BSD License
 # -----------------------------------------------------------------------------
 # Creation  : 01-Aug-2007
-# Last mod  : 17-Mar-2008
+# Last mod  : 12-May-2008
 # -----------------------------------------------------------------------------
 
 # SEE: http://livedocs.adobe.com/specs/actionscript/3/
@@ -170,12 +170,12 @@ class Writer(javascript.Writer):
 		if default_value:
 			return self._format(
 				self._document(element),
-				"public var %s = %s" % (element.getReferenceName(), self.write(default_value))
+				"public var %s = %s" % (element.getName(), self.write(default_value))
 			)
 		else:
 			return self._format(
 				self._document(element),
-				"public var %s" % (element.getReferenceName())
+				"public var %s" % (element.getName())
 			)
 
 	def onClassAttribute( self, element ):
@@ -190,7 +190,7 @@ class Writer(javascript.Writer):
 		if fleximage_ann:
 			res +="[Embed(%s)]\n" % (fleximage_ann.getContent())
 			the_type = "Class"
-		res += "public static var %s:%s%s" % (element.getReferenceName(),the_type,rest)
+		res += "public static var %s:%s%s" % (element.getName(),the_type,rest)
 		return self._format(self._document(element), res)
 	
 	def onConstructor( self, element ):
@@ -216,9 +216,13 @@ class Writer(javascript.Writer):
 		class_name  = self.getCurrentClass().getName()
 		if method_name == interfaces.Constants.Constructor: method_name = class_name
 		if method_name == interfaces.Constants.Destructor:  method_name = "destroy"
+		# FIXME: We should instead look if the method is already defined
+		overrides = method_name in map(lambda x:x[0], methodElement.getParent().getInheritedSlots())
+		overrides = overrides and " override" or ""
 		return self._format(
 			self._document(methodElement),
-			"public function %s(%s){" % (
+			"public%s function %s(%s){" % (
+				overrides,
 				method_name,
 				", ".join(map(self.write, methodElement.getArguments()))
 			),
@@ -231,12 +235,13 @@ class Writer(javascript.Writer):
 
 	def onClassMethod( self, methodElement ):
 		"""Writes a class method element."""
+		class_name  = methodElement.getParent().getName()
 		method_name = methodElement.getName()
 		args        = methodElement.getArguments()
 		return self._format(
 			self._document(methodElement),
 			"public static function %s(%s){" % (method_name, ", ".join(map(self.write, args))),
-			["var __this__ = this;"],
+			["var __this__ = %s;" % (class_name)],
 			self._writeClosureArguments(methodElement),
 			self.onFunctionWhen(methodElement),
 			map(self.write, methodElement.getOperations()),
@@ -281,13 +286,46 @@ class Writer(javascript.Writer):
 			map(self.write, closure.getOperations()),
 			"}"
 		)
-		
-	def onArgument( self, argElement ):
-		"""Writes an argument element."""
-		return "%s=undefined" % (
-			argElement.getName(),
-		)
 
+	def onArgument( self, argument ):
+		"""Writes an argument element."""
+		value = argument.getDefaultValue()
+		# NOTE: We can only write the argument as default when it is a litteral,
+		# otherwise we have assign the value in the function body
+		if value:
+			return "%s=%s" % (
+				argument.getName(),
+				isinstance(value, interfaces.ILiteral) and self.write(value) or "undefined"
+			)
+		else:
+			return argument.getName()
+
+	def _writeClosureArguments(self, closure):
+		i = 0
+		l = len(closure.getArguments())
+		result = []
+		for argument in closure.getArguments():
+			arg_name = argument.getName()
+			arg_value = argument.getDefaultValue()
+			if argument.isRest():
+				assert i >= l - 2
+				result.append("%s = %s(arguments,%d)" % (
+					arg_name,
+					self.jsPrefix + self.jsCore + "sliceArguments",
+					i
+				))
+			# Here we only add the code for the attributes initialization if it
+			# is not a litteral, in which case a default value was already
+			# assigned
+			if not (arg_value is None) and not isinstance(arg_value, interfaces.ILiteral):
+				result.append("%s = %s === undefined ? %s : %s" % (
+					arg_name,
+					arg_name,
+					self.write(arg_value),
+					arg_name
+				))
+			i += 1
+		return result
 
 	def onModuleAttribute( self, element ):
 		"""Writes an argument element."""
