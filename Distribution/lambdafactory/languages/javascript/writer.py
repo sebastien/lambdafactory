@@ -534,7 +534,7 @@ class Writer(AbstractWriter):
 
 	def onString( self, element ):
 		"""Writes a string element."""
-		return repr(s)
+		return repr(element.getActualValue())
 
 	def onList( self, element ):
 		"""Writes a list element."""
