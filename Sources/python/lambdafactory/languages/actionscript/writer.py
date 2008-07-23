@@ -176,12 +176,12 @@ class Writer(javascript.Writer):
 		if default_value:
 			return self._format(
 				self._document(element),
-				"public var %s = %s" % (element_name, self.write(default_value))
+				"public var %s = %s; " % (element_name, self.write(default_value))
 			)
 		else:
 			return self._format(
 				self._document(element),
-				"public var %s" % (element_name)
+				"public var %s; " % (element_name)
 			)
 
 	def onClassAttribute( self, element ):
