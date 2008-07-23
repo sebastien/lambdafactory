@@ -166,16 +166,22 @@ class Writer(javascript.Writer):
 
 	def onAttribute( self, element ):
 		"""Writes an argument element."""
-		default_value = element.getDefaultValue()
+		element_name     = element.getName()
+		type_description = element.getTypeDescription()
+		# FIXME: This is a hack which is needed because the AS3 backend needs a
+		# :Class type for [Embed...] to work
+		if type_description == "Class":
+			element_name += ":" + type_description
+		default_value    = element.getDefaultValue()
 		if default_value:
 			return self._format(
 				self._document(element),
-				"public var %s = %s" % (element.getName(), self.write(default_value))
+				"public var %s = %s" % (element_name, self.write(default_value))
 			)
 		else:
 			return self._format(
 				self._document(element),
-				"public var %s" % (element.getName())
+				"public var %s" % (element_name)
 			)
 
 	def onClassAttribute( self, element ):
