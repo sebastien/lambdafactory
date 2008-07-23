@@ -8,7 +8,7 @@
 # License   : Revised BSD License
 # -----------------------------------------------------------------------------
 # Creation  : 01-Aug-2007
-# Last mod  : 12-May-2008
+# Last mod  : 23-Jul-2008
 # -----------------------------------------------------------------------------
 
 # SEE: http://livedocs.adobe.com/specs/actionscript/3/
@@ -422,10 +422,22 @@ class Writer(javascript.Writer):
 	def _document( self, element ):
 		if element.getDocumentation():
 			doc = element.getDocumentation()
+			annotations = []
 			res = []
 			for line in doc.getContent().split("\n"):
-				res.append(line)
-			return "/** %s\n*/" % ("\n  * ".join(res))
+				l = line.strip()
+				if l and l[0] == "[" and l[-1] == "]":
+					annotations.append(l)
+				else:
+					res.append(line)
+			annotations = "\n".join(annotations)
+			res         = "\n".join(res)
+			if annotations and not res:
+				return annotations
+			if res and not annotations:
+				return "/** %s\n*/" % (res)
+			else:
+				return "/** %s\n*/\n%s" % (res, annotations)
 		else:
 			return None
 
