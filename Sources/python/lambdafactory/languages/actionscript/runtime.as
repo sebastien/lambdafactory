@@ -20,6 +20,8 @@
 // You can get more information at the Extend [project
 // page](http://www.ivy.fr/js/extend).
 package Extend {
+	import flash.utils.getDefinitionByName;
+	import flash.utils.getQualifiedSuperclassName;
 	public class __module__ {
 	public static var console=undefined
 	public static var document=undefined
@@ -452,7 +454,7 @@ package Extend {
 			return instance[name];
 		}
 		public static function getClassOf( instance ) {
-			return instance.prototype;
+			return getDefinitionByName(getQualifiedSuperclassName(instance));
 		}
 		// This is a utility function that will return the rest of the given
 		// arguments list, without using the 'slice' operation which is only
