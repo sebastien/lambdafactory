@@ -448,6 +448,12 @@ package Extend {
 			  }
 			
 		}
+		public static function getMethodOf( instance, name ) {
+			return instance[name];
+		}
+		public static function getClassOf( instance ) {
+			return instance.prototype;
+		}
 		// This is a utility function that will return the rest of the given
 		// arguments list, without using the 'slice' operation which is only
 		// available to arrays.

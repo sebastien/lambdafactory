@@ -8,7 +8,7 @@
 # License   : Revised BSD License
 # -----------------------------------------------------------------------------
 # Creation  : 02-Nov-2006
-# Last mod  : 20-Feb-2008
+# Last mod  : 03-Sep-2008
 # -----------------------------------------------------------------------------
 
 # TODO: When constructor is empty, should assign default attributes anyway
@@ -61,6 +61,12 @@ class Writer(AbstractWriter):
 		self.inInvocation = False
 		self.options = {}
 		self.options.update(OPTIONS)
+
+	def _extendGetMethodByName(self, name):
+		return "__this__.getMethod('%s') " % (name)
+
+	def _extendGetClass(self, variable="__this__"):
+		return "%s.getClass() " % (variable)
 
 	def _isSymbolValid( self, string ):
 		# FIXME: Warn if symbol is typeof, etc.
@@ -469,17 +475,17 @@ class Writer(AbstractWriter):
 				if self.inInvocation:
 					return "__this__.%s" % (symbol_name)
 				else:
-					return "__this__.getMethod('%s') " % (symbol_name)
+					return self._extendGetMethodByName(symbol_name)
 			elif isinstance(value, interfaces.IClassMethod):
 				if self.isIn(interfaces.IInstanceMethod):
-					return "__this__.getClass().%s" % (symbol_name)
+					return self._extendGetClass() + "." + symbol_name
 				else:
 					return "__this__.%s" % (symbol_name)
 			elif isinstance(value, interfaces.IClassAttribute):
 				if self.isIn(interfaces.IClassMethod):
 					return "__this__.%s" % (symbol_name)
 				else:
-					return "__this__.getClass().%s" % (symbol_name)
+					return self._extendGetClass() + "." + symbol_name
 			else:
 				return "__this__." + symbol_name
 		# It is a local variable
