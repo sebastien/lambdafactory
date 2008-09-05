@@ -962,6 +962,12 @@
 @class Method: Function, IMethod
 @end
 
+@class Accessor: Method, IAccessor
+@end
+
+@class Mutator: Method, IMutator
+@end
+
 @class Constructor: Method, IConstructor
 
 	@constructor arguments
