@@ -75,10 +75,10 @@ class DataFlow(IDataFlow):
 	While 'DataFlow' and 'Context' may appear very similar, they are not the
 	same: contexts are elements that keep track of declared slots, while the
 	dataflow make use of the context to weave the elements togeher."""
-	ARGUMENT = "Argument"
-	ENVIRONMENT = "Environment"
-	LOCAL = "Local"
-	IMPORTED = "Imported"
+	ARGUMENT = 'Argument'
+	ENVIRONMENT = 'Environment'
+	LOCAL = 'Local'
+	IMPORTED = 'Imported'
 	def __init__ (self, element, parent=None):
 		self.program = None
 		self.element = None
@@ -153,11 +153,11 @@ class DataFlow(IDataFlow):
 	def getSourcesSlots(self, slots=None):
 		"""Returns the list of slots defined in the sources, using the sources axis."""
 		if slots is None: slots = None
-		if (slots == None):
+		if (slots is None):
 			slots = {}
 		elif True:
 			for slot in self.getSlots():
-				if (slots.get(slot.getName()) == None):
+				if (slots.get(slot.getName()) is None):
 					slots[slot.getName()] = slot
 		for source in self.getSources():
 			source.getSourcesSlots(slots)
@@ -188,7 +188,7 @@ class DataFlow(IDataFlow):
 			return self
 	
 	def setParent(self, parent):
-		assert(((self.parent == None) or (parent == self.parent)))
+		assert(((self.parent is None) or (parent == self.parent)))
 		if parent:
 			self.parent = parent
 			self.parent.addChild(self)
@@ -304,7 +304,7 @@ class Element:
 			return False
 	
 	def setParent(self, parent):
-		assert(((self.parent == None) or (parent == self.parent)))
+		assert(((self.parent is None) or (parent == self.parent)))
 		self.parent = parent
 	
 	def detach(self):
@@ -342,7 +342,7 @@ class Element:
 		self.annotate(documentation)
 	
 	def getDocumentation(self):
-		return self.getAnnotation("documentation")
+		return self.getAnnotation('documentation')
 	
 	def getDataFlow(self):
 		return self.dataflow
@@ -354,10 +354,10 @@ class Element:
 		return self.dataflow
 	
 	def ownsDataFlow(self):
-		raise "Not implemented"
+		raise 'Not implemented'
 	
 	def getAbstractType(self):
-		if (self.abstractType == None):
+		if (self.abstractType is None):
 			self.abstractType = modeltypes.typeForValue(self)
 		return self.abstractType
 	
@@ -408,14 +408,14 @@ class Annotation(Element, IAnnotation):
 class Comment(Annotation, IComment):
 	def __init__ (self, content=None):
 		if content is None: content = None
-		Annotation.__init__(self, "comment", content)
+		Annotation.__init__(self, 'comment', content)
 	
 	pass
 
 class Documentation(Annotation, IDocumentation):
 	def __init__ (self, content=None):
 		if content is None: content = None
-		Annotation.__init__(self, "documentation", content)
+		Annotation.__init__(self, 'documentation', content)
 	
 	pass
 
@@ -437,7 +437,7 @@ class Context(Element):
 		if assignParent is None: assignParent = True
 		if (not isinstance(evaluable, IAssignable)):
 			raise ERR_SLOT_VALUE_NOT_ASSIGNABLE
-		if ((assignParent and isinstance(evaluable, IContext)) or hasattr(evaluable, "setParent")):
+		if ((assignParent and isinstance(evaluable, IContext)) or hasattr(evaluable, 'setParent')):
 			evaluable.setParent(self)
 		self.slots.append([name, evaluable])
 	
@@ -467,7 +467,7 @@ class Context(Element):
 			if self.parent:
 				parent_name=self.parent.getAbsoluteName()
 				if parent_name:
-					return ((parent_name + ".") + self.name)
+					return ((parent_name + '.') + self.name)
 				elif True:
 					return self.name
 		elif True:
@@ -560,7 +560,7 @@ class Module(Context, IModule, IAssignable, IReferencable):
 	
 	def getParentName(self):
 		"""Returns 'grandparentname.parentname'"""
-		return (".".join(self.name.split(".")[0:-1]) or None)
+		return ('.'.join(self.name.split('.')[0:-1]) or None)
 	
 	def getAbsoluteName(self):
 		"""A module name is already absolute, so 'getAbsoluteName' is the same as
@@ -656,6 +656,7 @@ class Block(Group, IBlock):
 class Closure(Process, IAssignable, IClosure, IEvaluable):
 	def __init__ (self, arguments, name=None):
 		self.arguments = None
+		self.returnTypeDescription = None
 		if name is None: name = None
 		Process.__init__(self, name)
 		self.setArguments(arguments)
@@ -673,6 +674,12 @@ class Closure(Process, IAssignable, IClosure, IEvaluable):
 	def getArgument(self, index):
 		return self.arguments[index]
 	
+	def getReturnTypeDescription(self):
+		return self.returnTypeDescription
+	
+	def setReturnTypeDescription(self, description):
+		self.returnTypeDescription = description
+	
 
 class Function(Closure, IFunction, IReferencable):
 	def __init__ (self, name, arguments):
@@ -680,7 +687,7 @@ class Function(Closure, IFunction, IReferencable):
 	
 	def getAbsoluteName(self):
 		if self.getParent():
-			return ((self.getParent().getAbsoluteName() + ".") + self.name)
+			return ((self.getParent().getAbsoluteName() + '.') + self.name)
 		elif True:
 			return self.name
 	

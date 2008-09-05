@@ -8,7 +8,7 @@
 # License   : Revised BSD License
 # -----------------------------------------------------------------------------
 # Creation  : 01-Aug-2007
-# Last mod  : 23-Jul-2008
+# Last mod  : 05-Sep-2008
 # -----------------------------------------------------------------------------
 
 # SEE: http://livedocs.adobe.com/specs/actionscript/3/
@@ -32,6 +32,12 @@ class Writer(javascript.Writer):
 		javascript.Writer.__init__(self)
 		self.jsCore   = "Extend.__module__."
 		self.supportedEmbedLanguages.extend(("as", "actionscript"))
+
+	def _extendGetMethodByName(self, name,variable="__this__"):
+		return "Extend.__module__.getMethodOf(%s,'%s') " % (name)
+
+	def _extendGetClass(self, variable="__this__"):
+		return "Extend.__module__.getClassOf(%s) " % (variable)
 
 	def getRuntimeSource(s):
 		"""Returns the JavaScript code for the runtime that is necassary to run
@@ -219,18 +225,29 @@ class Writer(javascript.Writer):
 	def onMethod( self, methodElement ):
 		"""Writes a method element."""
 		method_name = methodElement.getName()
+		# FIXME: The type description is put *as is*, while it should be
+		# processed
+		return_type = methodElement.getReturnTypeDescription()
+		if return_type: return_type = ":" + return_type 
+		else: return_type = ""
 		class_name  = self.getCurrentClass().getName()
 		if method_name == interfaces.Constants.Constructor: method_name = class_name
 		if method_name == interfaces.Constants.Destructor:  method_name = "destroy"
 		# FIXME: We should instead look if the method is already defined
 		overrides = method_name in map(lambda x:x[0], methodElement.getParent().getInheritedSlots())
-		overrides = overrides and " override" or ""
+		# FIXME: We only handle the case where there is ONE or NO annotation, if
+		# there is more (like "@as override, inline, utility", it will crash)
+		annotation = methodElement.getAnnotation("as")
+		if annotation: annotation = annotation.getContent().lower()
+		else: annotation = ""
+		overrides = (overrides or annotation == "overrides") and " override" or ""
 		return self._format(
 			self._document(methodElement),
-			"public%s function %s(%s){" % (
+			"public%s function %s(%s)%s {" % (
 				overrides,
 				method_name,
-				", ".join(map(self.write, methodElement.getArguments()))
+				", ".join(map(self.write, methodElement.getArguments())),
+				return_type
 			),
 			["var __this__=this"],
 			self._writeClosureArguments(methodElement),
@@ -298,13 +315,24 @@ class Writer(javascript.Writer):
 		value = argument.getDefaultValue()
 		# NOTE: We can only write the argument as default when it is a litteral,
 		# otherwise we have assign the value in the function body
+		arg_type = argument.getTypeDescription()
+		# FIXME: We need to do proper type translation here. The strategy for
+		# now is simply to bypass type expressions '<...>' and include named
+		# type references "as-is"
+		if arg_type:
+			if arg_type[0] == "<":
+				arg_type = ""
+			else:
+				arg_type = ":" + arg_type
+		else: arg_type = ""
 		if value:
-			return "%s=%s" % (
+			return "%s%s=%s" % (
 				argument.getName(),
+				arg_type,
 				isinstance(value, interfaces.ILiteral) and self.write(value) or "undefined"
 			)
 		else:
-			return argument.getName()
+			return argument.getName() + arg_type
 
 	def _writeClosureArguments(self, closure):
 		i = 0

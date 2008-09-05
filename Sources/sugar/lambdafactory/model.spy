@@ -906,6 +906,7 @@
 @class Closure: Process, IAssignable, IClosure, IEvaluable
 	
 	@property arguments = Undefined
+	@property returnTypeDescription = Undefined
 
 	@constructor arguments, name=Undefined
 		#REWRITE: super(name)
@@ -930,7 +931,15 @@
 	@method getArgument index
 		return arguments[index]
 	@end
-		
+
+	@method getReturnTypeDescription
+		return returnTypeDescription
+	@end
+
+	@method setReturnTypeDescription description
+		returnTypeDescription = description
+	@end
+
 @end
 
 @class Function: Closure, IFunction, IReferencable
