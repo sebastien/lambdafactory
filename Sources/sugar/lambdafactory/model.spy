@@ -686,6 +686,18 @@
 		return slotValuesImplementing(IAttribute, IClassAttribute)
 	@end
 
+	@method getAttributeMethods
+		return slotValuesImplementing(IAttributeMethod)
+	@end
+	
+	@method getAccessors
+		return slotValuesImplementing(IAccessor)
+	@end
+
+	@method getMutator
+		return slotValuesImplementing(IMutator)
+	@end
+
 	@method getClassAttributes
 		return slotValuesImplementing(IClassAttribute)
 	@end

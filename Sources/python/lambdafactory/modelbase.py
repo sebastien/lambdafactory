@@ -88,6 +88,12 @@ class Factory:
 	def createMethod( self, name, arguments=None ):
 		return self._getImplementation("InstanceMethod")(name, arguments)
 
+	def createAccessor( self, name, arguments=None ):
+		return self._getImplementation("Accessor")(name, arguments)
+
+	def createMutator( self, name, arguments=None ):
+		return self._getImplementation("Mutator")(name, arguments)
+
 	def createConstructor( self, arguments=None ):
 		return self._getImplementation("Constructor")(arguments)
 

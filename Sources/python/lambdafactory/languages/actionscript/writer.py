@@ -162,13 +162,16 @@ class Writer(javascript.Writer):
 			"}"
 		]
 		# We collect class attributes
+		print classElement.getSlots()
 		class_code.extend(map(self.write, classElement.getClassAttributes()))
 		class_code.extend(map(self.write, classElement.getAttributes()))
+		class_code.extend(map(self.write, classElement.getAttributeMethods()))
 		class_code.extend(map(self.write, classElement.getConstructors()))
 		# FIXME: What about destructors
 		class_code.extend(map(self.write, classElement.getClassMethods()))
 		class_code.extend(map(self.write, classElement.getInstanceMethods()))
 		return self._format(code)
+
 
 	def onAttribute( self, element ):
 		"""Writes an argument element."""
@@ -256,6 +259,34 @@ class Writer(javascript.Writer):
 			"}"
 		)
 
+	def onAccessor( self, element ):
+		method_name = element.getName()
+		return self._format(
+			self._document(element),
+			"public get %s () {" % (
+				method_name,
+			),
+			["var __this__=this"],
+			self._writeClosureArguments(element),
+			self.onFunctionWhen(element),
+			map(self.write, element.getOperations()),
+			"}"
+		)
+
+	def onMutator( self, element ):
+		method_name = element.getName()
+		return self._format(
+			self._document(element),
+			"public set %s (%s) {" % (
+				method_name,
+				", ".join(map(self.write, element.getArguments())),
+			),
+			["var __this__=this"],
+			self._writeClosureArguments(element),
+			self.onFunctionWhen(element),
+			map(self.write, element.getOperations()),
+			"}"
+		)
 	def onClassMethod( self, methodElement ):
 		"""Writes a class method element."""
 		class_name  = methodElement.getParent().getName()
