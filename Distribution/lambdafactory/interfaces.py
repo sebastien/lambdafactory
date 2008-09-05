@@ -648,6 +648,15 @@ class IFunction(IClosure, IReferencable, IAbstractable):
 class IMethod(IFunction):
 	pass
 
+class IAttributeMethod(IMethod):
+	pass
+
+class IAccessor(IAttributeMethod):
+	pass
+
+class IMutator(IAttributeMethod):
+	pass
+
 class IConstructor(IMethod):
 	pass
 

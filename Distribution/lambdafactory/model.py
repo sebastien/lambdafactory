@@ -496,6 +496,15 @@ class Class(Context, IClass, IReferencable, IAssignable):
 	def getAttributes(self):
 		return self.slotValuesImplementing(IAttribute, IClassAttribute)
 	
+	def getAttributeMethods(self):
+		return self.slotValuesImplementing(IAttributeMethod)
+	
+	def getAccessors(self):
+		return self.slotValuesImplementing(IAccessor)
+	
+	def getMutator(self):
+		return self.slotValuesImplementing(IMutator)
+	
 	def getClassAttributes(self):
 		return self.slotValuesImplementing(IClassAttribute)
 	
@@ -693,6 +702,12 @@ class Function(Closure, IFunction, IReferencable):
 	
 
 class Method(Function, IMethod):
+	pass
+
+class Accessor(Method, IAccessor):
+	pass
+
+class Mutator(Method, IMutator):
 	pass
 
 class Constructor(Method, IConstructor):

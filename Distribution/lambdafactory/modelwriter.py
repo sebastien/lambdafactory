@@ -5,7 +5,7 @@ import lambdafactory.interfaces as interfaces
 from lambdafactory.passes import Pass
 from lambdafactory.splitter import SNIP
 __module_name__ = 'lambdafactory.modelwriter'
-PREFIX = "\t"
+PREFIX = '\t'
 def _format (value, level=None):
 	"""Format helper operation. See @format"""
 	self=__module__
@@ -27,7 +27,7 @@ def format (*values):
 	"""Formats a combination of string ang tuples. Strings are joined by
 	newlines, and the content of the inner tuples gets indented"""
 	self=__module__
-	return "\n".join(_format(values))
+	return '\n'.join(_format(values))
 
 
 def _flatten (value, res):
@@ -55,15 +55,15 @@ def notEmpty (p):
 
 
 class AbstractWriter(Pass):
-	HANDLES = [interfaces.IProgram, interfaces.IClass, interfaces.IModule, interfaces.IDestructor, interfaces.IConstructor, interfaces.IClassMethod, interfaces.IMethod, interfaces.IFunction, interfaces.IClosure, interfaces.IBlock, interfaces.IModuleAttribute, interfaces.IClassAttribute, interfaces.IAttribute, interfaces.IArgument, interfaces.IParameter, interfaces.IOperator, interfaces.IReference, interfaces.INumber, interfaces.IString, interfaces.IList, interfaces.IDict, interfaces.IEnumeration, interfaces.IAllocation, interfaces.IAssignation, interfaces.IComputation, interfaces.IInvocation, interfaces.IInstanciation, interfaces.IResolution, interfaces.ISelection, interfaces.IRepetition, interfaces.IIteration, interfaces.IAccessOperation, interfaces.ISliceOperation, interfaces.IEvaluation, interfaces.ITermination, interfaces.IBreaking, interfaces.IExcept, interfaces.IInterception, interfaces.IImportSymbolOperation, interfaces.IImportSymbolsOperation, interfaces.IImportModuleOperation, interfaces.IImportModulesOperation, interfaces.IEmbed]
+	HANDLES = [interfaces.IProgram, interfaces.IClass, interfaces.IModule, interfaces.IAccessor, interfaces.IMutator, interfaces.IDestructor, interfaces.IConstructor, interfaces.IClassMethod, interfaces.IMethod, interfaces.IFunction, interfaces.IClosure, interfaces.IBlock, interfaces.IModuleAttribute, interfaces.IClassAttribute, interfaces.IAttribute, interfaces.IArgument, interfaces.IParameter, interfaces.IOperator, interfaces.IReference, interfaces.INumber, interfaces.IString, interfaces.IList, interfaces.IDict, interfaces.IEnumeration, interfaces.IAllocation, interfaces.IAssignation, interfaces.IComputation, interfaces.IInvocation, interfaces.IInstanciation, interfaces.IResolution, interfaces.ISelection, interfaces.IRepetition, interfaces.IIteration, interfaces.IAccessOperation, interfaces.ISliceOperation, interfaces.IEvaluation, interfaces.ITermination, interfaces.IBreaking, interfaces.IExcept, interfaces.IInterception, interfaces.IImportSymbolOperation, interfaces.IImportSymbolsOperation, interfaces.IImportModuleOperation, interfaces.IImportModulesOperation, interfaces.IEmbed]
 	def __init__ (self):
 		self._generatedSymbols = {}
 		Pass.__init__(self)
 	
 	def write(self, element):
 		res=None
-		if (element == None):
-			return ""
+		if (element is None):
+			return ''
 		elif True:
 			if (type(element) in [str, unicode]):
 				return element
@@ -91,7 +91,7 @@ class AbstractWriter(Pass):
 		for module in element.getModules():
 			if (not module.isImported()):
 				lines.append(self.write(module))
-		return "\n".join(lines)
+		return '\n'.join(lines)
 	
 	def _format(self, *values):
 		return format(*values)

@@ -162,7 +162,6 @@ class Writer(javascript.Writer):
 			"}"
 		]
 		# We collect class attributes
-		print classElement.getSlots()
 		class_code.extend(map(self.write, classElement.getClassAttributes()))
 		class_code.extend(map(self.write, classElement.getAttributes()))
 		class_code.extend(map(self.write, classElement.getAttributeMethods()))
@@ -225,6 +224,16 @@ class Writer(javascript.Writer):
 			"}"
 		)
 
+	def _isTaggedAsOverride( self, element ):
+		"""Tells if the given element has an "overrides" annotation."""
+		# FIXME: We only handle the case where there is ONE or NO annotation, if
+		# there is more (like "@as override, inline, utility", it will crash)
+		annotation = element.getAnnotation("as")
+		if annotation:
+			return annotation.getContent().lower() == "overrides"
+		else:
+			return False
+
 	def onMethod( self, methodElement ):
 		"""Writes a method element."""
 		method_name = methodElement.getName()
@@ -238,12 +247,7 @@ class Writer(javascript.Writer):
 		if method_name == interfaces.Constants.Destructor:  method_name = "destroy"
 		# FIXME: We should instead look if the method is already defined
 		overrides = method_name in map(lambda x:x[0], methodElement.getParent().getInheritedSlots())
-		# FIXME: We only handle the case where there is ONE or NO annotation, if
-		# there is more (like "@as override, inline, utility", it will crash)
-		annotation = methodElement.getAnnotation("as")
-		if annotation: annotation = annotation.getContent().lower()
-		else: annotation = ""
-		overrides = (overrides or annotation == "overrides") and " override" or ""
+		overrides = (overrides or self._isTaggedAsOverride(methodElement)) and " override" or ""
 		return self._format(
 			self._document(methodElement),
 			"public%s function %s(%s)%s {" % (
@@ -261,10 +265,15 @@ class Writer(javascript.Writer):
 
 	def onAccessor( self, element ):
 		method_name = element.getName()
+		overrides   = self._isTaggedAsOverride(element) and " override" or ""
+		return_type = element.getReturnTypeDescription()
+		if return_type: return_type = ":" + return_type 
 		return self._format(
 			self._document(element),
-			"public get %s () {" % (
+			"public %s function get %s()%s {" % (
+				overrides,
 				method_name,
+				return_type
 			),
 			["var __this__=this"],
 			self._writeClosureArguments(element),
@@ -275,9 +284,11 @@ class Writer(javascript.Writer):
 
 	def onMutator( self, element ):
 		method_name = element.getName()
+		overrides   = self._isTaggedAsOverride(element) and " override" or ""
 		return self._format(
 			self._document(element),
-			"public set %s (%s) {" % (
+			"public %s function set %s(%s):void {" % (
+				overrides,
 				method_name,
 				", ".join(map(self.write, element.getArguments())),
 			),
