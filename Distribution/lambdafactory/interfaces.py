@@ -619,6 +619,14 @@ class IClosure(IProcess, IContext):
 	def setArguments(self):
 		raise Exception("Abstract method IClosure.setArguments not implemented in: " + str(self))
 	
+	def getReturnTypeDescription(self):
+		"""Returns the return type description for this closure, if any"""
+		raise Exception("Abstract method IClosure.getReturnTypeDescription not implemented in: " + str(self))
+	
+	def setReturnTypeDescription(self, description):
+		"""Sets the return type description for this closure, if any"""
+		raise Exception("Abstract method IClosure.setReturnTypeDescription not implemented in: " + str(self))
+	
 
 class IFunction(IClosure, IReferencable, IAbstractable):
 	def getName(self):
@@ -638,6 +646,15 @@ class IFunction(IClosure, IReferencable, IAbstractable):
 	
 
 class IMethod(IFunction):
+	pass
+
+class IAttributeMethod(IMethod):
+	pass
+
+class IAccessor(IAttributeMethod):
+	pass
+
+class IMutator(IAttributeMethod):
 	pass
 
 class IConstructor(IMethod):

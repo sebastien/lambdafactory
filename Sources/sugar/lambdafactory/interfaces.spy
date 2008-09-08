@@ -8,7 +8,7 @@
 # License   : Revised BSD License
 # -----------------------------------------------------------------------------
 # Creation  : 02-Nov-2006
-# Last mod  : 07-Jan-2007
+# Last mod  : 05-Sep-2008
 # -----------------------------------------------------------------------------
 
 # TODO: Add a Flowable interface that tells that the element can have
@@ -218,6 +218,7 @@
 
 @end
 
+# FIXME: IAssignable should be able to return a type information
 @protocol IAssignable
 | Assignable elements are elements that can be bound to slots. In many
 | languages, only a subset of elements can be assigned. For instance, in
@@ -611,6 +612,12 @@
 
 	@abstract @method setArguments
 
+	@abstract @method getReturnTypeDescription
+	| Returns the return type description for this closure, if any
+
+	@abstract @method setReturnTypeDescription description
+	| Sets the return type description for this closure, if any
+
 @end
 
 
@@ -631,6 +638,15 @@
 @end
 
 @protocol IMethod: IFunction
+@end
+
+@protocol IAttributeMethod: IMethod
+@end
+
+@protocol IAccessor: IAttributeMethod
+@end
+
+@protocol IMutator: IAttributeMethod
 @end
 
 @protocol IConstructor: IMethod

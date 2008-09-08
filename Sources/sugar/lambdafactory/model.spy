@@ -686,6 +686,18 @@
 		return slotValuesImplementing(IAttribute, IClassAttribute)
 	@end
 
+	@method getAttributeMethods
+		return slotValuesImplementing(IAttributeMethod)
+	@end
+	
+	@method getAccessors
+		return slotValuesImplementing(IAccessor)
+	@end
+
+	@method getMutator
+		return slotValuesImplementing(IMutator)
+	@end
+
 	@method getClassAttributes
 		return slotValuesImplementing(IClassAttribute)
 	@end
@@ -906,6 +918,7 @@
 @class Closure: Process, IAssignable, IClosure, IEvaluable
 	
 	@property arguments = Undefined
+	@property returnTypeDescription = Undefined
 
 	@constructor arguments, name=Undefined
 		#REWRITE: super(name)
@@ -930,7 +943,15 @@
 	@method getArgument index
 		return arguments[index]
 	@end
-		
+
+	@method getReturnTypeDescription
+		return returnTypeDescription
+	@end
+
+	@method setReturnTypeDescription description
+		returnTypeDescription = description
+	@end
+
 @end
 
 @class Function: Closure, IFunction, IReferencable
@@ -951,6 +972,12 @@
 @end
 
 @class Method: Function, IMethod
+@end
+
+@class Accessor: Method, IAccessor
+@end
+
+@class Mutator: Method, IMutator
 @end
 
 @class Constructor: Method, IConstructor

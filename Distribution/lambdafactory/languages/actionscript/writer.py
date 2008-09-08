@@ -8,7 +8,7 @@
 # License   : Revised BSD License
 # -----------------------------------------------------------------------------
 # Creation  : 01-Aug-2007
-# Last mod  : 03-Sep-2008
+# Last mod  : 05-Sep-2008
 # -----------------------------------------------------------------------------
 
 # SEE: http://livedocs.adobe.com/specs/actionscript/3/
@@ -164,11 +164,13 @@ class Writer(javascript.Writer):
 		# We collect class attributes
 		class_code.extend(map(self.write, classElement.getClassAttributes()))
 		class_code.extend(map(self.write, classElement.getAttributes()))
+		class_code.extend(map(self.write, classElement.getAttributeMethods()))
 		class_code.extend(map(self.write, classElement.getConstructors()))
 		# FIXME: What about destructors
 		class_code.extend(map(self.write, classElement.getClassMethods()))
 		class_code.extend(map(self.write, classElement.getInstanceMethods()))
 		return self._format(code)
+
 
 	def onAttribute( self, element ):
 		"""Writes an argument element."""
@@ -222,21 +224,37 @@ class Writer(javascript.Writer):
 			"}"
 		)
 
+	def _isTaggedAsOverride( self, element ):
+		"""Tells if the given element has an "overrides" annotation."""
+		# FIXME: We only handle the case where there is ONE or NO annotation, if
+		# there is more (like "@as override, inline, utility", it will crash)
+		annotation = element.getAnnotation("as")
+		if annotation:
+			return annotation.getContent().lower() == "overrides"
+		else:
+			return False
+
 	def onMethod( self, methodElement ):
 		"""Writes a method element."""
 		method_name = methodElement.getName()
+		# FIXME: The type description is put *as is*, while it should be
+		# processed
+		return_type = methodElement.getReturnTypeDescription()
+		if return_type: return_type = ":" + return_type 
+		else: return_type = ""
 		class_name  = self.getCurrentClass().getName()
 		if method_name == interfaces.Constants.Constructor: method_name = class_name
 		if method_name == interfaces.Constants.Destructor:  method_name = "destroy"
 		# FIXME: We should instead look if the method is already defined
 		overrides = method_name in map(lambda x:x[0], methodElement.getParent().getInheritedSlots())
-		overrides = overrides and " override" or ""
+		overrides = (overrides or self._isTaggedAsOverride(methodElement)) and " override" or ""
 		return self._format(
 			self._document(methodElement),
-			"public%s function %s(%s){" % (
+			"public%s function %s(%s)%s {" % (
 				overrides,
 				method_name,
-				", ".join(map(self.write, methodElement.getArguments()))
+				", ".join(map(self.write, methodElement.getArguments())),
+				return_type
 			),
 			["var __this__=this"],
 			self._writeClosureArguments(methodElement),
@@ -245,6 +263,41 @@ class Writer(javascript.Writer):
 			"}"
 		)
 
+	def onAccessor( self, element ):
+		method_name = element.getName()
+		overrides   = self._isTaggedAsOverride(element) and " override" or ""
+		return_type = element.getReturnTypeDescription()
+		if return_type: return_type = ":" + return_type 
+		return self._format(
+			self._document(element),
+			"public %s function get %s()%s {" % (
+				overrides,
+				method_name,
+				return_type
+			),
+			["var __this__=this"],
+			self._writeClosureArguments(element),
+			self.onFunctionWhen(element),
+			map(self.write, element.getOperations()),
+			"}"
+		)
+
+	def onMutator( self, element ):
+		method_name = element.getName()
+		overrides   = self._isTaggedAsOverride(element) and " override" or ""
+		return self._format(
+			self._document(element),
+			"public %s function set %s(%s):void {" % (
+				overrides,
+				method_name,
+				", ".join(map(self.write, element.getArguments())),
+			),
+			["var __this__=this"],
+			self._writeClosureArguments(element),
+			self.onFunctionWhen(element),
+			map(self.write, element.getOperations()),
+			"}"
+		)
 	def onClassMethod( self, methodElement ):
 		"""Writes a class method element."""
 		class_name  = methodElement.getParent().getName()
@@ -304,13 +357,24 @@ class Writer(javascript.Writer):
 		value = argument.getDefaultValue()
 		# NOTE: We can only write the argument as default when it is a litteral,
 		# otherwise we have assign the value in the function body
+		arg_type = argument.getTypeDescription()
+		# FIXME: We need to do proper type translation here. The strategy for
+		# now is simply to bypass type expressions '<...>' and include named
+		# type references "as-is"
+		if arg_type:
+			if arg_type[0] == "<":
+				arg_type = ""
+			else:
+				arg_type = ":" + arg_type
+		else: arg_type = ""
 		if value:
-			return "%s=%s" % (
+			return "%s%s=%s" % (
 				argument.getName(),
+				arg_type,
 				isinstance(value, interfaces.ILiteral) and self.write(value) or "undefined"
 			)
 		else:
-			return argument.getName()
+			return argument.getName() + arg_type
 
 	def _writeClosureArguments(self, closure):
 		i = 0

@@ -496,6 +496,15 @@ class Class(Context, IClass, IReferencable, IAssignable):
 	def getAttributes(self):
 		return self.slotValuesImplementing(IAttribute, IClassAttribute)
 	
+	def getAttributeMethods(self):
+		return self.slotValuesImplementing(IAttributeMethod)
+	
+	def getAccessors(self):
+		return self.slotValuesImplementing(IAccessor)
+	
+	def getMutator(self):
+		return self.slotValuesImplementing(IMutator)
+	
 	def getClassAttributes(self):
 		return self.slotValuesImplementing(IClassAttribute)
 	
@@ -656,6 +665,7 @@ class Block(Group, IBlock):
 class Closure(Process, IAssignable, IClosure, IEvaluable):
 	def __init__ (self, arguments, name=None):
 		self.arguments = None
+		self.returnTypeDescription = None
 		if name is None: name = None
 		Process.__init__(self, name)
 		self.setArguments(arguments)
@@ -673,6 +683,12 @@ class Closure(Process, IAssignable, IClosure, IEvaluable):
 	def getArgument(self, index):
 		return self.arguments[index]
 	
+	def getReturnTypeDescription(self):
+		return self.returnTypeDescription
+	
+	def setReturnTypeDescription(self, description):
+		self.returnTypeDescription = description
+	
 
 class Function(Closure, IFunction, IReferencable):
 	def __init__ (self, name, arguments):
@@ -686,6 +702,12 @@ class Function(Closure, IFunction, IReferencable):
 	
 
 class Method(Function, IMethod):
+	pass
+
+class Accessor(Method, IAccessor):
+	pass
+
+class Mutator(Method, IMutator):
 	pass
 
 class Constructor(Method, IConstructor):
