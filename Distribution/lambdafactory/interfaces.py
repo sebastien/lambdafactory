@@ -3,12 +3,12 @@ import sys
 __module__ = sys.modules[__name__]
 __module_name__ = 'lambdafactory.interfaces'
 class Constants:
-	MainFunction = "__main__"
-	CurrentModule = "__current__"
-	Constructor = "__init__"
-	Destructor = "__destroy__"
-	ModuleInit = "__moduleinit__"
-	CurrentValue = "__currentvalue__"
+	MainFunction = '__main__'
+	CurrentModule = '__current__'
+	Constructor = '__init__'
+	Destructor = '__destroy__'
+	ModuleInit = '__moduleinit__'
+	CurrentValue = '__currentvalue__'
 	PARENS_PRIORITY = 9999
 
 class IAnnotation:
@@ -682,7 +682,7 @@ class IImportOperation(IOperation):
 
 class IImportSymbolOperation(IImportOperation):
 	ARGS = [IEvaluable, IEvaluable, IEvaluable]
-	ARG_NAMES = ["ImportedElement", "ImportOrigin", "Alias"]
+	ARG_NAMES = ['ImportedElement', 'ImportOrigin', 'Alias']
 	def getImportedElement(self):
 		"""Returns a reference or a resolution that will allow to get the
 		imported element."""
@@ -699,7 +699,7 @@ class IImportSymbolOperation(IImportOperation):
 
 class IImportSymbolsOperation(IImportOperation):
 	ARGS = [[IEvaluable], IEvaluable]
-	ARG_NAMES = ["ImportedElements", "ImportOrigin"]
+	ARG_NAMES = ['ImportedElements', 'ImportOrigin']
 	def getImportedElements(self):
 		"""Returns a reference or a resolution that will allow to get the
 		imported element."""
@@ -711,7 +711,7 @@ class IImportSymbolsOperation(IImportOperation):
 
 class IImportModuleOperation(IImportOperation):
 	ARGS = [IEvaluable, IEvaluable]
-	ARG_NAMES = ["ImportedModuleName", "Alias"]
+	ARG_NAMES = ['ImportedModuleName', 'Alias']
 	def getImportedModuleName(self):
 		"""Returns the list of names representing the modules to load"""
 		return self.getOpArgument(0)
@@ -722,7 +722,7 @@ class IImportModuleOperation(IImportOperation):
 
 class IImportModulesOperation(IImportOperation):
 	ARGS = [[IEvaluable]]
-	ARG_NAMES = ["ImportedModuleNames"]
+	ARG_NAMES = ['ImportedModuleNames']
 	def getImportedModuleNames(self):
 		"""Returns the list of names representing the modules to load"""
 		return self.getOpArgument(0)
@@ -730,7 +730,7 @@ class IImportModulesOperation(IImportOperation):
 
 class IEvaluation(IOperation):
 	ARGS = [IEvaluable, IEvaluable]
-	ARG_NAMES = ["Evaluable"]
+	ARG_NAMES = ['Evaluable']
 	def getEvaluable(self):
 		return self.getOpArgument(0)
 	

@@ -48,7 +48,7 @@ try var void
 volatile while with""".replace("\n", " ").split()
 
 OPTIONS = {
-	"ENABLE_METADATA":True
+	"ENABLE_METADATA":False
 }
 
 class Writer(AbstractWriter):
@@ -212,7 +212,10 @@ class Writer(AbstractWriter):
 		if method_name == interfaces.Constants.Destructor:  method_name = "cleanup"
 		return self._format(
 			self._document(methodElement),
-			"%s:_meta_(function(%s){" % (
+			(
+				self.options["ENABLE_METADATA"] and "%s:_meta_(function(%s){" \
+				or "%s:function(%s){"
+			) % (
 				method_name,
 				", ".join(map(self.write, methodElement.getArguments()))
 			),
@@ -220,7 +223,10 @@ class Writer(AbstractWriter):
 			self._writeClosureArguments(methodElement),
 			self.writeFunctionWhen(methodElement),
 			map(self.write, methodElement.getOperations()),
-			"},%s)" % ( self._writeFunctionMeta(methodElement) )
+			(
+				(not self.options["ENABLE_METADATA"] and "}") or \
+				"},%s)" % ( self._writeFunctionMeta(methodElement))
+			)
 		)
 
 	def _writeFunctionMeta( self, function ):
@@ -241,19 +247,25 @@ class Writer(AbstractWriter):
 
 	def writeFunctionWhen(self, methodElement):
 		return None
-	
+
 	def onClassMethod( self, methodElement ):
 		"""Writes a class method element."""
 		method_name = self._rewriteSymbol(methodElement.getName())
 		args        = methodElement.getArguments()
 		return self._format(
 			self._document(methodElement),
-			"%s:_meta_(function(%s){" % (method_name, ", ".join(map(self.write, args))),
+			(
+				self.options["ENABLE_METADATA"] and "%s:_meta_(function(%s){" \
+				or "%s:function(%s){"
+			) % (method_name, ", ".join(map(self.write, args))),
 			["var __this__ = this;"],
 			self._writeClosureArguments(methodElement),
 			self.writeFunctionWhen(methodElement),
 			map(self.write, methodElement.getOperations()),
-			"},%s)" % ( self._writeFunctionMeta(methodElement) )
+			(
+				(not self.options["ENABLE_METADATA"] and "}") or \
+				"},%s)" % ( self._writeFunctionMeta(methodElement))
+			)
 		)
 		
 	def _writeClassMethodProxy(self, currentClass, inheritedMethodElement):
@@ -264,13 +276,19 @@ class Writer(AbstractWriter):
 		method_name = self._rewriteSymbol(inheritedMethodElement.getName())
 		method_args = inheritedMethodElement.getArguments()
 		return self._format(
-			"%s:_meta_(function(%s){" % (method_name, ", ".join(map(self.write, method_args))),
+			(
+				self.options["ENABLE_METADATA"] and "%s:_meta_(function(%s){" \
+				or "%s:function(%s){"
+			) % (method_name, ", ".join(map(self.write, method_args))),
 			["return %s.%s.apply(%s, arguments);" % (
 				self.getAbsoluteName(inheritedMethodElement.getParent()),
 				method_name,
 				self.getAbsoluteName(currentClass)
 			)],
-			'},%s)' % ( self._writeFunctionMeta(inheritedMethodElement) )
+			(
+				(not self.options["ENABLE_METADATA"] and "}") or \
+				"},%s)" % ( self._writeFunctionMeta(inheritedMethodElement))
+			)
 		)
 
 	def onConstructor( self, element ):
@@ -282,24 +300,36 @@ class Writer(AbstractWriter):
 			attributes.append("__this__.%s = %s" % (self._rewriteSymbol(a.getName()), self.write(a.getDefaultValue())))
 		return self._format(
 			self._document(element),
-			"initialize:_meta_(function(%s){" % (
+			(
+				self.options["ENABLE_METADATA"] and "initialize:_meta_(function(%s){" \
+				or "initialize:function(%s){"
+			)  % (
 				", ".join(map(self.write, element.getArguments()))
 			),
 			["var __this__=this"],
 			self._writeClosureArguments(element),
 			attributes or None,
 			map(self.write, element.getOperations()),
-			'},%s)' % ( self._writeFunctionMeta(element) )
+			(
+				(not self.options["ENABLE_METADATA"] and "}") or \
+				"},%s)" % ( self._writeFunctionMeta(element))
+			)
 		)
 
 	def onClosure( self, closure ):
 		"""Writes a closure element."""
 		return self._format(
 			self._document(closure),
-			"_meta_(function(%s){" % ( ", ".join(map(self.write, closure.getArguments()))),
+			(
+				self.options["ENABLE_METADATA"] and "_meta_(function(%s){" \
+				or "function(%s){"
+			) % ( ", ".join(map(self.write, closure.getArguments()))),
 			self._writeClosureArguments(closure),
 			map(self.write, closure.getOperations()),
-			'},%s)' % ( self._writeFunctionMeta(closure) )
+			(
+				(not self.options["ENABLE_METADATA"] and "}") or \
+				"},%s)" % ( self._writeFunctionMeta(closure))
+			)
 		)
 	
 	def onClosureBody(self, closure):
@@ -347,7 +377,10 @@ class Writer(AbstractWriter):
 		name   = self._rewriteSymbol( function.getName() )
 		if parent and isinstance(parent, interfaces.IModule):
 			res = [
-				"_meta_(function(%s){" % (
+				(
+					self.options["ENABLE_METADATA"] and "_meta_(function(%s){" \
+					or "function(%s){"
+				)  % (
 					", ".join(map(self.write, function.getArguments()))
 				),
 				[self._document(function)],
@@ -355,18 +388,27 @@ class Writer(AbstractWriter):
 				self._writeClosureArguments(function),
 				self.writeFunctionWhen(function),
 				map(self.write, function.getOperations()),
-				'},%s)' % ( self._writeFunctionMeta(function) )
+				(
+					(not self.options["ENABLE_METADATA"] and "}") or \
+					"},%s)" % ( self._writeFunctionMeta(closure))
+				)
 			]
 		else:
 			res = [
 				self._document(function),
-				"_meta_(function(%s){" % (
+				(
+					self.options["ENABLE_METADATA"] and "_meta_(function(%s){" \
+					or "function(%s){"
+				)  % (
 					", ".join(map(self.write, function.getArguments()))
 				),
 				self._writeClosureArguments(function),
 				self.writeFunctionWhen(function),
 				map(self.write, function.getOperations()),
-				'},%s)' % ( self._writeFunctionMeta(function) )
+				(
+					(not self.options["ENABLE_METADATA"] and "}") or \
+					"},%s)" % ( self._writeFunctionMeta(closure))
+				)
 			]
 		if function.getAnnotations(withName="post"):
 			res[0] = "var __wrapped__ = " + res[0] + ";"

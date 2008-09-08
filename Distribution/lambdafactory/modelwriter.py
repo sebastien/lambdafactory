@@ -5,7 +5,7 @@ import lambdafactory.interfaces as interfaces
 from lambdafactory.passes import Pass
 from lambdafactory.splitter import SNIP
 __module_name__ = 'lambdafactory.modelwriter'
-PREFIX = "\t"
+PREFIX = '\t'
 def _format (value, level=None):
 	"""Format helper operation. See @format"""
 	self=__module__
@@ -27,7 +27,7 @@ def format (*values):
 	"""Formats a combination of string ang tuples. Strings are joined by
 	newlines, and the content of the inner tuples gets indented"""
 	self=__module__
-	return "\n".join(_format(values))
+	return '\n'.join(_format(values))
 
 
 def _flatten (value, res):
@@ -62,8 +62,8 @@ class AbstractWriter(Pass):
 	
 	def write(self, element):
 		res=None
-		if (element == None):
-			return ""
+		if (element is None):
+			return ''
 		elif True:
 			if (type(element) in [str, unicode]):
 				return element
@@ -91,7 +91,7 @@ class AbstractWriter(Pass):
 		for module in element.getModules():
 			if (not module.isImported()):
 				lines.append(self.write(module))
-		return "\n".join(lines)
+		return '\n'.join(lines)
 	
 	def _format(self, *values):
 		return format(*values)

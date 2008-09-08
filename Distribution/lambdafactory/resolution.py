@@ -30,7 +30,7 @@ class BasicDataFlow(Pass):
 	3) Attaches operations that reference a value to the original slot (this
 	prepares the path for the typing pass)"""
 	HANDLES = [interfaces.IProgram, interfaces.IModule, interfaces.IClass, interfaces.IMethod, interfaces.IClosure, interfaces.IProcess, interfaces.IContext, interfaces.IAllocation, interfaces.IOperation, interfaces.IValue]
-	NAME = "Resolution"
+	NAME = 'Resolution'
 	def __init__ (self):
 		Pass.__init__(self)
 	
@@ -52,10 +52,10 @@ class BasicDataFlow(Pass):
 	
 	def onProgram(self, element):
 		dataflow=self.ensureDataFlow(element)
-		dataflow.declareEnvironment("Undefined", None)
-		dataflow.declareEnvironment("True", None)
-		dataflow.declareEnvironment("False", None)
-		dataflow.declareEnvironment("Null", None)
+		dataflow.declareEnvironment('Undefined', None)
+		dataflow.declareEnvironment('True', None)
+		dataflow.declareEnvironment('False', None)
+		dataflow.declareEnvironment('Null', None)
 	
 	def onModule(self, element):
 		dataflow=self.ensureDataFlow(element)
@@ -63,14 +63,14 @@ class BasicDataFlow(Pass):
 	
 	def onClass(self, element):
 		dataflow=self.ensureDataFlow(element)
-		dataflow.declareEnvironment("super", None)
-		dataflow.declareEnvironment("self", None)
+		dataflow.declareEnvironment('super', None)
+		dataflow.declareEnvironment('self', None)
 		self.onContext(element)
 	
 	def onMethod(self, element):
 		dataflow=self.ensureDataFlow(element)
-		dataflow.declareEnvironment("super", None)
-		dataflow.declareEnvironment("self", None)
+		dataflow.declareEnvironment('super', None)
+		dataflow.declareEnvironment('self', None)
 		self.onClosure(element)
 	
 	def onClosure(self, element):
@@ -111,7 +111,7 @@ class DataFlowBinding(Pass):
 	raised, meaning that either the passes were not set up properly, or that the
 	resolution has failed (and there is an inconsistency in the program model)."""
 	HANDLES = [interfaces.IModule, interfaces.IClass]
-	NAME = "ClassParentsResolution"
+	NAME = 'ClassParentsResolution'
 	def __init__ (self):
 		Pass.__init__(self)
 	
@@ -126,7 +126,7 @@ class DataFlowBinding(Pass):
 				alias=i.getAlias()
 				slot_and_value=self.resolveAbsolute(absolute_name)
 				if (slot_and_value == FAILED):
-					self.environment.report.error("Imported module not found in scope:", absolute_name, "in", element.getName())
+					self.environment.report.error('Imported module not found in scope:', absolute_name, 'in', element.getName())
 				elif alias:
 					element.getDataFlow().declareImported(alias, slot_and_value[1], i)
 					assert((element.getDataFlow().getElement() == element))
@@ -137,11 +137,11 @@ class DataFlowBinding(Pass):
 				symbol_name=i.getImportedElement()
 				slot_and_value=self.resolveAbsolute(module_name)
 				if (slot_and_value == FAILED):
-					self.environment.report.error("Imported module not found in scope:", module_name, "in", element.getName())
+					self.environment.report.error('Imported module not found in scope:', module_name, 'in', element.getName())
 				elif True:
 					symbol_slot_and_value=self.resolve(symbol_name, slot_and_value[1])
 					if (symbol_slot_and_value == FAILED):
-						self.environment.report.error("Symbol not found in module scope:", symbol_name, "in", module_name)
+						self.environment.report.error('Symbol not found in module scope:', symbol_name, 'in', module_name)
 					elif True:
 						alias=i.getAlias()
 						value=symbol_slot_and_value[1]
@@ -155,13 +155,13 @@ class DataFlowBinding(Pass):
 							assert((element.getDataFlow().resolve(symbol_name)[0].getDataFlow() == element.getDataFlow()))
 							assert((element.getDataFlow().resolve(symbol_name)[0].getDataFlow().getElement() == element))
 			elif True:
-				self.environment.report.error(("DataFlowBinding: operation not implemented " + repr(i)))
+				self.environment.report.error(('DataFlowBinding: operation not implemented ' + repr(i)))
 	
 	def onClass(self, element):
 		for parent_class_ref in element.getParentClasses():
 			slot_and_value=self.resolveLocalOrAbsolute(parent_class_ref)
 			if (not slot_and_value[0]):
-				self.environment.report.error("Parent class not found:", parent_class_ref.getReferenceName(), "in", element.getName())
+				self.environment.report.error('Parent class not found:', parent_class_ref.getReferenceName(), 'in', element.getName())
 			elif True:
 				parent_class=slot_and_value[1]
 				assert(isinstance(parent_class, interfaces.IClass))

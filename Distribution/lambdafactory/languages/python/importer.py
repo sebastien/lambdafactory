@@ -5,7 +5,7 @@ import types
 __module_name__ = 'lambdafactory.languages.python.importer'
 class Importer:
 	"""Imports Python module into the current environment."""
-	MODULE_IGNORES = ["__builtins__"]
+	MODULE_IGNORES = ['__builtins__']
 	def __init__ (self, environment):
 		self.environment = None
 		self.environment = environment
@@ -37,7 +37,7 @@ class Importer:
 		return c
 	
 	def _getPythonFunctionArguments(self, function):
-		if hasattr(function, "im_func"):
+		if hasattr(function, 'im_func'):
 			function = function.im_func
 		f=self.environment.getFactory()
 		defaults=function.func_defaults

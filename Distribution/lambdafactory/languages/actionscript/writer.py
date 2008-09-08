@@ -8,7 +8,7 @@
 # License   : Revised BSD License
 # -----------------------------------------------------------------------------
 # Creation  : 01-Aug-2007
-# Last mod  : 23-Jul-2008
+# Last mod  : 03-Sep-2008
 # -----------------------------------------------------------------------------
 
 # SEE: http://livedocs.adobe.com/specs/actionscript/3/
@@ -32,6 +32,12 @@ class Writer(javascript.Writer):
 		javascript.Writer.__init__(self)
 		self.jsCore   = "Extend.__module__."
 		self.supportedEmbedLanguages.extend(("as", "actionscript"))
+
+	def _extendGetMethodByName(self, name,variable="__this__"):
+		return "Extend.__module__.getMethodOf(%s,'%s') " % (name)
+
+	def _extendGetClass(self, variable="__this__"):
+		return "Extend.__module__.getClassOf(%s) " % (variable)
 
 	def getRuntimeSource(s):
 		"""Returns the JavaScript code for the runtime that is necassary to run

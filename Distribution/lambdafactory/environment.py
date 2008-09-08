@@ -19,12 +19,12 @@ class Importer:
 		paths=[]
 		for path in self.environment.libraryPaths:
 			paths.append(path)
-		if os.environ.get("SUGARPATH"):
-			paths.extend(os.environ.get("SUGARPATH").split(":"))
-		module_path=moduleName.replace(".", os.path.sep)
+		if os.environ.get('SUGARPATH'):
+			paths.extend(os.environ.get('SUGARPATH').split(':'))
+		module_path=moduleName.replace('.', os.path.sep)
 		for path in paths:
 			path = os.path.abspath(os.path.expandvars(os.path.expanduser(path)))
-			for ext in ".sg .sjs .sjava .spnuts .spy".split():
+			for ext in '.sg .sjs .sjava .spnuts .spy'.split():
 				file_path=os.path.join(path, (module_path + ext))
 				if os.path.exists(file_path):
 					return file_path
@@ -33,14 +33,14 @@ class Importer:
 	def importModule(self, moduleName):
 		module_path=self.findSugarModule(moduleName)
 		if module_path:
-			self.environment.report.info("Importing module", moduleName, "from", module_path, "...")
+			self.environment.report.info('Importing module', moduleName, 'from', module_path, '...')
 			self.environment.report.indent()
 			module=self.environment.parseFile(module_path)
 			module.setImported(True)
 			self.environment.report.dedent()
 			return module
 		elif True:
-			self.environment.report.error("Module not found:", moduleName)
+			self.environment.report.error('Module not found:', moduleName)
 	
 
 class Language:
@@ -57,11 +57,11 @@ class Language:
 		self.environment = environment
 		self.name = name
 		self.basePath = self.basePath
-		self.runtime = self.loadModule("runtime")
-		self.importer = self.loadModule("importer")
-		self.writer = self.loadModule("writer")
-		self.reader = self.loadModule("reader")
-		self.runner = self.loadModule("runner")
+		self.runtime = self.loadModule('runtime')
+		self.importer = self.loadModule('importer')
+		self.writer = self.loadModule('writer')
+		self.reader = self.loadModule('reader')
+		self.runner = self.loadModule('runner')
 	
 	def addRecognizedExtension(self, extension):
 		self.readExtensions.append(extension.lower())
@@ -73,13 +73,13 @@ class Language:
 	def loadModule(self, moduleName):
 		"""Dynamically loads the language module"""
 		try:
-			exec((((("import lambdafactory.languages." + self.name) + ".") + moduleName) + " as m"))
-			module=eval("m")
-			return getattr(module, "MAIN_CLASS")
+			exec((((('import lambdafactory.languages.' + self.name) + '.') + moduleName) + ' as m'))
+			module=eval('m')
+			return getattr(module, 'MAIN_CLASS')
 		except Exception, e:
 			error=str(e)
-			if (not error.startswith("No module")):
-				self.environment.report.error(((((("Language " + self.name) + ", cannot import module ") + moduleName) + ": ") + str(e)))
+			if (not error.startswith('No module')):
+				self.environment.report.error(((((('Language ' + self.name) + ', cannot import module ') + moduleName) + ': ') + str(e)))
 			return None
 	
 
@@ -92,7 +92,7 @@ class Environment:
 	program. The order of passe is important, as some passes depend on each other.
 	It is up to the 'lambdafactory.main.Command' subclass to set up the passes
 	appropriately."""
-	ALIASES = {"actionscript":["actionscript", "as", "ascript"], "javascript":["javascript", "js", "jscript"], "python":["python", "py"], "pnuts":["pnuts"]}
+	ALIASES = {'actionscript':['actionscript', 'as', 'ascript'], 'javascript':['javascript', 'js', 'jscript'], 'python':['python', 'py'], 'pnuts':['pnuts']}
 	def __init__ (self):
 		self.factory = None
 		self.program = None
@@ -163,7 +163,7 @@ class Environment:
 	
 	def listAvailableLanguages(self):
 		"""Returns a list of available languages"""
-		base_dir=os.path.join(os.path.dirname(os.path.abspath(__file__)), "languages")
+		base_dir=os.path.join(os.path.dirname(os.path.abspath(__file__)), 'languages')
 		languages=[]
 		for name in os.listdir(base_dir):
 			if os.path.isdir(os.path.join(base_dir, name)):
