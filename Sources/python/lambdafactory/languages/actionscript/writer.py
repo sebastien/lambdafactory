@@ -8,7 +8,7 @@
 # License   : Revised BSD License
 # -----------------------------------------------------------------------------
 # Creation  : 01-Aug-2007
-# Last mod  : 05-Sep-2008
+# Last mod  : 23-Sep-2008
 # -----------------------------------------------------------------------------
 
 # SEE: http://livedocs.adobe.com/specs/actionscript/3/
@@ -156,7 +156,7 @@ class Writer(javascript.Writer):
 			version = 'public static _VERSION_:String = "%s";' % (version.getContent())
 		code       = [
 			self._document(classElement),
-			"public class %s %s{" % (classElement.getName(), parent),
+			"public dynamic class %s %s{" % (classElement.getName(), parent),
 			version,
 			class_code,
 			"}"
