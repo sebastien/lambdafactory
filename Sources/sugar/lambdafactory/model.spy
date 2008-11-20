@@ -1027,6 +1027,7 @@
 		# REWRITE
 		op_copy = Element _copy(self)
 		for a in opArguments
+			# FIXME: This does not work when a is a list
 			op_copy addOpArgument (a copy() detach())
 		end
 		return op_copy
