@@ -128,9 +128,10 @@ class PassContext:
 	def getCurrentProcess(self):
 		return self.findInContext(interfaces.IProcess)
 	
-	def getCurrentClassParents(self, theClass):
+	def getCurrentClassParents(self, theClass=None):
+		if theClass is None: theClass = None
 		parents=[]
-		if (theClass == None):
+		if (theClass is None):
 			theClass = self.getCurrentClass()
 		if (not theClass):
 			return tuple([])
@@ -143,13 +144,13 @@ class PassContext:
 			if parent_class:
 				parents.append(parent_class)
 			elif True:
-				self.environment.report.error("Unable to resolve parent class:", parent_class_name, "from", current_class.getName())
+				self.environment.report.error('Unable to resolve parent class:', parent_class_name, 'from', current_class.getName())
 		return parents
 	
 	def getCurrentClassAncestors(self, theClass=None):
 		if theClass is None: theClass = None
 		ancestors=[]
-		if (theClass == None):
+		if (theClass is None):
 			theClass = self.getCurrentClass()
 		if (not theClass):
 			return tuple([])
@@ -168,7 +169,7 @@ class PassContext:
 		you've applied a pass to create the dataflow (see the
 		'lambdafactory.resolution.BasicDataFlow' pass)."""
 		if contextOrDataFlow is None: contextOrDataFlow = None
-		if (contextOrDataFlow == None):
+		if (contextOrDataFlow is None):
 			contextOrDataFlow = self.getCurrentDataFlow()
 		elif isinstance(contextOrDataFlow, interfaces.IElement):
 			contextOrDataFlow = contextOrDataFlow.getDataFlow()
@@ -195,7 +196,7 @@ class PassContext:
 				matching_module = module
 				return tuple([None, module])
 			match_index=mname.find(referenceOrName)
-			if (((match_index == 0) and referenceOrName.startswith(mname)) and (referenceOrName[mname_len] == ".")):
+			if (((match_index == 0) and referenceOrName.startswith(mname)) and (referenceOrName[mname_len] == '.')):
 				if (not matching_module):
 					matching_module = module
 				elif (len(module.getName()) > len(matching_module.getName())):
@@ -234,7 +235,7 @@ class PassContext:
 
 class Pass(PassContext):
 	HANDLES = []
-	NAME = ""
+	NAME = ''
 	def __init__ (self):
 		PassContext.__init__(self)
 		self.setPass(self)
@@ -247,9 +248,9 @@ class Pass(PassContext):
 		name (without the leading 'I')."""
 		for interface in self.__class__.HANDLES:
 			if isinstance(element, interface):
-				handler_name=("on" + interface.__name__[1:])
+				handler_name=('on' + interface.__name__[1:])
 				if (not hasattr(self, handler_name)):
-					self.environment.report.error("Handler does not define pass for:", handler_name)
+					self.environment.report.error('Handler does not define pass for:', handler_name)
 					raise ERR_PASS_HANDLER_NOT_DEFINED(handler_name)
 				return getattr(self, handler_name)
 		return None
@@ -265,7 +266,7 @@ class ImportationPass(Pass):
 	and will trigger the loading and parsing of each module into the current
 	program."""
 	HANDLES = [interfaces.IModule]
-	NAME = "Importation"
+	NAME = 'Importation'
 	def __init__ (self):
 		Pass.__init__(self)
 	
@@ -283,7 +284,7 @@ class ImportationPass(Pass):
 				imported_module_name=i.getImportOrigin()
 				imported_module=self.environment.importModule(imported_module_name)
 			elif True:
-				self.environment.report.error(("ImportationPass: operation not implemented " + repr(i)))
+				self.environment.report.error(('ImportationPass: operation not implemented ' + repr(i)))
 		return False
 	
 
@@ -291,7 +292,7 @@ class DocumentationPass(Pass):
 	"""The documentation pass will run SDoc on all the modules declared in this
 	program, creating an HTML file."""
 	HANDLES = [interfaces.IModule]
-	NAME = "Documentation"
+	NAME = 'Documentation'
 	def __init__ (self, args=None):
 		self.sdocArguments = None
 		self.sdocDocumenter = None
@@ -313,5 +314,5 @@ class DocumentationPass(Pass):
 
 class TransformAsynchronousInvocations(Pass):
 	HANDLES = [interfaces.IClosure]
-	NAME = "AsynchronousInvocationsExpansion"
+	NAME = 'AsynchronousInvocationsExpansion'
 

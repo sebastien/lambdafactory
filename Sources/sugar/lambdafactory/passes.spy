@@ -196,7 +196,7 @@
 			return findInContext (interfaces IProcess)
 		@end
 		
-		@method getCurrentClassParents theClass
+		@method getCurrentClassParents theClass=None
 			var parents = []
 			if theClass is None
 				theClass = getCurrentClass()

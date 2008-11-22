@@ -1,4 +1,4 @@
-#APP_FINKr!/usr/bin/env python
+#!/usr/bin/env python
 # Encoding: iso-8859-1
 # vim: tw=80 ts=4 sw=4 noet
 # -----------------------------------------------------------------------------
@@ -467,7 +467,7 @@ class Writer(AbstractWriter):
 			else:
 				raise Exception("Importation operation not implemeted yet")
 		# It is a method of the current class
-		elif self.getCurrentClass() == scope:
+		elif self.getCurrentClass() == scope or scope in self.getCurrentClassParents():
 			if isinstance(value, interfaces.IInstanceMethod):
 				# Here we need to wrap the method if they are given as values (
 				# that means used outside of direct invocations), because when
