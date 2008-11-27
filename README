@@ -1,1 +1,31 @@
 == LambdaFactory
+== Custom Language Development Kit
+
+LambdaFactory provides a factory-based (as in design patterns) API to create
+every element that makes a program, from the simple computations to the
+OO and functional constructs.
+
+LambdaFactory support front-end and back-end plugins. Front-end plugins are
+parsers that parse a specific language and generate a LambdaFactory program
+model. Back-end plugins are plugins that translate the LambdaFactory program
+model to a specific language.
+
+LambdaFactory comes with the following backends:
+
+  - JavaScript
+  - ActionScript 3.0
+  - Python
+
+Installing LambdaFactory
+========================
+
+Simply put the 'Distribution/lambdafactory' somewhere in your 'PYTHONPATH' or
+do:
+
+>	export $PYTHONPATH=`pwd`/Distribution/lambdafactory
+
+or use the regular way
+
+>	python setup.py install
+
+# EOF
