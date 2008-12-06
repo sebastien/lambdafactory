@@ -128,7 +128,8 @@ class PassContext:
 	def getCurrentProcess(self):
 		return self.findInContext(interfaces.IProcess)
 	
-	def getCurrentClassParents(self, theClass):
+	def getCurrentClassParents(self, theClass=None):
+		if theClass is None: theClass = None
 		parents=[]
 		if (theClass is None):
 			theClass = self.getCurrentClass()

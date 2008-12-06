@@ -152,6 +152,8 @@ class Environment:
 		if moduleName is None: moduleName = None
 		extension=os.path.splitext(path)[-1][1:].lower()
 		parser=self.parsers.get(extension)
+		if (not parser):
+			parser = self.parsers.get('sg')
 		source_and_module=parser.parse(path, moduleName)
 		return source_and_module[1]
 	
