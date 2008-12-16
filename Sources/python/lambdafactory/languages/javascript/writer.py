@@ -1,6 +1,3 @@
-#!/usr/bin/env python
-# Encoding: iso-8859-1
-# vim: tw=80 ts=4 sw=4 noet
 # -----------------------------------------------------------------------------
 # Project   : LambdaFactory
 # -----------------------------------------------------------------------------
@@ -8,7 +5,7 @@
 # License   : Revised BSD License
 # -----------------------------------------------------------------------------
 # Creation  : 02-Nov-2006
-# Last mod  : 03-Sep-2008
+# Last mod  : 16-Dec-2008
 # -----------------------------------------------------------------------------
 
 # TODO: When constructor is empty, should assign default attributes anyway
@@ -115,12 +112,13 @@ class Writer(AbstractWriter):
 
 	def onModule( self, moduleElement):
 		"""Writes a Module element."""
+		module_name = self._rewriteSymbol(moduleElement.getName())
 		code = [
 			"// " + SNIP % ("%s.js" % (self.getAbsoluteName(moduleElement).replace(".", "/"))),
 			self._document(moduleElement),
 			self.options["ENABLE_METADATA"] and "function _meta_(v,m){var ms=v['__meta__']||{};for(var k in m){ms[k]=m[k]};v['__meta__']=ms;return v}" or "",
-			"var %s={}" % (self._rewriteSymbol(moduleElement.getName())),
-			"var __this__=%s" % (self._rewriteSymbol(moduleElement.getName()))
+			"var %s=%s||{}" % (module_name, module_name),
+			"var __this__=%s" % (module_name)
 		]
 		version = moduleElement.getAnnotation("version")
 		if version:
@@ -985,4 +983,4 @@ class Writer(AbstractWriter):
 			return None
 
 MAIN_CLASS = Writer
-# EOF
+# EOF - vim: tw=80 ts=4 sw=4 noet
