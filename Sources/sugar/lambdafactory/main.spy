@@ -21,6 +21,7 @@
 	@shared OPT_API        = "Generates SDoc API documentation (give the apifilename)"
 	@shared OPT_TEST       = "Tells wether the source code is valid or not"
 	@shared OPT_DEFINE     = "Defines a specific target (for @specific)"
+	@shared OPT_OPTIONS    = "Options for program transformation passes"
 	@shared OPT_RUN        = "Directly runs the script (default)"
 	@shared OPT_COMPILE    = "Compiles the given code to the output (current) directory"
 	@shared OPT_RUNTIME    = "Outputs the runtime as well when compiled"
@@ -82,6 +83,8 @@
 		|	help=self.OPT_SOURCE)
 		|option_parser.add_option("-D", "--define", action="append", dest="targets", 
 		|	help=self.OPT_DEFINE)
+		|option_parser.add_option("-O", "--options", action="append", dest="passes", 
+		|	help=self.OPT_OPTIONS)
 		|option_parser.add_option("-L", "--lib", action="append", dest="libraries", 
 		|	help=self.OPT_DEFINE)
 		|option_parser.add_option("-V", None, action="store", dest="version", 
@@ -124,7 +127,7 @@
 		if not language
 			raise ERR_NO_LANGUAGE_SPECIFIED
 		end
-		setupPasses(language)
+		setupPasses(language,options passes)
 		transformProgram()
 		# We compile, run or simply test
 		if options api
@@ -225,11 +228,11 @@
 	@method setupEnvironment
 	@end
 
-	@method setupPasses language=None
+	@method setupPasses language=None, options=[]
 		# Passes:
 		#  Importation
 		# TODO: Add groups of passes
-		if language == "javascript"
+		if language == "javascript" and (not ("NORUNTIME" in options))
 			environment addPass ( new passes ExtendJSRuntime() )
 		end
 		environment addPass ( new passes ImportationPass() )
