@@ -409,7 +409,6 @@
 		return isinstance(self,IReferencable) or isinstance(self,IAnnotation)
 	@end
 
-
 	@method getParent
 		return parent
 	@end
@@ -844,6 +843,10 @@
 		for op in module getImportOperations ()
 			op detach ()
 			addImportOperation (op)
+		end
+		for an in module annotations
+			an detach ()
+			self annotate (an)
 		end
 		for slot in module getSlots ()
 			var name, value = slot
