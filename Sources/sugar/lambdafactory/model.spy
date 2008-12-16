@@ -260,6 +260,13 @@
 		end
 	@end
 
+	@method unsetParent
+		if parent
+			self parent removeChild (self)
+			self parent = None
+		end
+	@end
+
 	@method setParent parent
 		assert (self parent is None or parent == self parent)
 		if parent
@@ -835,10 +842,12 @@
 	
 	@method mergeWith module
 		for op in module getImportOperations ()
+			op detach ()
 			addImportOperation (op)
 		end
 		for slot in module getSlots ()
 			var name, value = slot
+			value detach ()
 			setSlot (name, value)
 		end
 	@end
