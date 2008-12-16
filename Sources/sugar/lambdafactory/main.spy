@@ -29,16 +29,15 @@
 	@shared OPT_MODULE     = "Specifies the module name"
 	@shared OPT_LIB        = "Specifies a path where the library is"
 	@shared OPT_PREPROC    = "Applies the given preprocessor to the source"
-	
+
 	@property programName
 	@property environment:Environment
-	
+
 	@constructor programName="lambdaf"
 		self programName = programName
 		createEnvironment()
 		environment loadLanguages()
 		setupEnvironment()
-		setupPasses()
 	@end
 
  	@method runAsString args
@@ -122,10 +121,11 @@
 				environment addLibraryPath (l)
 			end
 		end
-		transformProgram()
 		if not language
 			raise ERR_NO_LANGUAGE_SPECIFIED
 		end
+		setupPasses(language)
+		transformProgram()
 		# We compile, run or simply test
 		if options api
 			html_documentation =  environment getPass "Documentation" asHTML() 
@@ -185,8 +185,6 @@
 
 	@method transformProgram
 		environment runPasses()
-		# FIXME: This should be a pass
-		# environment resolver flow (environment getProgram())
 	@end
 
 	@method guessLanguage sourcePath
@@ -227,10 +225,13 @@
 	@method setupEnvironment
 	@end
 
-	@method setupPasses
+	@method setupPasses language=None
 		# Passes:
 		#  Importation
 		# TODO: Add groups of passes
+		if language == "javascript"
+			environment addPass ( new passes ExtendJSRuntime() )
+		end
 		environment addPass ( new passes ImportationPass() )
 		environment addPass ( new resolution BasicDataFlow() )
 		environment addPass ( new resolution DataFlowBinding() )

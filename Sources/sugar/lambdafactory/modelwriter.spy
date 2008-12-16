@@ -117,6 +117,10 @@
 		var res = None
 		if element is None
 			return ""
+		if element hasAnnotation "shadow"
+			# We do not write out shadow elements (like automatic import
+			# operations added)
+			return ""
 		else
 			if type(element) in [str, unicode]
 				return element

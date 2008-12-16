@@ -150,8 +150,6 @@
 	@property languages={}
 	@property libraryPaths   = []
 	@property options={}
-	# FIXME: This should be a pass
-	@property resolver=None
 	
 	@constructor
 		importer = new Importer(self)

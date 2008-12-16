@@ -504,6 +504,9 @@ class Writer(AbstractWriter):
 				module_name = o.getImportOrigin()
 				symbol_name = o.getImportedElement()
 				return module_name + "." + symbol_name
+			elif isinstance(o, interfaces.IImportSymbolsOperation):
+				module_name = o.getImportOrigin()
+				return module_name + "." + symbol_name
 			else:
 				raise Exception("Importation operation not implemeted yet")
 		# It is a method of the current class

@@ -453,13 +453,18 @@
 			annotations append (annotation)
 		end
 	@end
-	
+
 	@method getAnnotations withName
 		@embed Python
 		| return [a for a in self.annotations if a.getName() == withName]
 		@end
 	@end
-	
+
+	@method hasAnnotation withName
+		var annotations = getAnnotations (withName)
+		return len(annotations) > 0
+	@end
+
 	@method getAnnotation withName
 		var annotations = getAnnotations (withName)
 		if annotations
@@ -655,6 +660,14 @@
 	
 	@method getSlots
 		return slots
+	@end
+
+	@method getSlotNames
+		var res = []
+		for slot in slots
+			res append (slot[0])
+		end
+		return res
 	@end
 
 	@method setParent context:Context
@@ -986,11 +999,13 @@
 
 	@method setArguments arguments
 		self arguments = []
-		for argument in arguments
-			if not isinstance(argument, ISlot)
-				raise ERR_CLOSURE_ARGUMENT_NOT_SLOT
+		if arguments
+			for argument in arguments
+				if not isinstance(argument, ISlot)
+					raise ERR_CLOSURE_ARGUMENT_NOT_SLOT
+				end
+				self arguments append(argument)
 			end
-			self arguments append(argument)
 		end
 	@end
 	

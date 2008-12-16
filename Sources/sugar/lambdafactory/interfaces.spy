@@ -194,6 +194,12 @@
 	@abstract @method getAnnotation name
 	| Gets the annotation with the given name associated to this element
 
+	@abstract @method getAnnotations name
+	| Gets all the annotation with the given name associated to this element
+
+	@abstract @method hasAnnotation name
+	| Tells if the given element has an annotation with the given name
+
 	@abstract @method setAnnotation name, annotation
 	| Sets the annotation with the given name to this element
 
@@ -477,6 +483,9 @@
 	|	context. In the case of context that may inherits slots, this only
 	|	returns the slots that are owned by the context (ie. it does not
 	|	include inherited slots)
+
+	@abstract @method getSlotNames
+	|	Returns the list of slot names (in order) for this context
 
 	@abstract @method setParent context 
 	|	Sets the parent context for this context.

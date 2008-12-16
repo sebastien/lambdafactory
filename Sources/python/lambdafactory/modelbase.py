@@ -12,6 +12,7 @@
 # -----------------------------------------------------------------------------
 
 # FIXME: Evaluable == Expression ?
+# TODO: Add type checking in factory
 
 import model
 import modeltypes as mt
@@ -81,7 +82,7 @@ class Factory:
 		if operations: map(r.addOperation, operations)
 		return r
 
-	def createFunction( self, name, arguments ):
+	def createFunction( self, name, arguments=None ):
 		# FIXME: Implement optional arguments for all of that
 		return self._getImplementation("Function")(name, arguments)
 
@@ -205,7 +206,7 @@ class Factory:
 	def doc( self, content ):
 		return self._getImplementation("Documentation")(content)
 	
-	def annotation( self, name, content ):
+	def annotation( self, name, content=None ):
 		return self._getImplementation("Annotation")(name, content)
 	
 	# FIXME: RENAME TO SYMBOL
