@@ -53,7 +53,7 @@ class Writer(AbstractWriter):
 	def __init__( self ):
 		AbstractWriter.__init__(self)
 		self.jsPrefix = ""
-		self.jsCore   = "Extend."
+		self.jsCore   = "extend."
 		self.supportedEmbedLanguages = ["ecmascript", "js", "javascript"]
 		self.inInvocation = False
 		self.options = {}
@@ -122,7 +122,7 @@ class Writer(AbstractWriter):
 		]
 		version = moduleElement.getAnnotation("version")
 		if version:
-			code.append("%s._VERSION_='%s';" % (self._rewriteSymbol(moduleElement.getName()),version.getContent()))
+			code.append("%s.__VERSION__='%s';" % (self._rewriteSymbol(moduleElement.getName()),version.getContent()))
 		for name, value in moduleElement.getSlots():
 			if isinstance(value, interfaces.IModuleAttribute):
 				code.extend(["%s.%s" % (self._rewriteSymbol(moduleElement.getName()), self.write(value))])

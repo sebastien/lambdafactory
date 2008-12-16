@@ -393,6 +393,44 @@
 
 # ============================================================================
 #
+# Global Runtime Pass
+#
+# ============================================================================
+
+@class GlobalRuntime: Pass
+| This pass is like an importation and will simply bind the symbols
+
+	@shared HANDLES = [ interfaces IModule ]
+	@shared NAME    = "Importation"
+
+	@constructor
+		Pass __init__ (self)
+	@end
+
+	@method onModule module
+
+		var imports = module getImportOperations()
+		for i in imports
+			if isinstance(i, interfaces IImportModuleOperation)
+				var imported_module_name = i getImportedModuleName()
+				var imported_module_origin = i getAlias()
+				var imported_module = environment importModule (imported_module_name)
+			if isinstance(i, interfaces IImportSymbolOperation)
+				var imported_module_name = i getImportOrigin()
+				var imported_module = environment importModule (imported_module_name)
+			if isinstance(i, interfaces IImportSymbolsOperation)
+				var imported_module_name = i getImportOrigin()
+				var imported_module = environment importModule (imported_module_name)
+			else
+				environment report error ("ImportationPass: operation not implemented " + repr(i))
+			end
+		end
+		return False
+	@end
+	
+@end
+# ============================================================================
+#
 # Importation Pass
 #
 # ============================================================================

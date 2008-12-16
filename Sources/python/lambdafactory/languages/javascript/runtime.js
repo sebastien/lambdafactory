@@ -1,35 +1,15 @@
-// 8< ---[Extend.js]---
-// This module implements a complete OOP layer for JavaScript that makes it
-// easy to develop highly structured JavaScript applications.
-// 
-// Classes are created using extend by giving a dictionary that contains the
-// following keys:
-// 
-// - 'name', an optional name for this class
-// - 'parent', with a reference to a parent class (created with Extend)
-// - 'initialize', with a function to be used as a constructor
-// - 'properties', with a dictionary of instance attributes
-// - 'methods', with a dictionary of instance methods
-// - 'shared', with a dictionary of class attributes
-// - 'operations', with a dictionary of class operations
-// 
-// Extend 2.0 is a rewritten, simplified version of the Extend 1 library. It is
-// not compatible with the previous versions, but the API will be stable from
-// this release.
-// 
-// You can get more information at the Extend [project
-// page](http://www.ivy.fr/js/extend).
-function _meta_(v,m){var ms=v['__meta__']||{};for(var k in m){ms[k]=m[k]};v['__meta__']=ms;return v}
-var Extend={}
-var __this__=Extend
-Extend._VERSION_='2.1.0a';
-Extend.Registry={}
-Extend.Class=	_meta_(function(declaration){
+// 8< ---[extend.js]---
+
+var extend=extend||{}
+var __this__=extend
+extend.__VERSION__='2.2.0';
+extend.Counters={'Instances':0}
+extend.Class=	function(declaration){
 		// Classes are created using extend by giving a dictionary that contains the
 		// following keys:
 		// 
 		// - 'name', an optional name for this class
-		// - 'parent', with a reference to a parent class (created with Extend)
+		// - 'parent', with a reference to a parent class (created with extend)
 		// - 'initialize', with a function to be used as a constructor
 		// - 'properties', with a dictionary of instance attributes
 		// - 'methods', with a dictionary of instance methods
@@ -66,7 +46,7 @@ Extend.Class=	_meta_(function(declaration){
 		// 
 		// Using the 'Class' function is very easy (in *Sugar*):
 		// 
-		// >   var MyClass = Extend Class {
+		// >   var MyClass = extend Class {
 		// >      name:"MyClass"
 		// >      initialize:{
 		// >         self message = "Hello, world !"
@@ -79,10 +59,10 @@ Extend.Class=	_meta_(function(declaration){
 		// instanciating the class is very easy too
 		// 
 		// >   var my_instance = new MyClass()
-		var __this__=Extend;
+		var __this__=extend;
 		var full_name=declaration.name;
-		var class_object=_meta_(function(){
-			if ( (! ((arguments.length == 1) && (arguments[0] == "__Extend_SubClass__"))) )
+		var class_object=function(){
+			if ( (! ((arguments.length == 1) && (arguments[0] == '__Extend_SubClass__'))) )
 			{
 				 var properties = class_object.listProperties()
 				 for ( var prop in properties ) {
@@ -94,35 +74,23 @@ Extend.Class=	_meta_(function(declaration){
 					return this.initialize.apply(this, arguments)
 				}
 			}
-		},	{
-				arity:0,
-				arguments:[]
-			});
-		class_object.isClass = _meta_(function(){
+		};
+		class_object.isClass = function(){
 			return true
-		},	{
-				arity:0,
-				arguments:[]
-			});
+		};
 		class_object._parent = declaration.parent;
 		class_object._name = declaration.name;
-		class_object._properties = {"all":{}, "inherited":{}, "own":{}};
-		class_object._shared = {"all":{}, "inherited":{}, "own":{}};
-		class_object._operations = {"all":{}, "inherited":{}, "own":{}, "fullname":{}};
-		class_object._methods = {"all":{}, "inherited":{}, "own":{}, "fullname":{}};
-		class_object.getName = _meta_(function(){
+		class_object._properties = {'all':{}, 'inherited':{}, 'own':{}};
+		class_object._shared = {'all':{}, 'inherited':{}, 'own':{}};
+		class_object._operations = {'all':{}, 'inherited':{}, 'own':{}, 'fullname':{}};
+		class_object._methods = {'all':{}, 'inherited':{}, 'own':{}, 'fullname':{}};
+		class_object.getName = function(){
 			return class_object._name
-		},	{
-				arity:0,
-				arguments:[]
-			});
-		class_object.getParent = _meta_(function(){
+		};
+		class_object.getParent = function(){
 			return class_object._parent
-		},	{
-				arity:0,
-				arguments:[]
-			});
-		class_object.isSubclassOf = _meta_(function(c){
+		};
+		class_object.isSubclassOf = function(c){
 			var parent=this;
 			while (parent)
 			{
@@ -133,19 +101,13 @@ Extend.Class=	_meta_(function(declaration){
 				parent = parent.getParent();
 			}
 			return false
-		},	{
-				arity:1,
-				arguments:[{'name': 'c'}]
-			});
-		class_object.hasInstance = _meta_(function(o){
+		};
+		class_object.hasInstance = function(o){
 			return o.getClass().isSubclassOf(class_object)
-		},	{
-				arity:1,
-				arguments:[{'name': 'o'}]
-			});
-		class_object.bindMethod = _meta_(function(object, methodName){
+		};
+		class_object.bindMethod = function(object, methodName){
 			var this_method=object[methodName];
-			return _meta_(function(){
+			return function(){
 				var a=arguments;
 				if ( (a.length == 0) )
 				{
@@ -174,19 +136,14 @@ Extend.Class=	_meta_(function(declaration){
 				else if ( true )
 				{
 					var args=[];
+					args.concat(arguments)
 					return this_method.apply(object, args)
 				}
-			},	{
-					arity:0,
-					arguments:[]
-				})
-		},	{
-				arity:2,
-				arguments:[{'name': 'object'}, {'name': 'methodName'}]
-			});
-		class_object.bindCallback = _meta_(function(object, methodName){
+			}
+		};
+		class_object.bindCallback = function(object, methodName){
 			var this_method=object[methodName];
-			return _meta_(function(){
+			return function(){
 				var a=arguments;
 				if ( (a.length == 0) )
 				{
@@ -215,29 +172,19 @@ Extend.Class=	_meta_(function(declaration){
 				else if ( true )
 				{
 					var args=[];
+					args.concat(arguments)
+					args.push(this)
 					return this_method.apply(object, args)
 				}
-			},	{
-					arity:0,
-					arguments:[]
-				})
-		},	{
-				arity:2,
-				arguments:[{'name': 'object'}, {'name': 'methodName'}]
-			});
-		class_object.getOperation = _meta_(function(name){
+			}
+		};
+		class_object.getOperation = function(name){
 			var this_operation=class_object[name];
-			return _meta_(function(){
+			return function(){
 				return this_operation.apply(class_object, arguments)
-			},	{
-					arity:0,
-					arguments:[]
-				})
-		},	{
-				arity:1,
-				arguments:[{'name': 'name'}]
-			});
-		class_object.listMethods = _meta_(function(o, i){
+			}
+		};
+		class_object.listMethods = function(o, i){
 			if ( (o === undefined) )
 			{
 				o = true;
@@ -262,11 +209,8 @@ Extend.Class=	_meta_(function(declaration){
 			{
 				return {}
 			}
-		},	{
-				arity:2,
-				arguments:[{'name': 'o'}, {'name': 'i'}]
-			});
-		class_object.listOperations = _meta_(function(o, i){
+		};
+		class_object.listOperations = function(o, i){
 			if ( (o === undefined) )
 			{
 				o = true;
@@ -291,11 +235,8 @@ Extend.Class=	_meta_(function(declaration){
 			{
 				return {}
 			}
-		},	{
-				arity:2,
-				arguments:[{'name': 'o'}, {'name': 'i'}]
-			});
-		class_object.listShared = _meta_(function(o, i){
+		};
+		class_object.listShared = function(o, i){
 			if ( (o === undefined) )
 			{
 				o = true;
@@ -320,11 +261,8 @@ Extend.Class=	_meta_(function(declaration){
 			{
 				return {}
 			}
-		},	{
-				arity:2,
-				arguments:[{'name': 'o'}, {'name': 'i'}]
-			});
-		class_object.listProperties = _meta_(function(o, i){
+		};
+		class_object.listProperties = function(o, i){
 			if ( (o === undefined) )
 			{
 				o = true;
@@ -349,30 +287,18 @@ Extend.Class=	_meta_(function(declaration){
 			{
 				return {}
 			}
-		},	{
-				arity:2,
-				arguments:[{'name': 'o'}, {'name': 'i'}]
-			});
-		class_object.proxyWithState = _meta_(function(o){
+		};
+		class_object.proxyWithState = function(o){
 			var proxy={};
 			var constr=undefined;
-			var wrapper=_meta_(function(f){
-				return _meta_(function(){
+			var wrapper=function(f){
+				return function(){
 					return f.apply(o, arguments)
-				},	{
-						arity:0,
-						arguments:[]
-					})
-			},	{
-					arity:1,
-					arguments:[{'name': 'f'}]
-				});
-			var proxy_object=_meta_(function(){
+				}
+			};
+			var proxy_object=function(){
 				return class_object.prototype.initialize.apply(o, arguments)
-			},	{
-					arity:0,
-					arguments:[]
-				});
+			};
 			proxy_object.prototype = proxy;
 			 for (var key in class_object.prototype) {
 			  var w = wrapper(class_object.prototype[key])
@@ -382,17 +308,11 @@ Extend.Class=	_meta_(function(declaration){
 			  proxy_object[key] = w
 			 }
 			
-			proxy_object.getSuper = _meta_(function(){
+			proxy_object.getSuper = function(){
 				return class_object.getParent().proxyWithState(o)
-			},	{
-					arity:0,
-					arguments:[]
-				});
+			};
 			return proxy_object
-		},	{
-				arity:1,
-				arguments:[{'name': 'o'}]
-			});
+		};
 		if ( declaration.parent != undefined ) {
 			// We proxy parent operations
 			for ( var name in declaration.parent._operations.fullname ) {
@@ -462,42 +382,27 @@ Extend.Class=	_meta_(function(declaration){
 		var instance_proto={};
 		if ( declaration.parent )
 		{
-			instance_proto = new declaration.parent("__Extend_SubClass__");
+			instance_proto = new declaration.parent('__Extend_SubClass__');
 			instance_proto.constructor = class_object;
 		}
 		instance_proto.isInstance = undefined;
-		instance_proto.getClass = _meta_(function(){
+		instance_proto.getClass = function(){
 			return class_object
-		},	{
-				arity:0,
-				arguments:[]
-			});
-		instance_proto.isClass = _meta_(function(){
+		};
+		instance_proto.isClass = function(){
 			return false
-		},	{
-				arity:0,
-				arguments:[]
-			});
-		instance_proto.getMethod = _meta_(function(methodName){
+		};
+		instance_proto.getMethod = function(methodName){
 			var this_object=this;
 			return class_object.bindMethod(this_object, methodName)
-		},	{
-				arity:1,
-				arguments:[{'name': 'methodName'}]
-			});
-		instance_proto.getCallback = _meta_(function(methodName){
+		};
+		instance_proto.getCallback = function(methodName){
 			var this_object=this;
 			return class_object.bindCallback(this_object, methodName)
-		},	{
-				arity:1,
-				arguments:[{'name': 'methodName'}]
-			});
-		instance_proto.isInstance = _meta_(function(c){
+		};
+		instance_proto.isInstance = function(c){
 			return c.hasInstance(this)
-		},	{
-				arity:1,
-				arguments:[{'name': 'c'}]
-			});
+		};
 		if ( declaration.initialize )
 		{
 			instance_proto.initialize = declaration.initialize;
@@ -506,12 +411,13 @@ Extend.Class=	_meta_(function(declaration){
 		{
 			instance_proto.instance_proto = {};
 		}
-		instance_proto.getSuper = _meta_(function(c){
+		instance_proto.getSuper = function(c){
 			return c.proxyWithState(this)
-		},	{
-				arity:1,
-				arguments:[{'name': 'c'}]
-			});
+		};
+		if ( declaration.operations != undefined ) {
+			for ( var name in declaration.operations ) {
+				instance_proto[name] = instance_proto[full_name + "_" + name] = class_object.getOperation(name)
+		}}
 		if ( declaration.methods != undefined ) {
 			for ( var name in declaration.methods ) {
 				instance_proto[name] = instance_proto[full_name + "_" + name] = declaration.methods[name]
@@ -523,40 +429,21 @@ Extend.Class=	_meta_(function(declaration){
 		class_object.prototype = instance_proto;
 		if ( declaration.name )
 		{
-			Extend.Registry[declaration.name] = class_object;
+			if ( (extend.Registry != undefined) )
+			{
+				extend.Registry[declaration.name] = class_object;
+			}
 		}
 		return class_object
-	},	{
-			arity:1,
-			arguments:[{'name': 'declaration'}]
-		})
-Extend.Protocol=	_meta_(function(pdata){
-		var __this__=Extend;
-	},	{
-			arity:1,
-			arguments:[{'name': 'pdata'}]
-		})
-Extend.Singleton=	_meta_(function(sdata){
-		var __this__=Extend;
-	},	{
-			arity:1,
-			arguments:[{'name': 'sdata'}]
-		})
-Extend.getClass=	_meta_(function(name){
-		var __this__=Extend;
-		return Extend.Registry[name]
-	},	{
-			arity:1,
-			arguments:[{'name': 'name'}]
-		})
-Extend.getClasses=	_meta_(function(){
-		var __this__=Extend;
-		return Extend.Registry
-	},	{
-			arity:0,
-			arguments:[]
-		})
-Extend.invoke=	_meta_(function(t, f, args, extra){
+	}
+extend.Protocol=	function(pdata){
+		var __this__=extend;
+	}
+extend.Singleton=	function(sdata){
+		var __this__=extend;
+	}
+extend.ErrorCallback=undefined
+extend.invoke=	function(t, f, args, extra){
 		// The 'invoke' method allows advanced invocation (supporting by name, as list
 		// and as map invocation schemes) provided the given function 'f' has proper
 		// '__meta__' annotation.
@@ -572,27 +459,18 @@ Extend.invoke=	_meta_(function(t, f, args, extra){
 		// >        }
 		// >    }
 		// 
-		var __this__=Extend;
-		var meta=f["__meta__"];
+		var __this__=extend;
+		var meta=f['__meta__'];
 		var actual_args=[];
-		Extend.iterate(extra["*"], _meta_(function(v){
+		extend.iterate(extra['*'], function(v){
 			args.push(v)
-		},	{
-				arity:1,
-				arguments:[{'name': 'v'}]
-			}), __this__)
-		Extend.iterate(extra["**"], _meta_(function(v, k){
+		}, __this__)
+		extend.iterate(extra['**'], function(v, k){
 			extra[k] = v;
-		},	{
-				arity:2,
-				arguments:[{'name': 'v'}, {'name': 'k'}]
-			}), __this__)
-		Extend.iterate(args, _meta_(function(v){
+		}, __this__)
+		extend.iterate(args, function(v){
 			actual_args.push(args)
-		},	{
-				arity:1,
-				arguments:[{'name': 'v'}]
-			}), __this__)
+		}, __this__)
 		var start=args.length;
 		while ((start < meta.arity))
 		{
@@ -600,33 +478,14 @@ Extend.invoke=	_meta_(function(t, f, args, extra){
 			actual_args.push(extra[arg.name])
 			start = (start + 1);
 		}
-		Extend.print("CALLING ", f.toSource())
-		Extend.print(" with", actual_args.toSource())
 		return f.apply(t, actual_args)
-	},	{
-			arity:4,
-			arguments:[{'name': 't'}, {'name': 'f'}, {'name': 'args'}, {'name': 'extra'}]
-		})
-Extend.getChildrenOf=	_meta_(function(aClass){
-		var __this__=Extend;
-		var res={};
-		var values = Extend.getClasses()
-		for ( key in values ) {
-			if ( values[key] != aClass && values[key].isSubclassOf(aClass) )
-			{ res[key] = values[key] }
-		}
-		
-		return res
-	},	{
-			arity:1,
-			arguments:[{'name': 'aClass'}]
-		})
-Extend.range=	_meta_(function(start, end, step){
+	}
+extend.range=	function(start, end, step){
 		// Creates a new list composed of elements in the given range, determined by
 		// the 'start' index and the 'end' index. This function will automatically
 		// find the proper step (wether '+1' or '-1') depending on the bounds you
 		// specify.
-		var __this__=Extend;
+		var __this__=extend;
 		var result=[];
 		 if (start < end ) {
 		   for ( var i=start ; i<end ; i++ ) {
@@ -640,18 +499,15 @@ Extend.range=	_meta_(function(start, end, step){
 		 }
 		
 		return result
-	},	{
-			arity:3,
-			arguments:[{'name': 'start'}, {'name': 'end'}, {'flags': '?', 'name': 'step'}]
-		})
-Extend.iterate=	_meta_(function(value, callback, context){
+	}
+extend.iterate=	function(value, callback, context){
 		// Iterates on the given values. If 'value' is an array, the _callback_ will be
 		// invoked on each item (giving the 'value[i], i' as argument) until the callback
 		// returns 'false'. If 'value' is a dictionary, the callback will be applied
 		// on the values (giving 'value[k], k' as argument). Otherwise the object is
 		// expected to define both 'length' or 'getLength' and 'get' or 'getItem' to
 		// enable the iteration.
-		var __this__=Extend;
+		var __this__=extend;
 		  if ( !value ) { return }
 		  if ( value.length != undefined ) {
 		    var length = undefined
@@ -677,24 +533,135 @@ Extend.iterate=	_meta_(function(value, callback, context){
 		    }
 		  }
 		
-	},	{
-			arity:3,
-			arguments:[{'name': 'value'}, {'name': 'callback'}, {'name': 'context'}]
-		})
-Extend.sliceArguments=	_meta_(function(args, index){
+	}
+extend.sliceArguments=	function(args, index){
 		// This is a utility function that will return the rest of the given
 		// arguments list, without using the 'slice' operation which is only
 		// available to arrays.
-		var __this__=Extend;
+		var __this__=extend;
 		var res=[];
 		 while (index<args.length) { res.push(args[index++]) }
 		
 		return res
-	},	{
-			arity:2,
-			arguments:[{'name': 'args'}, {'name': 'index'}]
-		})
-Extend.print=	_meta_(function(args){
+	}
+extend.slice=	function(value, start, end){
+		var __this__=extend;
+		start = start === undefined ? 0 : start
+		end = end === undefined ? undefined : end
+		if ( extend.isString(value) )
+		{
+			if ( (end === undefined) )
+			{
+				end = value.length;
+			}
+			if ( (start < 0) )
+			{start = (value.length + start);}
+			if ( (end < 0) )
+			{end = (value.length + end);}
+			return value.substring(start, end)
+		}
+		else if ( extend.isList(value) )
+		{
+			if ( (end === undefined) )
+			{
+				end = value.length;
+			}
+			if ( (start < 0) )
+			{start = (value.length + start);}
+			if ( (end < 0) )
+			{end = (value.length + end);}
+			return value.slice(start, end)
+		}
+		else if ( true )
+		{
+			throw ('Unsupported type for slice:' + value)
+		}
+	}
+extend.isIn=	function(value, list){
+		// Returns true if the given value is in the given list
+		var __this__=extend;
+		if ( extend.isList(list) )
+		{
+			 for ( var i=0 ; i<list.length ; i++) {
+			   if (list[i]==value) { return true }
+			 }
+			 return false
+			
+		}
+		else if ( extend.isMap(list) )
+		{
+			 for ( var i in list ) {
+			   if (list[i]==value) { return true }
+			 }
+			 return false
+			
+		}
+		else if ( true )
+		{
+			return false
+		}
+	}
+extend.createMapFromItems=	function(items){
+		var __this__=extend;
+		items = extend.sliceArguments(arguments,0)
+		 var result = {}
+		 for ( var i=0 ; i<items.length ; i++ ) {
+		   result[items[i][0]] = items[i][1]
+		 }
+		 return result
+		
+	}
+extend.isDefined=	function(value){
+		var __this__=extend;
+		return (! (value === undefined))
+	}
+extend.isList=	function(value){
+		var __this__=extend;
+		 return !!( !(value===null) && typeof value == "object" && value.join && value.splice);
+		
+	}
+extend.isString=	function(value){
+		var __this__=extend;
+		return (typeof(value) == 'string')
+	}
+extend.isMap=	function(value){
+		var __this__=extend;
+		 return !!(!(value===null) && typeof value == "object" && !extend.isList(value))
+		
+	}
+extend.isFunction=	function(value){
+		var __this__=extend;
+		 return !!(typeof value == "function")
+		
+	}
+extend.isInstance=	function(value, ofClass){
+		// Tells if the given value is an instance (in the sense of extend) of the
+		// given 'ofClass'. If there is no given class, then it will just return
+		// true if the value is an instance of any class.
+		var __this__=extend;
+		ofClass = ofClass === undefined ? undefined : ofClass
+		if ( ofClass )
+		{
+			return (extend.isDefined(value.getClass) && value.isInstance(ofClass))
+		}
+		else if ( true )
+		{
+			return extend.isDefined(value.getClass)
+		}
+	}
+extend.getMethodOf=	function(instance, name){
+		var __this__=extend;
+		return instance[name]
+	}
+extend.getClassOf=	function(instance){
+		var __this__=extend;
+		// Unable to embed the following code
+		// return getDefinitionByName(getQualifiedSuperClassName(instance));
+		// 
+		return instance.getClass()
+		
+	}
+extend.print=	function(args){
 		// Prints the given arguments to the JavaScript console (available in Safari
 		// and in Mozilla if you've installed FireBug), or using the 'print' command
 		// in SpiderMonkey. If neither 'console' or 'print' is defined,
@@ -705,32 +672,165 @@ Extend.print=	_meta_(function(args){
 		// 
 		// Example:
 		// 
-		// >    Extend print ("Here is a dict:", {a:1,b:2,c:3})
+		// >    extend print ("Here is a dict:", {a:1,b:2,c:3})
 		// 
 		// will output
 		// 
 		// >    "Here is a dict: {a:1,b:2,c:3}"
-		var __this__=Extend;
-		args = Extend.sliceArguments(arguments,0)
-		 if (typeof(console)=="undefined"&&typeof(print)=="undefined"){return;}
-		 var res = ""
+		var __this__=extend;
+		args = extend.sliceArguments(arguments,0)
+		if ( (((typeof(console) == 'undefined') && (typeof(extend.print) === 'undefined')) && (PrintCallback === undefined)) )
+		{
+			return null
+		}
+		var res='';
 		 for ( var i=0 ; i<args.length ; i++ ) {
 		   var val = args[i]
 		   if ( val!=undefined && typeof(val) == "object" && val.toSource != undefined) { val = val.toSource() }
 		   if ( i<args.length-1 ) { res += val + " " }
 		   else { res += val }
 		 }
-		 if(typeof(console)!="undefined"){console.log(res);}
-		 else if(typeof(document)=="undefined"&&typeof(print)!="undefined"){print(res);}
 		
-	},	{
-			arity:1,
-			arguments:[{'flags': '*', 'name': 'args'}]
-		})
-Extend.init=	_meta_(function(){
-		var __this__=Extend;
-	},	{
-			arity:0,
-			arguments:[]
-		})
-Extend.init()
+		if ( (PrintCallback === undefined) )
+		{
+			if ( (typeof(console) != 'undefined') )
+			{
+				console.log(res)
+			}
+			else if ( ((typeof(document) == 'undefined') && (typeof(extend.print) != 'undefined')) )
+			{
+				extend.print(res)
+			}
+		}
+		else if ( true )
+		{
+			PrintCallback(res)
+		}
+	}
+extend.error=	function(message){
+		var __this__=extend;
+		if ( extend.ErrorCallback )
+		{
+			extend.ErrorCallback(message)
+		}
+		else if ( true )
+		{
+			extend.print(('[!] ' + message))
+		}
+	}
+extend.assert=	function(predicate, message){
+		var __this__=extend;
+		if ( (! predicate) )
+		{
+			extend.error(message)
+		}
+	}
+extend.Registry={}
+extend.getClass=	function(name){
+		var __this__=extend;
+		return extend.Registry[name]
+	}
+extend.getParentClass=	function(object){
+		var __this__=extend;
+		return extend.Registry[name]
+	}
+extend.getClasses=	function(){
+		var __this__=extend;
+		return extend.Registry
+	}
+extend.getMethod=	function(name, object){
+		var __this__=extend;
+	}
+extend.getSuperMethod=	function(name, object){
+		var __this__=extend;
+	}
+extend.getChildrenOf=	function(aClass){
+		var __this__=extend;
+		var res={};
+		var values = extend.getClasses()
+		for ( key in values ) {
+			if ( values[key] != aClass && values[key].isSubclassOf(aClass) )
+			{ res[key] = values[key] }
+		}
+		
+		return res
+	}
+extend.car=	function(list){
+		var __this__=extend;
+	}
+extend.cdr=	function(list){
+		var __this__=extend;
+	}
+extend.cons=	function(list){
+		var __this__=extend;
+	}
+extend.len=	function(value){
+		var __this__=extend;
+		if ( extend.isList(value) )
+		{
+			return value.length
+		}
+		else if ( isObject(value) )
+		{
+			if ( value.length )
+			{
+				return value.length
+			}
+			else if ( value.__len__ )
+			{
+				return value.__len__()
+			}
+		}
+		else if ( true )
+		{
+			return null
+		}
+	}
+extend.map=	function(callback, iterable){
+		var __this__=extend;
+	}
+extend.filter=	function(callback, iterable){
+		var __this__=extend;
+	}
+extend.reduce=	function(callback, iterable){
+		var __this__=extend;
+	}
+extend.init=	function(){
+		var __this__=extend;
+		String.__len__ = function(){
+			return this.length
+		};
+		Array.extend = function(array){
+		};
+		Array.append = function(){
+		};
+		Array.insert = function(){
+		};
+		Array.slice = function(){
+		};
+		Array.__iter__ = function(){
+			return this.length
+		};
+		Array.__len__ = function(){
+			return this.length
+		};
+		Object.keys = function(){
+		};
+		Object.items = function(){
+		};
+		Object.values = function(){
+		};
+		Object.hasKey = function(key){
+		};
+		Object.get = function(key){
+		};
+		Object.set = function(key, value){
+		};
+		Object.setDefault = function(key, value){
+		};
+		Object.__iter__ = function(){
+		};
+		Object.__len__ = function(){
+		};
+	}
+extend.init()
