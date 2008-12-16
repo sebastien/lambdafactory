@@ -1,3 +1,12 @@
+# -----------------------------------------------------------------------------
+# Project   : LambdaFactory
+# -----------------------------------------------------------------------------
+# Author    : Sebastien Pierre                               <sebastien@ivy.fr>
+# License   : Revised BSD License
+# -----------------------------------------------------------------------------
+# Creation  : 02-Nov-2006
+# Last mod  : 16-Dec-2008
+# -----------------------------------------------------------------------------
 @module lambdafactory.model
 | This module is the default implementation of the LambdaFactory interfaces.
 | It defines objects that allow you to build a complete OO program model on
@@ -5,6 +14,7 @@
 | code using the different back-ends.
 @import * from lambdafactory.interfaces
 @import pprint
+@import sys
 @import lambdafactory.modeltypes
 
 # ------------------------------------------------------------------------------
@@ -575,9 +585,10 @@
 
 @class Context: Element
 	
-	@property slots    = []
-	@property parent   = Undefined
-	@property abstract = False
+	@property slots     = []
+	@property slotIndex = {}
+	@property parent    = Undefined
+	@property abstract  = False
 	
 	@constructor name=Undefined
 		#REWRITE: super( name )
@@ -599,9 +610,23 @@
 		if assignParent and isinstance(evaluable, IContext) or hasattr(evaluable,"setParent")
 			evaluable setParent ( self )
 		end
-		slots append [name, evaluable]
+		if slotIndex get (name) is Undefined
+			slots append [name, evaluable]
+			slotIndex [name] = len(slots) - 1
+		else
+			var slot = slots [slotIndex[name]]
+			slot[1]  = evaluable
+			# TODO: Optimize by removing from index instead
+			slots remove (slot)
+			slots append (slot)
+			var i = 0
+			while i < len(slots)
+				slotIndex[slots[i][0]] = i
+				i += 1
+			end
+		end
 	@end
-	
+
 	@method hasSlot name
 		for slot in slots
 			if slot[0] == name
@@ -610,8 +635,10 @@
 		end
 		return False
 	@end
-	
+
 	@method getSlot name
+		# We get the last slot instead of the first one
+		var i = len(slots) - 1
 		for slot in slots
 			if slot[0] == name
 				return slot[1]
@@ -806,6 +833,16 @@
 		operation setParent ( self )
 	@end
 	
+	@method mergeWith module
+		for op in module getImportOperations ()
+			addImportOperation (op)
+		end
+		for slot in module getSlots ()
+			var name, value = slot
+			setSlot (name, value)
+		end
+	@end
+
 	@method getImportOperations
 		return importOperations
 	@end
@@ -830,11 +867,20 @@
 	@end
 
 	@method addModule module
-		if module in modules
-			raise (ERR_MODULE_ADDED_TWICE(module))
+		var same_name_module = Undefined
+		for existing_module in modules
+			if module  == existing_module -> raise (ERR_MODULE_ADDED_TWICE(module))
+			if module getAbsoluteName () == existing_module getAbsoluteName ()
+				same_name_module = existing_module
+				#TODO: break
+			end
 		end
-		modules append (module)
-		module setParent (self)
+		if same_name_module
+			same_name_module mergeWith (module)
+		else
+			modules append (module)
+			module setParent (self)
+		end
 	@end
 
 	@method getModule moduleAbsoluteName
@@ -1587,4 +1633,4 @@
 @class ModuleAttribute: Attribute, IModuleAttribute
 @end
 
-# EOF
+# EOF - vim: tw=80 ts=4 sw=4 noet

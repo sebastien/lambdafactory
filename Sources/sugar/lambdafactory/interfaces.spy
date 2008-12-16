@@ -1,6 +1,4 @@
 @module lambdafactory.interfaces
-# Encoding: iso-8859-1
-# vim: tw=80 ts=4 sw=4 noet
 # -----------------------------------------------------------------------------
 # Project   : LambdaFactory
 # -----------------------------------------------------------------------------
@@ -8,7 +6,7 @@
 # License   : Revised BSD License
 # -----------------------------------------------------------------------------
 # Creation  : 02-Nov-2006
-# Last mod  : 05-Sep-2008
+# Last mod  : 16-Dec-2008
 # -----------------------------------------------------------------------------
 
 # TODO: Add a Flowable interface that tells that the element can have
@@ -457,10 +455,16 @@
 
 @protocol IContext: IElement, IDataFlowOwner
 |	A context is an element that has slots, which bind evaluable elements
-|	(aka values) to names.
+|	(aka values) to names. Slots should be ordered, preserving the order in
+|	which they were added.
 
 	@abstract @method setSlot name, evaluable 
-	|	Binds the given evaluable to the named slot.
+	|	Binds the given evaluable to the named slot. If there is already a slot
+	|	with the same name, then 'getSlot(name)' should return the evaluable
+	|	given as parameter.
+	|
+	|	In the default implementation, setSlot preserves the ''history'' of
+	|	added slots, and will always return the latest one.
 
 	@abstract @method getSlot name 
 	|	Returns the given evaluable bound to named slot.
@@ -554,6 +558,9 @@
 
 	@abstract @method getParentName:<String|None>
 	| Returns the parent name of this module (if any) 
+
+	@abstract @method mergeWith module:<Module>
+	| Merges this module with the given module
 
 @end
 
@@ -1134,4 +1141,4 @@
 |	to convert it to the target language.
 @end
 
-# EOF
+# EOF - vim: tw=80 ts=4 sw=4 noet
