@@ -198,7 +198,7 @@ class Writer(AbstractWriter):
 			result.append("},")
 		if result[-1][-1] == ",":result[-1] =result[-1][:-1]
 		return self._format(
-			"Extend.Class({",
+			"extend.Class({",
 			result,
 			"})"
 		)
@@ -612,7 +612,7 @@ class Writer(AbstractWriter):
 				for k,v in element.getItems()
 				])
 			)
-		# Otherwise we'll use Extend.createMapFromItems method
+		# Otherwise we'll use extend.createMapFromItems method
 		else:
 			return "%s%screateMapFromItems(%s)" % (
 				self.jsPrefix,
@@ -777,7 +777,7 @@ class Writer(AbstractWriter):
 						current.append(self.write(param.getValue()))
 				normal_str = "[%s]" % (",".join(normal_arguments))
 				extra_str  = "{%s}" % (",".join("%s:%s" % (k,v) for k,v in extra_arguments.items()))
-				return "Extend.invoke(__this__,%s,%s,%s)" % (
+				return "extend.invoke(__this__,%s,%s,%s)" % (
 					t,
 					normal_str,
 					extra_str
