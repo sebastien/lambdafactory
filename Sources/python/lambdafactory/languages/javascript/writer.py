@@ -914,13 +914,13 @@ class Writer(AbstractWriter):
 	def onAccessOperation( self, operation ):
 		target = operation.getTarget()
 		index  = operation.getIndex()
-		if isinstance(index, interfaces.INumber) and index.getActualValue() >= 0:
+		if isinstance(index, interfaces.INumber) and index.getActualValue() <= 0:
 			return self._format(
-				"%s[%s]" % (self.write(target), self.write(index))
+				"%s%saccess(%s,%s)" % (self.jsPrefix, self.jsCore, self.write(target), self.write(index))
 			)
 		else:
 			return self._format(
-				"%s%saccess(%s,%s)" % (self.jsPrefix, self.jsCore, self.write(target), self.write(index))
+				"%s[%s]" % (self.write(target), self.write(index))
 			)
 
 	def onSliceOperation( self, operation ):
