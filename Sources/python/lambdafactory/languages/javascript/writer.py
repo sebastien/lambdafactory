@@ -5,7 +5,7 @@
 # License   : Revised BSD License
 # -----------------------------------------------------------------------------
 # Creation  : 02-Nov-2006
-# Last mod  : 16-Dec-2008
+# Last mod  : 23-Jan-2008
 # -----------------------------------------------------------------------------
 
 # TODO: When constructor is empty, should assign default attributes anyway
@@ -912,17 +912,28 @@ class Writer(AbstractWriter):
 		)
 
 	def onAccessOperation( self, operation ):
-		return self._format(
-			"%s[%s]" % (self.write(operation.getTarget()), self.write(operation.getIndex()))
-		)
+		target = operation.getTarget()
+		index  = operation.getIndex()
+		if isinstance(index, interfaces.INumber) and index.getActualValue() >= 0:
+			return self._format(
+				"%s[%s]" % (self.write(target), self.write(index))
+			)
+		else:
+			return self._format(
+				"%s%saccess(%s,%s)" % (self.jsPrefix, self.jsCore, self.write(target), self.write(index))
+			)
 
 	def onSliceOperation( self, operation ):
 		start = operation.getSliceStart()
 		end   = operation.getSliceEnd()
-		if start: start = self.write(start)
-		else: start = "0"
-		if end: end = self.write(end)
-		else: end = "undefined"
+		if start:
+			start = self.write(start)
+		else:
+			start = "0"
+		if end:
+			end = self.write(end)
+		else:
+			end = "undefined"
 		return self._format(
 			"%s%sslice(%s,%s,%s)" % (
 				self.jsPrefix,

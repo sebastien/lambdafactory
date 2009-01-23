@@ -404,6 +404,7 @@
 	@shared NAME     = "GlobalRuntime"
 	@shared FUNCTIONS = [
 		"assert"
+		"access"
 		"car"
 		"cdr"
 		"cons"
