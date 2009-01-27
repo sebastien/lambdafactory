@@ -5,7 +5,7 @@
 # License   : Revised BSD License
 # -----------------------------------------------------------------------------
 # Creation  : 02-Nov-2006
-# Last mod  : 23-Jan-2008
+# Last mod  : 27-Jan-2008
 # -----------------------------------------------------------------------------
 
 # TODO: When constructor is empty, should assign default attributes anyway
@@ -914,7 +914,7 @@ class Writer(AbstractWriter):
 	def onAccessOperation( self, operation ):
 		target = operation.getTarget()
 		index  = operation.getIndex()
-		if isinstance(index, interfaces.INumber) and index.getActualValue() <= 0:
+		if isinstance(index, interfaces.INumber) and index.getActualValue() < 0:
 			return self._format(
 				"%s%saccess(%s,%s)" % (self.jsPrefix, self.jsCore, self.write(target), self.write(index))
 			)
