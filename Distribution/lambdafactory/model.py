@@ -7,6 +7,7 @@ import sys
 __module__ = sys.modules[__name__]
 from lambdafactory.interfaces import *
 import pprint
+import sys
 import lambdafactory.modeltypes
 __module_name__ = 'lambdafactory.model'
 class DataFlowSlot(IDataFlowSlot):
@@ -187,6 +188,11 @@ class DataFlow(IDataFlow):
 		elif True:
 			return self
 	
+	def unsetParent(self):
+		if self.parent:
+			self.parent.removeChild(self)
+			self.parent = None
+	
 	def setParent(self, parent):
 		assert(((self.parent is None) or (parent == self.parent)))
 		if parent:
@@ -318,11 +324,11 @@ class Element:
 	def getSource(self):
 		return self.source
 	
-	def annotate(self, annotation):
+	def addAnnotation(self, annotation):
 		if (not annotation):
 			return None
 		if (type(annotation) in [tuple, list]):
-			map(self.annotate , annotation)
+			map(self.addAnnotation , annotation)
 		elif True:
 			assert(isinstance(annotation, IAnnotation))
 			self.annotations.append(annotation)
@@ -330,6 +336,26 @@ class Element:
 	def getAnnotations(self, withName):
 		 return [a for a in self.annotations if a.getName() == withName]
 		
+	
+	def hasAnnotation(self, withName):
+		annotations=self.getAnnotations(withName)
+		return (len(annotations) > 0)
+	
+	def removeAnnotation(self, withName):
+		new_annotations=[]
+		for annotation in self.annotations:
+			if (annotation.getName() != withName):
+				new_annotations.append(annotation)
+		self.annotations = new_annotations
+	
+	def setAnnotation(self, name, content):
+		annotation=self.getAnnotation(withName)
+		if (not annotation):
+			annotation = Annotation(name, content)
+			self.annotations.append(annotation)
+		elif True:
+			annotation.setContent(content)
+		return self
 	
 	def getAnnotation(self, withName):
 		annotations=self.getAnnotations(withName)
@@ -339,7 +365,7 @@ class Element:
 			return None
 	
 	def setDocumentation(self, documentation):
-		self.annotate(documentation)
+		self.addAnnotation(documentation)
 	
 	def getDocumentation(self):
 		return self.getAnnotation('documentation')
@@ -383,7 +409,7 @@ class Element:
 		copy.name = self.name
 		copy.source = self.source
 		for annotation in self.annotations:
-			copy.annotate(annotation.copy().detach())
+			copy.addAnnotation(annotation.copy().detach())
 		copy.abstractType = self.abstractType
 		copy.resultAbtractType = self.resultAbtractType
 		copy.sourceLocation = self.sourceLocation
@@ -404,6 +430,10 @@ class Annotation(Element, IAnnotation):
 	def getContent(self):
 		return self.content
 	
+	def setContent(self, content):
+		self.content = content
+		return self
+	
 
 class Comment(Annotation, IComment):
 	def __init__ (self, content=None):
@@ -422,6 +452,7 @@ class Documentation(Annotation, IDocumentation):
 class Context(Element):
 	def __init__ (self, name=None):
 		self.slots = []
+		self.slotIndex = {}
 		self.parent = None
 		self.abstract = False
 		if name is None: name = None
@@ -439,7 +470,18 @@ class Context(Element):
 			raise ERR_SLOT_VALUE_NOT_ASSIGNABLE
 		if ((assignParent and isinstance(evaluable, IContext)) or hasattr(evaluable, 'setParent')):
 			evaluable.setParent(self)
-		self.slots.append([name, evaluable])
+		if (self.slotIndex.get(name) is None):
+			self.slots.append([name, evaluable])
+			self.slotIndex[name] = (len(self.slots) - 1)
+		elif True:
+			slot=self.slots[self.slotIndex[name]]
+			slot[1] = evaluable
+			self.slots.remove(slot)
+			self.slots.append(slot)
+			i=0
+			while (i < len(self.slots)):
+				self.slotIndex[self.slots[i][0]] = i
+				i = (i + 1)
 	
 	def hasSlot(self, name):
 		for slot in self.slots:
@@ -448,6 +490,7 @@ class Context(Element):
 		return False
 	
 	def getSlot(self, name):
+		i=(len(self.slots) - 1)
 		for slot in self.slots:
 			if (slot[0] == name):
 				return slot[1]
@@ -455,6 +498,12 @@ class Context(Element):
 	
 	def getSlots(self):
 		return self.slots
+	
+	def getSlotNames(self):
+		res=[]
+		for slot in self.slots:
+			res.append(slot[0])
+		return res
 	
 	def setParent(self, context):
 		self.parent = context
@@ -587,6 +636,19 @@ class Module(Context, IModule, IAssignable, IReferencable):
 		self.importOperations.append(operation)
 		operation.setParent(self)
 	
+	def mergeWith(self, module):
+		for op in module.getImportOperations():
+			op.detach()
+			self.addImportOperation(op)
+		for an in module.annotations:
+			an.detach()
+			self.addAnnotation(an)
+		for slot in module.getSlots():
+			name=slot[0]
+			value=slot[1]
+			value.detach()
+			self.setSlot(name, value)
+	
 	def getImportOperations(self):
 		return self.importOperations
 	
@@ -603,10 +665,17 @@ class Program(Context, IProgram):
 		Context.__init__(self, name)
 	
 	def addModule(self, module):
-		if (module in self.modules):
-			raise ERR_MODULE_ADDED_TWICE(module)
-		self.modules.append(module)
-		module.setParent(self)
+		same_name_module=None
+		for existing_module in self.modules:
+			if (module == existing_module):
+				raise ERR_MODULE_ADDED_TWICE(module)
+			if (module.getAbsoluteName() == existing_module.getAbsoluteName()):
+				same_name_module = existing_module
+		if same_name_module:
+			same_name_module.mergeWith(module)
+		elif True:
+			self.modules.append(module)
+			module.setParent(self)
 	
 	def getModule(self, moduleAbsoluteName):
 		for module in self.modules:
@@ -672,10 +741,11 @@ class Closure(Process, IAssignable, IClosure, IEvaluable):
 	
 	def setArguments(self, arguments):
 		self.arguments = []
-		for argument in arguments:
-			if (not isinstance(argument, ISlot)):
-				raise ERR_CLOSURE_ARGUMENT_NOT_SLOT
-			self.arguments.append(argument)
+		if arguments:
+			for argument in arguments:
+				if (not isinstance(argument, ISlot)):
+					raise ERR_CLOSURE_ARGUMENT_NOT_SLOT
+				self.arguments.append(argument)
 	
 	def getArguments(self):
 		return self.arguments

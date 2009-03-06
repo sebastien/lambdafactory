@@ -1,6 +1,3 @@
-#!/usr/bin/env python
-# Encoding: iso-8859-1
-# vim: tw=80 ts=4 sw=4 noet
 # -----------------------------------------------------------------------------
 # Project   : LambdaFactory
 # -----------------------------------------------------------------------------
@@ -8,7 +5,7 @@
 # License   : Revised BSD License
 # -----------------------------------------------------------------------------
 # Creation  : 02-Nov-2006
-# Last mod  : 03-Sep-2008
+# Last mod  : 06-Mar-2009
 # -----------------------------------------------------------------------------
 
 # TODO: When constructor is empty, should assign default attributes anyway
@@ -56,7 +53,7 @@ class Writer(AbstractWriter):
 	def __init__( self ):
 		AbstractWriter.__init__(self)
 		self.jsPrefix = ""
-		self.jsCore   = "Extend."
+		self.jsCore   = "extend."
 		self.supportedEmbedLanguages = ["ecmascript", "js", "javascript"]
 		self.inInvocation = False
 		self.options = {}
@@ -115,21 +112,27 @@ class Writer(AbstractWriter):
 
 	def onModule( self, moduleElement):
 		"""Writes a Module element."""
+		module_name = self._rewriteSymbol(moduleElement.getName())
 		code = [
 			"// " + SNIP % ("%s.js" % (self.getAbsoluteName(moduleElement).replace(".", "/"))),
 			self._document(moduleElement),
 			self.options["ENABLE_METADATA"] and "function _meta_(v,m){var ms=v['__meta__']||{};for(var k in m){ms[k]=m[k]};v['__meta__']=ms;return v}" or "",
-			"var %s={}" % (self._rewriteSymbol(moduleElement.getName())),
-			"var __this__=%s" % (self._rewriteSymbol(moduleElement.getName()))
+			"var %s=%s||{}" % (module_name, module_name),
+			"var __this__=%s" % (module_name)
 		]
 		version = moduleElement.getAnnotation("version")
 		if version:
-			code.append("%s._VERSION_='%s';" % (self._rewriteSymbol(moduleElement.getName()),version.getContent()))
+			code.append("%s.__VERSION__='%s';" % (self._rewriteSymbol(moduleElement.getName()),version.getContent()))
 		for name, value in moduleElement.getSlots():
 			if isinstance(value, interfaces.IModuleAttribute):
 				code.extend(["%s.%s" % (self._rewriteSymbol(moduleElement.getName()), self.write(value))])
 			else: 
-				code.extend(["%s.%s=%s" % (self._rewriteSymbol(moduleElement.getName()), self.renameModuleSlot(name), self.write(value))])
+				# NOTE: Some slot values may be shadowed, in which case they
+				# won't return any value
+				value_code = self.write(value)
+				if value_code:
+					code.extend(["%s.%s=%s" %
+					(self._rewriteSymbol(moduleElement.getName()), self.renameModuleSlot(name), value_code)])
 		code.append("%s.init()" % (self._rewriteSymbol(moduleElement.getName())))
 		return self._format(
 			*code
@@ -200,7 +203,7 @@ class Writer(AbstractWriter):
 			result.append("},")
 		if result[-1][-1] == ",":result[-1] =result[-1][:-1]
 		return self._format(
-			"Extend.Class({",
+			"extend.Class({",
 			result,
 			"})"
 		)
@@ -506,6 +509,9 @@ class Writer(AbstractWriter):
 				module_name = o.getImportOrigin()
 				symbol_name = o.getImportedElement()
 				return module_name + "." + symbol_name
+			elif isinstance(o, interfaces.IImportSymbolsOperation):
+				module_name = o.getImportOrigin()
+				return module_name + "." + symbol_name
 			else:
 				raise Exception("Importation operation not implemeted yet")
 		# It is a method of the current class
@@ -611,7 +617,7 @@ class Writer(AbstractWriter):
 				for k,v in element.getItems()
 				])
 			)
-		# Otherwise we'll use Extend.createMapFromItems method
+		# Otherwise we'll use extend.createMapFromItems method
 		else:
 			return "%s%screateMapFromItems(%s)" % (
 				self.jsPrefix,
@@ -776,7 +782,7 @@ class Writer(AbstractWriter):
 						current.append(self.write(param.getValue()))
 				normal_str = "[%s]" % (",".join(normal_arguments))
 				extra_str  = "{%s}" % (",".join("%s:%s" % (k,v) for k,v in extra_arguments.items()))
-				return "Extend.invoke(__this__,%s,%s,%s)" % (
+				return "extend.invoke(__this__,%s,%s,%s)" % (
 					t,
 					normal_str,
 					extra_str
@@ -911,17 +917,28 @@ class Writer(AbstractWriter):
 		)
 
 	def onAccessOperation( self, operation ):
-		return self._format(
-			"%s[%s]" % (self.write(operation.getTarget()), self.write(operation.getIndex()))
-		)
+		target = operation.getTarget()
+		index  = operation.getIndex()
+		if isinstance(index, interfaces.INumber) and index.getActualValue() < 0:
+			return self._format(
+				"%s%saccess(%s,%s)" % (self.jsPrefix, self.jsCore, self.write(target), self.write(index))
+			)
+		else:
+			return self._format(
+				"%s[%s]" % (self.write(target), self.write(index))
+			)
 
 	def onSliceOperation( self, operation ):
 		start = operation.getSliceStart()
 		end   = operation.getSliceEnd()
-		if start: start = self.write(start)
-		else: start = "0"
-		if end: end = self.write(end)
-		else: end = "undefined"
+		if start:
+			start = self.write(start)
+		else:
+			start = "0"
+		if end:
+			end = self.write(end)
+		else:
+			end = "undefined"
 		return self._format(
 			"%s%sslice(%s,%s,%s)" % (
 				self.jsPrefix,
@@ -985,4 +1002,4 @@ class Writer(AbstractWriter):
 			return None
 
 MAIN_CLASS = Writer
-# EOF
+# EOF - vim: tw=80 ts=4 sw=4 noet

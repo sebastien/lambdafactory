@@ -115,6 +115,31 @@ class DataFlowBinding(Pass):
 	def __init__ (self):
 		Pass.__init__(self)
 	
+	def importSymbol(self, operation, symbolName, fromModuleName, moduleDest, alias=None):
+		if alias is None: alias = None
+		FAILED=tuple([None, None])
+		module_name=fromModuleName
+		symbol_name=symbolName
+		element=moduleDest
+		slot_and_value=self.resolveAbsolute(module_name)
+		if (slot_and_value == FAILED):
+			self.environment.report.error('Imported module not found in scope:', module_name, 'in', element.getName())
+		elif True:
+			symbol_slot_and_value=self.resolve(symbol_name, slot_and_value[1])
+			if (symbol_slot_and_value == FAILED):
+				self.environment.report.error('Symbol not found in module scope:', symbol_name, 'in', module_name)
+			elif True:
+				value=symbol_slot_and_value[1]
+				assert((element.getDataFlow().getElement() == element))
+				if alias:
+					element.getDataFlow().declareImported(alias, value, operation)
+					assert((element.getDataFlow().resolve(alias)[0].getDataFlow() == element.getDataFlow()))
+					assert((element.getDataFlow().resolve(alias)[0].getDataFlow().getElement() == element))
+				elif True:
+					element.getDataFlow().declareImported(symbol_name, value, operation)
+					assert((element.getDataFlow().resolve(symbol_name)[0].getDataFlow() == element.getDataFlow()))
+					assert((element.getDataFlow().resolve(symbol_name)[0].getDataFlow().getElement() == element))
+	
 	def onModule(self, element):
 		"""Processes the module import operations and adds them to the module
 		dataflow"""
@@ -135,25 +160,12 @@ class DataFlowBinding(Pass):
 			elif isinstance(i, interfaces.IImportSymbolOperation):
 				module_name=i.getImportOrigin()
 				symbol_name=i.getImportedElement()
-				slot_and_value=self.resolveAbsolute(module_name)
-				if (slot_and_value == FAILED):
-					self.environment.report.error('Imported module not found in scope:', module_name, 'in', element.getName())
-				elif True:
-					symbol_slot_and_value=self.resolve(symbol_name, slot_and_value[1])
-					if (symbol_slot_and_value == FAILED):
-						self.environment.report.error('Symbol not found in module scope:', symbol_name, 'in', module_name)
-					elif True:
-						alias=i.getAlias()
-						value=symbol_slot_and_value[1]
-						assert((element.getDataFlow().getElement() == element))
-						if alias:
-							element.getDataFlow().declareImported(alias, value, i)
-							assert((element.getDataFlow().resolve(alias)[0].getDataFlow() == element.getDataFlow()))
-							assert((element.getDataFlow().resolve(alias)[0].getDataFlow().getElement() == element))
-						elif True:
-							element.getDataFlow().declareImported(symbol_name, value, i)
-							assert((element.getDataFlow().resolve(symbol_name)[0].getDataFlow() == element.getDataFlow()))
-							assert((element.getDataFlow().resolve(symbol_name)[0].getDataFlow().getElement() == element))
+				alias=i.getAlias()
+				self.importSymbol(i, symbol_name, module_name, element, alias)
+			elif isinstance(i, interfaces.IImportSymbolsOperation):
+				module_name=i.getImportOrigin()
+				for symbol_name in i.getOpArgument(0):
+					self.importSymbol(i, symbol_name, module_name, element, None)
 			elif True:
 				self.environment.report.error(('DataFlowBinding: operation not implemented ' + repr(i)))
 	

@@ -67,6 +67,8 @@ class AbstractWriter(Pass):
 		elif True:
 			if (type(element) in [str, unicode]):
 				return element
+			elif element.hasAnnotation('shadow'):
+				return ''
 			elif True:
 				this_interfaces = self.HANDLES
 				for  the_interface in this_interfaces:

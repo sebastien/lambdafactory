@@ -18,6 +18,10 @@ class IAnnotation:
 		"""Returns the content of this annotation."""
 		raise Exception("Abstract method IAnnotation.getContent not implemented in: " + str(self))
 	
+	def setContent(self, content):
+		"""Updates the content of this annotation."""
+		raise Exception("Abstract method IAnnotation.setContent not implemented in: " + str(self))
+	
 	def getName(self):
 		"""Returns the name of this annotation."""
 		raise Exception("Abstract method IAnnotation.getName not implemented in: " + str(self))
@@ -176,13 +180,21 @@ class IElement:
 		"""Returns the dataflow accessible/bound to this element"""
 		raise Exception("Abstract method IElement.getDataFlow not implemented in: " + str(self))
 	
-	def getAnnotation(self, name):
-		"""Gets the annotation with the given name associated to this element"""
-		raise Exception("Abstract method IElement.getAnnotation not implemented in: " + str(self))
+	def getAnnotations(self, name):
+		"""Gets all the annotation with the given name associated to this element"""
+		raise Exception("Abstract method IElement.getAnnotations not implemented in: " + str(self))
 	
-	def setAnnotation(self, name, annotation):
-		"""Sets the annotation with the given name to this element"""
-		raise Exception("Abstract method IElement.setAnnotation not implemented in: " + str(self))
+	def hasAnnotation(self, name):
+		"""Tells if the given element has an annotation with the given name"""
+		raise Exception("Abstract method IElement.hasAnnotation not implemented in: " + str(self))
+	
+	def removeAnnotation(self, name):
+		"""Removes the annotations with the given name"""
+		raise Exception("Abstract method IElement.removeAnnotation not implemented in: " + str(self))
+	
+	def addAnnotation(self, annotation):
+		"""Adds an annotation to this element"""
+		raise Exception("Abstract method IElement.addAnnotation not implemented in: " + str(self))
 	
 	def getParent(self):
 		"""Returns this element parent"""
@@ -206,6 +218,11 @@ class IElement:
 		change the copy."""
 		raise Exception("Abstract method IElement.copy not implemented in: " + str(self))
 	
+
+class IConstruct:
+	"""A construct is a high level programming element that allows to create a
+	structure and hierarchy in the program."""
+	pass
 
 class IAssignable:
 	"""Assignable elements are elements that can be bound to slots. In many
@@ -443,9 +460,15 @@ class IClassAttribute(IAttribute):
 
 class IContext(IElement, IDataFlowOwner):
 	"""A context is an element that has slots, which bind evaluable elements
-	(aka values) to names."""
+	(aka values) to names. Slots should be ordered, preserving the order in
+	which they were added."""
 	def setSlot(self, name, evaluable):
-		"""Binds the given evaluable to the named slot."""
+		"""Binds the given evaluable to the named slot. If there is already a slot
+		with the same name, then 'getSlot(name)' should return the evaluable
+		given as parameter.
+		
+		In the default implementation, setSlot preserves the ''history'' of
+		added slots, and will always return the latest one."""
 		raise Exception("Abstract method IContext.setSlot not implemented in: " + str(self))
 	
 	def getSlot(self, name):
@@ -463,6 +486,10 @@ class IContext(IElement, IDataFlowOwner):
 		include inherited slots)"""
 		raise Exception("Abstract method IContext.getSlots not implemented in: " + str(self))
 	
+	def getSlotNames(self):
+		"""Returns the list of slot names (in order) for this context"""
+		raise Exception("Abstract method IContext.getSlotNames not implemented in: " + str(self))
+	
 	def setParent(self, context):
 		"""Sets the parent context for this context."""
 		raise Exception("Abstract method IContext.setParent not implemented in: " + str(self))
@@ -472,7 +499,7 @@ class IContext(IElement, IDataFlowOwner):
 		raise Exception("Abstract method IContext.getParent not implemented in: " + str(self))
 	
 
-class IClass(IContext, IReferencable):
+class IClass(IContext, IReferencable, IConstruct):
 	def getInheritedSlots(self):
 		"""gives the list of inherited slots"""
 		raise Exception("Abstract method IClass.getInheritedSlots not implemented in: " + str(self))
@@ -530,7 +557,7 @@ class IInterface(IAbstractClass):
 	"""An interface is an abstract @protocol that only has abstract elements."""
 	pass
 
-class IModule(IContext, IReferencable):
+class IModule(IContext, IReferencable, IConstruct):
 	"""Note that a module 'getName' function returns the module absolute name"""
 	def isImported(self):
 		"""A stub module is a module that does not have any bound implementation.
@@ -560,6 +587,10 @@ class IModule(IContext, IReferencable):
 	def getParentName(self):
 		"""Returns the parent name of this module (if any) """
 		raise Exception("Abstract method IModule.getParentName not implemented in: " + str(self))
+	
+	def mergeWith(self, module):
+		"""Merges this module with the given module"""
+		raise Exception("Abstract method IModule.mergeWith not implemented in: " + str(self))
 	
 
 class IProgram(IContext):
@@ -628,7 +659,7 @@ class IClosure(IProcess, IContext):
 		raise Exception("Abstract method IClosure.setReturnTypeDescription not implemented in: " + str(self))
 	
 
-class IFunction(IClosure, IReferencable, IAbstractable):
+class IFunction(IClosure, IReferencable, IAbstractable, IConstruct):
 	def getName(self):
 		"""Returns this @protocol name. It can be `None` if the @protocol is anonymous."""
 		raise Exception("Abstract method IFunction.getName not implemented in: " + str(self))

@@ -104,7 +104,6 @@ class Environment:
 		self.languages = {}
 		self.libraryPaths = []
 		self.options = {}
-		self.resolver = None
 		self.importer = Importer(self)
 		self.factory = Factory()
 		self.program = self.factory.createProgram()

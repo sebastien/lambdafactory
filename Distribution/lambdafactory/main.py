@@ -16,6 +16,7 @@ class Command:
 	OPT_API = 'Generates SDoc API documentation (give the apifilename)'
 	OPT_TEST = 'Tells wether the source code is valid or not'
 	OPT_DEFINE = 'Defines a specific target (for @specific)'
+	OPT_OPTIONS = 'Options for program transformation passes'
 	OPT_RUN = 'Directly runs the script (default)'
 	OPT_COMPILE = 'Compiles the given code to the output (current) directory'
 	OPT_RUNTIME = 'Outputs the runtime as well when compiled'
@@ -24,6 +25,7 @@ class Command:
 	OPT_MODULE = 'Specifies the module name'
 	OPT_LIB = 'Specifies a path where the library is'
 	OPT_PREPROC = 'Applies the given preprocessor to the source'
+	OPT_PASSES = 'Specified the passes used in the compilation process'
 	def __init__ (self, programName=None):
 		self.programName = None
 		self.environment = None
@@ -32,7 +34,6 @@ class Command:
 		self.createEnvironment()
 		self.environment.loadLanguages()
 		self.setupEnvironment()
-		self.setupPasses()
 	
 	def runAsString(self, args):
 		"""Runs Sugar, but instead of printing the result to the given
@@ -74,8 +75,12 @@ class Command:
 			help=self.OPT_SOURCE)
 		option_parser.add_option("-D", "--define", action="append", dest="targets", 
 			help=self.OPT_DEFINE)
+		option_parser.add_option("-O", "--options", action="append", dest="passes", 
+			help=self.OPT_OPTIONS)
 		option_parser.add_option("-L", "--lib", action="append", dest="libraries", 
 			help=self.OPT_DEFINE)
+		option_parser.add_option("-P", "--passes", action="store", dest="passes", 
+			help=self.OPT_PASSES)
 		option_parser.add_option("-V", None, action="store", dest="version", 
 			help=self.OPT_VERSION)
 		options, args = option_parser.parse_args(args=arguments)
@@ -101,9 +106,13 @@ class Command:
 		if options.libraries:
 			for l in options.libraries:
 				self.environment.addLibraryPath(l)
-		self.transformProgram()
 		if (not language):
 			raise ERR_NO_LANGUAGE_SPECIFIED
+		if options.passes:
+			self.setupPasses(language, options.passes.split(','))
+		elif True:
+			self.setupPasses(language)
+		self.transformProgram()
 		if options.api:
 			html_documentation = self.environment.getPass('Documentation').asHTML()
 			if (options.api == '-'):
@@ -186,9 +195,35 @@ class Command:
 	def setupEnvironment(self):
 		pass
 	
-	def setupPasses(self):
-		self.environment.addPass(passes.ImportationPass())
-		self.environment.addPass(resolution.BasicDataFlow())
-		self.environment.addPass(resolution.DataFlowBinding())
+	def setupPasses(self, language=None, options=None):
+		if language is None: language = None
+		if options is None: options = None
+		if (not options):
+			if ((language == 'javascript') and (not ('NORUNTIME' in options))):
+				self.environment.addPass(passes.ExtendJSRuntime())
+			self.environment.addPass(passes.Importation())
+			self.environment.addPass(resolution.BasicDataFlow())
+			self.environment.addPass(resolution.DataFlowBinding())
+		elif True:
+			for the_pass in options:
+				if (the_pass.find('.') == -1):
+					pass_class=None
+					if hasattr(passes, the_pass):
+						pass_class=getattr(passes, the_pass)
+					elif hasattr(resolution, the_pass):
+						pass_class=getattr(resolution, the_pass)
+					elif True:
+						self.environment.report.error('LambdaFactory standard pass not found:', the_pass)
+						assert(None)
+					self.environment.addPass(pass_class())
+				elif True:
+					module_name=the_pass[0:the_pass.rfind('.')]
+					exec(('import ' + module_name))
+					pass_class=eval(the_pass)
+					if pass_class:
+						self.environment.addPass(pass_class())
+					elif True:
+						self.environment.report.error('Custom pass not found:', the_pass)
+						assert(None)
 	
 

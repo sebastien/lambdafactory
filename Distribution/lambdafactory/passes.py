@@ -30,7 +30,7 @@ class PassContext:
 	
 	def handle(self, element):
 		"""Handles a sungle element, without recursing through its children"""
-		handle=self.programPass.getHandle(element)
+		handle=self.programPass.getHandler(element)
 		if handle:
 			return handle(element)
 		elif True:
@@ -41,7 +41,7 @@ class PassContext:
 		handler does not return False"""
 		self.context.append(element)
 		continue_walking=True
-		handle=self.programPass.getHandle(element)
+		handle=self.programPass.getHandler(element)
 		if handle:
 			if (handle(element) != False):
 				continue_walking = True
@@ -163,6 +163,10 @@ class PassContext:
 		ancestors.extend(parents)
 		return ancestors
 	
+	def annotate(self, value, name, content=None):
+		if content is None: content = None
+		value.addAnnotation(self.environment.factory.annotation(name, content))
+	
 	def resolve(self, referenceOrName, contextOrDataFlow=None):
 		"""Resolves the given 'IReference' or String sing the given context
 		('IContext') or dataflow ('IDataFlow'). This usually requires that
@@ -175,7 +179,10 @@ class PassContext:
 			contextOrDataFlow = contextOrDataFlow.getDataFlow()
 		if isinstance(referenceOrName, interfaces.IReference):
 			referenceOrName = referenceOrName.getReferenceName()
-		return contextOrDataFlow.resolve(referenceOrName)
+		if contextOrDataFlow:
+			return contextOrDataFlow.resolve(referenceOrName)
+		elif True:
+			return [None, None]
 	
 	def resolveAbsolute(self, referenceOrName):
 		"""Resolves the given reference or string expressed in absolute style
@@ -240,7 +247,7 @@ class Pass(PassContext):
 		PassContext.__init__(self)
 		self.setPass(self)
 	
-	def getHandle(self, element):
+	def getHandler(self, element):
 		"""Tells if the pass handles the given element. This basically iterates
 		on the 'handles' property values (which are interfaces), when one
 		interface matches the given 'element', then the corresponding 'onXXX'
@@ -260,7 +267,31 @@ class Pass(PassContext):
 		return self.__class__.NAME
 	
 
-class ImportationPass(Pass):
+class ExtendJSRuntime(Pass):
+	"""This pass is like an importation and will simply bind the symbols"""
+	HANDLES = [interfaces.IProgram, interfaces.IModule]
+	NAME = 'GlobalRuntime'
+	FUNCTIONS = ['assert', 'access', 'car', 'cdr', 'cons', 'createMapFromItems', 'error', 'filter', 'getChildrenOf', 'getClass', 'getClasses', 'getClassOf', 'getMethod', 'getMethodOf', 'getParentClass', 'getSuperMethod', 'invoke', 'isDefined', 'isFunction', 'isIn', 'isInstance', 'isList', 'isMap', 'isString', 'iterate', 'len', 'map', 'print', 'range', 'reduce', 'slice', 'sliceArguments']
+	def __init__ (self):
+		self.runtime = None
+		Pass.__init__(self)
+	
+	def onProgram(self, program):
+		self.runtime = self.environment.factory.createModule('extend')
+		self.runtime.addAnnotation(self.environment.factory.annotation('shadow'))
+		for f in self.__class__.FUNCTIONS:
+			fun=self.environment.factory.createFunction(f)
+			fun.addAnnotation(self.environment.factory.annotation('shadow'))
+			self.runtime.setSlot(f, fun)
+		program.addModule(self.runtime)
+	
+	def onModule(self, module):
+		imports=module.getImportOperations()
+		module.addImportOperation(self.environment.factory.importSymbols(self.runtime.getSlotNames(), self.runtime.getAbsoluteName()))
+		return False
+	
+
+class Importation(Pass):
 	"""The importation pass will look for importation operations ('IImportation'),
 	will try to resolve the importations (according to the current environment)
 	and will trigger the loading and parsing of each module into the current
@@ -284,7 +315,7 @@ class ImportationPass(Pass):
 				imported_module_name=i.getImportOrigin()
 				imported_module=self.environment.importModule(imported_module_name)
 			elif True:
-				self.environment.report.error(('ImportationPass: operation not implemented ' + repr(i)))
+				self.environment.report.error(('Importation pass: operation not implemented ' + repr(i)))
 		return False
 	
 
