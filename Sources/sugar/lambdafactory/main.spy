@@ -84,7 +84,7 @@
 		|	help=self.OPT_SOURCE)
 		|option_parser.add_option("-D", "--define", action="append", dest="targets", 
 		|	help=self.OPT_DEFINE)
-		|option_parser.add_option("-O", "--options", action="append", dest="passes", 
+		|option_parser.add_option("-O", "--options", action="append", dest="passOptions", 
 		|	help=self.OPT_OPTIONS)
 		|option_parser.add_option("-L", "--lib", action="append", dest="libraries", 
 		|	help=self.OPT_DEFINE)
@@ -131,9 +131,9 @@
 			raise ERR_NO_LANGUAGE_SPECIFIED
 		end
 		if options passes
-			setupPasses (language, options passes split ",")
+			setupPasses (language, options passes split ",", options passOptions or [])
 		else
-			setupPasses (language)
+			setupPasses (language, None, options passOptions or [])
 		end
 		transformProgram()
 		# We compile, run or simply test
@@ -235,8 +235,8 @@
 	@method setupEnvironment
 	@end
 
-	@method setupPasses language=None, options=None
-		if not options
+	@method setupPasses language=None, withPasses=None, options=None
+		if not withPasses
 			# TODO: Add groups of passes
 			if language == "javascript" and (not ("NORUNTIME" in options))
 				environment addPass ( new passes ExtendJSRuntime() )
@@ -246,7 +246,7 @@
 			environment addPass ( new resolution DataFlowBinding() )
 		else
 			# We have a custom set of passes
-			for the_pass in options
+			for the_pass in withPasses
 				if the_pass find "." == -1
 					var pass_class = None
 					if hasattr(passes, the_pass)

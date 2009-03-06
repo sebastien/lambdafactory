@@ -75,7 +75,7 @@ class Command:
 			help=self.OPT_SOURCE)
 		option_parser.add_option("-D", "--define", action="append", dest="targets", 
 			help=self.OPT_DEFINE)
-		option_parser.add_option("-O", "--options", action="append", dest="passes", 
+		option_parser.add_option("-O", "--options", action="append", dest="passOptions", 
 			help=self.OPT_OPTIONS)
 		option_parser.add_option("-L", "--lib", action="append", dest="libraries", 
 			help=self.OPT_DEFINE)
@@ -109,9 +109,9 @@ class Command:
 		if (not language):
 			raise ERR_NO_LANGUAGE_SPECIFIED
 		if options.passes:
-			self.setupPasses(language, options.passes.split(','))
+			self.setupPasses(language, options.passes.split(','), (options.passOptions or []))
 		elif True:
-			self.setupPasses(language)
+			self.setupPasses(language, None, (options.passOptions or []))
 		self.transformProgram()
 		if options.api:
 			html_documentation = self.environment.getPass('Documentation').asHTML()
@@ -195,17 +195,18 @@ class Command:
 	def setupEnvironment(self):
 		pass
 	
-	def setupPasses(self, language=None, options=None):
+	def setupPasses(self, language=None, withPasses=None, options=None):
 		if language is None: language = None
+		if withPasses is None: withPasses = None
 		if options is None: options = None
-		if (not options):
+		if (not withPasses):
 			if ((language == 'javascript') and (not ('NORUNTIME' in options))):
 				self.environment.addPass(passes.ExtendJSRuntime())
 			self.environment.addPass(passes.Importation())
 			self.environment.addPass(resolution.BasicDataFlow())
 			self.environment.addPass(resolution.DataFlowBinding())
 		elif True:
-			for the_pass in options:
+			for the_pass in withPasses:
 				if (the_pass.find('.') == -1):
 					pass_class=None
 					if hasattr(passes, the_pass):
