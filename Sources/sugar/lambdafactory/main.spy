@@ -30,6 +30,7 @@
 	@shared OPT_MODULE     = "Specifies the module name"
 	@shared OPT_LIB        = "Specifies a path where the library is"
 	@shared OPT_PREPROC    = "Applies the given preprocessor to the source"
+	@shared OPT_PASSES     = "Specified the passes used in the compilation process"
 
 	@property programName
 	@property environment:Environment
@@ -87,6 +88,8 @@
 		|	help=self.OPT_OPTIONS)
 		|option_parser.add_option("-L", "--lib", action="append", dest="libraries", 
 		|	help=self.OPT_DEFINE)
+		|option_parser.add_option("-P", "--passes", action="store", dest="passes", 
+		|	help=self.OPT_PASSES)
 		|option_parser.add_option("-V", None, action="store", dest="version", 
 		|	help=self.OPT_VERSION)
 		|options, args = option_parser.parse_args(args=arguments)
@@ -127,7 +130,11 @@
 		if not language
 			raise ERR_NO_LANGUAGE_SPECIFIED
 		end
-		setupPasses(language,options passes)
+		if options passes
+			setupPasses (language, options passes split ",")
+		else
+			setupPasses (language)
+		end
 		transformProgram()
 		# We compile, run or simply test
 		if options api
@@ -228,16 +235,42 @@
 	@method setupEnvironment
 	@end
 
-	@method setupPasses language=None, options=[]
-		# Passes:
-		#  Importation
-		# TODO: Add groups of passes
-		if language == "javascript" and (not ("NORUNTIME" in options))
-			environment addPass ( new passes ExtendJSRuntime() )
+	@method setupPasses language=None, options=None
+		if not options
+			# TODO: Add groups of passes
+			if language == "javascript" and (not ("NORUNTIME" in options))
+				environment addPass ( new passes ExtendJSRuntime() )
+			end
+			environment addPass ( new passes Importation() )
+			environment addPass ( new resolution BasicDataFlow() )
+			environment addPass ( new resolution DataFlowBinding() )
+		else
+			# We have a custom set of passes
+			for the_pass in options
+				if the_pass find "." == -1
+					var pass_class = None
+					if hasattr(passes, the_pass)
+						var pass_class = getattr(passes, the_pass)
+					if hasattr(resolution, the_pass)
+						var pass_class = getattr(resolution, the_pass)
+					else
+						environment report error ("LambdaFactory standard pass not found:", the_pass)
+						assert (None)
+					end
+					environment addPass (new pass_class ())
+				else
+					var module_name = the_pass[0:the_pass rfind (".")]
+					exec ("import " + module_name)
+					var pass_class = eval (the_pass)
+					if pass_class
+						environment addPass (new pass_class ())
+					else
+						environment report error ("Custom pass not found:", the_pass)
+						assert (None)
+					end
+				end
+			end
 		end
-		environment addPass ( new passes ImportationPass() )
-		environment addPass ( new resolution BasicDataFlow() )
-		environment addPass ( new resolution DataFlowBinding() )
 		#  Resolution
 		# environment addPass (new passes ResolutionPass() )
 		#  Typing

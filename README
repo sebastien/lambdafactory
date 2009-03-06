@@ -28,4 +28,20 @@ or use the regular way
 
 >	python setup.py install
 
+Specifying passes
+=================
+
+On the command-line, you can use the -P option to specify the passes that you
+want to use for a particular run. By default, these passes are:
+
+>	lf -PImportation,BasicDataFlow,DataFlowBinding
+
+for the JavaScript target, a specific pass is added:
+
+>	lf -PExtendJSruntime,Importation,BasicDataFlow,DataFlowBinding
+
+the passes are specified in order and have to be either the name of a
+'lambdafactory.passes' pass subclass, or be a fully-qualified name of a Pass
+class (which then has to be a loadable Python module)
+
 # EOF
