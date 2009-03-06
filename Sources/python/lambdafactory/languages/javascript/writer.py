@@ -5,7 +5,7 @@
 # License   : Revised BSD License
 # -----------------------------------------------------------------------------
 # Creation  : 02-Nov-2006
-# Last mod  : 27-Jan-2008
+# Last mod  : 06-Mar-2009
 # -----------------------------------------------------------------------------
 
 # TODO: When constructor is empty, should assign default attributes anyway
@@ -127,7 +127,12 @@ class Writer(AbstractWriter):
 			if isinstance(value, interfaces.IModuleAttribute):
 				code.extend(["%s.%s" % (self._rewriteSymbol(moduleElement.getName()), self.write(value))])
 			else: 
-				code.extend(["%s.%s=%s" % (self._rewriteSymbol(moduleElement.getName()), self.renameModuleSlot(name), self.write(value))])
+				# NOTE: Some slot values may be shadowed, in which case they
+				# won't return any value
+				value_code = self.write(value)
+				if value_code:
+					code.extend(["%s.%s=%s" %
+					(self._rewriteSymbol(moduleElement.getName()), self.renameModuleSlot(name), value_code)])
 		code.append("%s.init()" % (self._rewriteSymbol(moduleElement.getName())))
 		return self._format(
 			*code
