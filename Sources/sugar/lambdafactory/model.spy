@@ -5,7 +5,7 @@
 # License   : Revised BSD License
 # -----------------------------------------------------------------------------
 # Creation  : 02-Nov-2006
-# Last mod  : 16-Dec-2008
+# Last mod  : 06-Mar-2009
 # -----------------------------------------------------------------------------
 @module lambdafactory.model
 | This module is the default implementation of the LambdaFactory interfaces.
@@ -442,12 +442,12 @@
 		return source
 	@end
 
-	@method annotate annotation:IAnnotation
+	@method addAnnotation annotation:IAnnotation
 		if not annotation
 			return None
 		end
 		if type(annotation) in [tuple, list]
-			map(annotate, annotation)
+			map(addAnnotation, annotation)
 		else
 			assert (isinstance(annotation, IAnnotation))
 			annotations append (annotation)
@@ -465,6 +465,28 @@
 		return len(annotations) > 0
 	@end
 
+	@method removeAnnotation withName
+		var new_annotations = []
+		for annotation in annotations
+			if annotation getName () != withName
+				new_annotations append (annotation)
+			end
+		end
+		annotations = new_annotations
+	@end
+
+	@method setAnnotation name, content
+		var annotation = getAnnotation (withName)
+		if not annotation
+			# FIXME: Should get factory instead
+			annotation = new Annotation(name, content)
+			self annotations append (annotation)
+		else
+			annotation setContent (content)
+		end
+		return self
+	@end
+
 	@method getAnnotation withName
 		var annotations = getAnnotations (withName)
 		if annotations
@@ -475,7 +497,7 @@
 	@end
 	
 	@method setDocumentation documentation
-		annotate(documentation)
+		addAnnotation(documentation)
 	@end
 
 	@method getDocumentation
@@ -537,7 +559,7 @@
 		copy name   = name
 		copy source = source
 		for annotation in annotations
-			copy annotate (annotation copy() detach())
+			copy addAnnotation (annotation copy() detach())
 		end
 		copy abstractType = abstractType
 		copy resultAbtractType = resultAbtractType
@@ -571,7 +593,11 @@
 	@method getContent
 		return content
 	@end
-	
+
+	@method setContent content
+		self content = content
+		return self
+	@end
 @end
 
 @class Comment: Annotation, IComment
@@ -859,7 +885,7 @@
 		end
 		for an in module annotations
 			an detach ()
-			self annotate (an)
+			self addAnnotation (an)
 		end
 		for slot in module getSlots ()
 			var name, value = slot

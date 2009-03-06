@@ -6,7 +6,7 @@
 # License   : Revised BSD License
 # -----------------------------------------------------------------------------
 # Creation  : 02-Nov-2006
-# Last mod  : 16-Dec-2008
+# Last mod  : 06-Mar-2009
 # -----------------------------------------------------------------------------
 
 # TODO: Add a Flowable interface that tells that the element can have
@@ -36,6 +36,9 @@
 
 	@abstract @method getContent
 	| Returns the content of this annotation.
+
+	@abstract @method setContent content
+	| Updates the content of this annotation.
 
 	@abstract @method getName:String
 	| Returns the name of this annotation.
@@ -191,17 +194,17 @@
 	@abstract @method getDataFlow
 	| Returns the dataflow accessible/bound to this element
 
-	@abstract @method getAnnotation name
-	| Gets the annotation with the given name associated to this element
-
 	@abstract @method getAnnotations name
 	| Gets all the annotation with the given name associated to this element
 
 	@abstract @method hasAnnotation name
 	| Tells if the given element has an annotation with the given name
+	
+	@abstract @method removeAnnotation name
+	| Removes the annotations with the given name
 
-	@abstract @method setAnnotation name, annotation
-	| Sets the annotation with the given name to this element
+	@abstract @method addAnnotation annotation:<IAnnotation>
+	| Adds an annotation to this element
 
 	@abstract @method getParent:<IElement|None>
 	| Returns this element parent
@@ -220,6 +223,11 @@
 	| Performs a deep clone of this element. Any mutation to the original won't
 	| change the copy.
 
+@end
+
+@protocol IConstruct
+| A construct is a high level programming element that allows to create a
+| structure and hierarchy in the program.
 @end
 
 # FIXME: IAssignable should be able to return a type information
@@ -496,7 +504,7 @@
 @end
 
 # FIXME: Add getInheritedXXX functions
-@protocol IClass: IContext, IReferencable
+@protocol IClass: IContext, IReferencable, IConstruct
 
 	@abstract @method getInheritedSlots
 	|	gives the list of inherited slots
@@ -544,7 +552,7 @@
 |	An interface is an abstract @protocol that only has abstract elements.
 @end
 
-@protocol IModule: IContext, IReferencable
+@protocol IModule: IContext, IReferencable, IConstruct
 | Note that a module 'getName' function returns the module absolute name
 
 	@abstract @method isImported:<True|False>
@@ -637,7 +645,7 @@
 @end
 
 
-@protocol IFunction: IClosure, IReferencable, IAbstractable
+@protocol IFunction: IClosure, IReferencable, IAbstractable, IConstruct
 
 	@abstract @method getName 
 	|	Returns this @protocol name. It can be `None` if the @protocol is anonymous.

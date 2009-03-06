@@ -245,8 +245,12 @@
 
 	@end
 	
+	@method annotate value, name, content=None
+		value addAnnotation (environment factory annotation (name, content))
+	@end
+
 	@group Resolution
-	
+
 		@method resolve referenceOrName, contextOrDataFlow=None
 		| Resolves the given 'IReference' or String sing the given context
 		| ('IContext') or dataflow ('IDataFlow'). This usually requires that
@@ -260,7 +264,12 @@
 			if isinstance(referenceOrName, interfaces IReference)
 				referenceOrName = referenceOrName getReferenceName()
 			end
-			return contextOrDataFlow resolve (referenceOrName)
+			if contextOrDataFlow
+				return contextOrDataFlow resolve (referenceOrName)
+			else
+				# TODO: Issue a warning because the resolution pass was not made
+				return [None, None]
+			end
 		@end
 
 		@method resolveAbsolute referenceOrName
@@ -445,10 +454,10 @@
 
 	@method onProgram program
 		runtime = environment factory createModule ("extend")
-		runtime annotate (environment factory annotation ("shadow"))
+		runtime addAnnotation (environment factory annotation ("shadow"))
 		for f in FUNCTIONS
 			var fun = environment factory createFunction (f)
-			fun annotate (environment factory annotation ("shadow"))
+			fun addAnnotation (environment factory annotation ("shadow"))
 			runtime setSlot (f, fun)
 		end
 		program addModule (runtime)
@@ -467,7 +476,7 @@
 #
 # ============================================================================
 
-@class ImportationPass: Pass
+@class Importation: Pass
 | The importation pass will look for importation operations ('IImportation'),
 | will try to resolve the importations (according to the current environment)
 | and will trigger the loading and parsing of each module into the current
@@ -495,7 +504,7 @@
 				var imported_module_name = i getImportOrigin()
 				var imported_module = environment importModule (imported_module_name)
 			else
-				environment report error ("ImportationPass: operation not implemented " + repr(i))
+				environment report error ("Importation pass: operation not implemented " + repr(i))
 			end
 		end
 		return False
