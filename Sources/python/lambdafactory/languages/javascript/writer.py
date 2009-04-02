@@ -5,7 +5,7 @@
 # License   : Revised BSD License
 # -----------------------------------------------------------------------------
 # Creation  : 02-Nov-2006
-# Last mod  : 06-Mar-2009
+# Last mod  : 02-Apr-2009
 # -----------------------------------------------------------------------------
 
 # TODO: When constructor is empty, should assign default attributes anyway
@@ -181,13 +181,42 @@ class Writer(AbstractWriter):
 			result.append([written_attrs])
 			result.append("},")
 		if attributes:
-			written_attrs = ",\n".join(map(self.write, attributes))
+			# In attributes, we only print the name, ans use Undefined as the
+			# value, because properties will be instanciated at construction
+			written_attrs = ",\n".join(map(
+				lambda e:"%s:Undefined" % (self._rewriteSymbol(e.getName())),
+				attributes
+			))
 			result.append("properties:{")
 			result.append([written_attrs])
 			result.append("},")
 		if constructors:
 			assert len(constructors) == 1, "Multiple constructors are not supported yet"
 			result.append("%s," % (self.write(constructors[0])))
+		else:
+			# We write the default constructor, see 'onConstructor' for for
+			# details.
+			constructor_attributes    = []
+			for a in classElement.getAttributes():
+				if not a.getDefaultValue(): continue
+				constructor_attributes.append(
+					"__this__.%s = %s" % (
+						self._rewriteSymbol(a.getName()), self.write(a.getDefaultValue()
+				)))
+			default_constructor = self._format(
+				(
+					self.options["ENABLE_METADATA"] and "initialize:_meta_(function(){" \
+					or "initialize:function(){"
+				),
+				["var __this__=this"],
+				constructor_attributes or None,
+				(
+					(not self.options["ENABLE_METADATA"] and "}") or \
+					"},{arguments:[])"
+				)
+			)
+			# in case no constructor is given, we create a default constructor
+			result.append(default_constructor)
 		if destructors:
 			assert len(destructors) == 1, "Multiple destructors are not supported"
 			result.append("%s," % (self.write(destructors[0])))
@@ -295,7 +324,7 @@ class Writer(AbstractWriter):
 		)
 
 	def onConstructor( self, element ):
-		"""Writes a method element."""
+		"""Writes a constructor element"""
 		current_class = self.getCurrentClass()
 		attributes    = []
 		for a in current_class.getAttributes():
