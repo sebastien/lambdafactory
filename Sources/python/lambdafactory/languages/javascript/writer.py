@@ -184,7 +184,7 @@ class Writer(AbstractWriter):
 			# In attributes, we only print the name, ans use Undefined as the
 			# value, because properties will be instanciated at construction
 			written_attrs = ",\n".join(map(
-				lambda e:"%s:Undefined" % (self._rewriteSymbol(e.getName())),
+				lambda e:"%s:undefined" % (self._rewriteSymbol(e.getName())),
 				attributes
 			))
 			result.append("properties:{")
