@@ -5,7 +5,7 @@
 # License   : Revised BSD License
 # -----------------------------------------------------------------------------
 # Creation  : 02-Nov-2006
-# Last mod  : 02-Apr-2009
+# Last mod  : 03-Apr-2009
 # -----------------------------------------------------------------------------
 
 # TODO: When constructor is empty, should assign default attributes anyway
@@ -211,8 +211,8 @@ class Writer(AbstractWriter):
 				["var __this__=this"],
 				constructor_attributes or None,
 				(
-					(not self.options["ENABLE_METADATA"] and "}") or \
-					"},{arguments:[])"
+					(not self.options["ENABLE_METADATA"] and "},") or \
+					"},{arguments:[]),"
 				)
 			)
 			# in case no constructor is given, we create a default constructor
