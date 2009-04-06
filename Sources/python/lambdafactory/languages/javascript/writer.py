@@ -5,7 +5,7 @@
 # License   : Revised BSD License
 # -----------------------------------------------------------------------------
 # Creation  : 02-Nov-2006
-# Last mod  : 03-Apr-2009
+# Last mod  : 06-Apr-2009
 # -----------------------------------------------------------------------------
 
 # TODO: When constructor is empty, should assign default attributes anyway
@@ -197,26 +197,41 @@ class Writer(AbstractWriter):
 			# We write the default constructor, see 'onConstructor' for for
 			# details.
 			constructor_attributes    = []
+			invoke_parent_constructor = None
+			if len(parents) > 0:
+				# We have to do the following JavaScript code because we're not
+				# sure to know the parent constructors arity -- this is just a
+				# way to cover our ass. We encapsulate the __super__ declaration
+				# in a block to avoid scoping problems.
+				invoke_parent_constructor = "".join([
+					"\tif (true) {var __super__=",
+					"__this__.getSuper(%s.getParent());" % (self.getAbsoluteName(classElement)),
+					"__super__.initialize.apply(__super__,arguments)}"
+				])
 			for a in classElement.getAttributes():
 				if not a.getDefaultValue(): continue
 				constructor_attributes.append(
 					"__this__.%s = %s" % (
 						self._rewriteSymbol(a.getName()), self.write(a.getDefaultValue()
 				)))
-			default_constructor = self._format(
-				(
-					self.options["ENABLE_METADATA"] and "initialize:_meta_(function(){" \
-					or "initialize:function(){"
-				),
-				["var __this__=this"],
-				constructor_attributes or None,
-				(
-					(not self.options["ENABLE_METADATA"] and "},") or \
-					"},{arguments:[]),"
+			# We only need a default constructor when we have class attributes
+			# declared and no constructor declared
+			if constructor_attributes:
+				default_constructor = self._format(
+					(
+						self.options["ENABLE_METADATA"] and "initialize:_meta_(function(){" \
+						or "initialize:function(){"
+					),
+					["var __this__=this"],
+					invoke_parent_constructor,
+					constructor_attributes or None,
+					(
+						(not self.options["ENABLE_METADATA"] and "},") or \
+						"},{arguments:[]),"
+					)
 				)
-			)
-			# in case no constructor is given, we create a default constructor
-			result.append(default_constructor)
+				# in case no constructor is given, we create a default constructor
+				result.append(default_constructor)
 		if destructors:
 			assert len(destructors) == 1, "Multiple destructors are not supported"
 			result.append("%s," % (self.write(destructors[0])))
