@@ -44,6 +44,7 @@
 		interfaces IContext
 		interfaces IAllocation
 		interfaces IOperation
+		interfaces IParameter
 		interfaces IValue
 	]
 	@shared NAME    = "Resolution"
@@ -150,6 +151,15 @@
 				walk (op_arg)
 			end
 		end
+	@end
+
+	@method onParameter element
+		# NOTE: We have to process parameter values as well !
+		var value = element getValue ()
+		# FIXME: This does not work (recursive loop when compiling in passes.spy)
+		# if value and not (isinstance(value, interfaces IReference))
+		# 	walk (element getValue ())
+		# end
 	@end
 
 	@method onValue element
