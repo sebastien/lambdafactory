@@ -6,7 +6,7 @@
 # License   : Revised BSD License
 # -----------------------------------------------------------------------------
 # Creation  : 02-Nov-2006
-# Last mod  : 06-Mar-2009
+# Last mod  : 16-Apr-2009
 # -----------------------------------------------------------------------------
 
 # TODO: Add a Flowable interface that tells that the element can have
@@ -430,10 +430,9 @@
 
 @end
 
-@protocol IParameter: IElement
+@protocol IParameter: IElement, ISlot
 
 	@abstract @method isByName
-	@abstract @method getName
 	@abstract @method setByName n:String
 	
 	@abstract @method getValue

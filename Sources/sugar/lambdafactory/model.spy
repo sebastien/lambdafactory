@@ -1647,6 +1647,11 @@
 	@method getValue
 		return value
 	@end
+
+	@method getDefaultValue
+	| An alias for getValue()
+		return value
+	@end
 	
 	@method setValue v
 		value = v

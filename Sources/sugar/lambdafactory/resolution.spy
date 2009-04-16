@@ -139,6 +139,17 @@
 			dataflow = getParentDataFlow()
 			element setDataFlow(dataflow)
 		end
+		for op_arg in element getOpArguments()
+			# TODO: Rewrite me (see passes.PassContext.walk)
+			if type(op_arg) in [tuple, list]
+				for arg in op_arg
+					assert (isinstance(arg, interfaces IElement))
+					walk(arg)
+				end
+			else
+				walk (op_arg)
+			end
+		end
 	@end
 
 	@method onValue element

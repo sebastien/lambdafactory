@@ -98,6 +98,11 @@
 					end
 				end
 			end
+			# FIXME: Not 100% about this
+			# Is the element a Slot ? -> walk default value
+			if isinstance(element, interfaces ISlot)
+				walk (element getDefaultValue ())
+			end
 		end
 		context pop()
 	@end
@@ -470,6 +475,7 @@
 	@end
 
 @end
+
 # ============================================================================
 #
 # Importation Pass
