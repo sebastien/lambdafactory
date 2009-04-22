@@ -34,7 +34,7 @@ class Writer(javascript.Writer):
 		self.supportedEmbedLanguages.extend(("as", "actionscript"))
 
 	def _extendGetMethodByName(self, name,variable="__this__"):
-		return "Extend.__module__.getMethodOf(%s,'%s') " % (name)
+		return "Extend.__module__.getMethodOf(%s,'%s') " % (variable, name)
 
 	def _extendGetClass(self, variable="__this__"):
 		return "Extend.__module__.getClassOf(%s) " % (variable)
