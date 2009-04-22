@@ -30,14 +30,14 @@ class Writer(javascript.Writer):
 
 	def __init__(self ):
 		javascript.Writer.__init__(self)
-		self.jsCore   = "Extend.__module__."
+		self.jsCore   = "extend.__module__."
 		self.supportedEmbedLanguages.extend(("as", "actionscript"))
 
 	def _extendGetMethodByName(self, name,variable="__this__"):
-		return "Extend.__module__.getMethodOf(%s,'%s') " % (variable, name)
+		return "extend.__module__.getMethodOf(%s,'%s') " % (variable, name)
 
 	def _extendGetClass(self, variable="__this__"):
-		return "Extend.__module__.getClassOf(%s) " % (variable)
+		return "extend.__module__.getClassOf(%s) " % (variable)
 
 	def getRuntimeSource(s):
 		"""Returns the JavaScript code for the runtime that is necassary to run
@@ -418,7 +418,7 @@ class Writer(javascript.Writer):
 		else: default_value = 'undefined'
 		return self._format(
 			self._document(element),
-			"public static var %s=%s" % (element.getReferenceName(), default_value)
+			"public static var %s=%s" % (element.getName(), default_value)
 		)
 		
 	def onReference( self, element ):

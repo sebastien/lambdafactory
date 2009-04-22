@@ -1,176 +1,198 @@
-// 8< ---[Extend/__module__.as]---
-// This module implements a complete OOP layer for JavaScript that makes it
-// easy to develop highly structured JavaScript applications.
-// 
-// Classes are created using extend by giving a dictionary that contains the
-// following keys:
-// 
-// - 'name', an optional name for this class
-// - 'parent', with a reference to a parent class (created with Extend)
-// - 'initialize', with a function to be used as a constructor
-// - 'properties', with a dictionary of instance attributes
-// - 'methods', with a dictionary of instance methods
-// - 'shared', with a dictionary of class attributes
-// - 'operations', with a dictionary of class operations
-// 
-// Extend 2.0 is a rewritten, simplified version of the Extend 1 library. It is
-// not compatible with the previous versions, but the API will be stable from
-// this release.
-// 
-// You can get more information at the Extend [project
-// page](http://www.ivy.fr/js/extend).
-package Extend {
-	import flash.utils.getDefinitionByName;
-	import flash.utils.getQualifiedSuperclassName;
+// 8< ---[extend/__module__.as]---
+package extend {
 	public class __module__ {
-	public static var console=undefined
-	public static var document=undefined
-		// Classes are created using extend by giving a dictionary that contains the
-		// following keys:
-		// 
-		// - 'name', an optional name for this class
-		// - 'parent', with a reference to a parent class (created with Extend)
-		// - 'initialize', with a function to be used as a constructor
-		// - 'properties', with a dictionary of instance attributes
-		// - 'methods', with a dictionary of instance methods
-		// - 'shared', with a dictionary of class attributes
-		// - 'operations', with a dictionary of class operations
-		// 
-		// Invoking the 'Class' function will return you a _Class Object_ that
-		// implements the following API:
-		// 
-		// - 'isClass()' returns *true*( (because this is an object, not a class)
-		// - 'getName()' returns the class name, as a string
-		// - 'getParent()' returns a reference to the parent class
-		// - 'getOperation(n)' returns the operation with the given name
-		// - 'hasInstance(o)' tells if the given object is an instance of this class
-		// - 'isSubclassOf(c)' tells if the given class is a subclass of this class
-		// - 'listMethods()' returns a dictionary of *methods* available for this class
-		// - 'listOperations()' returns a dictionary of *operations* (class methods)
-		// - 'listShared()' returns a dictionary of *class attributes*
-		// - 'listProperties()' returns a dictionary of *instance attributes*
-		// - 'bindMethod(o,n)' binds the method with the given name to the given object
-		// - 'proxyWithState(o)' returns a *proxy* that will use the given object as if
-		// it was an instance of this class (useful for implementing 'super')
-		// 
-		// When you instanciate your class, objects will have the following methods
-		// available:
-		// 
-		// - 'isClass()' returns *true*( (because this is an object, not a class)
-		// - 'getClass()' returns the class of this instance
-		// - 'getMethod(n)' returns the bound method which name is 'n'
-		// - 'isInstance(c)' tells if this object is an instance of the given class
-		// 
-		// Using the 'Class' function is very easy (in *Sugar*):
-		// 
-		// >   var MyClass = Extend Class {
-		// >      name:"MyClass"
-		// >      initialize:{
-		// >         self message = "Hello, world !"
-		// >      }
-		// >      methods:{
-		// >        helloWorld:{print (message)}
-		// >      }
-		// >   }
-		// 
-		// instanciating the class is very easy too
-		// 
-		// >   var my_instance = new MyClass()
-		public static function Class (declaration=undefined){
+	public static var Counters={'Instances':0}
+	public static var ErrorCallback=undefined
+	public static var PrintCallback=undefined
+	public static var Registry={}
+		/** Classes are created using extend by giving a dictionary that contains the
+		following keys:
+		
+		- 'name', an optional name for this class
+		- 'parent', with a reference to a parent class (created with extend)
+		- 'initialize', with a function to be used as a constructor
+		- 'properties', with a dictionary of instance attributes
+		- 'methods', with a dictionary of instance methods
+		- 'shared', with a dictionary of class attributes
+		- 'operations', with a dictionary of class operations
+		
+		Invoking the 'Class' function will return you a _Class Object_ that
+		implements the following API:
+		
+		- 'isClass()' returns *true*( (because this is an object, not a class)
+		- 'getName()' returns the class name, as a string
+		- 'getParent()' returns a reference to the parent class
+		- 'getOperation(n)' returns the operation with the given name
+		- 'hasInstance(o)' tells if the given object is an instance of this class
+		- 'isSubclassOf(c)' tells if the given class is a subclass of this class
+		- 'listMethods()' returns a dictionary of *methods* available for this class
+		- 'listOperations()' returns a dictionary of *operations* (class methods)
+		- 'listShared()' returns a dictionary of *class attributes*
+		- 'listProperties()' returns a dictionary of *instance attributes*
+		- 'bindMethod(o,n)' binds the method with the given name to the given object
+		- 'proxyWithState(o)' returns a *proxy* that will use the given object as if
+		it was an instance of this class (useful for implementing 'super')
+		
+		When you instanciate your class, objects will have the following methods
+		available:
+		
+		- 'isClass()' returns *true*( (because this is an object, not a class)
+		- 'getClass()' returns the class of this instance
+		- 'getMethod(n)' returns the bound method which name is 'n'
+		- 'getCallback(n)' the equivalent of 'getMethod', but will give the 'this' as
+		additional last arguments (useful when you the invoker changes the 'this',
+		which happens in event handlers)
+		- 'isInstance(c)' tells if this object is an instance of the given class
+		
+		Using the 'Class' function is very easy (in *Sugar*):
+		
+		>   var MyClass = extend Class {
+		>      name:"MyClass"
+		>      initialize:{
+		>         self message = "Hello, world !"
+		>      }
+		>      methods:{
+		>        helloWorld:{print (message)}
+		>      }
+		>   }
+		
+		instanciating the class is very easy too
+		
+		>   var my_instance = new MyClass()
+		*/
+		public static function Class (declaration){
 			var full_name=declaration.name;
-			var class_object=function(){
-				if ( (! ((arguments.length == 1) && (arguments[0] == "__Extend_SubClass__"))) )
+			var class_object=function( ... arguments){
+				if ( (! ((arguments.length == 1) && (arguments[0] == '__Extend_SubClass__'))) )
 				{
 					 var properties = class_object.listProperties()
 					 for ( var prop in properties ) {
 					   this[prop] = properties[prop];
 					 }
 					
-					if ( this.initialize )
+					if ( target.initialize )
 					{
-						return this.initialize.apply(this, arguments)
+						return target.initialize.apply(target, arguments)
 					}
 				}
 			};
-			class_object.isClass = function(){
+			class_object.isClass = function( ... arguments){
 				return true
 			};
 			class_object._parent = declaration.parent;
 			class_object._name = declaration.name;
-			class_object._properties = {"all":{}, "inherited":{}, "own":{}};
-			class_object._shared = {"all":{}, "inherited":{}, "own":{}};
-			class_object._operations = {"all":{}, "inherited":{}, "own":{}, "fullname":{}};
-			class_object._methods = {"all":{}, "inherited":{}, "own":{}, "fullname":{}};
-			class_object.getName = function(){
+			class_object._properties = {'all':{}, 'inherited':{}, 'own':{}};
+			class_object._shared = {'all':{}, 'inherited':{}, 'own':{}};
+			class_object._operations = {'all':{}, 'inherited':{}, 'own':{}, 'fullname':{}};
+			class_object._methods = {'all':{}, 'inherited':{}, 'own':{}, 'fullname':{}};
+			class_object.getName = function( ... arguments){
 				return class_object._name
 			};
-			class_object.getParent = function(){
+			class_object.getParent = function( ... arguments){
 				return class_object._parent
 			};
-			class_object.isSubclassOf = function(c=undefined){
+			class_object.isSubclassOf = function(c, ... arguments){
 				var parent=this;
 				while (parent)
 				{
 					if ( (parent == c) )
 					{
-						return true
+						return True
 					}
 					parent = parent.getParent();
 				}
-				return false
+				return False
 			};
-			class_object.hasInstance = function(o=undefined){
+			class_object.hasInstance = function(o, ... arguments){
 				return o.getClass().isSubclassOf(class_object)
 			};
-			class_object.bindMethod = function(object=undefined, methodName=undefined){
+			class_object.bindMethod = function(object, methodName, ... arguments){
 				var this_method=object[methodName];
-				return function(){
+				return function( ... arguments){
 					var a=arguments;
 					if ( (a.length == 0) )
 					{
-						return this_method.call(object, this)
+						return this_method.call(object)
 					}
 					else if ( (a.length == 1) )
 					{
-						return this_method.call(object, a[0], this)
+						return this_method.call(object, a[0])
 					}
 					else if ( (a.length == 2) )
 					{
-						return this_method.call(object, a[0], a[1], this)
+						return this_method.call(object, a[0], a[1])
 					}
 					else if ( (a.length == 3) )
 					{
-						return this_method.call(object, a[0], a[1], a[2], this)
+						return this_method.call(object, a[0], a[1], a[2])
 					}
 					else if ( (a.length == 4) )
 					{
-						return this_method.call(object, a[0], a[1], a[2], a[3], this)
+						return this_method.call(object, a[0], a[1], a[2], a[3])
 					}
 					else if ( (a.length == 5) )
 					{
-						return this_method.call(object, a[0], a[1], a[2], a[3], a[4], this)
+						return this_method.call(object, a[0], a[1], a[2], a[3], a[4])
 					}
-					else if ( true )
+					else if ( True )
 					{
 						var args=[];
+						args.concat(arguments)
 						return this_method.apply(object, args)
 					}
 				}
 			};
-			class_object.getOperation = function(name=undefined){
+			class_object.bindCallback = function(object, methodName, ... arguments){
+				var this_method=object[methodName];
+				return function( ... arguments){
+					var a=arguments;
+					if ( (a.length == 0) )
+					{
+						return this_method.call(object, target)
+					}
+					else if ( (a.length == 1) )
+					{
+						return this_method.call(object, a[0], target)
+					}
+					else if ( (a.length == 2) )
+					{
+						return this_method.call(object, a[0], a[1], target)
+					}
+					else if ( (a.length == 3) )
+					{
+						return this_method.call(object, a[0], a[1], a[2], target)
+					}
+					else if ( (a.length == 4) )
+					{
+						return this_method.call(object, a[0], a[1], a[2], a[3], target)
+					}
+					else if ( (a.length == 5) )
+					{
+						return this_method.call(object, a[0], a[1], a[2], a[3], a[4], target)
+					}
+					else if ( True )
+					{
+						var args=[];
+						args.concat(arguments)
+						args.push(target)
+						return this_method.apply(object, args)
+					}
+				}
+			};
+			class_object.getOperation = function(name, ... arguments){
 				var this_operation=class_object[name];
-				return function(){
+				return function( ... arguments){
 					return this_operation.apply(class_object, arguments)
 				}
 			};
-			class_object.listMethods = function(o=undefined, i=undefined){
-				if ( (o == undefined) )
+			class_object.listMethods = function(o, i, ... arguments){
+				if ( (o === Undefined) )
 				{
-					o = true;
+					o = True;
 				}
-				if ( (i == undefined) )
+				if ( (i === Undefined) )
 				{
-					i = true;
+					i = True;
 				}
 				if ( (o && i) )
 				{
@@ -184,19 +206,19 @@ package Extend {
 				{
 					return class_object._methods.own
 				}
-				else if ( true )
+				else if ( True )
 				{
 					return {}
 				}
 			};
-			class_object.listOperations = function(o=undefined, i=undefined){
-				if ( (o == undefined) )
+			class_object.listOperations = function(o, i, ... arguments){
+				if ( (o === Undefined) )
 				{
-					o = true;
+					o = True;
 				}
-				if ( (i == undefined) )
+				if ( (i === Undefined) )
 				{
-					i = true;
+					i = True;
 				}
 				if ( (o && i) )
 				{
@@ -210,19 +232,19 @@ package Extend {
 				{
 					return class_object._operations.own
 				}
-				else if ( true )
+				else if ( True )
 				{
 					return {}
 				}
 			};
-			class_object.listShared = function(o=undefined, i=undefined){
-				if ( (o == undefined) )
+			class_object.listShared = function(o, i, ... arguments){
+				if ( (o === Undefined) )
 				{
-					o = true;
+					o = True;
 				}
-				if ( (i == undefined) )
+				if ( (i === Undefined) )
 				{
-					i = true;
+					i = True;
 				}
 				if ( (o && i) )
 				{
@@ -236,19 +258,19 @@ package Extend {
 				{
 					return class_object._shared.own
 				}
-				else if ( true )
+				else if ( True )
 				{
 					return {}
 				}
 			};
-			class_object.listProperties = function(o=undefined, i=undefined){
-				if ( (o == undefined) )
+			class_object.listProperties = function(o, i, ... arguments){
+				if ( (o === Undefined) )
 				{
-					o = true;
+					o = True;
 				}
-				if ( (i == undefined) )
+				if ( (i === Undefined) )
 				{
-					i = true;
+					i = True;
 				}
 				if ( (o && i) )
 				{
@@ -262,20 +284,20 @@ package Extend {
 				{
 					return class_object._properties.own
 				}
-				else if ( true )
+				else if ( True )
 				{
 					return {}
 				}
 			};
-			class_object.proxyWithState = function(o=undefined){
+			class_object.proxyWithState = function(o, ... arguments){
 				var proxy={};
-				var constr=undefined;
-				var wrapper=function(f=undefined){
-					return function(){
+				var constr=Undefined;
+				var wrapper=function(f, ... arguments){
+					return function( ... arguments){
 						return f.apply(o, arguments)
 					}
 				};
-				var proxy_object=function(){
+				var proxy_object=function( ... arguments){
 					return class_object.prototype.initialize.apply(o, arguments)
 				};
 				proxy_object.prototype = proxy;
@@ -287,7 +309,7 @@ package Extend {
 				  proxy_object[key] = w
 				 }
 				
-				proxy_object.getSuper = function(){
+				proxy_object.getSuper = function( ... arguments){
 					return class_object.getParent().proxyWithState(o)
 				};
 				return proxy_object
@@ -361,28 +383,42 @@ package Extend {
 			var instance_proto={};
 			if ( declaration.parent )
 			{
-				instance_proto = new declaration.parent("__Extend_SubClass__");
+				instance_proto = new declaration.parent('__Extend_SubClass__');
 				instance_proto.constructor = class_object;
 			}
-			instance_proto.isInstance = undefined;
-			instance_proto.getClass = function(){
+			instance_proto.isInstance = Undefined;
+			instance_proto.getClass = function( ... arguments){
 				return class_object
 			};
-			instance_proto.isClass = function(){
-				return false
+			instance_proto.isClass = function( ... arguments){
+				return False
 			};
-			instance_proto.getMethod = function(methodName=undefined){
-				var this_object=this;
+			instance_proto.getMethod = function(methodName, ... arguments){
+				var this_object=target;
 				return class_object.bindMethod(this_object, methodName)
 			};
-			instance_proto.isInstance = function(c=undefined){
-				return c.hasInstance(this)
+			instance_proto.getCallback = function(methodName, ... arguments){
+				var this_object=target;
+				return class_object.bindCallback(this_object, methodName)
+			};
+			instance_proto.isInstance = function(c, ... arguments){
+				return c.hasInstance(target)
 			};
 			if ( declaration.initialize )
-			{instance_proto.initialize = declaration.initialize;}
-			instance_proto.getSuper = function(c=undefined){
-				return c.proxyWithState(this)
+			{
+				instance_proto.initialize = declaration.initialize;
+			}
+			else if ( True )
+			{
+				instance_proto.instance_proto = {};
+			}
+			instance_proto.getSuper = function(c, ... arguments){
+				return c.proxyWithState(target)
 			};
+			if ( declaration.operations != undefined ) {
+				for ( var name in declaration.operations ) {
+					instance_proto[name] = instance_proto[full_name + "_" + name] = class_object.getOperation(name)
+			}}
 			if ( declaration.methods != undefined ) {
 				for ( var name in declaration.methods ) {
 					instance_proto[name] = instance_proto[full_name + "_" + name] = declaration.methods[name]
@@ -392,17 +428,62 @@ package Extend {
 			}
 			
 			class_object.prototype = instance_proto;
+			if ( declaration.name )
+			{
+				if ( (extend.Registry != Undefined) )
+				{
+					extend.Registry[declaration.name] = class_object;
+				}
+			}
 			return class_object
 		}
-		public static function Protocol (pdata=undefined){
+		public static function Protocol (pdata){
 		}
-		public static function Singleton (sdata=undefined){
+		public static function Singleton (sdata){
 		}
-		// Creates a new list composed of elements in the given range, determined by
-		// the 'start' index and the 'end' index. This function will automatically
-		// find the proper step (wether '+1' or '-1') depending on the bounds you
-		// specify.
-		public static function range (start=undefined, end=undefined, step=undefined){
+		/** The 'invoke' method allows advanced invocation (supporting by name, as list
+		and as map invocation schemes) provided the given function 'f' has proper
+		'__meta__' annotation.
+		
+		These annotations are expected to be like:
+		
+		>    f __meta__ = {
+		>        arity:2
+		>        arguments:{
+		>           b:2,
+		>           "*":[1]
+		>           "**":{c:3,d:4}
+		>        }
+		>    }
+		
+		*/
+		public static function invoke (t, f, args, extra){
+			var meta=f['__meta__'];
+			var actual_args=[];
+			Extend.__module__.iterate(extra['*'], function(v, ... arguments){
+				args.push(v)
+			}, __this__)
+			Extend.__module__.iterate(extra['**'], function(v, k, ... arguments){
+				extra[k] = v;
+			}, __this__)
+			Extend.__module__.iterate(args, function(v, ... arguments){
+				actual_args.push(args)
+			}, __this__)
+			var start=args.length;
+			while ((start < meta.arity))
+			{
+				var arg=meta.arguments[start];
+				actual_args.push(extra[arg.name])
+				start = (start + 1);
+			}
+			return f.apply(t, actual_args)
+		}
+		/** Creates a new list composed of elements in the given range, determined by
+		the 'start' index and the 'end' index. This function will automatically
+		find the proper step (wether '+1' or '-1') depending on the bounds you
+		specify.
+		*/
+		public static function range (start:Number, end:Number, step:Number){
 			var result=[];
 			 if (start < end ) {
 			   for ( var i=start ; i<end ; i++ ) {
@@ -417,13 +498,14 @@ package Extend {
 			
 			return result
 		}
-		// Iterates on the given values. If 'value' is an array, the _callback_ will be
-		// invoked on each item (giving the 'value[i], i' as argument) until the callback
-		// returns 'false'. If 'value' is a dictionary, the callback will be applied
-		// on the values (giving 'value[k], k' as argument). Otherwise the object is
-		// expected to define both 'length' or 'getLength' and 'get' or 'getItem' to
-		// enable the iteration.
-		public static function iterate (value=undefined, callback=undefined, context=undefined){
+		/** Iterates on the given values. If 'value' is an array, the _callback_ will be
+		invoked on each item (giving the 'value[i], i' as argument) until the callback
+		returns 'false'. If 'value' is a dictionary, the callback will be applied
+		on the values (giving 'value[k], k' as argument). Otherwise the object is
+		expected to define both 'length' or 'getLength' and 'get' or 'getItem' to
+		enable the iteration.
+		*/
+		public static function iterate (value:any, callback:Function, context:Object){
 			  if ( !value ) { return }
 			  if ( value.length != undefined ) {
 			    var length = undefined
@@ -450,49 +532,365 @@ package Extend {
 			  }
 			
 		}
-		public static function getMethodOf( instance, name ) {
-			return instance[name];
-		}
-		public static function getClassOf( instance ) {
-			return getDefinitionByName(getQualifiedSuperclassName(instance));
-		}
-		// This is a utility function that will return the rest of the given
-		// arguments list, without using the 'slice' operation which is only
-		// available to arrays.
-		public static function sliceArguments (args=undefined, index=undefined){
+		/** This is a utility function that will return the rest of the given
+		arguments list, without using the 'slice' operation which is only
+		available to arrays.
+		*/
+		public static function sliceArguments (args, index){
 			var res=[];
 			 while (index<args.length) { res.push(args[index++]) }
 			
 			return res
 		}
-		// Prints the given arguments to the JavaScript console (available in Safari
-		// and in Mozilla if you've installed FireBug), or using the 'print' command
-		// in SpiderMonkey. If neither 'console' or 'print' is defined,
-		// this won't do anything.
-		// 
-		// When objects are given as arguments, they will be printed using the
-		// 'toSource' method they offer.
-		// 
-		// Example:
-		// 
-		// >    Extend print ("Here is a dict:", {a:1,b:2,c:3})
-		// 
-		// will output
-		// 
-		// >    "Here is a dict: {a:1,b:2,c:3}"
-		public static function print (args=undefined){
+		public static function slice (value, start=0, end=undefined){
+			end = end === undefined ? Undefined : end
+			if ( extend.isString(value) )
+			{
+				if ( (end === Undefined) )
+				{
+					end = value.length;
+				}
+				if ( (start < 0) )
+				{start = (value.length + start);}
+				if ( (end < 0) )
+				{end = (value.length + end);}
+				return value.substring(start, end)
+			}
+			else if ( extend.isList(value) )
+			{
+				if ( (end === Undefined) )
+				{
+					end = value.length;
+				}
+				if ( (start < 0) )
+				{start = (value.length + start);}
+				if ( (end < 0) )
+				{end = (value.length + end);}
+				return value.slice(start, end)
+			}
+			else if ( True )
+			{
+				throw ('Unsupported type for slice:' + value)
+			}
+		}
+		public static function len (value){
+			if ( extend.isList(value) )
+			{
+				return value.length
+			}
+			else if ( extend.isObject(value) )
+			{
+				if ( value.length )
+				{
+					return value.length
+				}
+				else if ( value.__len__ )
+				{
+					return value.__len__()
+				}
+			}
+			else if ( True )
+			{
+				return None
+			}
+		}
+		public static function type (value){
+			return typeof(value)
+		}
+		public static function access (value, index){
+			if ( extend.isList(value) )
+			{
+				if ( (index >= 0) )
+				{
+					return value[index]
+					
+				}
+				else if ( True )
+				{
+					return value[value.length + index]
+					
+				}
+			}
+			else if ( True )
+			{
+				return value[index]
+				
+			}
+		}
+		/** Returns true if the given value is in the given list
+		*/
+		public static function isIn (value, list){
+			if ( extend.isList(list) )
+			{
+				 for ( var i=0 ; i<list.length ; i++) {
+				   if (list[i]==value) { return true }
+				 }
+				 return false
+				
+			}
+			else if ( extend.isMap(list) )
+			{
+				 for ( var i in list ) {
+				   if (list[i]==value) { return true }
+				 }
+				 return false
+				
+			}
+			else if ( True )
+			{
+				return False
+			}
+		}
+		public static function createMapFromItems (items){
+			items = Extend.__module__.sliceArguments(arguments,0)
+			 var result = {}
+			 for ( var i=0 ; i<items.length ; i++ ) {
+			   result[items[i][0]] = items[i][1]
+			 }
+			 return result
+			
+		}
+		public static function isDefined (value){
+			return (! (value === Undefined))
+		}
+		public static function isList (value){
+			 return Object.prototype.toString.call(value) === '[object Array]';
+			
+		}
+		public static function isNumber (value){
+			return (typeof(value) == 'number')
+		}
+		public static function isString (value){
+			return (typeof(value) == 'string')
+		}
+		public static function isMap (value){
+			 return !!(!(value===null) && typeof value == "object" && !extend.isList(value))
+			
+		}
+		public static function isFunction (value){
+			 return !!(typeof value == "function")
+			
+		}
+		public static function isObject (value){
+			 return !!(typeof value == "object")
+			
+		}
+		/** Tells if the given value is an instance (in the sense of extend) of the
+		given 'ofClass'. If there is no given class, then it will just return
+		true if the value is an instance of any class.
+		*/
+		public static function isInstance (value, ofClass=undefined){
+			ofClass = ofClass === undefined ? Undefined : ofClass
+			if ( ofClass )
+			{
+				return (extend.isDefined(value.getClass) && value.isInstance(ofClass))
+			}
+			else if ( True )
+			{
+				return extend.isDefined(value.getClass)
+			}
+		}
+		public static function getMethodOf (instance, name){
+			return instance[name]
+		}
+		public static function getClassOf (instance){
+			return getDefinitionByName(getQualifiedSuperClassName(instance));
+			
+			return instance.getClass()
+			
+		}
+		/** Prints the given arguments to the JavaScript console (available in Safari
+		and in Mozilla if you've installed FireBug), or using the 'print' command
+		in SpiderMonkey. If neither 'console' or 'print' is defined,
+		this won't do anything.
+		
+		When objects are given as arguments, they will be printed using the
+		'toSource' method they offer.
+		
+		Example:
+		
+		>    extend print ("Here is a dict:", {a:1,b:2,c:3})
+		
+		will output
+		
+		>    "Here is a dict: {a:1,b:2,c:3}"
+		*/
+		public static function print (args){
 			args = Extend.__module__.sliceArguments(arguments,0)
-			 if (typeof(console)=="undefined"&&typeof(print)=="undefined"){return;}
-			 var res = ""
+			var pr_func=eval('print');
+			if ( (((typeof(console) == 'undefined') && (typeof(pr_func) === 'undefined')) && (extend.PrintCallback === Undefined)) )
+			{
+				return None
+			}
+			var res='';
 			 for ( var i=0 ; i<args.length ; i++ ) {
 			   var val = args[i]
 			   if ( val!=undefined && typeof(val) == "object" && val.toSource != undefined) { val = val.toSource() }
 			   if ( i<args.length-1 ) { res += val + " " }
 			   else { res += val }
 			 }
-			 if(typeof(console)!="undefined"){console.log(res);}
-			 else if(typeof(document)=="undefined"&&typeof(print)!="undefined"){print(res);}
 			
+			if ( (extend.PrintCallback === Undefined) )
+			{
+				if ( (typeof(console) != 'undefined') )
+				{
+					console.log(res)
+				}
+				else if ( ((typeof(document) == 'undefined') && (typeof(pr_func) != 'undefined')) )
+				{
+					pr_func(res)
+				}
+			}
+			else if ( True )
+			{
+				extend.PrintCallback(res)
+			}
+		}
+		public static function error (message){
+			if ( extend.ErrorCallback )
+			{
+				extend.ErrorCallback(message)
+			}
+			else if ( True )
+			{
+				extend.print(('[!] ' + message))
+			}
+		}
+		public static function assert (predicate, message){
+			if ( (! predicate) )
+			{
+				extend.error(message)
+			}
+		}
+		public static function getClass (name){
+			return extend.Registry[name]
+		}
+		public static function getParentClass (object){
+			return extend.Registry[name]
+		}
+		public static function getClasses (){
+			return extend.Registry
+		}
+		public static function getMethod (name, object){
+		}
+		public static function getSuperMethod (name, object){
+		}
+		public static function getChildrenOf (aClass:Class){
+			var res={};
+			var values = extend.getClasses()
+			for ( key in values ) {
+				if ( values[key] != aClass && values[key].isSubclassOf(aClass) )
+				{ res[key] = values[key] }
+			}
+			
+			return res
+		}
+		public static function car (list){
+		}
+		public static function cdr (list){
+		}
+		public static function cons (list){
+		}
+		public static function map (callback, iterable){
+			var result=[];
+			Extend.__module__.iterate(iterable, function(e, ... arguments){
+				result.append(callback(e))
+			}, __this__)
+			return result
+		}
+		public static function filter (callback, iterable){
+			var result=[];
+			Extend.__module__.iterate(iterable, function(e, ... arguments){
+				if ( callback(e) )
+				{
+					result.append(e)
+				}
+			}, __this__)
+			return result
+		}
+		public static function reduce (callback, iterable){
+			var first=True;
+			var result=Undefined;
+			Extend.__module__.iterate(iterable, function(e, ... arguments){
+				if ( first )
+				{
+					result = callback(e);
+					first = False;
+				}
+				else if ( True )
+				{
+					result = callback(e, result);
+				}
+			}, __this__)
+			return result
+		}
+		public static function extendPrimitiveTypes (){
+			String.prototype.__len__ = function( ... arguments){
+				return target.length
+			};
+			Array.prototype.extend = function(array, ... arguments){
+				Extend.__module__.iterate(array, function(e, ... arguments){
+					target.append(e)
+				}, __this__)
+			};
+			Array.prototype.append = function(e, ... arguments){
+				target.push(e)
+			};
+			Array.prototype.insert = function(e, i, ... arguments){
+				target.splice(i, e)
+			};
+			Array.prototype.slice = function( ... arguments){
+			};
+			Array.prototype.__iter__ = function( ... arguments){
+				return target.length
+			};
+			Array.prototype.__len__ = function( ... arguments){
+				return target.length
+			};
+			Object.prototype.keys = function( ... arguments){
+				var result=[];
+				for (var k in this) { var key=k ; result.push(key) }
+				
+				return result
+			};
+			Object.prototype.items = function( ... arguments){
+				var result=[];
+				for (var k in this) { var key=k ; result.push([key,this[key]]) }
+				
+				return result
+			};
+			Object.prototype.values = function( ... arguments){
+				var result=[];
+				for (var k in this) { var key=k ; result.push([key,this[key]]) }
+				
+				return result
+			};
+			Object.prototype.hasKey = function(key, ... arguments){
+				return (typeof(this[key]) != 'undefined')
+			};
+			Object.prototype.get = function(key, ... arguments){
+				return target[key]
+			};
+			Object.prototype.set = function(key, value, ... arguments){
+				target[key] = value;
+				return this
+			};
+			Object.prototype.setDefault = function(key, value, ... arguments){
+				if ( (typeof(target[key]) != 'undefined') )
+				{
+					return target[key]
+				}
+				else if ( True )
+				{
+					target[key] = value;
+					return value
+				}
+			};
+			Object.prototype.__iter__ = function( ... arguments){
+			};
+			Object.prototype.__len__ = function( ... arguments){
+				return target.keys().length
+			};
 		}
 	}
 }
