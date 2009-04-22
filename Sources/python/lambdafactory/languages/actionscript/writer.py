@@ -8,7 +8,7 @@
 # License   : Revised BSD License
 # -----------------------------------------------------------------------------
 # Creation  : 01-Aug-2007
-# Last mod  : 23-Sep-2008
+# Last mod  : 22-Apr-2009
 # -----------------------------------------------------------------------------
 
 # SEE: http://livedocs.adobe.com/specs/actionscript/3/
@@ -87,7 +87,7 @@ class Writer(javascript.Writer):
 				"// " + SNIP % ("%s/%s.as" % (module_path, value.getName())),
 				self._document(moduleElement),
 				"package %s {" % (self.getAbsoluteName(moduleElement)),
-				"import %s" % ( self.jsCore[:-1]),
+				["import %s" % ( self.jsCore[:-1])],
 				map(self.write, imports),
 				f,
 				self.write(value),
@@ -132,8 +132,15 @@ class Writer(javascript.Writer):
 
 	def onClass( self, classElement ):
 		"""Writes a class element."""
-		parents = classElement.getParentClasses()
-		parent  = ""
+		parents    = classElement.getParentClasses()
+		parent     = ""
+		decoration = None
+		# SWF Annotations are like 
+		# [SWF(width="800", height="600", backgroundColor="#ffffff", frameRate="30")]
+		# And allow wrapping a class into an SWF container
+		swf_ann = classElement.getAnnotation("SWF")
+		if swf_ann:
+			decoration = "[SWF(%s)]" % (swf_ann.getContent())
 		if len(parents) == 1:
 			parent = "extends %s " % (self.write(parents[0]))
 		elif len(parents) > 1:
@@ -156,6 +163,7 @@ class Writer(javascript.Writer):
 			version = 'public static _VERSION_:String = "%s";' % (version.getContent())
 		code       = [
 			self._document(classElement),
+			decoration,
 			"public dynamic class %s %s{" % (classElement.getName(), parent),
 			version,
 			class_code,
