@@ -8,7 +8,7 @@
 # License   : Revised BSD License
 # -----------------------------------------------------------------------------
 # Creation  : 01-Aug-2007
-# Last mod  : 22-Apr-2009
+# Last mod  : 23-Apr-2009
 # -----------------------------------------------------------------------------
 
 # SEE: http://livedocs.adobe.com/specs/actionscript/3/
@@ -427,9 +427,13 @@ class Writer(javascript.Writer):
 		"""Writes an argument element."""
 		symbol_name  = element.getReferenceName()
 		# FIXME: Does resolve really always return a dataflow slot ?
-		value_slot, scope = self.resolve(symbol_name)
-		if value_slot: value = value_slot.getValue()
-		else: value = None
+		slot, value = self.resolve(symbol_name)
+		if slot:
+			value = slot.getValue()
+			scope = slot.getDataFlow().getElement()
+		else:
+			value = None
+			scope = None
 		if symbol_name == "super":
 			assert self.resolve("self"), "Super must be used inside method"
 			return "super"
@@ -452,12 +456,12 @@ class Writer(javascript.Writer):
 				else:
 					return "__this__.getMethod('%s') " % (symbol_name)
 			elif isinstance(value, interfaces.IClassMethod):
-				if self.isInInstanceMethod():
+				if self.isIn(interfaces.IInstanceMethod):
 					return "%s.%s" % (self.getCurrentClass().getName(), symbol_name)
 				else:
 					return "__this__.%s" % (symbol_name)
 			elif isinstance(value, interfaces.IClassAttribute):
-				if self.isInClassMethod():
+				if self.isIn(interfaces.IClassMethod):
 					return "__this__.%s" % (symbol_name)
 				else:
 					return "%s.%s" % (self.getCurrentClass().getName(), symbol_name)
@@ -465,6 +469,29 @@ class Writer(javascript.Writer):
 				# It's a probably a None value (it's not resolved :/)
 				return symbol_name
 		return javascript.Writer.onReference(self, element)
+
+	def _onImportedReference( self, name, slot ):
+		"""Helper for the 'onReference' method"""
+		# NOTE: We have slightly different rules for AS scoping
+		symbol_name = name
+		o = slot.origin[0]
+		if isinstance(o, interfaces.IImportModuleOperation):
+			return o.getImportedModuleName()
+		elif isinstance(o, interfaces.IImportSymbolOperation):
+			module_name = o.getImportOrigin()
+			symbol_name = o.getImportedElement()
+			if not isinstance(slot.getValue(), interfaces.IClass):
+				return module_name + ".__module__." + symbol_name
+			else:
+				return module_name + "." + symbol_name
+		elif isinstance(o, interfaces.IImportSymbolsOperation):
+			module_name = o.getImportOrigin()
+			if not isinstance(slot.getValue(), interfaces.IClass):
+				return module_name + ".__module__." + symbol_name
+			else:
+				return module_name + "." + symbol_name
+		else:
+			raise Exception("Importation operation not implemeted yet")
 
 	def onImportSymbolOperation( self, element ):
 		res = ["import"]

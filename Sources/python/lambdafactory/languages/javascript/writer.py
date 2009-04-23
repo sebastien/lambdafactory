@@ -545,19 +545,7 @@ class Writer(AbstractWriter):
 			else: return symbol_name
 		# If the slot is imported
 		elif slot.isImported():
-			# We proces the importation to convert the slot to an absolute name
-			o = slot.origin[0]
-			if isinstance(o, interfaces.IImportModuleOperation):
-				return o.getImportedModuleName()
-			elif isinstance(o, interfaces.IImportSymbolOperation):
-				module_name = o.getImportOrigin()
-				symbol_name = o.getImportedElement()
-				return module_name + "." + symbol_name
-			elif isinstance(o, interfaces.IImportSymbolsOperation):
-				module_name = o.getImportOrigin()
-				return module_name + "." + symbol_name
-			else:
-				raise Exception("Importation operation not implemeted yet")
+			return self._onImportedReference(symbol_name, slot)
 		# It is a method of the current class
 		elif self.getCurrentClass() == scope or scope in self.getCurrentClassParents():
 			if isinstance(value, interfaces.IInstanceMethod):
@@ -612,6 +600,23 @@ class Writer(AbstractWriter):
 			return symbol_name
 		else:
 			raise Exception("Unsupported scope:" + str(scope))
+
+	def _onImportedReference( self, name, slot ):
+		"""Helper for the 'onReference' method"""
+		# We proces the importation to convert the slot to an absolute name
+		symbol_name = name
+		o = slot.origin[0]
+		if isinstance(o, interfaces.IImportModuleOperation):
+			return o.getImportedModuleName()
+		elif isinstance(o, interfaces.IImportSymbolOperation):
+			module_name = o.getImportOrigin()
+			symbol_name = o.getImportedElement()
+			return module_name + "." + symbol_name
+		elif isinstance(o, interfaces.IImportSymbolsOperation):
+			module_name = o.getImportOrigin()
+			return module_name + "." + symbol_name
+		else:
+			raise Exception("Importation operation not implemeted yet")
 
 	JS_OPERATORS = {
 				"and":"&&",

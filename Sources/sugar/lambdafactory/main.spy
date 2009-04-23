@@ -238,7 +238,7 @@
 	@method setupPasses language=None, withPasses=None, options=None
 		if not withPasses
 			# TODO: Add groups of passes
-			if language == "javascript" and (not ("NORUNTIME" in options))
+			if (language == "javascript" or language == "actionscript") and (not ("NORUNTIME" in options))
 				environment addPass ( new passes ExtendJSRuntime() )
 			end
 			environment addPass ( new passes Importation() )
