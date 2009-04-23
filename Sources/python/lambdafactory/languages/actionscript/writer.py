@@ -238,7 +238,9 @@ class Writer(javascript.Writer):
 		# there is more (like "@as override, inline, utility", it will crash)
 		annotation = element.getAnnotation("as")
 		if annotation:
-			return annotation.getContent().lower() == "overrides"
+			content = annotation.getContent()
+			if type(content) == list: content = content[0]
+			return content.lower() == "overrides"
 		else:
 			return False
 

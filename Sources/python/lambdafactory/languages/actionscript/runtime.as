@@ -460,13 +460,13 @@ package extend {
 		public static function invoke (t, f, args, extra){
 			var meta=f['__meta__'];
 			var actual_args=[];
-			Extend.__module__.iterate(extra['*'], function(v, ... arguments){
+			extend.__module__.iterate(extra['*'], function(v, ... arguments){
 				args.push(v)
 			}, __this__)
-			Extend.__module__.iterate(extra['**'], function(v, k, ... arguments){
+			extend.__module__.iterate(extra['**'], function(v, k, ... arguments){
 				extra[k] = v;
 			}, __this__)
-			Extend.__module__.iterate(args, function(v, ... arguments){
+			extend.__module__.iterate(args, function(v, ... arguments){
 				actual_args.push(args)
 			}, __this__)
 			var start=args.length;
@@ -505,7 +505,7 @@ package extend {
 		expected to define both 'length' or 'getLength' and 'get' or 'getItem' to
 		enable the iteration.
 		*/
-		public static function iterate (value:any, callback:Function, context:Object){
+		public static function iterate (value, callback:Function, context:Object){
 			  if ( !value ) { return }
 			  if ( value.length != undefined ) {
 			    var length = undefined
@@ -642,7 +642,7 @@ package extend {
 			}
 		}
 		public static function createMapFromItems (items){
-			items = Extend.__module__.sliceArguments(arguments,0)
+			items = extend.__module__.sliceArguments(arguments,0)
 			 var result = {}
 			 for ( var i=0 ; i<items.length ; i++ ) {
 			   result[items[i][0]] = items[i][1]
@@ -716,7 +716,7 @@ package extend {
 		>    "Here is a dict: {a:1,b:2,c:3}"
 		*/
 		public static function print (args){
-			args = Extend.__module__.sliceArguments(arguments,0)
+			args = extend.__module__.sliceArguments(arguments,0)
 			var pr_func=eval('print');
 			if ( (((typeof(console) == 'undefined') && (typeof(pr_func) === 'undefined')) && (extend.PrintCallback === Undefined)) )
 			{
@@ -775,7 +775,7 @@ package extend {
 		}
 		public static function getSuperMethod (name, object){
 		}
-		public static function getChildrenOf (aClass:Class){
+		public static function getChildrenOf (aClass){
 			var res={};
 			var values = extend.getClasses()
 			for ( key in values ) {
@@ -793,14 +793,14 @@ package extend {
 		}
 		public static function map (callback, iterable){
 			var result=[];
-			Extend.__module__.iterate(iterable, function(e, ... arguments){
+			extend.__module__.iterate(iterable, function(e, ... arguments){
 				result.append(callback(e))
 			}, __this__)
 			return result
 		}
 		public static function filter (callback, iterable){
 			var result=[];
-			Extend.__module__.iterate(iterable, function(e, ... arguments){
+			extend.__module__.iterate(iterable, function(e, ... arguments){
 				if ( callback(e) )
 				{
 					result.append(e)
@@ -811,7 +811,7 @@ package extend {
 		public static function reduce (callback, iterable){
 			var first=True;
 			var result=Undefined;
-			Extend.__module__.iterate(iterable, function(e, ... arguments){
+			extend.__module__.iterate(iterable, function(e, ... arguments){
 				if ( first )
 				{
 					result = callback(e);
@@ -829,7 +829,7 @@ package extend {
 				return target.length
 			};
 			Array.prototype.extend = function(array, ... arguments){
-				Extend.__module__.iterate(array, function(e, ... arguments){
+				extend.__module__.iterate(array, function(e, ... arguments){
 					target.append(e)
 				}, __this__)
 			};
