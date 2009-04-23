@@ -30,14 +30,14 @@ class Writer(javascript.Writer):
 
 	def __init__(self ):
 		javascript.Writer.__init__(self)
-		self.jsCore   = "extend.__module__."
+		self.jsCore   = "extend."
 		self.supportedEmbedLanguages.extend(("as", "actionscript"))
 
 	def _extendGetMethodByName(self, name,variable="__this__"):
-		return "extend.__module__.getMethodOf(%s,'%s') " % (variable, name)
+		return self.jsCore+"getMethodOf(%s,'%s') " % (variable, name)
 
 	def _extendGetClass(self, variable="__this__"):
-		return "extend.__module__.getClassOf(%s) " % (variable)
+		return self.jsCore+"getClassOf(%s) " % (variable)
 
 	def getRuntimeSource(s):
 		"""Returns the JavaScript code for the runtime that is necassary to run
@@ -78,11 +78,17 @@ class Writer(javascript.Writer):
 				raise Exception("ActionScript does not allow code in module: %s" % (op))
 		imports.extend(moduleElement.getImportOperations())
 		imports.reverse()
-		for name, value in classes:
+		# NOTE: ActionScript is a language designed by nazi-engineers, where you
+		# MUST have one file per public element (Class or... variable.. or
+		# function !). Very convenient when you have functions declared outside
+		# of classes.
+		for name, value in moduleElement.getSlots():
 			f = None
 			#if functions:
 			#	f = map(lambda n,f: self.write(f), functions)
 			#	functions = None
+			value_code = self.write(value)
+			if type(value_code) != list: value_code = [value_code]
 			code = [
 				"// " + SNIP % ("%s/%s.as" % (module_path, value.getName())),
 				self._document(moduleElement),
@@ -90,31 +96,7 @@ class Writer(javascript.Writer):
 				["import %s" % ( self.jsCore[:-1])],
 				map(self.write, imports),
 				f,
-				self.write(value),
-				"}"
-			]
-			files_code.extend(code)
-		# If we have functions or attribute
-		# This is a trick that will create a class name "__module__" in which
-		# there will be module-level attributes and functions
-		if module_functions or module_attributes:
-			f = [] ; a = []
-			if module_functions:
-				for n, v in module_functions:
-					f.append(self.write(v))
-			if module_attributes:
-				for n, v in module_attributes:
-					a.append(self.write(v))
-			module_code = ["public class __module__ {"]
-			module_code.extend(map(self.write, imports))
-			module_code.extend(a)
-			module_code.extend(f)
-			module_code.append("}")
-			code = [
-				"// " + SNIP % ("%s/__module__.as" % (module_path)),
-				self._document(moduleElement),
-				"package %s {" % (self.getAbsoluteName(moduleElement)),
-				module_code,
+				value_code,
 				"}"
 			]
 			files_code.extend(code)
@@ -327,7 +309,7 @@ class Writer(javascript.Writer):
 		"""Writes a function element."""
 		parent = function.getParent()
 		name   = function.getName() or ""
-		prefix = isinstance(function.getParent(), interfaces.IModule) and "public static " or ""
+		prefix = isinstance(function.getParent(), interfaces.IModule) and "public " or ""
 		res = [
 			self._document(function),
 			"%sfunction %s (%s){" % (
@@ -420,7 +402,7 @@ class Writer(javascript.Writer):
 		else: default_value = 'undefined'
 		return self._format(
 			self._document(element),
-			"public static var %s=%s" % (element.getName(), default_value)
+			"public var %s=%s" % (element.getName(), default_value)
 		)
 		
 	def onReference( self, element ):
@@ -439,7 +421,7 @@ class Writer(javascript.Writer):
 			return "super"
 		if scope and isinstance(scope, interfaces.IModule):
 			if not isinstance(value, interfaces.IClass):
-				names = [scope.getName(), "__module__", symbol_name]
+				names = [scope.getName(), symbol_name]
 				while scope.getParent():
 					scope = scope.getParent()
 					if not isinstance(scope, interfaces.IProgram):
@@ -470,29 +452,6 @@ class Writer(javascript.Writer):
 				return symbol_name
 		return javascript.Writer.onReference(self, element)
 
-	def _onImportedReference( self, name, slot ):
-		"""Helper for the 'onReference' method"""
-		# NOTE: We have slightly different rules for AS scoping
-		symbol_name = name
-		o = slot.origin[0]
-		if isinstance(o, interfaces.IImportModuleOperation):
-			return o.getImportedModuleName()
-		elif isinstance(o, interfaces.IImportSymbolOperation):
-			module_name = o.getImportOrigin()
-			symbol_name = o.getImportedElement()
-			if not isinstance(slot.getValue(), interfaces.IClass):
-				return module_name + ".__module__." + symbol_name
-			else:
-				return module_name + "." + symbol_name
-		elif isinstance(o, interfaces.IImportSymbolsOperation):
-			module_name = o.getImportOrigin()
-			if not isinstance(slot.getValue(), interfaces.IClass):
-				return module_name + ".__module__." + symbol_name
-			else:
-				return module_name + "." + symbol_name
-		else:
-			raise Exception("Importation operation not implemeted yet")
-
 	def onImportSymbolOperation( self, element ):
 		res = ["import"]
 		res.append(element.getImportedElement())
@@ -507,17 +466,16 @@ class Writer(javascript.Writer):
 		return " ".join(res)
 
 	def onImportSymbolsOperation( self, element ):
-		res = ["import"]
-		res.append(", ".join(element.getImportedElements()))
+		res           = []
 		symbol_origin = element.getImportOrigin()
-		if symbol_origin:
-			if res[-1] == "*":
-				return "import %s.*" % (symbol_origin)
+		imported      = element.getImportedElements()
+		for i in imported:
+			assert symbol_origin
+			if i == "*":
+				res.append("import %s.*" % (symbol_origin))
 			else:
-				vres = ["from", symbol_origin]
-				vres.extend(res)
-				res = vres
-		return " ".join(res)
+				res.append("import %s.%s" % (symbol_origin, i))
+		return ";".join(res)
 
 	def onImportModuleOperation( self, element ):
 		res = ["import"]
@@ -528,9 +486,10 @@ class Writer(javascript.Writer):
 		return " ".join(res)
 
 	def onImportModulesOperation( self, element ):
-		res = ["import"]
-		res.append(", ".join(element.getImportedModuleNames()))
-		return " ".join(res)
+		res = []
+		for m in element.getImportedModuleNames():
+			res.append("import %s" % (m))
+		return ";".join(res)
 
 	def _document( self, element ):
 		if element.getDocumentation():

@@ -1,12 +1,15 @@
-// 8< ---[extend/__module__.as]---
+// 8< ---[extend/Counters.as]---
 package extend {
-	public class __module__ {
+	import extend
 	import flash.utils.getQualifiedSuperclassName
 	import flash.utils.getDefinitionByName
-	public static var Counters={'Instances':0}
-	public static var ErrorCallback=undefined
-	public static var PrintCallback=undefined
-	public static var Registry={}
+	public var Counters={'Instances':0}
+}
+// 8< ---[extend/Class.as]---
+package extend {
+	import extend
+	import flash.utils.getQualifiedSuperclassName
+	import flash.utils.getDefinitionByName
 		/** Classes are created using extend by giving a dictionary that contains the
 		following keys:
 		
@@ -62,7 +65,7 @@ package extend {
 		
 		>   var my_instance = new MyClass()
 		*/
-		public static function Class (declaration){
+		public function Class (declaration){
 			var full_name=declaration.name;
 			var class_object=function( ... arguments){
 				if ( (! ((arguments.length == 1) && (arguments[0] == '__Extend_SubClass__'))) )
@@ -99,11 +102,11 @@ package extend {
 				{
 					if ( (parent == c) )
 					{
-						return True
+						return true
 					}
 					parent = parent.getParent();
 				}
-				return False
+				return false
 			};
 			class_object.hasInstance = function(o, ... arguments){
 				return o.getClass().isSubclassOf(class_object)
@@ -136,7 +139,7 @@ package extend {
 					{
 						return this_method.call(object, a[0], a[1], a[2], a[3], a[4])
 					}
-					else if ( True )
+					else if ( true )
 					{
 						var args=[];
 						args.concat(arguments)
@@ -172,7 +175,7 @@ package extend {
 					{
 						return this_method.call(object, a[0], a[1], a[2], a[3], a[4], target)
 					}
-					else if ( True )
+					else if ( true )
 					{
 						var args=[];
 						args.concat(arguments)
@@ -188,13 +191,13 @@ package extend {
 				}
 			};
 			class_object.listMethods = function(o, i, ... arguments){
-				if ( (o === Undefined) )
+				if ( (o === undefined) )
 				{
-					o = True;
+					o = true;
 				}
-				if ( (i === Undefined) )
+				if ( (i === undefined) )
 				{
-					i = True;
+					i = true;
 				}
 				if ( (o && i) )
 				{
@@ -208,19 +211,19 @@ package extend {
 				{
 					return class_object._methods.own
 				}
-				else if ( True )
+				else if ( true )
 				{
 					return {}
 				}
 			};
 			class_object.listOperations = function(o, i, ... arguments){
-				if ( (o === Undefined) )
+				if ( (o === undefined) )
 				{
-					o = True;
+					o = true;
 				}
-				if ( (i === Undefined) )
+				if ( (i === undefined) )
 				{
-					i = True;
+					i = true;
 				}
 				if ( (o && i) )
 				{
@@ -234,19 +237,19 @@ package extend {
 				{
 					return class_object._operations.own
 				}
-				else if ( True )
+				else if ( true )
 				{
 					return {}
 				}
 			};
 			class_object.listShared = function(o, i, ... arguments){
-				if ( (o === Undefined) )
+				if ( (o === undefined) )
 				{
-					o = True;
+					o = true;
 				}
-				if ( (i === Undefined) )
+				if ( (i === undefined) )
 				{
-					i = True;
+					i = true;
 				}
 				if ( (o && i) )
 				{
@@ -260,19 +263,19 @@ package extend {
 				{
 					return class_object._shared.own
 				}
-				else if ( True )
+				else if ( true )
 				{
 					return {}
 				}
 			};
 			class_object.listProperties = function(o, i, ... arguments){
-				if ( (o === Undefined) )
+				if ( (o === undefined) )
 				{
-					o = True;
+					o = true;
 				}
-				if ( (i === Undefined) )
+				if ( (i === undefined) )
 				{
-					i = True;
+					i = true;
 				}
 				if ( (o && i) )
 				{
@@ -286,14 +289,14 @@ package extend {
 				{
 					return class_object._properties.own
 				}
-				else if ( True )
+				else if ( true )
 				{
 					return {}
 				}
 			};
 			class_object.proxyWithState = function(o, ... arguments){
 				var proxy={};
-				var constr=Undefined;
+				var constr=undefined;
 				var wrapper=function(f, ... arguments){
 					return function( ... arguments){
 						return f.apply(o, arguments)
@@ -388,12 +391,12 @@ package extend {
 				instance_proto = new declaration.parent('__Extend_SubClass__');
 				instance_proto.constructor = class_object;
 			}
-			instance_proto.isInstance = Undefined;
+			instance_proto.isInstance = undefined;
 			instance_proto.getClass = function( ... arguments){
 				return class_object
 			};
 			instance_proto.isClass = function( ... arguments){
-				return False
+				return false
 			};
 			instance_proto.getMethod = function(methodName, ... arguments){
 				var this_object=target;
@@ -410,7 +413,7 @@ package extend {
 			{
 				instance_proto.initialize = declaration.initialize;
 			}
-			else if ( True )
+			else if ( true )
 			{
 				instance_proto.instance_proto = {};
 			}
@@ -432,17 +435,49 @@ package extend {
 			class_object.prototype = instance_proto;
 			if ( declaration.name )
 			{
-				if ( (extend.Registry != Undefined) )
+				if ( (extend.Registry != undefined) )
 				{
 					extend.Registry[declaration.name] = class_object;
 				}
 			}
 			return class_object
 		}
-		public static function Protocol (pdata){
+}
+// 8< ---[extend/Protocol.as]---
+package extend {
+	import extend
+	import flash.utils.getQualifiedSuperclassName
+	import flash.utils.getDefinitionByName
+		public function Protocol (pdata){
 		}
-		public static function Singleton (sdata){
+}
+// 8< ---[extend/Singleton.as]---
+package extend {
+	import extend
+	import flash.utils.getQualifiedSuperclassName
+	import flash.utils.getDefinitionByName
+		public function Singleton (sdata){
 		}
+}
+// 8< ---[extend/ErrorCallback.as]---
+package extend {
+	import extend
+	import flash.utils.getQualifiedSuperclassName
+	import flash.utils.getDefinitionByName
+	public var ErrorCallback=undefined
+}
+// 8< ---[extend/PrintCallback.as]---
+package extend {
+	import extend
+	import flash.utils.getQualifiedSuperclassName
+	import flash.utils.getDefinitionByName
+	public var PrintCallback=undefined
+}
+// 8< ---[extend/invoke.as]---
+package extend {
+	import extend
+	import flash.utils.getQualifiedSuperclassName
+	import flash.utils.getDefinitionByName
 		/** The 'invoke' method allows advanced invocation (supporting by name, as list
 		and as map invocation schemes) provided the given function 'f' has proper
 		'__meta__' annotation.
@@ -459,16 +494,16 @@ package extend {
 		>    }
 		
 		*/
-		public static function invoke (t, f, args, extra){
+		public function invoke (t, f, args, extra){
 			var meta=f['__meta__'];
 			var actual_args=[];
-			extend.__module__.iterate(extra['*'], function(v, ... arguments){
+			extend.iterate(extra['*'], function(v, ... arguments){
 				args.push(v)
 			}, __this__)
-			extend.__module__.iterate(extra['**'], function(v, k, ... arguments){
+			extend.iterate(extra['**'], function(v, k, ... arguments){
 				extra[k] = v;
 			}, __this__)
-			extend.__module__.iterate(args, function(v, ... arguments){
+			extend.iterate(args, function(v, ... arguments){
 				actual_args.push(args)
 			}, __this__)
 			var start=args.length;
@@ -480,12 +515,18 @@ package extend {
 			}
 			return f.apply(t, actual_args)
 		}
+}
+// 8< ---[extend/range.as]---
+package extend {
+	import extend
+	import flash.utils.getQualifiedSuperclassName
+	import flash.utils.getDefinitionByName
 		/** Creates a new list composed of elements in the given range, determined by
 		the 'start' index and the 'end' index. This function will automatically
 		find the proper step (wether '+1' or '-1') depending on the bounds you
 		specify.
 		*/
-		public static function range (start:Number, end:Number, step:Number){
+		public function range (start:Number, end:Number, step:Number){
 			var result=[];
 			 if (start < end ) {
 			   for ( var i=start ; i<end ; i++ ) {
@@ -500,6 +541,12 @@ package extend {
 			
 			return result
 		}
+}
+// 8< ---[extend/iterate.as]---
+package extend {
+	import extend
+	import flash.utils.getQualifiedSuperclassName
+	import flash.utils.getDefinitionByName
 		/** Iterates on the given values. If 'value' is an array, the _callback_ will be
 		invoked on each item (giving the 'value[i], i' as argument) until the callback
 		returns 'false'. If 'value' is a dictionary, the callback will be applied
@@ -507,7 +554,7 @@ package extend {
 		expected to define both 'length' or 'getLength' and 'get' or 'getItem' to
 		enable the iteration.
 		*/
-		public static function iterate (value, callback:Function, context:Object){
+		public function iterate (value, callback:Function, context:Object){
 			  if ( !value ) { return }
 			  if ( value.length != undefined ) {
 			    var length = undefined
@@ -534,21 +581,33 @@ package extend {
 			  }
 			
 		}
+}
+// 8< ---[extend/sliceArguments.as]---
+package extend {
+	import extend
+	import flash.utils.getQualifiedSuperclassName
+	import flash.utils.getDefinitionByName
 		/** This is a utility function that will return the rest of the given
 		arguments list, without using the 'slice' operation which is only
 		available to arrays.
 		*/
-		public static function sliceArguments (args, index){
+		public function sliceArguments (args, index){
 			var res=[];
 			 while (index<args.length) { res.push(args[index++]) }
 			
 			return res
 		}
-		public static function slice (value, start=0, end=undefined){
-			end = end === undefined ? Undefined : end
+}
+// 8< ---[extend/slice.as]---
+package extend {
+	import extend
+	import flash.utils.getQualifiedSuperclassName
+	import flash.utils.getDefinitionByName
+		public function slice (value, start=0, end=undefined){
+			end = end === undefined ? undefined : end
 			if ( extend.isString(value) )
 			{
-				if ( (end === Undefined) )
+				if ( (end === undefined) )
 				{
 					end = value.length;
 				}
@@ -560,7 +619,7 @@ package extend {
 			}
 			else if ( extend.isList(value) )
 			{
-				if ( (end === Undefined) )
+				if ( (end === undefined) )
 				{
 					end = value.length;
 				}
@@ -570,12 +629,18 @@ package extend {
 				{end = (value.length + end);}
 				return value.slice(start, end)
 			}
-			else if ( True )
+			else if ( true )
 			{
 				throw ('Unsupported type for slice:' + value)
 			}
 		}
-		public static function len (value){
+}
+// 8< ---[extend/len.as]---
+package extend {
+	import extend
+	import flash.utils.getQualifiedSuperclassName
+	import flash.utils.getDefinitionByName
+		public function len (value){
 			if ( extend.isList(value) )
 			{
 				return value.length
@@ -591,15 +656,27 @@ package extend {
 					return value.__len__()
 				}
 			}
-			else if ( True )
+			else if ( true )
 			{
 				return None
 			}
 		}
-		public static function type (value){
+}
+// 8< ---[extend/type.as]---
+package extend {
+	import extend
+	import flash.utils.getQualifiedSuperclassName
+	import flash.utils.getDefinitionByName
+		public function type (value){
 			return typeof(value)
 		}
-		public static function access (value, index){
+}
+// 8< ---[extend/access.as]---
+package extend {
+	import extend
+	import flash.utils.getQualifiedSuperclassName
+	import flash.utils.getDefinitionByName
+		public function access (value, index){
 			if ( extend.isList(value) )
 			{
 				if ( (index >= 0) )
@@ -607,21 +684,27 @@ package extend {
 					return value[index]
 					
 				}
-				else if ( True )
+				else if ( true )
 				{
 					return value[value.length + index]
 					
 				}
 			}
-			else if ( True )
+			else if ( true )
 			{
 				return value[index]
 				
 			}
 		}
+}
+// 8< ---[extend/isIn.as]---
+package extend {
+	import extend
+	import flash.utils.getQualifiedSuperclassName
+	import flash.utils.getDefinitionByName
 		/** Returns true if the given value is in the given list
 		*/
-		public static function isIn (value, list){
+		public function isIn (value, list){
 			if ( extend.isList(list) )
 			{
 				 for ( var i=0 ; i<list.length ; i++) {
@@ -638,13 +721,19 @@ package extend {
 				 return false
 				
 			}
-			else if ( True )
+			else if ( true )
 			{
-				return False
+				return false
 			}
 		}
-		public static function createMapFromItems (items){
-			items = extend.__module__.sliceArguments(arguments,0)
+}
+// 8< ---[extend/createMapFromItems.as]---
+package extend {
+	import extend
+	import flash.utils.getQualifiedSuperclassName
+	import flash.utils.getDefinitionByName
+		public function createMapFromItems (items){
+			items = extend.sliceArguments(arguments,0)
 			 var result = {}
 			 for ( var i=0 ; i<items.length ; i++ ) {
 			   result[items[i][0]] = items[i][1]
@@ -652,55 +741,121 @@ package extend {
 			 return result
 			
 		}
-		public static function isDefined (value){
-			return (! (value === Undefined))
+}
+// 8< ---[extend/isDefined.as]---
+package extend {
+	import extend
+	import flash.utils.getQualifiedSuperclassName
+	import flash.utils.getDefinitionByName
+		public function isDefined (value){
+			return (! (value === undefined))
 		}
-		public static function isList (value){
+}
+// 8< ---[extend/isList.as]---
+package extend {
+	import extend
+	import flash.utils.getQualifiedSuperclassName
+	import flash.utils.getDefinitionByName
+		public function isList (value){
 			 return Object.prototype.toString.call(value) === '[object Array]';
 			
 		}
-		public static function isNumber (value){
+}
+// 8< ---[extend/isNumber.as]---
+package extend {
+	import extend
+	import flash.utils.getQualifiedSuperclassName
+	import flash.utils.getDefinitionByName
+		public function isNumber (value){
 			return (typeof(value) == 'number')
 		}
-		public static function isString (value){
+}
+// 8< ---[extend/isString.as]---
+package extend {
+	import extend
+	import flash.utils.getQualifiedSuperclassName
+	import flash.utils.getDefinitionByName
+		public function isString (value){
 			return (typeof(value) == 'string')
 		}
-		public static function isMap (value){
+}
+// 8< ---[extend/isMap.as]---
+package extend {
+	import extend
+	import flash.utils.getQualifiedSuperclassName
+	import flash.utils.getDefinitionByName
+		public function isMap (value){
 			 return !!(!(value===null) && typeof value == "object" && !extend.isList(value))
 			
 		}
-		public static function isFunction (value){
+}
+// 8< ---[extend/isFunction.as]---
+package extend {
+	import extend
+	import flash.utils.getQualifiedSuperclassName
+	import flash.utils.getDefinitionByName
+		public function isFunction (value){
 			 return !!(typeof value == "function")
 			
 		}
-		public static function isObject (value){
+}
+// 8< ---[extend/isObject.as]---
+package extend {
+	import extend
+	import flash.utils.getQualifiedSuperclassName
+	import flash.utils.getDefinitionByName
+		public function isObject (value){
 			 return !!(typeof value == "object")
 			
 		}
+}
+// 8< ---[extend/isInstance.as]---
+package extend {
+	import extend
+	import flash.utils.getQualifiedSuperclassName
+	import flash.utils.getDefinitionByName
 		/** Tells if the given value is an instance (in the sense of extend) of the
 		given 'ofClass'. If there is no given class, then it will just return
 		true if the value is an instance of any class.
 		*/
-		public static function isInstance (value, ofClass=undefined){
-			ofClass = ofClass === undefined ? Undefined : ofClass
+		public function isInstance (value, ofClass=undefined){
+			ofClass = ofClass === undefined ? undefined : ofClass
 			if ( ofClass )
 			{
 				return (extend.isDefined(value.getClass) && value.isInstance(ofClass))
 			}
-			else if ( True )
+			else if ( true )
 			{
 				return extend.isDefined(value.getClass)
 			}
 		}
-		public static function getMethodOf (instance, name){
+}
+// 8< ---[extend/getMethodOf.as]---
+package extend {
+	import extend
+	import flash.utils.getQualifiedSuperclassName
+	import flash.utils.getDefinitionByName
+		public function getMethodOf (instance, name){
 			return instance[name]
 		}
-		public static function getClassOf (instance){
+}
+// 8< ---[extend/getClassOf.as]---
+package extend {
+	import extend
+	import flash.utils.getQualifiedSuperclassName
+	import flash.utils.getDefinitionByName
+		public function getClassOf (instance){
 			return getDefinitionByName(getQualifiedSuperclassName(instance));
 			
 			return instance.getClass()
 			
 		}
+}
+// 8< ---[extend/print.as]---
+package extend {
+	import extend
+	import flash.utils.getQualifiedSuperclassName
+	import flash.utils.getDefinitionByName
 		/** Prints the given arguments to the JavaScript console (available in Safari
 		and in Mozilla if you've installed FireBug), or using the 'print' command
 		in SpiderMonkey. If neither 'console' or 'print' is defined,
@@ -717,10 +872,10 @@ package extend {
 		
 		>    "Here is a dict: {a:1,b:2,c:3}"
 		*/
-		public static function print (args){
-			args = extend.__module__.sliceArguments(arguments,0)
+		public function print (args){
+			args = extend.sliceArguments(arguments,0)
 			var pr_func=eval('print');
-			if ( (((typeof(console) == 'undefined') && (typeof(pr_func) === 'undefined')) && (extend.PrintCallback === Undefined)) )
+			if ( (((typeof(console) == 'undefined') && (typeof(pr_func) === 'undefined')) && (extend.PrintCallback === undefined)) )
 			{
 				return None
 			}
@@ -732,7 +887,7 @@ package extend {
 			   else { res += val }
 			 }
 			
-			if ( (extend.PrintCallback === Undefined) )
+			if ( (extend.PrintCallback === undefined) )
 			{
 				if ( (typeof(console) != 'undefined') )
 				{
@@ -743,41 +898,96 @@ package extend {
 					pr_func(res)
 				}
 			}
-			else if ( True )
+			else if ( true )
 			{
 				extend.PrintCallback(res)
 			}
 		}
-		public static function error (message){
+}
+// 8< ---[extend/error.as]---
+package extend {
+	import extend
+	import flash.utils.getQualifiedSuperclassName
+	import flash.utils.getDefinitionByName
+		public function error (message){
 			if ( extend.ErrorCallback )
 			{
 				extend.ErrorCallback(message)
 			}
-			else if ( True )
+			else if ( true )
 			{
 				extend.print(('[!] ' + message))
 			}
 		}
-		public static function assert (predicate, message){
+}
+// 8< ---[extend/assert.as]---
+package extend {
+	import extend
+	import flash.utils.getQualifiedSuperclassName
+	import flash.utils.getDefinitionByName
+		public function assert (predicate, message){
 			if ( (! predicate) )
 			{
 				extend.error(message)
 			}
 		}
-		public static function getClass (name){
+}
+// 8< ---[extend/Registry.as]---
+package extend {
+	import extend
+	import flash.utils.getQualifiedSuperclassName
+	import flash.utils.getDefinitionByName
+	public var Registry={}
+}
+// 8< ---[extend/getClass.as]---
+package extend {
+	import extend
+	import flash.utils.getQualifiedSuperclassName
+	import flash.utils.getDefinitionByName
+		public function getClass (name){
 			return extend.Registry[name]
 		}
-		public static function getParentClass (object){
+}
+// 8< ---[extend/getParentClass.as]---
+package extend {
+	import extend
+	import flash.utils.getQualifiedSuperclassName
+	import flash.utils.getDefinitionByName
+		public function getParentClass (object){
 			return extend.Registry[name]
 		}
-		public static function getClasses (){
+}
+// 8< ---[extend/getClasses.as]---
+package extend {
+	import extend
+	import flash.utils.getQualifiedSuperclassName
+	import flash.utils.getDefinitionByName
+		public function getClasses (){
 			return extend.Registry
 		}
-		public static function getMethod (name, object){
+}
+// 8< ---[extend/getMethod.as]---
+package extend {
+	import extend
+	import flash.utils.getQualifiedSuperclassName
+	import flash.utils.getDefinitionByName
+		public function getMethod (name, object){
 		}
-		public static function getSuperMethod (name, object){
+}
+// 8< ---[extend/getSuperMethod.as]---
+package extend {
+	import extend
+	import flash.utils.getQualifiedSuperclassName
+	import flash.utils.getDefinitionByName
+		public function getSuperMethod (name, object){
 		}
-		public static function getChildrenOf (aClass){
+}
+// 8< ---[extend/getChildrenOf.as]---
+package extend {
+	import extend
+	import flash.utils.getQualifiedSuperclassName
+	import flash.utils.getDefinitionByName
+		public function getChildrenOf (aClass){
 			var res={};
 			var values = extend.getClasses()
 			for ( key in values ) {
@@ -787,22 +997,52 @@ package extend {
 			
 			return res
 		}
-		public static function car (list){
+}
+// 8< ---[extend/car.as]---
+package extend {
+	import extend
+	import flash.utils.getQualifiedSuperclassName
+	import flash.utils.getDefinitionByName
+		public function car (list){
 		}
-		public static function cdr (list){
+}
+// 8< ---[extend/cdr.as]---
+package extend {
+	import extend
+	import flash.utils.getQualifiedSuperclassName
+	import flash.utils.getDefinitionByName
+		public function cdr (list){
 		}
-		public static function cons (list){
+}
+// 8< ---[extend/cons.as]---
+package extend {
+	import extend
+	import flash.utils.getQualifiedSuperclassName
+	import flash.utils.getDefinitionByName
+		public function cons (list){
 		}
-		public static function map (callback, iterable){
+}
+// 8< ---[extend/map.as]---
+package extend {
+	import extend
+	import flash.utils.getQualifiedSuperclassName
+	import flash.utils.getDefinitionByName
+		public function map (callback, iterable){
 			var result=[];
-			extend.__module__.iterate(iterable, function(e, ... arguments){
+			extend.iterate(iterable, function(e, ... arguments){
 				result.append(callback(e))
 			}, __this__)
 			return result
 		}
-		public static function filter (callback, iterable){
+}
+// 8< ---[extend/filter.as]---
+package extend {
+	import extend
+	import flash.utils.getQualifiedSuperclassName
+	import flash.utils.getDefinitionByName
+		public function filter (callback, iterable){
 			var result=[];
-			extend.__module__.iterate(iterable, function(e, ... arguments){
+			extend.iterate(iterable, function(e, ... arguments){
 				if ( callback(e) )
 				{
 					result.append(e)
@@ -810,28 +1050,40 @@ package extend {
 			}, __this__)
 			return result
 		}
-		public static function reduce (callback, iterable){
-			var first=True;
-			var result=Undefined;
-			extend.__module__.iterate(iterable, function(e, ... arguments){
+}
+// 8< ---[extend/reduce.as]---
+package extend {
+	import extend
+	import flash.utils.getQualifiedSuperclassName
+	import flash.utils.getDefinitionByName
+		public function reduce (callback, iterable){
+			var first=true;
+			var result=undefined;
+			extend.iterate(iterable, function(e, ... arguments){
 				if ( first )
 				{
 					result = callback(e);
-					first = False;
+					first = false;
 				}
-				else if ( True )
+				else if ( true )
 				{
 					result = callback(e, result);
 				}
 			}, __this__)
 			return result
 		}
-		public static function extendPrimitiveTypes (){
+}
+// 8< ---[extend/extendPrimitiveTypes.as]---
+package extend {
+	import extend
+	import flash.utils.getQualifiedSuperclassName
+	import flash.utils.getDefinitionByName
+		public function extendPrimitiveTypes (){
 			String.prototype.__len__ = function( ... arguments){
 				return target.length
 			};
 			Array.prototype.extend = function(array, ... arguments){
-				extend.__module__.iterate(array, function(e, ... arguments){
+				extend.iterate(array, function(e, ... arguments){
 					target.append(e)
 				}, __this__)
 			};
@@ -882,7 +1134,7 @@ package extend {
 				{
 					return target[key]
 				}
-				else if ( True )
+				else if ( true )
 				{
 					target[key] = value;
 					return value
@@ -894,5 +1146,12 @@ package extend {
 				return target.keys().length
 			};
 		}
-	}
+}
+// 8< ---[extend/__moduleinit__.as]---
+package extend {
+	import extend
+	import flash.utils.getQualifiedSuperclassName
+	import flash.utils.getDefinitionByName
+		public function __moduleinit__ (){
+		}
 }
