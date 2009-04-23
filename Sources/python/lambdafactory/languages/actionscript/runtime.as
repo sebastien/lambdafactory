@@ -1,6 +1,8 @@
 // 8< ---[extend/__module__.as]---
 package extend {
 	public class __module__ {
+	import flash.utils.getQualifiedSuperclassName
+	import flash.utils.getDefinitionByName
 	public static var Counters={'Instances':0}
 	public static var ErrorCallback=undefined
 	public static var PrintCallback=undefined
@@ -694,7 +696,7 @@ package extend {
 			return instance[name]
 		}
 		public static function getClassOf (instance){
-			return getDefinitionByName(getQualifiedSuperClassName(instance));
+			return getDefinitionByName(getQualifiedSuperclassName(instance));
 			
 			return instance.getClass()
 			
