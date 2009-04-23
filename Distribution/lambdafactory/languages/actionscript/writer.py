@@ -8,7 +8,7 @@
 # License   : Revised BSD License
 # -----------------------------------------------------------------------------
 # Creation  : 01-Aug-2007
-# Last mod  : 23-Sep-2008
+# Last mod  : 23-Apr-2009
 # -----------------------------------------------------------------------------
 
 # SEE: http://livedocs.adobe.com/specs/actionscript/3/
@@ -30,14 +30,14 @@ class Writer(javascript.Writer):
 
 	def __init__(self ):
 		javascript.Writer.__init__(self)
-		self.jsCore   = "Extend.__module__."
+		self.jsCore   = "extend."
 		self.supportedEmbedLanguages.extend(("as", "actionscript"))
 
 	def _extendGetMethodByName(self, name,variable="__this__"):
-		return "Extend.__module__.getMethodOf(%s,'%s') " % (name)
+		return self.jsCore+"getMethodOf(%s,'%s') " % (variable, name)
 
 	def _extendGetClass(self, variable="__this__"):
-		return "Extend.__module__.getClassOf(%s) " % (variable)
+		return self.jsCore+"getClassOf(%s) " % (variable)
 
 	def getRuntimeSource(s):
 		"""Returns the JavaScript code for the runtime that is necassary to run
@@ -78,43 +78,25 @@ class Writer(javascript.Writer):
 				raise Exception("ActionScript does not allow code in module: %s" % (op))
 		imports.extend(moduleElement.getImportOperations())
 		imports.reverse()
-		for name, value in classes:
+		# NOTE: ActionScript is a language designed by nazi-engineers, where you
+		# MUST have one file per public element (Class or... variable.. or
+		# function !). Very convenient when you have functions declared outside
+		# of classes.
+		for name, value in moduleElement.getSlots():
 			f = None
 			#if functions:
 			#	f = map(lambda n,f: self.write(f), functions)
 			#	functions = None
+			value_code = self.write(value)
+			if type(value_code) != list: value_code = [value_code]
 			code = [
 				"// " + SNIP % ("%s/%s.as" % (module_path, value.getName())),
 				self._document(moduleElement),
 				"package %s {" % (self.getAbsoluteName(moduleElement)),
-				"import %s" % ( self.jsCore[:-1]),
+				["import %s" % ( self.jsCore[:-1])],
 				map(self.write, imports),
 				f,
-				self.write(value),
-				"}"
-			]
-			files_code.extend(code)
-		# If we have functions or attribute
-		# This is a trick that will create a class name "__module__" in which
-		# there will be module-level attributes and functions
-		if module_functions or module_attributes:
-			f = [] ; a = []
-			if module_functions:
-				for n, v in module_functions:
-					f.append(self.write(v))
-			if module_attributes:
-				for n, v in module_attributes:
-					a.append(self.write(v))
-			module_code = ["public class __module__ {"]
-			module_code.extend(map(self.write, imports))
-			module_code.extend(a)
-			module_code.extend(f)
-			module_code.append("}")
-			code = [
-				"// " + SNIP % ("%s/__module__.as" % (module_path)),
-				self._document(moduleElement),
-				"package %s {" % (self.getAbsoluteName(moduleElement)),
-				module_code,
+				value_code,
 				"}"
 			]
 			files_code.extend(code)
@@ -132,8 +114,15 @@ class Writer(javascript.Writer):
 
 	def onClass( self, classElement ):
 		"""Writes a class element."""
-		parents = classElement.getParentClasses()
-		parent  = ""
+		parents    = classElement.getParentClasses()
+		parent     = ""
+		decoration = None
+		# SWF Annotations are like 
+		# [SWF(width="800", height="600", backgroundColor="#ffffff", frameRate="30")]
+		# And allow wrapping a class into an SWF container
+		swf_ann = classElement.getAnnotation("SWF")
+		if swf_ann:
+			decoration = "[SWF(%s)]" % (swf_ann.getContent())
 		if len(parents) == 1:
 			parent = "extends %s " % (self.write(parents[0]))
 		elif len(parents) > 1:
@@ -156,6 +145,7 @@ class Writer(javascript.Writer):
 			version = 'public static _VERSION_:String = "%s";' % (version.getContent())
 		code       = [
 			self._document(classElement),
+			decoration,
 			"public dynamic class %s %s{" % (classElement.getName(), parent),
 			version,
 			class_code,
@@ -230,7 +220,9 @@ class Writer(javascript.Writer):
 		# there is more (like "@as override, inline, utility", it will crash)
 		annotation = element.getAnnotation("as")
 		if annotation:
-			return annotation.getContent().lower() == "overrides"
+			content = annotation.getContent()
+			if type(content) == list: content = content[0]
+			return content.lower() == "overrides"
 		else:
 			return False
 
@@ -317,7 +309,7 @@ class Writer(javascript.Writer):
 		"""Writes a function element."""
 		parent = function.getParent()
 		name   = function.getName() or ""
-		prefix = isinstance(function.getParent(), interfaces.IModule) and "public static " or ""
+		prefix = isinstance(function.getParent(), interfaces.IModule) and "public " or ""
 		res = [
 			self._document(function),
 			"%sfunction %s (%s){" % (
@@ -354,7 +346,11 @@ class Writer(javascript.Writer):
 
 	def onArgument( self, argument ):
 		"""Writes an argument element."""
-		value = argument.getDefaultValue()
+		prefix  = ""
+		# ActionScript supports "..." for extra arguments
+		if argument.isRest():
+			prefix = "... "
+		value   = argument.getDefaultValue()
 		# NOTE: We can only write the argument as default when it is a litteral,
 		# otherwise we have assign the value in the function body
 		arg_type = argument.getTypeDescription()
@@ -368,13 +364,14 @@ class Writer(javascript.Writer):
 				arg_type = ":" + arg_type
 		else: arg_type = ""
 		if value:
-			return "%s%s=%s" % (
+			return "%s%s%s=%s" % (
+				prefix,
 				argument.getName(),
 				arg_type,
 				isinstance(value, interfaces.ILiteral) and self.write(value) or "undefined"
 			)
 		else:
-			return argument.getName() + arg_type
+			return prefix + argument.getName() + arg_type
 
 	def _writeClosureArguments(self, closure):
 		i = 0
@@ -383,13 +380,11 @@ class Writer(javascript.Writer):
 		for argument in closure.getArguments():
 			arg_name = argument.getName()
 			arg_value = argument.getDefaultValue()
+			# ActionScript supports varargs (variable parameters) using the
+			# '... extra' syntax, so we don't have to slice the arguments like
+			# we have to do in JS.
 			if argument.isRest():
-				assert i >= l - 2
-				result.append("%s = %s(arguments,%d)" % (
-					arg_name,
-					self.jsPrefix + self.jsCore + "sliceArguments",
-					i
-				))
+				pass
 			# Here we only add the code for the attributes initialization if it
 			# is not a litteral, in which case a default value was already
 			# assigned
@@ -410,22 +405,26 @@ class Writer(javascript.Writer):
 		else: default_value = 'undefined'
 		return self._format(
 			self._document(element),
-			"public static var %s=%s" % (element.getReferenceName(), default_value)
+			"public var %s=%s" % (element.getName(), default_value)
 		)
 		
 	def onReference( self, element ):
 		"""Writes an argument element."""
 		symbol_name  = element.getReferenceName()
 		# FIXME: Does resolve really always return a dataflow slot ?
-		value_slot, scope = self.resolve(symbol_name)
-		if value_slot: value = value_slot.getValue()
-		else: value = None
+		slot, value = self.resolve(symbol_name)
+		if slot:
+			value = slot.getValue()
+			scope = slot.getDataFlow().getElement()
+		else:
+			value = None
+			scope = None
 		if symbol_name == "super":
 			assert self.resolve("self"), "Super must be used inside method"
 			return "super"
 		if scope and isinstance(scope, interfaces.IModule):
 			if not isinstance(value, interfaces.IClass):
-				names = [scope.getName(), "__module__", symbol_name]
+				names = [scope.getName(), symbol_name]
 				while scope.getParent():
 					scope = scope.getParent()
 					if not isinstance(scope, interfaces.IProgram):
@@ -442,12 +441,12 @@ class Writer(javascript.Writer):
 				else:
 					return "__this__.getMethod('%s') " % (symbol_name)
 			elif isinstance(value, interfaces.IClassMethod):
-				if self.isInInstanceMethod():
+				if self.isIn(interfaces.IInstanceMethod):
 					return "%s.%s" % (self.getCurrentClass().getName(), symbol_name)
 				else:
 					return "__this__.%s" % (symbol_name)
 			elif isinstance(value, interfaces.IClassAttribute):
-				if self.isInClassMethod():
+				if self.isIn(interfaces.IClassMethod):
 					return "__this__.%s" % (symbol_name)
 				else:
 					return "%s.%s" % (self.getCurrentClass().getName(), symbol_name)
@@ -470,17 +469,16 @@ class Writer(javascript.Writer):
 		return " ".join(res)
 
 	def onImportSymbolsOperation( self, element ):
-		res = ["import"]
-		res.append(", ".join(element.getImportedElements()))
+		res           = []
 		symbol_origin = element.getImportOrigin()
-		if symbol_origin:
-			if res[-1] == "*":
-				return "import %s.*" % (symbol_origin)
+		imported      = element.getImportedElements()
+		for i in imported:
+			assert symbol_origin
+			if i == "*":
+				res.append("import %s.*" % (symbol_origin))
 			else:
-				vres = ["from", symbol_origin]
-				vres.extend(res)
-				res = vres
-		return " ".join(res)
+				res.append("import %s.%s" % (symbol_origin, i))
+		return ";".join(res)
 
 	def onImportModuleOperation( self, element ):
 		res = ["import"]
@@ -491,9 +489,10 @@ class Writer(javascript.Writer):
 		return " ".join(res)
 
 	def onImportModulesOperation( self, element ):
-		res = ["import"]
-		res.append(", ".join(element.getImportedModuleNames()))
-		return " ".join(res)
+		res = []
+		for m in element.getImportedModuleNames():
+			res.append("import %s" % (m))
+		return ";".join(res)
 
 	def _document( self, element ):
 		if element.getDocumentation():

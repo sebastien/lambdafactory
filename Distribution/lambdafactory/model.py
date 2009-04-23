@@ -1183,6 +1183,10 @@ class Parameter(Element, IParameter):
 	def getValue(self):
 		return self.value
 	
+	def getDefaultValue(self):
+		"""An alias for getValue()"""
+		return self.value
+	
 	def setValue(self, v):
 		self.value = v
 	

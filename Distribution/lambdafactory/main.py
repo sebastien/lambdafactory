@@ -200,7 +200,7 @@ class Command:
 		if withPasses is None: withPasses = None
 		if options is None: options = None
 		if (not withPasses):
-			if ((language == 'javascript') and (not ('NORUNTIME' in options))):
+			if (((language == 'javascript') or (language == 'actionscript')) and (not ('NORUNTIME' in options))):
 				self.environment.addPass(passes.ExtendJSRuntime())
 			self.environment.addPass(passes.Importation())
 			self.environment.addPass(resolution.BasicDataFlow())

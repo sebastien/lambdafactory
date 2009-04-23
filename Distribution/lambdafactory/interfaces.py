@@ -411,12 +411,9 @@ class IArgument(ISlot):
 		raise Exception("Abstract method IArgument.getDefaultValue not implemented in: " + str(self))
 	
 
-class IParameter(IElement):
+class IParameter(IElement, ISlot):
 	def isByName(self):
 		raise Exception("Abstract method IParameter.isByName not implemented in: " + str(self))
-	
-	def getName(self):
-		raise Exception("Abstract method IParameter.getName not implemented in: " + str(self))
 	
 	def setByName(self, n):
 		raise Exception("Abstract method IParameter.setByName not implemented in: " + str(self))
