@@ -346,7 +346,11 @@ class Writer(javascript.Writer):
 
 	def onArgument( self, argument ):
 		"""Writes an argument element."""
-		value = argument.getDefaultValue()
+		prefix  = ""
+		# ActionScript supports "..." for extra arguments
+		if argument.isRest():
+			prefix = "... "
+		value   = argument.getDefaultValue()
 		# NOTE: We can only write the argument as default when it is a litteral,
 		# otherwise we have assign the value in the function body
 		arg_type = argument.getTypeDescription()
@@ -360,13 +364,14 @@ class Writer(javascript.Writer):
 				arg_type = ":" + arg_type
 		else: arg_type = ""
 		if value:
-			return "%s%s=%s" % (
+			return "%s%s%s=%s" % (
+				prefix,
 				argument.getName(),
 				arg_type,
 				isinstance(value, interfaces.ILiteral) and self.write(value) or "undefined"
 			)
 		else:
-			return argument.getName() + arg_type
+			return prefix + argument.getName() + arg_type
 
 	def _writeClosureArguments(self, closure):
 		i = 0
@@ -375,13 +380,11 @@ class Writer(javascript.Writer):
 		for argument in closure.getArguments():
 			arg_name = argument.getName()
 			arg_value = argument.getDefaultValue()
+			# ActionScript supports varargs (variable parameters) using the
+			# '... extra' syntax, so we don't have to slice the arguments like
+			# we have to do in JS.
 			if argument.isRest():
-				assert i >= l - 2
-				result.append("%s = %s(arguments,%d)" % (
-					arg_name,
-					self.jsPrefix + self.jsCore + "sliceArguments",
-					i
-				))
+				pass
 			# Here we only add the code for the attributes initialization if it
 			# is not a litteral, in which case a default value was already
 			# assigned
