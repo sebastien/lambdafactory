@@ -4,3 +4,5 @@ Needed
 	- Detect overrides and automatically insert the override keyword
 	- Solve method overloading (with different prototypes)
 	- Solve redefinition of property in a subclass (A.prop='foo', (B:A).prop='bar')
+	- Uses .swc catalog to populate the object model
+	- Makes sure .sas or .spy are also resolved

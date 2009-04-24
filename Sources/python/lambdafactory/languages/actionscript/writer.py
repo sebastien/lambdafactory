@@ -439,7 +439,7 @@ class Writer(javascript.Writer):
 				if self.inInvocation:
 					return "__this__.%s" % (symbol_name)
 				else:
-					return "__this__.getMethod('%s') " % (symbol_name)
+					return self._extendGetMethodByName(symbol_name)
 			elif isinstance(value, interfaces.IClassMethod):
 				if self.isIn(interfaces.IInstanceMethod):
 					return "%s.%s" % (self.getCurrentClass().getName(), symbol_name)
