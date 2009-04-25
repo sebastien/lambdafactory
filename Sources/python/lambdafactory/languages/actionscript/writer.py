@@ -117,8 +117,11 @@ class Writer(javascript.Writer):
 		declared in this element."""
 		res = []
 		for ann in element.getAnnotations():
-			if ann.name in ("SWF", "Embed"):
-				res.append("[%s(%s)]" % (ann.name,ann.content))
+			if ann.name in ("SWF", "Embed", "Bindable"):
+				if ann.content:
+					res.append("[%s(%s)]" % (ann.name,ann.content))
+				else:
+					res.append("[%s]"     % (ann.name))
 		return len(res) > 0 and res or None
 		
 	def onClass( self, classElement ):
