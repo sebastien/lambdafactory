@@ -2,6 +2,7 @@ Needed
 ======
 
 	- Detect overrides and automatically insert the override keyword
+	- Add method/function signature to not insert override
 	- Solve method overloading (with different prototypes)
 	- Solve redefinition of property in a subclass (A.prop='foo', (B:A).prop='bar')
 	- Uses .swc catalog to populate the object model

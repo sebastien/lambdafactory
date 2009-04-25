@@ -5,7 +5,7 @@
 # License   : Revised BSD License
 # -----------------------------------------------------------------------------
 # Creation  : 02-Nov-2006
-# Last mod  : 06-Mar-2009
+# Last mod  : 25-Apr-2009
 # -----------------------------------------------------------------------------
 @module lambdafactory.model
 | This module is the default implementation of the LambdaFactory interfaces.
@@ -454,9 +454,10 @@
 		end
 	@end
 
-	@method getAnnotations withName
+	@method getAnnotations withName=None
 		@embed Python
-		| return [a for a in self.annotations if a.getName() == withName]
+		|if not withName: return self.annotations
+		|return [a for a in self.annotations if a.getName() == withName]
 		@end
 	@end
 

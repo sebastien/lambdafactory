@@ -6,7 +6,7 @@
 # License   : Revised BSD License
 # -----------------------------------------------------------------------------
 # Creation  : 02-Nov-2006
-# Last mod  : 16-Apr-2009
+# Last mod  : 25-Apr-2009
 # -----------------------------------------------------------------------------
 
 # TODO: Add a Flowable interface that tells that the element can have
@@ -194,8 +194,9 @@
 	@abstract @method getDataFlow
 	| Returns the dataflow accessible/bound to this element
 
-	@abstract @method getAnnotations name
+	@abstract @method getAnnotations name=None
 	| Gets all the annotation with the given name associated to this element
+	| or all annotations if no name is specified.
 
 	@abstract @method hasAnnotation name
 	| Tells if the given element has an annotation with the given name
