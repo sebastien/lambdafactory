@@ -7,3 +7,7 @@ Needed
 	- Solve redefinition of property in a subclass (A.prop='foo', (B:A).prop='bar')
 	- Uses .swc catalog to populate the object model
 	- Makes sure .sas or .spy are also resolved
+
+Introspection:
+			Console log ("pane " + i + "=" + describeType(pane wrapper constructor) toXMLString ())
+
