@@ -5,7 +5,7 @@
 # License   : Revised BSD License
 # -----------------------------------------------------------------------------
 # Creation  : 02-Nov-2006
-# Last mod  : 25-Apr-2009
+# Last mod  : 04-May-2009
 # -----------------------------------------------------------------------------
 @module lambdafactory.model
 | This module is the default implementation of the LambdaFactory interfaces.
@@ -1128,7 +1128,16 @@
 		op_copy = Element _copy(self)
 		for a in opArguments
 			# FIXME: This does not work when a is a list
-			op_copy addOpArgument (a copy() detach())
+			if type(a) == list
+				var r = []
+				for e in a
+					r append (e copy () detach ())
+				end
+				op_copy addOpArgument (r)
+			else
+				op_copy addOpArgument (a copy() detach())
+			end
+
 		end
 		return op_copy
 	@end
@@ -1555,7 +1564,13 @@
 	@method setPriority priority
 		self priority = priority
 	@end
-	
+
+	@method copy
+		# REWRITE: super
+		var ref_copy = Reference _copy ( self, name, priority )
+		return ref_copy
+	@end
+
 @end
 
 @class Slot:Element, ISlot
@@ -1674,6 +1689,17 @@
 	@method setAsMap  v:Boolean=True
 		_asMap  = True
 		_asList = False
+	@end
+
+	@method copy
+		# REWRITE: super
+		var ref_copy     = Element _copy ( self )
+		ref_copy name    = name
+		# FIXME: Should we copy the value as well ?
+		ref_copy value   = value
+		ref_copy _asList = _asList
+		ref_copy _asMap  = _asMap
+		return ref_copy
 	@end
 	
 @end
