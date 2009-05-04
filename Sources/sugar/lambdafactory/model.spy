@@ -1567,7 +1567,7 @@
 
 	@method copy
 		# REWRITE: super
-		var ref_copy = Reference _copy ( self, name, priority )
+		var ref_copy = Reference _copy ( self, referenceName, priority )
 		return ref_copy
 	@end
 
