@@ -140,15 +140,19 @@
 			dataflow = getParentDataFlow()
 			element setDataFlow(dataflow)
 		end
-		for op_arg in element getOpArguments()
-			# TODO: Rewrite me (see passes.PassContext.walk)
-			if type(op_arg) in [tuple, list]
-				for arg in op_arg
-					assert (isinstance(arg, interfaces IElement))
-					walk(arg)
+		# FIXME: I disabled this as it kills performance. However, this will
+		# cause problems when closures are declared as parameters.
+		if False
+			for op_arg in element getOpArguments()
+				# TODO: Rewrite me (see passes.PassContext.walk)
+				if type(op_arg) in [tuple, list]
+					for arg in op_arg
+						assert (isinstance(arg, interfaces IElement))
+						walk(arg)
+					end
+				else
+					walk (op_arg)
 				end
-			else
-				walk (op_arg)
 			end
 		end
 	@end
