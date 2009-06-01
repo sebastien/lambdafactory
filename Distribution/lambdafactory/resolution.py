@@ -97,13 +97,14 @@ class BasicDataFlow(Pass):
 		if (not dataflow):
 			dataflow = self.getParentDataFlow()
 			element.setDataFlow(dataflow)
-		for op_arg in element.getOpArguments():
-			if (type(op_arg) in [tuple, list]):
-				for arg in op_arg:
-					assert(isinstance(arg, interfaces.IElement))
-					self.walk(arg)
-			elif True:
-				self.walk(op_arg)
+		if False:
+			for op_arg in element.getOpArguments():
+				if (type(op_arg) in [tuple, list]):
+					for arg in op_arg:
+						assert(isinstance(arg, interfaces.IElement))
+						self.walk(arg)
+				elif True:
+					self.walk(op_arg)
 	
 	def onParameter(self, element):
 		value=element.getValue()

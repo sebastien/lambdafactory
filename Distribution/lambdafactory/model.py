@@ -333,8 +333,10 @@ class Element:
 			assert(isinstance(annotation, IAnnotation))
 			self.annotations.append(annotation)
 	
-	def getAnnotations(self, withName):
-		 return [a for a in self.annotations if a.getName() == withName]
+	def getAnnotations(self, withName=None):
+		if withName is None: withName = None
+		if not withName: return self.annotations
+		return [a for a in self.annotations if a.getName() == withName]
 		
 	
 	def hasAnnotation(self, withName):
@@ -810,7 +812,13 @@ class Operation(Element, IEvaluable, IOperation):
 		op_arguments=[]
 		op_copy = Element._copy(self)
 		for a in self.opArguments:
-			op_copy.addOpArgument(a.copy().detach())
+			if (type(a) == list):
+				r=[]
+				for e in a:
+					r.append(e.copy().detach())
+				op_copy.addOpArgument(r)
+			elif True:
+				op_copy.addOpArgument(a.copy().detach())
 		return op_copy
 	
 	def setOpArguments(self, arguments):
@@ -1115,6 +1123,10 @@ class Operator(Reference, IOperator):
 	def setPriority(self, priority):
 		self.priority = priority
 	
+	def copy(self):
+		ref_copy=Reference._copy(self, self.referenceName, self.priority)
+		return ref_copy
+	
 
 class Slot(Element, ISlot):
 	def __init__ (self, name, typeDescription):
@@ -1205,6 +1217,14 @@ class Parameter(Element, IParameter):
 		if v is None: v = True
 		self._asMap = True
 		self._asList = False
+	
+	def copy(self):
+		ref_copy=Element._copy(self)
+		ref_copy.name = self.name
+		ref_copy.value = self.value
+		ref_copy._asList = self._asList
+		ref_copy._asMap = self._asMap
+		return ref_copy
 	
 
 class Attribute(Slot, IAttribute):

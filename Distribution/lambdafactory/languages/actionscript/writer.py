@@ -8,7 +8,7 @@
 # License   : Revised BSD License
 # -----------------------------------------------------------------------------
 # Creation  : 01-Aug-2007
-# Last mod  : 23-Apr-2009
+# Last mod  : 25-Apr-2009
 # -----------------------------------------------------------------------------
 
 # SEE: http://livedocs.adobe.com/specs/actionscript/3/
@@ -112,17 +112,23 @@ class Writer(javascript.Writer):
 		else:
 			return "import %s" % (imported_name)
 
+	def _writeActionScriptDecorators( self, element ):
+		"""Returns an array of string representing the ActionScript decorators
+		declared in this element."""
+		res = []
+		for ann in element.getAnnotations():
+			if ann.name in ("SWF", "Embed", "Bindable"):
+				if ann.content:
+					res.append("[%s(%s)]" % (ann.name,ann.content))
+				else:
+					res.append("[%s]"     % (ann.name))
+		return len(res) > 0 and res or None
+		
 	def onClass( self, classElement ):
 		"""Writes a class element."""
 		parents    = classElement.getParentClasses()
 		parent     = ""
-		decoration = None
-		# SWF Annotations are like 
-		# [SWF(width="800", height="600", backgroundColor="#ffffff", frameRate="30")]
-		# And allow wrapping a class into an SWF container
-		swf_ann = classElement.getAnnotation("SWF")
-		if swf_ann:
-			decoration = "[SWF(%s)]" % (swf_ann.getContent())
+		decoration = self._writeActionScriptDecorators(classElement)
 		if len(parents) == 1:
 			parent = "extends %s " % (self.write(parents[0]))
 		elif len(parents) > 1:
@@ -166,6 +172,7 @@ class Writer(javascript.Writer):
 		"""Writes an argument element."""
 		element_name     = element.getName()
 		type_description = element.getTypeDescription()
+		decoration       = self._writeActionScriptDecorators(element)
 		# FIXME: This is a hack which is needed because the AS3 backend needs a
 		# :Class type for [Embed...] to work
 		if type_description == "Class":
@@ -174,11 +181,13 @@ class Writer(javascript.Writer):
 		if default_value:
 			return self._format(
 				self._document(element),
+				decoration,
 				"public var %s = %s; " % (element_name, self.write(default_value))
 			)
 		else:
 			return self._format(
 				self._document(element),
+				decoration,
 				"public var %s; " % (element_name)
 			)
 
@@ -186,13 +195,15 @@ class Writer(javascript.Writer):
 		"""Writes an argument element."""
 		res = ""
 		default_value = element.getDefaultValue()
-		fleximage_ann = element.getAnnotation("fleximage")
+		decoration    = self._writeActionScriptDecorators(element)
+		fleximage_ann = element.getAnnotation("Embed")
 		rest          = ""
 		the_type      = "*"
 		if default_value:
 			rest = " = %s" % (self.write(default_value))
+		if decoration:
+			res += "\n".join(decoration) + "\n"
 		if fleximage_ann:
-			res +="[Embed(%s)]\n" % (fleximage_ann.getContent())
 			the_type = "Class"
 		res += "public static var %s:%s%s" % (element.getName(),the_type,rest)
 		return self._format(self._document(element), res)
@@ -439,7 +450,7 @@ class Writer(javascript.Writer):
 				if self.inInvocation:
 					return "__this__.%s" % (symbol_name)
 				else:
-					return "__this__.getMethod('%s') " % (symbol_name)
+					return self._extendGetMethodByName(symbol_name)
 			elif isinstance(value, interfaces.IClassMethod):
 				if self.isIn(interfaces.IInstanceMethod):
 					return "%s.%s" % (self.getCurrentClass().getName(), symbol_name)

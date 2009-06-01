@@ -180,8 +180,10 @@ class IElement:
 		"""Returns the dataflow accessible/bound to this element"""
 		raise Exception("Abstract method IElement.getDataFlow not implemented in: " + str(self))
 	
-	def getAnnotations(self, name):
-		"""Gets all the annotation with the given name associated to this element"""
+	def getAnnotations(self, name=None):
+		"""Gets all the annotation with the given name associated to this element
+		or all annotations if no name is specified."""
+		if name is None: name = None
 		raise Exception("Abstract method IElement.getAnnotations not implemented in: " + str(self))
 	
 	def hasAnnotation(self, name):
