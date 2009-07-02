@@ -5,7 +5,7 @@
 # License   : Revised BSD License
 # -----------------------------------------------------------------------------
 # Creation  : 02-Nov-2006
-# Last mod  : 06-Apr-2009
+# Last mod  : 02-Jul-2009
 # -----------------------------------------------------------------------------
 
 # TODO: When constructor is empty, should assign default attributes anyway
@@ -54,16 +54,17 @@ class Writer(AbstractWriter):
 		AbstractWriter.__init__(self)
 		self.jsPrefix = ""
 		self.jsCore   = "extend."
+		self.jsSelf   = "self"
 		self.supportedEmbedLanguages = ["ecmascript", "js", "javascript"]
 		self.inInvocation = False
 		self.options = {}
 		self.options.update(OPTIONS)
 
 	def _extendGetMethodByName(self, name):
-		return "__this__.getMethod('%s') " % (name)
+		return self.jsSelf + ".getMethod('%s') " % (name)
 
-	def _extendGetClass(self, variable="__this__"):
-		return "%s.getClass() " % (variable)
+	def _extendGetClass(self, variable=None):
+		return "%s.getClass() " % (variable or self.jsSelf)
 
 	def _isSymbolValid( self, string ):
 		# FIXME: Warn if symbol is typeof, etc.
@@ -118,7 +119,7 @@ class Writer(AbstractWriter):
 			self._document(moduleElement),
 			self.options["ENABLE_METADATA"] and "function _meta_(v,m){var ms=v['__meta__']||{};for(var k in m){ms[k]=m[k]};v['__meta__']=ms;return v}" or "",
 			"var %s=%s||{}" % (module_name, module_name),
-			"var __this__=%s" % (module_name)
+			"var %s=%s" % (self.jsSelf, module_name)
 		]
 		version = moduleElement.getAnnotation("version")
 		if version:
@@ -205,13 +206,14 @@ class Writer(AbstractWriter):
 				# in a block to avoid scoping problems.
 				invoke_parent_constructor = "".join([
 					"\tif (true) {var __super__=",
-					"__this__.getSuper(%s.getParent());" % (self.getAbsoluteName(classElement)),
+					"%s.getSuper(%s.getParent());" % (self.jsSelf, self.getAbsoluteName(classElement)),
 					"__super__.initialize.apply(__super__,arguments)}"
 				])
 			for a in classElement.getAttributes():
 				if not a.getDefaultValue(): continue
 				constructor_attributes.append(
-					"__this__.%s = %s" % (
+					"%s.%s = %s" % (
+						self.jsSelf,
 						self._rewriteSymbol(a.getName()), self.write(a.getDefaultValue()
 				)))
 			# We only need a default constructor when we have class attributes
@@ -222,7 +224,7 @@ class Writer(AbstractWriter):
 						self.options["ENABLE_METADATA"] and "initialize:_meta_(function(){" \
 						or "initialize:function(){"
 					),
-					["var __this__=this"],
+					["var %s=this" % (self.jsSelf)],
 					invoke_parent_constructor,
 					constructor_attributes or None,
 					(
@@ -266,7 +268,7 @@ class Writer(AbstractWriter):
 				method_name,
 				", ".join(map(self.write, methodElement.getArguments()))
 			),
-			["var __this__=this"],
+			["var %s=this" % (self.jsSelf)],
 			self._writeClosureArguments(methodElement),
 			self.writeFunctionWhen(methodElement),
 			map(self.write, methodElement.getOperations()),
@@ -305,7 +307,7 @@ class Writer(AbstractWriter):
 				self.options["ENABLE_METADATA"] and "%s:_meta_(function(%s){" \
 				or "%s:function(%s){"
 			) % (method_name, ", ".join(map(self.write, args))),
-			["var __this__ = this;"],
+			["var %s = this;" % (self.jsSelf)],
 			self._writeClosureArguments(methodElement),
 			self.writeFunctionWhen(methodElement),
 			map(self.write, methodElement.getOperations()),
@@ -344,7 +346,7 @@ class Writer(AbstractWriter):
 		attributes    = []
 		for a in current_class.getAttributes():
 			if not a.getDefaultValue(): continue
-			attributes.append("__this__.%s = %s" % (self._rewriteSymbol(a.getName()), self.write(a.getDefaultValue())))
+			attributes.append("%s.%s = %s" % (self.jsSelf, self._rewriteSymbol(a.getName()), self.write(a.getDefaultValue())))
 		return self._format(
 			self._document(element),
 			(
@@ -353,7 +355,7 @@ class Writer(AbstractWriter):
 			)  % (
 				", ".join(map(self.write, element.getArguments()))
 			),
-			["var __this__=this"],
+			["var %s=this" % (self.jsSelf)],
 			self._writeClosureArguments(element),
 			attributes or None,
 			map(self.write, element.getOperations()),
@@ -431,7 +433,7 @@ class Writer(AbstractWriter):
 					", ".join(map(self.write, function.getArguments()))
 				),
 				[self._document(function)],
-				['var __this__=%s;' % (self.getAbsoluteName(parent))],
+				['var %s=%s;' % (self.jsSelf, self.getAbsoluteName(parent))],
 				self._writeClosureArguments(function),
 				self.writeFunctionWhen(function),
 				map(self.write, function.getOperations()),
@@ -460,8 +462,8 @@ class Writer(AbstractWriter):
 		if function.getAnnotations(withName="post"):
 			res[0] = "var __wrapped__ = " + res[0] + ";"
 			if parent and isinstance(parent, interfaces.IModule):
-				res.insert(0, 'var __this__=%s;' % (self.getAbsoluteName(parent)))
-			res.append("var result = __wrapped__.apply(__this__, arguments);")
+				res.insert(0, 'var %s=%s;' % (self.jsSelf, self.getAbsoluteName(parent)))
+			res.append("var result = __wrapped__.apply(%s, arguments);" % (self.jsSelf))
 			res.append(self.writeFunctionPost(function))
 			res.append("return result;")
 		return self._format(res)
@@ -518,7 +520,7 @@ class Writer(AbstractWriter):
 		else:
 			scope = None
 		if symbol_name == "self":
-			return "__this__"
+			return self.jsSelf
 		if symbol_name == "target":
 			return "this"
 		elif symbol_name == "Undefined":
@@ -532,7 +534,8 @@ class Writer(AbstractWriter):
 		elif symbol_name == "super":
 			assert self.resolve("self"), "Super must be used inside method"
 			# FIXME: Should check that the element has a method in parent scope
-			return "__this__.getSuper(%s.getParent())" % (
+			return "%s.getSuper(%s.getParent())" % (
+				self.jsSelf,
 				self.getAbsoluteName(self.getCurrentClass())
 			)
 		if not self._isSymbolValid(symbol_name):
@@ -553,21 +556,21 @@ class Writer(AbstractWriter):
 				# that means used outside of direct invocations), because when
 				# giving a method as a callback, the 'this' pointer is not carried.
 				if self.inInvocation:
-					return "__this__.%s" % (symbol_name)
+					return "%s.%s" % (self.jsSelf, symbol_name)
 				else:
 					return self._extendGetMethodByName(symbol_name)
 			elif isinstance(value, interfaces.IClassMethod):
 				if self.isIn(interfaces.IInstanceMethod):
 					return self._extendGetClass() + "." + symbol_name
 				else:
-					return "__this__.%s" % (symbol_name)
+					return "%s.%s" % (self.jsSelf, symbol_name)
 			elif isinstance(value, interfaces.IClassAttribute):
 				if self.isIn(interfaces.IClassMethod):
-					return "__this__.%s" % (symbol_name)
+					return "%s.%s" % (self.jsSelf, symbol_name)
 				else:
 					return self._extendGetClass() + "." + symbol_name
 			else:
-				return "__this__." + symbol_name
+				return self.jsSelf + "." + symbol_name
 		# It is a local variable
 		elif self.getCurrentFunction() == scope:
 			return symbol_name
@@ -583,7 +586,7 @@ class Writer(AbstractWriter):
 		elif isinstance(scope, interfaces.IClass):
 			# And the class is one of the parent class
 			if scope in self.getCurrentClassAncestors():
-				return "__this__." + symbol_name
+				return self.jsSelf + "." + symbol_name
 			# Otherwise it is an outside class, and we have to check that the
 			# value is not an instance slot
 			else:
@@ -831,7 +834,8 @@ class Writer(AbstractWriter):
 						current.append(self.write(param.getValue()))
 				normal_str = "[%s]" % (",".join(normal_arguments))
 				extra_str  = "{%s}" % (",".join("%s:%s" % (k,v) for k,v in extra_arguments.items()))
-				return "extend.invoke(__this__,%s,%s,%s)" % (
+				return "extend.invoke(%s,%s,%s,%s)" % (
+					self.jsSelf,
 					t,
 					normal_str,
 					extra_str
@@ -943,7 +947,7 @@ class Writer(AbstractWriter):
 			if len(args) == 0: args.append("__iterator_value")
 			if len(args) == 1: args.append("__iterator_index")
 			i = args[1]
-			v = args[0] 
+			v = args[0]
 			return self._format(
 				"for ( var %s=%s ; %s %s %s ; %s += %s ) {" % (i, start, i, comp, end, i, step),
 				["var %s=%s;" % (v,i)],
@@ -952,10 +956,11 @@ class Writer(AbstractWriter):
 			)
 		else:
 			return self._format(
-				"%siterate(%s, %s, __this__)" % (
+				"%siterate(%s, %s, %s)" % (
 					self.jsPrefix + self.jsCore,
 					self.write(iteration.getIterator()),
-					self.write(iteration.getClosure())
+					self.write(iteration.getClosure()),
+					self.jsSelf
 				)
 			)
 
