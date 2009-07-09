@@ -799,7 +799,7 @@
 		return slotValuesImplementing(IClassMethod)
 	@end
 		
-	@method getParentClasses
+	@method getParentClassesRefs
 		return parentClasses
 	@end
 

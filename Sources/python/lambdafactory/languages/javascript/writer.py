@@ -144,14 +144,10 @@ class Writer(AbstractWriter):
 
 	def onClass( self, classElement ):
 		"""Writes a class element."""
-		parents = classElement.getParentClasses()
+		parents = self.getClassParents(classElement)
 		parent  = "undefined"
 		if len(parents) == 1:
-			print "PARENTS[0]", parents
-			c = parents[0]
-			print c, c.getReferenceName()
-			parent = self.getAbsoluteName(parents)
-			print "==========, parent"
+			parent = self.getAbsoluteName(parents[0])
 		elif len(parents) > 1:
 			raise Exception("JavaScript back-end only supports single inheritance")
 		# We create a map of class methods, including inherited class methods

@@ -94,7 +94,7 @@ class Writer(AbstractWriter):
 
 	def onClass( self, classElement ):
 		"""Writes a class element."""
-		parents = classElement.getParentClasses()
+		parents = classElement.getParentClassesRefs()
 		parent  = None
 		if len(parents) == 1:
 			parent = self.write(parents[0])

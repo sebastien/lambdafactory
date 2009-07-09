@@ -39,7 +39,7 @@ class RuntimeWriter:
 		return "NEW0(%s)" % (self.writer.getAbsoluteName(classElement)) 
 	
 	def newClass(self, classElement):
-		parents = classElement.getParentClasses()
+		parents = classElement.getParentClassesRefs()
 		parent  = parents and self.write(parents[0]) or "UNDEFINED"
 		return self.op("newClass(%s, %s)" % (
 			self.writer.getAbsoluteName(classElement),
@@ -142,7 +142,7 @@ class Writer(AbstractWriter):
 
 	def writeClass( self, classElement ):
 		"""Writes a class element."""
-		parents = classElement.getParentClasses()
+		parents = classElement.getParentClassesRefs()
 		parent  = "UNDEFINED"
 		class_name = self.getAbsoluteName(classElement)
 		if len(parents) == 1:

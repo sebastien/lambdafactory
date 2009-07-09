@@ -6,7 +6,7 @@
 # License   : Revised BSD License
 # -----------------------------------------------------------------------------
 # Creation  : 02-Nov-2006
-# Last mod  : 25-Apr-2009
+# Last mod  : 09-Jul-2009
 # -----------------------------------------------------------------------------
 
 # TODO: Add a Flowable interface that tells that the element can have
@@ -539,7 +539,7 @@
 	@abstract @method getName 
 	|	Returns this class name. It can be `None` if the class is anonymous.
 
-	@abstract @method getParentClasses
+	@abstract @method getParentClassesRefs
 	|	Returns the list of inherited classes references. Note that they
 	|	have to be interpreted in the class parent (a module)
 

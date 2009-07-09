@@ -126,11 +126,11 @@ class Writer(javascript.Writer):
 		
 	def onClass( self, classElement ):
 		"""Writes a class element."""
-		parents    = classElement.getParentClasses()
+		parents    = self.getClassParents(classElement)
 		parent     = ""
 		decoration = self._writeActionScriptDecorators(classElement)
 		if len(parents) == 1:
-			parent = "extends %s " % (self.write(parents[0]))
+			parent = "extends %s " % (self.getAbsoluteName(parents[0]))
 		elif len(parents) > 1:
 			raise Exception("ActionScript back-end only supports single inheritance")
 		# We create a map of class methods, including inherited class methods
