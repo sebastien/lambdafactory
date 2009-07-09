@@ -207,10 +207,14 @@
 			var current_class = theClass
 			for parent_class_ref in current_class getParentClasses()
 				var parent_class_name = parent_class_ref getReferenceName()
-				var resolution = resolve ( parent_class_name, current_class )
+				var resolution = resolve ( parent_class_name, current_class getParent () )
+				# We resolve the parent_class_name in the 'current_class' parent context, as resolving
+				# directly in class may have context clashes (like you have an operation or attribute
+				# with the same name as the parent_class_name).
 				var slot, parent_class = resolution
 				# TODO: assert parent
 				if parent_class
+					assert (isinstance(parent_class, interfaces IClass))
 					parents append (parent_class)
 				else
 					environment report error ("Unable to resolve parent class:", parent_class_name, "from", current_class getName())

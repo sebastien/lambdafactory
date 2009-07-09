@@ -5,7 +5,7 @@
 # License   : Revised BSD License
 # -----------------------------------------------------------------------------
 # Creation  : 02-Nov-2006
-# Last mod  : 02-Jul-2009
+# Last mod  : 09-Jul-2009
 # -----------------------------------------------------------------------------
 
 # TODO: When constructor is empty, should assign default attributes anyway
@@ -147,7 +147,11 @@ class Writer(AbstractWriter):
 		parents = classElement.getParentClasses()
 		parent  = "undefined"
 		if len(parents) == 1:
-			parent = self.write(parents[0])
+			print "PARENTS[0]", parents
+			c = parents[0]
+			print c, c.getReferenceName()
+			parent = self.getAbsoluteName(parents)
+			print "==========, parent"
 		elif len(parents) > 1:
 			raise Exception("JavaScript back-end only supports single inheritance")
 		# We create a map of class methods, including inherited class methods
@@ -162,9 +166,6 @@ class Writer(AbstractWriter):
 			classOperations[self._rewriteSymbol(meth.getName())] = meth
 		classOperations = classOperations.values()
 		classAttributes = {}
-		# FIXME: This is inconsistent
-		for name, attribute in classElement.getInheritedClassAttributes().items():
-			classAttributes[name] = self.write(attribute)
 		for attribute in classElement.getClassAttributes():
 			classAttributes[self._rewriteSymbol(attribute.getName())] = self.write(attribute)
 		classAttributes = classAttributes.values()

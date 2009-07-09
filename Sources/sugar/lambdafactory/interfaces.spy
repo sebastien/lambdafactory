@@ -539,8 +539,9 @@
 	@abstract @method getName 
 	|	Returns this class name. It can be `None` if the class is anonymous.
 
-	@abstract @method getParentClasses 
-	|	Returns the list of inherited classes references.
+	@abstract @method getParentClasses
+	|	Returns the list of inherited classes references. Note that they
+	|	have to be interpreted in the class parent (a module)
 
 @end
 
