@@ -22,7 +22,7 @@ Installing LambdaFactory
 Simply put the 'Distribution/lambdafactory' somewhere in your 'PYTHONPATH' or
 do:
 
->	export $PYTHONPATH=`pwd`/Distribution/lambdafactory
+>	export PYTHONPATH=`pwd`/Distribution/lambdafactory
 
 or use the regular way
 
