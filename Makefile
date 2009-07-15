@@ -37,7 +37,7 @@ RESOURCES       = Resources
 DISTRIBUTION    = Distribution
 API             = $(DOCUMENTATION)/lambdafactory-api.html
 DISTROCONTENT   = $(DOCUMENTATION) $(SOURCES) $(SCRIPTS) $(TESTS) $(RESOURCES) \
-                  Makefile README.txt setup.py
+                  Makefile README setup.py
 
 # Project files_______________________________________________________________
 
@@ -143,8 +143,8 @@ dist:
 	-C $(DISTRIBUTION) $(PROJECT)-$(PROJECT_VERSION)
 	@rm -rf $(DISTRIBUTION)/$(PROJECT)-$(PROJECT_VERSION)
 
-man: README.txt
-	kiwi -m -ilatin-1 README.txt  README.html
+man: README
+	kiwi -m -ilatin-1 README  Documentation/README.html
 
 doc: man
 	@echo "Generating $(PROJECT) documentation"
