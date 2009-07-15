@@ -543,9 +543,10 @@ class IClass(IContext, IReferencable, IConstruct):
 		"""Returns this class name. It can be `None` if the class is anonymous."""
 		raise Exception("Abstract method IClass.getName not implemented in: " + str(self))
 	
-	def getParentClasses(self):
-		"""Returns the list of inherited classes references."""
-		raise Exception("Abstract method IClass.getParentClasses not implemented in: " + str(self))
+	def getParentClassesRefs(self):
+		"""Returns the list of inherited classes references. Note that they
+		have to be interpreted in the class parent (a module)"""
+		raise Exception("Abstract method IClass.getParentClassesRefs not implemented in: " + str(self))
 	
 
 class IAbstractClass(IClass, IAbstractable):

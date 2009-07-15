@@ -122,7 +122,7 @@ class Writer(AbstractWriter):
 
 	def onClass( self, classElement ):
 		"""Writes a class element."""
-		parents = classElement.getParentClasses()
+		parents = classElement.getParentClassesRefs()
 		if len(parents):
 			# Remove object if we know one of the parent already extends object
 			# FIXME: This does not seem to work with complex inheritance

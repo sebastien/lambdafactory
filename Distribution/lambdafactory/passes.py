@@ -7,9 +7,11 @@ __module_name__ = 'lambdafactory.passes'
 class PassContext:
 	"""The 'PassContext' represents the current state of one or more passes when
 	walking the program. It offers access to the 'environment' (gives access
-	to the program and various passes).
+	to the program and various passes) but more importantly gives access
+	to _dataflow-related primitives_ which allow you to resolve symbols
+	an interrogate contexts.
 	
-	A single context can be shared among various passes."""
+	NOTE that a single pass context can be shared among various passes."""
 	def __init__ (self, environment=None, programPass=None):
 		self.environment = None
 		self.context = []
@@ -128,36 +130,38 @@ class PassContext:
 	def getCurrentProcess(self):
 		return self.findInContext(interfaces.IProcess)
 	
-	def getCurrentClassParents(self, theClass=None):
-		if theClass is None: theClass = None
+	def getCurrentClassParents(self):
+		return self.getClassParents(self.getCurrentClass())
+	
+	def getClassParents(self, theClass):
 		parents=[]
-		if (theClass is None):
-			theClass = self.getCurrentClass()
 		if (not theClass):
 			return tuple([])
 		current_class=theClass
-		for parent_class_ref in current_class.getParentClasses():
+		for parent_class_ref in current_class.getParentClassesRefs():
 			parent_class_name=parent_class_ref.getReferenceName()
-			resolution=self.resolve(parent_class_name, current_class)
+			resolution=self.resolve(parent_class_name, current_class.getParent())
 			slot=resolution[0]
 			parent_class=resolution[1]
 			if parent_class:
+				assert(isinstance(parent_class, interfaces.IClass))
 				parents.append(parent_class)
 			elif True:
 				self.environment.report.error('Unable to resolve parent class:', parent_class_name, 'from', current_class.getName())
 		return parents
 	
-	def getCurrentClassAncestors(self, theClass=None):
+	def getCurrentClassAncestors(self):
+		return self.getClassAncestors(self.getCurrentClass())
+	
+	def getClassAncestors(self, theClass=None):
 		if theClass is None: theClass = None
 		ancestors=[]
-		if (theClass is None):
-			theClass = self.getCurrentClass()
 		if (not theClass):
 			return tuple([])
-		parents=self.getCurrentClassParents(theClass)
+		parents=self.getClassParents(theClass)
 		for parent in parents:
 			if (not (parent in ancestors)):
-				for ancestor in self.getCurrentClassAncestors(parent):
+				for ancestor in self.getClassAncestors(parent):
 					if (not (ancestor in ancestors)):
 						ancestors.append(ancestor)
 		ancestors.extend(parents)

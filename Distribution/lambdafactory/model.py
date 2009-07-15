@@ -577,7 +577,7 @@ class Class(Context, IClass, IReferencable, IAssignable):
 	def getClassMethods(self):
 		return self.slotValuesImplementing(IClassMethod)
 	
-	def getParentClasses(self):
+	def getParentClassesRefs(self):
 		return self.parentClasses
 	
 	def setParentClasses(self, classes):

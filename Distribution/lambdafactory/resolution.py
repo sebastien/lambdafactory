@@ -181,7 +181,7 @@ class DataFlowBinding(Pass):
 				self.environment.report.error(('DataFlowBinding: operation not implemented ' + repr(i)))
 	
 	def onClass(self, element):
-		for parent_class_ref in element.getParentClasses():
+		for parent_class_ref in element.getParentClassesRefs():
 			slot_and_value=self.resolveLocalOrAbsolute(parent_class_ref)
 			if (not slot_and_value[0]):
 				self.environment.report.error('Parent class not found:', parent_class_ref.getReferenceName(), 'in', element.getName())
