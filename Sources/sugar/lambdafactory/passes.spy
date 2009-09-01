@@ -428,6 +428,7 @@
 		"createMapFromItems"
 		"error"
 		"filter"
+		"fail"
 		"getChildrenOf"
 		"getClass"
 		"getClasses"
