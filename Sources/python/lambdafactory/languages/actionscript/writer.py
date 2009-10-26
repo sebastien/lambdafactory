@@ -8,7 +8,7 @@
 # License   : Revised BSD License
 # -----------------------------------------------------------------------------
 # Creation  : 01-Aug-2007
-# Last mod  : 25-Apr-2009
+# Last mod  : 26-Oct-2009
 # -----------------------------------------------------------------------------
 
 # SEE: http://livedocs.adobe.com/specs/actionscript/3/
@@ -33,10 +33,10 @@ class Writer(javascript.Writer):
 		self.jsCore   = "extend."
 		self.supportedEmbedLanguages.extend(("as", "actionscript"))
 
-	def _extendGetMethodByName(self, name,variable="__this__"):
+	def _extendGetMethodByName(self, name,variable="self"):
 		return self.jsCore+"getMethodOf(%s,'%s') " % (variable, name)
 
-	def _extendGetClass(self, variable="__this__"):
+	def _extendGetClass(self, variable="self"):
 		return self.jsCore+"getClassOf(%s) " % (variable)
 
 	def getRuntimeSource(s):
@@ -123,7 +123,7 @@ class Writer(javascript.Writer):
 				else:
 					res.append("[%s]"     % (ann.name))
 		return len(res) > 0 and res or None
-		
+
 	def onClass( self, classElement ):
 		"""Writes a class element."""
 		parents    = self.getClassParents(classElement)
@@ -167,7 +167,6 @@ class Writer(javascript.Writer):
 		class_code.extend(map(self.write, classElement.getInstanceMethods()))
 		return self._format(code)
 
-
 	def onAttribute( self, element ):
 		"""Writes an argument element."""
 		element_name     = element.getName()
@@ -207,7 +206,7 @@ class Writer(javascript.Writer):
 			the_type = "Class"
 		res += "public static var %s:%s%s" % (element.getName(),the_type,rest)
 		return self._format(self._document(element), res)
-	
+
 	def onConstructor( self, element ):
 		"""Writes a constructor element."""
 		current_class = self.getCurrentClass()
@@ -218,7 +217,7 @@ class Writer(javascript.Writer):
 				current_class.getName(),
 				", ".join(map(self.write, element.getArguments()))
 			),
-			["var __this__=this"],
+			["var self=this"],
 			self._writeClosureArguments(element),
 			attributes or None,
 			map(self.write, element.getOperations()),
@@ -259,7 +258,7 @@ class Writer(javascript.Writer):
 				", ".join(map(self.write, methodElement.getArguments())),
 				return_type
 			),
-			["var __this__=this"],
+			["var self=this"],
 			self._writeClosureArguments(methodElement),
 			self.onFunctionWhen(methodElement),
 			map(self.write, methodElement.getOperations()),
@@ -278,7 +277,7 @@ class Writer(javascript.Writer):
 				method_name,
 				return_type
 			),
-			["var __this__=this"],
+			["var self=this"],
 			self._writeClosureArguments(element),
 			self.onFunctionWhen(element),
 			map(self.write, element.getOperations()),
@@ -295,7 +294,7 @@ class Writer(javascript.Writer):
 				method_name,
 				", ".join(map(self.write, element.getArguments())),
 			),
-			["var __this__=this"],
+			["var self=this"],
 			self._writeClosureArguments(element),
 			self.onFunctionWhen(element),
 			map(self.write, element.getOperations()),
@@ -309,7 +308,7 @@ class Writer(javascript.Writer):
 		return self._format(
 			self._document(methodElement),
 			"public static function %s(%s){" % (method_name, ", ".join(map(self.write, args))),
-			["var __this__ = %s;" % (class_name)],
+			["var self = %s;" % (class_name)],
 			self._writeClosureArguments(methodElement),
 			self.onFunctionWhen(methodElement),
 			map(self.write, methodElement.getOperations()),
@@ -336,8 +335,8 @@ class Writer(javascript.Writer):
 		if function.getAnnotations("post"):
 			res[0] = "var __wrapped__ = " + res[0] + ";"
 			if parent and isinstance(parent, interfaces.IModule):
-				res.insert(0, 'var __this__=%s;' % (self.getAbsoluteName(parent)))
-			res.append("var result = __wrapped__.apply(__this__, arguments);")
+				res.insert(0, 'var self=%s;' % (self.getAbsoluteName(parent)))
+			res.append("var result = __wrapped__.apply(self, arguments);")
 			res.append(self.onFunctionPost(function))
 			res.append("return result;")
 		return self._format(res)
@@ -418,7 +417,7 @@ class Writer(javascript.Writer):
 			self._document(element),
 			"public var %s=%s" % (element.getName(), default_value)
 		)
-		
+
 	def onReference( self, element ):
 		"""Writes an argument element."""
 		symbol_name  = element.getReferenceName()
@@ -448,17 +447,17 @@ class Writer(javascript.Writer):
 				# that means used outside of direct invocations), because when
 				# giving a method as a callback, the 'this' pointer is not carried.
 				if self.inInvocation:
-					return "__this__.%s" % (symbol_name)
+					return "self.%s" % (symbol_name)
 				else:
 					return self._extendGetMethodByName(symbol_name)
 			elif isinstance(value, interfaces.IClassMethod):
 				if self.isIn(interfaces.IInstanceMethod):
 					return "%s.%s" % (self.getCurrentClass().getName(), symbol_name)
 				else:
-					return "__this__.%s" % (symbol_name)
+					return "self.%s" % (symbol_name)
 			elif isinstance(value, interfaces.IClassAttribute):
 				if self.isIn(interfaces.IClassMethod):
-					return "__this__.%s" % (symbol_name)
+					return "self.%s" % (symbol_name)
 				else:
 					return "%s.%s" % (self.getCurrentClass().getName(), symbol_name)
 			else:
