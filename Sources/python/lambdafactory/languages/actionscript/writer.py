@@ -130,7 +130,13 @@ class Writer(javascript.Writer):
 		parent     = ""
 		decoration = self._writeActionScriptDecorators(classElement)
 		if len(parents) == 1:
-			parent = "extends %s " % (self.getAbsoluteName(parents[0]))
+			parent_class = parents[0]
+			if isinstance(parent_class, interfaces.IClass):
+				parent = self.getAbsoluteName(parent_class)
+			else:
+				assert isinstance(parent_class, interfaces.IReference)
+				parent = self.write(parent_class)
+			parent = " extends " + parent
 		elif len(parents) > 1:
 			raise Exception("ActionScript back-end only supports single inheritance")
 		# We create a map of class methods, including inherited class methods
@@ -152,7 +158,7 @@ class Writer(javascript.Writer):
 		code       = [
 			self._document(classElement),
 			decoration,
-			"public dynamic class %s %s{" % (classElement.getName(), parent),
+			"public dynamic class %s%s {" % (classElement.getName(), parent),
 			version,
 			class_code,
 			"}"
