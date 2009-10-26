@@ -220,6 +220,8 @@
 					assert (isinstance(parent_class, interfaces IClass))
 					parents append (parent_class)
 				else
+					# Here we add the reference anyway, even if the class is not resolved
+					parents append (parent_class_ref)
 					environment report error ("Unable to resolve parent class:", parent_class_name, "from", current_class getName())
 				end
 			end
@@ -567,6 +569,109 @@
 
 	@shared HANDLES = [ interfaces IClosure ]
 	@shared NAME    = "AsynchronousInvocationsExpansion"
+@end
+
+# ============================================================================
+#
+# COUNT REFERENCES PASS
+#
+# ============================================================================
+
+@class CountReferences: Pass
+| This pass adds "refcount" and "referers" annotations to all the referenced
+| elements by handling every 'IReference' element.
+| 
+| This is the first pass to be applied before actually removing the dead
+| code.
+
+	@shared   HANDLES = [
+		interfaces IReference
+		interfaces IFunction
+		interfaces IElement
+	]
+	@shared   NAME    = "CountReferences"
+
+	@method addReferer element, context=(self getCurrentContext ())
+		var refcount = element getAnnotation "refcount"
+		var referers = element getAnnotation "referers"
+		if refcount
+			refcount setContent (refcount getContent () + 1)
+			referers getContent () append (context)
+		else
+			self annotate (element, "refcount", 1)
+			self annotate (element, "referers", [context])
+		end
+	@end
+
+	@method onFunction element
+		if element getName () == interfaces Constants ModuleInit
+			# This is a trick to make sure that this will be "sticky"
+			addReferer (element, element)
+		end
+	@end
+
+	@method onReference reference
+		if self isIn (interfaces IOperation)
+			var slot_and_value = self resolve (reference)
+			var value          = slot_and_value[1]
+			if value
+				addReferer (value)
+			end
+		end
+	@end
+
+	@method onElement element
+		# Just a generic handle for element
+	@end
+
+@end
+
+# ============================================================================
+#
+# DEAD CODE REMOVAL PASS
+#
+# ============================================================================
+
+@class RemoveDeadCode: Pass
+
+	@shared   HANDLES = [
+		interfaces IConstruct
+		interfaces IElement
+	]
+
+	@shared   NAME    = "RemoveDeadCode"
+
+	@method onConstruct value
+	| For every construct, we see if there is a refcount or not, and we
+	| see if at least one referer has a refcount. If it's not the case,
+	| then the value will be shadowed, and its refcount set to 0.
+		var actual_count = 0
+		var refcount     = value getAnnotation "refcount"
+		var referers     = value getAnnotation "referers"
+		if refcount
+			referers = referers getContent ()
+			for r in referers
+				var r_refcount = r getAnnotation "refcount"
+				if r_refcount and r_refcount getContent () > 0
+					actual_count += 1
+				end
+			end
+			if actual_count == 0
+				self annotate (value, "shadow")
+				refcount setContent 0
+			else
+				for element in self context
+					element removeAnnotation "shadow"
+				end
+			end
+		else
+			self annotate (value, "shadow")
+		end
+	@end
+
+	@method onElement element
+		# Just a generic handle for element
+	@end
 @end
 
 # EOF

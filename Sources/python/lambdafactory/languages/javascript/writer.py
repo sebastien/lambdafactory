@@ -5,7 +5,7 @@
 # License   : Revised BSD License
 # -----------------------------------------------------------------------------
 # Creation  : 02-Nov-2006
-# Last mod  : 09-Jul-2009
+# Last mod  : 26-Jul-2009
 # -----------------------------------------------------------------------------
 
 # TODO: When constructor is empty, should assign default attributes anyway
@@ -64,7 +64,7 @@ class Writer(AbstractWriter):
 		return self.jsSelf + ".getMethod('%s') " % (name)
 
 	def _extendGetClass(self, variable=None):
-		return "%s.getClass() " % (variable or self.jsSelf)
+		return "%s.getClass()" % (variable or self.jsSelf)
 
 	def _isSymbolValid( self, string ):
 		# FIXME: Warn if symbol is typeof, etc.
@@ -147,7 +147,12 @@ class Writer(AbstractWriter):
 		parents = self.getClassParents(classElement)
 		parent  = "undefined"
 		if len(parents) == 1:
-			parent = self.getAbsoluteName(parents[0])
+			parent_class = parents[0]
+			if isinstance(parent_class, interfaces.IClass):
+				parent = self.getAbsoluteName(parent_class)
+			else:
+				assert isinstance(parent_class, interfaces.IReference)
+				parent = self.write(parent_class)
 		elif len(parents) > 1:
 			raise Exception("JavaScript back-end only supports single inheritance")
 		# We create a map of class methods, including inherited class methods
