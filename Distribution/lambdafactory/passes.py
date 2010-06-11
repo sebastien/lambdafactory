@@ -147,6 +147,7 @@ class PassContext:
 				assert(isinstance(parent_class, interfaces.IClass))
 				parents.append(parent_class)
 			elif True:
+				parents.append(parent_class_ref)
 				self.environment.report.error('Unable to resolve parent class:', parent_class_name, 'from', current_class.getName())
 		return parents
 	
@@ -275,7 +276,7 @@ class ExtendJSRuntime(Pass):
 	"""This pass is like an importation and will simply bind the symbols"""
 	HANDLES = [interfaces.IProgram, interfaces.IModule]
 	NAME = 'GlobalRuntime'
-	FUNCTIONS = ['assert', 'access', 'car', 'cdr', 'cons', 'createMapFromItems', 'error', 'filter', 'getChildrenOf', 'getClass', 'getClasses', 'getClassOf', 'getMethod', 'getMethodOf', 'getParentClass', 'getSuperMethod', 'invoke', 'isDefined', 'isFunction', 'isIn', 'isInstance', 'isList', 'isMap', 'isString', 'iterate', 'len', 'map', 'print', 'range', 'reduce', 'slice', 'sliceArguments']
+	FUNCTIONS = ['assert', 'access', 'car', 'cdr', 'cons', 'createMapFromItems', 'error', 'filter', 'fail', 'getChildrenOf', 'getClass', 'getClasses', 'getClassOf', 'getMethod', 'getMethodOf', 'getParentClass', 'getSuperMethod', 'invoke', 'isDefined', 'isFunction', 'isIn', 'isInstance', 'isList', 'isMap', 'isString', 'iterate', 'len', 'map', 'print', 'range', 'reduce', 'slice', 'sliceArguments']
 	def __init__ (self):
 		self.runtime = None
 		Pass.__init__(self)
@@ -350,4 +351,67 @@ class DocumentationPass(Pass):
 class TransformAsynchronousInvocations(Pass):
 	HANDLES = [interfaces.IClosure]
 	NAME = 'AsynchronousInvocationsExpansion'
+
+class CountReferences(Pass):
+	"""This pass adds "refcount" and "referers" annotations to all the referenced
+	elements by handling every 'IReference' element.
+	
+	This is the first pass to be applied before actually removing the dead
+	code."""
+	HANDLES = [interfaces.IReference, interfaces.IFunction, interfaces.IElement]
+	NAME = 'CountReferences'
+	def addReferer(self, element, context=None):
+		if context is None: context = self.getCurrentContext()
+		refcount=element.getAnnotation('refcount')
+		referers=element.getAnnotation('referers')
+		if refcount:
+			refcount.setContent((refcount.getContent() + 1))
+			referers.getContent().append(context)
+		elif True:
+			self.annotate(element, 'refcount', 1)
+			self.annotate(element, 'referers', [context])
+	
+	def onFunction(self, element):
+		if (element.getName() == interfaces.Constants.ModuleInit):
+			self.addReferer(element, element)
+	
+	def onReference(self, reference):
+		if self.isIn(interfaces.IOperation):
+			slot_and_value=self.resolve(reference)
+			value=slot_and_value[1]
+			if value:
+				self.addReferer(value)
+	
+	def onElement(self, element):
+		pass
+	
+
+class RemoveDeadCode(Pass):
+	HANDLES = [interfaces.IConstruct, interfaces.IElement]
+	NAME = 'RemoveDeadCode'
+	def onConstruct(self, value):
+		"""For every construct, we see if there is a refcount or not, and we
+		see if at least one referer has a refcount. If it's not the case,
+		then the value will be shadowed, and its refcount set to 0."""
+		actual_count=0
+		refcount=value.getAnnotation('refcount')
+		referers=value.getAnnotation('referers')
+		if refcount:
+			referers = referers.getContent()
+			for r in referers:
+				r_refcount=r.getAnnotation('refcount')
+				if (r_refcount and (r_refcount.getContent() > 0)):
+					actual_count = (actual_count + 1)
+			if (actual_count == 0):
+				self.annotate(value, 'shadow')
+				refcount.setContent(0)
+			elif True:
+				for element in self.context:
+					element.removeAnnotation('shadow')
+		elif True:
+			self.annotate(value, 'shadow')
+	
+	def onElement(self, element):
+		pass
+	
 
