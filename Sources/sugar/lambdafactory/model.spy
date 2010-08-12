@@ -5,7 +5,7 @@
 # License   : Revised BSD License
 # -----------------------------------------------------------------------------
 # Creation  : 02-Nov-2006
-# Last mod  : 28-Jun-2010
+# Last mod  : 12-Aug-2010
 # -----------------------------------------------------------------------------
 @module lambdafactory.model
 | This module is the default implementation of the LambdaFactory interfaces.
@@ -496,7 +496,7 @@
 			return None
 		end
 	@end
-	
+
 	@method setDocumentation documentation
 		addAnnotation(documentation)
 	@end

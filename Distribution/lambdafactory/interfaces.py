@@ -198,6 +198,15 @@ class IElement:
 		"""Adds an annotation to this element"""
 		raise Exception("Abstract method IElement.addAnnotation not implemented in: " + str(self))
 	
+	def setAsShadow(self):
+		"""Adds a "shadow" annotation to this element, which will means that
+		it should not be output by the writer."""
+		raise Exception("Abstract method IElement.setAsShadow not implemented in: " + str(self))
+	
+	def notAsShadow(self):
+		"""Removes any "shadow" notation from this element"""
+		raise Exception("Abstract method IElement.notAsShadow not implemented in: " + str(self))
+	
 	def getParent(self):
 		"""Returns this element parent"""
 		raise Exception("Abstract method IElement.getParent not implemented in: " + str(self))

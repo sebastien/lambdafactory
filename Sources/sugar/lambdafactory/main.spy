@@ -111,16 +111,11 @@
 					throw Exception("Only one source file is accepted with the -m option")
 				end
 			end
-			# In case we have additional library files, we parse them
-			if options libraries
-				for lib in options libraries
-					if os path isfile(lib)
-						parseFile(lib)
-					end
-				end
-			end
+			# We parse the source first. At this stage, it's all about creating the AST, so
+			# we don't need to have all the dependencies loaded. This will be done at a the
+			# program transformation stage.
 			for source_path in args
-				parseFile(source_path, options module)
+				var result_module = parseFile(source_path, options module)
 				# REWRITE: language = options get "lang" ? guessLanguage(source_path) ? raise ERR_NOT_LANGUAGE_SPECIFIED
 				# We get the language to which we'd like to translate the program to
 				if not language
@@ -130,9 +125,19 @@
 				end
 			end
 		end
+		# Add library path and parses libraries given as files
 		if options libraries
 			for l in options libraries
-				environment addLibraryPath (l)
+				if os path isfile(l)
+					# Here we annotate as shadow the parts of the imported module that are imported
+					# as a library.
+					var module = parseFile(l)
+					for name_and_value in module getSlots ()
+						name_and_value[1] addAnnotation (environment getFactory () annotation "shadow")
+					end
+				else
+					environment addLibraryPath (l)
+				end
 			end
 		end
 		if not language

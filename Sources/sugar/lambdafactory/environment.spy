@@ -47,16 +47,21 @@
 	@method importModule moduleName
 		var module_path = findSugarModule(moduleName)
 		if module_path
-			environment report info ("Importing module", moduleName, "from", module_path, "...")
-			environment report indent()
-			# The module is automatically addded to the program
-			var module = environment parseFile (module_path)
-			module setImported(True)
-			environment report dedent()
-			return module
+			environment report info ("Importing module", moduleName, "from", modulePath, "...")
+			return importModuleFromFile (module_path)
 		else
 			environment report error ("Module not found:", moduleName)
 		end
+	@end
+
+	@method importModuleFromFile  modulePath
+		environment report info ("Reading module file", modulePath)
+		environment report indent()
+		# The module is automatically addded to the program
+		var module = environment parseFile (modulePath)
+		module setImported(True)
+		environment report dedent()
+		return module
 	@end
 
 @end

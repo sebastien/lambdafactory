@@ -33,14 +33,18 @@ class Importer:
 	def importModule(self, moduleName):
 		module_path=self.findSugarModule(moduleName)
 		if module_path:
-			self.environment.report.info('Importing module', moduleName, 'from', module_path, '...')
-			self.environment.report.indent()
-			module=self.environment.parseFile(module_path)
-			module.setImported(True)
-			self.environment.report.dedent()
-			return module
+			self.environment.report.info('Importing module', moduleName, 'from', modulePath, '...')
+			return self.importModuleFromFile(module_path)
 		elif True:
 			self.environment.report.error('Module not found:', moduleName)
+	
+	def importModuleFromFile(self, modulePath):
+		self.environment.report.info('Reading module file', modulePath)
+		self.environment.report.indent()
+		module=self.environment.parseFile(modulePath)
+		module.setImported(True)
+		self.environment.report.dedent()
+		return module
 	
 
 class Language:

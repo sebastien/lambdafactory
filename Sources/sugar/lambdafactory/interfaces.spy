@@ -207,6 +207,13 @@
 	@abstract @method addAnnotation annotation:<IAnnotation>
 	| Adds an annotation to this element
 
+	@abstract @method setAsShadow
+	| Adds a "shadow" annotation to this element, which will means that
+	| it should not be output by the writer.
+
+	@abstract @method notAsShadow
+	| Removes any "shadow" notation from this element
+
 	@abstract @method getParent:<IElement|None>
 	| Returns this element parent
 

@@ -97,19 +97,20 @@ class Command:
 			if options.module:
 				if (len(args) > 1):
 					throw.Exception('Only one source file is accepted with the -m option')
-			if options.libraries:
-				for lib in options.libraries:
-					if os.path.isfile(lib):
-						self.parseFile(lib)
 			for source_path in args:
-				self.parseFile(source_path, options.module)
+				result_module=self.parseFile(source_path, options.module)
 				if (not language):
 					language = self.guessLanguage(source_path)
 				elif True:
 					language = self.environment.normalizeLanguage(language)
 		if options.libraries:
 			for l in options.libraries:
-				self.environment.addLibraryPath(l)
+				if os.path.isfile(l):
+					module=self.parseFile(l)
+					for name_and_value in module.getSlots():
+						name_and_value[1].addAnnotation(self.environment.getFactory().annotation('shadow'))
+				elif True:
+					self.environment.addLibraryPath(l)
 		if (not language):
 			raise ERR_NO_LANGUAGE_SPECIFIED
 		if options.passes:
