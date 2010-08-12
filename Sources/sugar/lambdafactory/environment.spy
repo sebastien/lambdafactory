@@ -45,6 +45,8 @@
 	@end
 
 	@method importModule moduleName
+		# FIXME: Should use a module cache, same for parsefile so that we don't re-parse
+		# all the time
 		var module_path = findSugarModule(moduleName)
 		if module_path
 			environment report info ("Importing module", moduleName, "from", module_path, "...")
@@ -156,6 +158,8 @@
 	@property languages={}
 	@property libraryPaths   = []
 	@property options={}
+	@property cache={}
+	| Stores data (such as parsed modules) to speed up the process
 	
 	@constructor
 		importer = new Importer(self)
@@ -219,12 +223,18 @@
 	@end
 
 	@method parseFile path, moduleName=None
-		var extension = os path splitext (path)[-1][1:] lower()
-		var parser = parsers get (extension)
-		# We default to the sugar parser
-		if not parser -> parser = parsers get "sg"
-		var source_and_module = parser parse( path, moduleName)
-		return source_and_module[1]
+		var cache_key = "module-" + str(path)
+		if cache has_key (cache_key)
+			return cache[cache_key]
+		else
+			var extension = os path splitext (path)[-1][1:] lower()
+			var parser = parsers get (extension)
+			# We default to the sugar parser
+			if not parser -> parser = parsers get "sg"
+			var source_and_module = parser parse( path, moduleName)
+			cache[cache_key] = source_and_module[1]
+			return source_and_module[1]
+		end
 	@end
 
 	@method parseSource source, extension, moduleName=None
