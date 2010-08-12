@@ -201,6 +201,12 @@
 		var slot_and_value = self resolveAbsolute(module_name)
 		if slot_and_value == FAILED
 			self environment report error ("Imported module not found in scope:", module_name, "in", element getName())
+		if symbol_name == "*"
+			# We import all the symbols defined in the module
+			var imported_module = slot_and_value[1]
+			for slot_name in imported_module getSlotNames ()
+				importSymbol (operation, slot_name, fromModuleName, moduleDest)
+			end
 		else
 			var symbol_slot_and_value = self resolve ( symbol_name, slot_and_value[1] )
 			if symbol_slot_and_value == FAILED

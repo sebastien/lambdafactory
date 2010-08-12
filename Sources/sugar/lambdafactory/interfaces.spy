@@ -6,7 +6,7 @@
 # License   : Revised BSD License
 # -----------------------------------------------------------------------------
 # Creation  : 02-Nov-2006
-# Last mod  : 09-Jul-2009
+# Last mod  : 28-Jun-2010
 # -----------------------------------------------------------------------------
 
 # TODO: Add a Flowable interface that tells that the element can have
@@ -553,7 +553,7 @@
 |	An interface is an abstract @protocol that only has abstract elements.
 @end
 
-@protocol IModule: IContext, IReferencable, IConstruct
+@protocol IModule: IContext, IReferencable, IAssignable, IConstruct
 | Note that a module 'getName' function returns the module absolute name
 
 	@abstract @method isImported:<True|False>
@@ -794,7 +794,7 @@
 @end
 
 # FIXME: Rename Assignment
-@class IAssignation: IOperation
+@class IAssignation: IOperation, IEvaluable
 	@shared ARGS = [ IEvaluable, IEvaluable ]
 
 	@abstract @method getTarget 
@@ -806,7 +806,7 @@
 	
 @end
 
-@class IAllocation: IOperation
+@class IAllocation: IOperation, IEvaluable
 	@shared ARGS = [ ISlot, IEvaluable ]
 
 	@abstract @method getSlotToAllocate 
@@ -817,7 +817,7 @@
 
 @end
 
-@protocol IResolution: IOperation
+@protocol IResolution: IOperation, IEvaluable, IReferencable
 |	A resolution resolves a reference into a value.
 	@shared ARGS = [ IReferencable, IEvaluable ]
 
@@ -829,7 +829,7 @@
 
 @end
 
-@class IComputation: IOperation
+@class IComputation: IOperation, IEvaluable
 	@shared ARGS = [ IOperator, IEvaluable, IEvaluable ]
 
 	@method getOperator 
@@ -874,7 +874,7 @@
 	
 @end
 
-@class IInvocation: IOperation
+@class IInvocation: IOperation, IEvaluable
 	@shared ARGS = [ IEvaluable, [IEvaluable] ]
 
 	@abstract @method isByPositionOnly
@@ -893,8 +893,8 @@
 	@end
 	
 @end
-	
-@class IInstanciation: IOperation
+
+@class IInstanciation: IOperation, IEvaluable
 	@shared ARGS = [ IEvaluable, [IEvaluable] ]
 
 	@method getInstanciable 
@@ -909,7 +909,7 @@
 	
 @end
 
-@class ISubsetOperation: IOperation
+@class ISubsetOperation: IOperation, IEvaluable
 	
 	@method getTarget 
 	|	Returns the operation target.
@@ -927,7 +927,7 @@
 	@end
 
 @end
-	
+
 @class ISliceOperation: ISubsetOperation
 	
 	@shared ARGS = [ IEvaluable, IEvaluable, IEvaluable ]
@@ -1132,7 +1132,7 @@
 	@end
 	
 @end
-	
+
 @class IEmbed: IOperation
 |	An embedded operation represents a bit of verbatim code written in
 |	a different language. This allows for embedding code written specifically

@@ -5,7 +5,7 @@
 # License   : Revised BSD License
 # -----------------------------------------------------------------------------
 # Creation  : 02-Nov-2006
-# Last mod  : 04-May-2009
+# Last mod  : 28-Jun-2010
 # -----------------------------------------------------------------------------
 @module lambdafactory.model
 | This module is the default implementation of the LambdaFactory interfaces.
@@ -845,7 +845,7 @@
 @class Interface: Class, IInterface
 @end
 
-@class Module: Context, IModule, IAssignable, IReferencable
+@class Module: Context, IModule
 
 	@property importOperations = []
 	@property imported = False
@@ -1110,7 +1110,7 @@
 #
 # ------------------------------------------------------------------------------
 
-@class Operation: Element, IEvaluable, IOperation
+@class Operation: Element, IOperation
 
 	@shared   ARGS:List = Undefined
 	@property opArguments:<[IElement]> = []
@@ -1214,7 +1214,7 @@
 	@end
 @end
 
-@class Assignation: Operation, IAssignation, IEvaluable
+@class Assignation: Operation, IAssignation
 
 	@method getTarget
 		return self getOpArgument(0)
@@ -1226,7 +1226,7 @@
 	
 @end
 
-@class Allocation: Operation, IAllocation, IEvaluable
+@class Allocation: Operation, IAllocation
 
 	@method getSlotToAllocate
 		return self getOpArgument(0)
@@ -1238,7 +1238,7 @@
 	
 @end
 
-@class Resolution: Operation, IResolution, IEvaluable, IReferencable
+@class Resolution: Operation, IResolution
 
 	@method getReference
 		return self getOpArgument(0)
@@ -1249,7 +1249,7 @@
 	@end
 @end
 
-@class Computation: Operation, IComputation, IEvaluable
+@class Computation: Operation, IComputation
 
 	@constructor arguments...
 		@embed Python
@@ -1259,7 +1259,7 @@
 	
 @end
 
-@class Invocation: Operation, IInvocation, IEvaluable
+@class Invocation: Operation, IInvocation
 
 	@method isByPositionOnly
 		for arg in getOpArgument(1)
@@ -1272,7 +1272,7 @@
 	
 @end
 
-@class Instanciation: Operation, IInstanciation, IEvaluable
+@class Instanciation: Operation, IInstanciation
 @end
 
 @class Selection: Operation, ISelection

@@ -167,7 +167,7 @@ class Environment:
 		base_dir=os.path.join(os.path.dirname(os.path.abspath(__file__)), 'languages')
 		languages=[]
 		for name in os.listdir(base_dir):
-			if os.path.isdir(os.path.join(base_dir, name)):
+			if ((not name.startswith('.')) and os.path.isdir(os.path.join(base_dir, name))):
 				languages.append(name)
 		return languages
 	

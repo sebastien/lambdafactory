@@ -208,6 +208,7 @@
 				return tuple([])
 			end
 			var current_class = theClass
+			assert (isinstance(theClass, interfaces IClass))
 			for parent_class_ref in current_class getParentClassesRefs()
 				var parent_class_name = parent_class_ref getReferenceName()
 				var resolution = resolve ( parent_class_name, current_class getParent () )
@@ -502,7 +503,6 @@
 	@end
 
 	@method onModule module
-
 		var imports = module getImportOperations()
 		for i in imports
 			if isinstance(i, interfaces IImportModuleOperation)
