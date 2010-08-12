@@ -611,7 +611,7 @@ class Class(Context, IClass, IReferencable, IAssignable):
 class Interface(Class, IInterface):
 	pass
 
-class Module(Context, IModule, IAssignable, IReferencable):
+class Module(Context, IModule):
 	def __init__ (self, name=None):
 		self.importOperations = []
 		self.imported = False
@@ -800,7 +800,7 @@ class ClassMethod(Method, IClassMethod):
 class InstanceMethod(Method, IInstanceMethod):
 	pass
 
-class Operation(Element, IEvaluable, IOperation):
+class Operation(Element, IOperation):
 	ARGS = None
 	def __init__ (self, *arguments):
 		self.opArguments = []
@@ -862,7 +862,7 @@ class Operation(Element, IEvaluable, IOperation):
 		return tuple([self.__class__.__name__, tuple(args)])
 	
 
-class Assignation(Operation, IAssignation, IEvaluable):
+class Assignation(Operation, IAssignation):
 	def getTarget(self):
 		return self.getOpArgument(0)
 	
@@ -870,7 +870,7 @@ class Assignation(Operation, IAssignation, IEvaluable):
 		return self.getOpArgument(1)
 	
 
-class Allocation(Operation, IAllocation, IEvaluable):
+class Allocation(Operation, IAllocation):
 	def getSlotToAllocate(self):
 		return self.getOpArgument(0)
 	
@@ -878,7 +878,7 @@ class Allocation(Operation, IAllocation, IEvaluable):
 		return self.getOpArgument(1)
 	
 
-class Resolution(Operation, IResolution, IEvaluable, IReferencable):
+class Resolution(Operation, IResolution):
 	def getReference(self):
 		return self.getOpArgument(0)
 	
@@ -886,14 +886,14 @@ class Resolution(Operation, IResolution, IEvaluable, IReferencable):
 		return self.getOpArgument(1)
 	
 
-class Computation(Operation, IComputation, IEvaluable):
+class Computation(Operation, IComputation):
 	def __init__ (self, *arguments):
 		Operation.__init__(self, *arguments)
 		
 	
 	pass
 
-class Invocation(Operation, IInvocation, IEvaluable):
+class Invocation(Operation, IInvocation):
 	def isByPositionOnly(self):
 		for arg in self.getOpArgument(1):
 			if (arg.isByName() or arg.isAsMap()):
@@ -901,7 +901,7 @@ class Invocation(Operation, IInvocation, IEvaluable):
 		return True
 	
 
-class Instanciation(Operation, IInstanciation, IEvaluable):
+class Instanciation(Operation, IInstanciation):
 	pass
 
 class Selection(Operation, ISelection):

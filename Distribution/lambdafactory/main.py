@@ -13,7 +13,7 @@ class Command:
 	OPT_LANG = 'Specifies the target language (js, java, pnuts, actionscript)'
 	OPT_OUTPUT = 'Specifies the output where the files will be generated (stdout, file or folder)'
 	OPT_VERBOSE = 'Verbose parsing output (useful for debugging)'
-	OPT_API = 'Generates SDoc API documentation (give the apifilename)'
+	OPT_API = 'Generates SDoc API documentation (given the API filename)'
 	OPT_TEST = 'Tells wether the source code is valid or not'
 	OPT_DEFINE = 'Defines a specific target (for @specific)'
 	OPT_OPTIONS = 'Options for program transformation passes'
@@ -23,9 +23,9 @@ class Command:
 	OPT_VERSION = 'Ensures that Sugar is at least of the given version'
 	OPT_SOURCE = 'Directly gives the source'
 	OPT_MODULE = 'Specifies the module name'
-	OPT_LIB = 'Specifies a path where the library is'
+	OPT_LIB = 'Specifies a file to be used as a library or a library directory'
 	OPT_PREPROC = 'Applies the given preprocessor to the source'
-	OPT_PASSES = 'Specified the passes used in the compilation process'
+	OPT_PASSES = 'Specifies the passes used in the compilation process. Passes are identified by the class name which is expected to be found in either lambdafactory.passes or lambdafactory.resolution modules, or is given as an absolute class name.'
 	def __init__ (self, programName=None):
 		self.programName = None
 		self.environment = None
@@ -78,7 +78,7 @@ class Command:
 		option_parser.add_option("-O", "--options", action="append", dest="passOptions", 
 			help=self.OPT_OPTIONS)
 		option_parser.add_option("-L", "--lib", action="append", dest="libraries", 
-			help=self.OPT_DEFINE)
+			help=self.OPT_LIB)
 		option_parser.add_option("-P", "--passes", action="store", dest="passes", 
 			help=self.OPT_PASSES)
 		option_parser.add_option("-V", None, action="store", dest="version", 
@@ -97,6 +97,10 @@ class Command:
 			if options.module:
 				if (len(args) > 1):
 					throw.Exception('Only one source file is accepted with the -m option')
+			if options.libraries:
+				for lib in options.libraries:
+					if os.path.isfile(lib):
+						self.parseFile(lib)
 			for source_path in args:
 				self.parseFile(source_path, options.module)
 				if (not language):
@@ -151,7 +155,6 @@ class Command:
 				command = ((((interpreter + ' ') + path) + ' ') + args_str)
 			elif True:
 				raise ERR_NO_RUNTIME_AVAILABLE(language)
-			print ('****', command)
 			status = ((os.system(command) / 256) or status)
 			os.unlink(path)
 	

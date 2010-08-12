@@ -138,7 +138,7 @@ class PassContext:
 		if (not theClass):
 			return tuple([])
 		current_class=theClass
-		assert(isinstance(current_class, interfaces.IClass))
+		assert(isinstance(theClass, interfaces.IClass))
 		for parent_class_ref in current_class.getParentClassesRefs():
 			parent_class_name=parent_class_ref.getReferenceName()
 			resolution=self.resolve(parent_class_name, current_class.getParent())
@@ -148,9 +148,7 @@ class PassContext:
 				assert(isinstance(parent_class, interfaces.IClass))
 				parents.append(parent_class)
 			elif True:
-				assert(isinstance(parent_class_ref, interfaces.IReference))
 				parents.append(parent_class_ref)
-				print "PRENT CLASS NAME", parent_class_name
 				self.environment.report.error('Unable to resolve parent class:', parent_class_name, 'from', current_class.getName())
 		return parents
 	

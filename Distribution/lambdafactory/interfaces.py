@@ -557,7 +557,7 @@ class IInterface(IAbstractClass):
 	"""An interface is an abstract @protocol that only has abstract elements."""
 	pass
 
-class IModule(IContext, IReferencable, IConstruct):
+class IModule(IContext, IReferencable, IAssignable, IConstruct):
 	"""Note that a module 'getName' function returns the module absolute name"""
 	def isImported(self):
 		"""A stub module is a module that does not have any bound implementation.
@@ -783,7 +783,7 @@ class IEvaluation(IOperation):
 		return self.getOpArgument(0)
 	
 
-class IAssignation(IOperation):
+class IAssignation(IOperation, IEvaluable):
 	ARGS = [IEvaluable, IEvaluable]
 	def getTarget(self):
 		"""Returns this assignation target reference, which can be an evaluable
@@ -795,7 +795,7 @@ class IAssignation(IOperation):
 		raise Exception("Abstract method IAssignation.getAssignedValue not implemented in: " + str(self))
 	
 
-class IAllocation(IOperation):
+class IAllocation(IOperation, IEvaluable):
 	ARGS = [ISlot, IEvaluable]
 	def getSlotToAllocate(self):
 		"""Returns slot to be allocated by this operation."""
@@ -806,7 +806,7 @@ class IAllocation(IOperation):
 		raise Exception("Abstract method IAllocation.getDefaultValue not implemented in: " + str(self))
 	
 
-class IResolution(IOperation):
+class IResolution(IOperation, IEvaluable, IReferencable):
 	"""A resolution resolves a reference into a value."""
 	ARGS = [IReferencable, IEvaluable]
 	def getReference(self):
@@ -818,7 +818,7 @@ class IResolution(IOperation):
 		raise Exception("Abstract method IResolution.getContext not implemented in: " + str(self))
 	
 
-class IComputation(IOperation):
+class IComputation(IOperation, IEvaluable):
 	ARGS = [IOperator, IEvaluable, IEvaluable]
 	def getOperator(self):
 		"""Gets the operator for this computation"""
@@ -853,7 +853,7 @@ class IComputation(IOperation):
 		return self.setOpArgument(2, operand)
 	
 
-class IInvocation(IOperation):
+class IInvocation(IOperation, IEvaluable):
 	ARGS = [IEvaluable, [IEvaluable]]
 	def isByPositionOnly(self):
 		"""Tells if this invocation is only by position. Otherwise, some arguments
@@ -870,7 +870,7 @@ class IInvocation(IOperation):
 		return self.getOpArgument(1)
 	
 
-class IInstanciation(IOperation):
+class IInstanciation(IOperation, IEvaluable):
 	ARGS = [IEvaluable, [IEvaluable]]
 	def getInstanciable(self):
 		"""Returns the instanciable used in this operation."""
@@ -881,7 +881,7 @@ class IInstanciation(IOperation):
 		return self.getOpArgument(1)
 	
 
-class ISubsetOperation(IOperation):
+class ISubsetOperation(IOperation, IEvaluable):
 	def getTarget(self):
 		"""Returns the operation target."""
 		return self.getOpArgument(0)

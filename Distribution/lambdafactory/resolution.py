@@ -135,8 +135,8 @@ class DataFlowBinding(Pass):
 		slot_and_value=self.resolveAbsolute(module_name)
 		if (slot_and_value == FAILED):
 			self.environment.report.error('Imported module not found in scope:', module_name, 'in', element.getName())
-		elif (symbolName == "*"):
-			imported_module = slot_and_value[1]
+		elif (symbol_name == '*'):
+			imported_module=slot_and_value[1]
 			for slot_name in imported_module.getSlotNames():
 				self.importSymbol(operation, slot_name, fromModuleName, moduleDest)
 		elif True:
