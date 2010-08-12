@@ -47,7 +47,7 @@
 	@method importModule moduleName
 		var module_path = findSugarModule(moduleName)
 		if module_path
-			environment report info ("Importing module", moduleName, "from", modulePath, "...")
+			environment report info ("Importing module", moduleName, "from", module_path, "...")
 			return importModuleFromFile (module_path)
 		else
 			environment report error ("Module not found:", moduleName)
