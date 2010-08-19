@@ -921,7 +921,8 @@
 	@method addModule module
 		var same_name_module = Undefined
 		for existing_module in modules
-			if module  == existing_module -> raise (ERR_MODULE_ADDED_TWICE(module))
+			if module  == existing_module
+				raise (ERR_MODULE_ADDED_TWICE(module))
 			if module getAbsoluteName () == existing_module getAbsoluteName ()
 				same_name_module = existing_module
 				#TODO: break
