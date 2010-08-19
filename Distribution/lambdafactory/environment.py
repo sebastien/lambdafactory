@@ -33,13 +33,12 @@ class Importer:
 	def importModule(self, moduleName):
 		module_path=self.findSugarModule(moduleName)
 		if module_path:
-			self.environment.report.info('Importing module', moduleName, 'from', module_path, '...')
+			self.environment.report.info('Importing module', moduleName)
 			return self.importModuleFromFile(module_path)
 		elif True:
 			self.environment.report.error('Module not found:', moduleName)
 	
 	def importModuleFromFile(self, modulePath):
-		self.environment.report.info('Reading module file', modulePath)
 		self.environment.report.indent()
 		module=self.environment.parseFile(modulePath)
 		module.setImported(True)
@@ -108,6 +107,7 @@ class Environment:
 		self.languages = {}
 		self.libraryPaths = []
 		self.options = {}
+		self.cache = {}
 		self.importer = Importer(self)
 		self.factory = Factory()
 		self.program = self.factory.createProgram()
@@ -153,12 +153,18 @@ class Environment:
 	
 	def parseFile(self, path, moduleName=None):
 		if moduleName is None: moduleName = None
-		extension=os.path.splitext(path)[-1][1:].lower()
-		parser=self.parsers.get(extension)
-		if (not parser):
-			parser = self.parsers.get('sg')
-		source_and_module=parser.parse(path, moduleName)
-		return source_and_module[1]
+		cache_key=('module-' + str(path))
+		if self.cache.has_key(cache_key):
+			return self.cache[cache_key]
+		elif True:
+			self.report.info('Reading module file', path)
+			extension=os.path.splitext(path)[-1][1:].lower()
+			parser=self.parsers.get(extension)
+			if (not parser):
+				parser = self.parsers.get('sg')
+			source_and_module=parser.parse(path, moduleName)
+			self.cache[cache_key] = source_and_module[1]
+			return source_and_module[1]
 	
 	def parseSource(self, source, extension, moduleName=None):
 		if moduleName is None: moduleName = None

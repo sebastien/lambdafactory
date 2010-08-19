@@ -671,7 +671,7 @@ class Program(Context, IProgram):
 		for existing_module in self.modules:
 			if (module == existing_module):
 				raise ERR_MODULE_ADDED_TWICE(module)
-			if (module.getAbsoluteName() == existing_module.getAbsoluteName()):
+			elif (module.getAbsoluteName() == existing_module.getAbsoluteName()):
 				same_name_module = existing_module
 		if same_name_module:
 			same_name_module.mergeWith(module)

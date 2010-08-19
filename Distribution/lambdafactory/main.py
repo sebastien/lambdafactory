@@ -24,6 +24,7 @@ class Command:
 	OPT_SOURCE = 'Directly gives the source'
 	OPT_MODULE = 'Specifies the module name'
 	OPT_LIB = 'Specifies a file to be used as a library or a library directory'
+	OPT_INCLUDES = 'Specifies a file to be included in the copmilation output'
 	OPT_PREPROC = 'Applies the given preprocessor to the source'
 	OPT_PASSES = 'Specifies the passes used in the compilation process. Passes are identified by the class name which is expected to be found in either lambdafactory.passes or lambdafactory.resolution modules, or is given as an absolute class name.'
 	def __init__ (self, programName=None):
@@ -79,6 +80,8 @@ class Command:
 			help=self.OPT_OPTIONS)
 		option_parser.add_option("-L", "--lib", action="append", dest="libraries", 
 			help=self.OPT_LIB)
+		option_parser.add_option("-I", "--include", action="append", dest="includes", 
+			help=self.OPT_INCLUDES)
 		option_parser.add_option("-P", "--passes", action="store", dest="passes", 
 			help=self.OPT_PASSES)
 		option_parser.add_option("-V", None, action="store", dest="version", 
@@ -91,6 +94,10 @@ class Command:
 				self.environment.options[option_target] = True
 		if options.api:
 			self.environment.addPass(passes.DocumentationPass())
+		if options.includes:
+			for i in options.includes:
+				if os.path.isfile(i):
+					self.parseFile(i)
 		if options.source:
 			self.parseSource(args[0], options.source, options.module)
 		elif True:
