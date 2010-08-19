@@ -201,6 +201,8 @@ class Writer(AbstractWriter):
 			# details.
 			constructor_attributes    = []
 			invoke_parent_constructor = None
+			# FIXME: Implement proper attribute initialization even in
+			# subclasses
 			if len(parents) > 0:
 				# We have to do the following JavaScript code because we're not
 				# sure to know the parent constructors arity -- this is just a
@@ -214,10 +216,11 @@ class Writer(AbstractWriter):
 			for a in classElement.getAttributes():
 				if not a.getDefaultValue(): continue
 				constructor_attributes.append(
-					"%s.%s = %s" % (
-						self.jsSelf,
-						self._rewriteSymbol(a.getName()), self.write(a.getDefaultValue()
-				)))
+					"if (typeof(%s.%s)=='undefined') {%s.%s = %s};" % (
+						self.jsSelf, self._rewriteSymbol(a.getName()),
+						self.jsSelf, self._rewriteSymbol(a.getName()),
+						self.write(a.getDefaultValue())
+				))
 			# We only need a default constructor when we have class attributes
 			# declared and no constructor declared
 			if constructor_attributes:
@@ -227,8 +230,8 @@ class Writer(AbstractWriter):
 						or "initialize:function(){"
 					),
 					["var %s=this" % (self.jsSelf)],
-					invoke_parent_constructor,
 					constructor_attributes or None,
+					invoke_parent_constructor,
 					(
 						(not self.options["ENABLE_METADATA"] and "},") or \
 						"},{arguments:[]),"
@@ -346,9 +349,14 @@ class Writer(AbstractWriter):
 		"""Writes a constructor element"""
 		current_class = self.getCurrentClass()
 		attributes    = []
+		# FIXME: Same as onClass
 		for a in current_class.getAttributes():
 			if not a.getDefaultValue(): continue
-			attributes.append("%s.%s = %s" % (self.jsSelf, self._rewriteSymbol(a.getName()), self.write(a.getDefaultValue())))
+			attributes.append("if (typeof(%s.%s)=='undefined') {%s.%s = %s};" % (
+				self.jsSelf, self._rewriteSymbol(a.getName()), 
+				self.jsSelf, self._rewriteSymbol(a.getName()), 
+				self.write(a.getDefaultValue()))
+			)
 		return self._format(
 			self._document(element),
 			(
