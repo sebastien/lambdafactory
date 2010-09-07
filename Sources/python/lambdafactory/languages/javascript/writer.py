@@ -134,7 +134,11 @@ class Writer(AbstractWriter):
 				if value_code:
 					code.extend(["%s.%s=%s" %
 					(self._rewriteSymbol(moduleElement.getName()), self.renameModuleSlot(name), value_code)])
-		code.append("%s.init()" % (self._rewriteSymbol(moduleElement.getName())))
+		module_name = self._rewriteSymbol(moduleElement.getName())
+		code.append('if (typeof(%s.init)!="undefined") {%s.init();}' % (
+			module_name,
+			module_name
+		))
 		return self._format(
 			*code
 		)
@@ -223,22 +227,21 @@ class Writer(AbstractWriter):
 				))
 			# We only need a default constructor when we have class attributes
 			# declared and no constructor declared
-			if constructor_attributes:
-				default_constructor = self._format(
-					(
-						self.options["ENABLE_METADATA"] and "initialize:_meta_(function(){" \
-						or "initialize:function(){"
-					),
-					["var %s=this" % (self.jsSelf)],
-					constructor_attributes or None,
-					invoke_parent_constructor,
-					(
-						(not self.options["ENABLE_METADATA"] and "},") or \
-						"},{arguments:[]),"
-					)
+			default_constructor = self._format(
+				(
+					self.options["ENABLE_METADATA"] and "initialize:_meta_(function(){" \
+					or "initialize:function(){"
+				),
+				["var %s=this" % (self.jsSelf)],
+				constructor_attributes or None,
+				invoke_parent_constructor,
+				(
+					(not self.options["ENABLE_METADATA"] and "},") or \
+					"},{arguments:[]),"
 				)
-				# in case no constructor is given, we create a default constructor
-				result.append(default_constructor)
+			)
+			# in case no constructor is given, we create a default constructor
+			result.append(default_constructor)
 		if destructors:
 			assert len(destructors) == 1, "Multiple destructors are not supported"
 			result.append("%s," % (self.write(destructors[0])))

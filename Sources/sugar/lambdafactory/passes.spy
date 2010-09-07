@@ -208,6 +208,7 @@
 				return tuple([])
 			end
 			var current_class = theClass
+			# The given class can be either a class object or a reference
 			assert (isinstance(theClass, interfaces IClass))
 			for parent_class_ref in current_class getParentClassesRefs()
 				var parent_class_name = parent_class_ref getReferenceName()
@@ -238,10 +239,15 @@
 			if not theClass
 				return tuple([])
 			end
+			assert (isinstance(theClass, interfaces IClass))
 			var parents = getClassParents(theClass)
 			for parent in parents
 				# FIXME: This is necessary, so I'm not sure this works
 				# properly...
+				if isinstance(parent, interfaces IReference)
+					# IF we have a reference
+					self environment report error ("Cannot resolve reference to class", parent getReferenceName () )
+					pass
 				if not (parent in ancestors)
 					for ancestor in getClassAncestors(parent)
 						if not (ancestor in ancestors)
