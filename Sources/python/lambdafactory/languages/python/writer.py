@@ -1,8 +1,5 @@
-#!/usr/bin/env python
-# Encoding: iso-8859-1
-# vim: tw=80 ts=4 sw=4 noet
 # -----------------------------------------------------------------------------
-# Project   : XXX
+# Project   : LambdaFactory
 # -----------------------------------------------------------------------------
 # Author    : Sebastien Pierre                               <sebastien@ivy.fr>
 # License   : Revised BSD License
@@ -134,13 +131,39 @@ class Writer(AbstractWriter):
 			parents = ":"
 		constructor  = None
 		constructors = classElement.getConstructors()
+		attributes   = classElement.getAttributes()
 		assert not constructors or len(constructors) == 1
 		if constructors:
+			# Write provided constructor
 			constructor = [self.write(constructors[0])]
-		elif not parents:
+		else:
+			# We write the default constructor, see 'onConstructor' for for
+			# FIXME: This is borrowed from the JS backend
+			constructor_body          = []
+			invoke_parent_constructor = None
+			# FIXME: Implement proper attribute initialization even in
+			# subclasses
+			# We have to do the following JavaScript code because we're not
+			# sure to know the parent constructors arity -- this is just a
+			# way to cover our ass. We encapsulate the __super__ declaration
+			# in a block to avoid scoping problems.
+			for parent in classElement.getParentClassesRefs():
+				constructor_body.append("%s.__init__(self)" % (self.write(parent)))
+			# FIXME: This could probably be removed
+			#for a in classElement.getAttributes():
+			#	if not a.getDefaultValue(): continue
+			#	constructor_body.append(
+			#		"self.%s = %s};" % (
+			#			self.jsSelf, self._rewriteSymbol(a.getName()),
+			#			self.write(a.getDefaultValue())
+			#	))
+			# We only need a default constructor when we have class attributes
+			# declared and no constructor declared
 			constructor = [
-				"def __init__(self):",
-				[self._writeConstructorAttributes(classElement)]
+				"def __init__( self ):",
+				['"""Default constructor""""'],
+				constructor_body,
+				self._writeConstructorAttributes(classElement)
 			]
 		c_attrs = classElement.getClassAttributes()
 		c_inst  = classElement.getInstanceMethods()
@@ -838,4 +861,4 @@ class Writer(AbstractWriter):
 			return None
 
 MAIN_CLASS = Writer
-# EOF
+# EOF - vim: tw=80 ts=4 sw=4 noet
