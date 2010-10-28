@@ -1,11 +1,11 @@
 # -----------------------------------------------------------------------------
 # Project   : LambdaFactory
 # -----------------------------------------------------------------------------
-# Author    : Sebastien Pierre                               <sebastien@ivy.fr>
+# Author    : Sebastien Pierre                            <sebastien@ffctn.com>
 # License   : Revised BSD License
 # -----------------------------------------------------------------------------
 # Creation  : 03-Aug-2007
-# Last mod  : 22-Jun-2008
+# Last mod  : 28-Oct-2010
 # -----------------------------------------------------------------------------
 
 # TODO: When constructor is empty, should assign default attributes anyway
@@ -161,7 +161,7 @@ class Writer(AbstractWriter):
 			# declared and no constructor declared
 			constructor = [
 				"def __init__( self ):",
-				['"""Default constructor""""'],
+				['"""Default constructor"""', "pass"],
 				constructor_body,
 				self._writeConstructorAttributes(classElement)
 			]
