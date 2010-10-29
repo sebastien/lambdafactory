@@ -127,8 +127,8 @@ class Writer(AbstractWriter):
 			parents = "(%s):" % (", ".join(map(self.write, parents)))
 		else:
 			# FIXME: This does not seem to work with complex inheritance
-			# parents = "(object):"
-			parents = ":"
+			parents = "(object):"
+			#parents = ":"
 		constructor  = None
 		constructors = classElement.getConstructors()
 		attributes   = classElement.getAttributes()
@@ -148,7 +148,7 @@ class Writer(AbstractWriter):
 			# way to cover our ass. We encapsulate the __super__ declaration
 			# in a block to avoid scoping problems.
 			for parent in classElement.getParentClassesRefs():
-				constructor_body.append("%s.__init__(self)" % (self.write(parent)))
+				constructor_body.append("super(%s,self).__init__()" % (self.write(parent)))
 			# FIXME: This could probably be removed
 			#for a in classElement.getAttributes():
 			#	if not a.getDefaultValue(): continue
@@ -643,6 +643,12 @@ class Writer(AbstractWriter):
 		"""Writes an invocation operation."""
 		self.inInvocation = True
 		t = self.write(invocation.getTarget())
+		if isinstance(invocation.getTarget(), interfaces.IReference):
+			# In case the target of an invocation is super, then we
+			# add the "__init__". Maybe we should also check that the
+			# invocation happens within a constructor. Not sure though.
+			if invocation.getTarget().getReferenceName() == "super":
+				t += ".__init__"
 		target_type = invocation.getTarget().getResultAbstractType()
 		if target_type:
 			concrete_type = target_type.concreteType()
