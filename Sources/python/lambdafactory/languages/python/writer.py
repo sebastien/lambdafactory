@@ -148,7 +148,7 @@ class Writer(AbstractWriter):
 			# way to cover our ass. We encapsulate the __super__ declaration
 			# in a block to avoid scoping problems.
 			for parent in classElement.getParentClassesRefs():
-				constructor_body.append("super(%s,self).__init__()" % (self.write(parent)))
+				constructor_body.append("%s.__init__(self)" % (self.write(parent)))
 			# FIXME: This could probably be removed
 			#for a in classElement.getAttributes():
 			#	if not a.getDefaultValue(): continue
@@ -364,6 +364,8 @@ class Writer(AbstractWriter):
 	def onClassAttribute( self, element ):
 		"""Writes an argument element."""
 		default_value = element.getDefaultValue()
+		# FIXME: Resolution of variables must occur at class scope, not at
+		# instance scope
 		if default_value:
 			res = "%s = %s" % (element.getName(), self.write(default_value))
 		else:
