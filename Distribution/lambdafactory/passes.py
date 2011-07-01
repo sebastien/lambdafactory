@@ -160,9 +160,12 @@ class PassContext:
 		ancestors=[]
 		if (not theClass):
 			return tuple([])
+		assert(isinstance(theClass, interfaces.IClass))
 		parents=self.getClassParents(theClass)
 		for parent in parents:
-			if (not (parent in ancestors)):
+			if isinstance(parent, interfaces.IReference):
+				self.environment.report.error('Cannot resolve reference to class', parent.getReferenceName())
+			elif (not (parent in ancestors)):
 				for ancestor in self.getClassAncestors(parent):
 					if (not (ancestor in ancestors)):
 						ancestors.append(ancestor)
@@ -277,7 +280,7 @@ class ExtendJSRuntime(Pass):
 	"""This pass is like an importation and will simply bind the symbols"""
 	HANDLES = [interfaces.IProgram, interfaces.IModule]
 	NAME = 'GlobalRuntime'
-	FUNCTIONS = ['assert', 'access', 'car', 'cdr', 'cons', 'createMapFromItems', 'error', 'filter', 'fail', 'getChildrenOf', 'getClass', 'getClasses', 'getClassOf', 'getMethod', 'getMethodOf', 'getParentClass', 'getSuperMethod', 'invoke', 'isDefined', 'isFunction', 'isIn', 'isInstance', 'isList', 'isMap', 'isString', 'iterate', 'len', 'map', 'print', 'range', 'reduce', 'slice', 'sliceArguments']
+	FUNCTIONS = ['assert', 'access', 'car', 'cdr', 'cons', 'createMapFromItems', 'error', 'filter', 'getChildrenOf', 'getClass', 'getClasses', 'getClassOf', 'getMethod', 'getMethodOf', 'getParentClass', 'getSuperMethod', 'invoke', 'isDefined', 'isFunction', 'isIn', 'isInstance', 'isList', 'isMap', 'isString', 'iterate', 'len', 'map', 'print', 'range', 'reduce', 'slice', 'sliceArguments']
 	def __init__ (self):
 		self.runtime = None
 		Pass.__init__(self)

@@ -1,14 +1,11 @@
-#!/usr/bin/env python
-# Encoding: iso-8859-1
-# vim: tw=80 ts=4 sw=4 noet
 # -----------------------------------------------------------------------------
-# Project   : XXX
+# Project   : LambdaFactory
 # -----------------------------------------------------------------------------
-# Author    : Sebastien Pierre                               <sebastien@ivy.fr>
+# Author    : Sebastien Pierre                            <sebastien@ffctn.com>
 # License   : Revised BSD License
 # -----------------------------------------------------------------------------
 # Creation  : 03-Aug-2007
-# Last mod  : 22-Jun-2008
+# Last mod  : 28-Oct-2010
 # -----------------------------------------------------------------------------
 
 # TODO: When constructor is empty, should assign default attributes anyway
@@ -130,17 +127,43 @@ class Writer(AbstractWriter):
 			parents = "(%s):" % (", ".join(map(self.write, parents)))
 		else:
 			# FIXME: This does not seem to work with complex inheritance
-			# parents = "(object):"
-			parents = ":"
+			parents = "(object):"
+			#parents = ":"
 		constructor  = None
 		constructors = classElement.getConstructors()
+		attributes   = classElement.getAttributes()
 		assert not constructors or len(constructors) == 1
 		if constructors:
+			# Write provided constructor
 			constructor = [self.write(constructors[0])]
-		elif not parents:
+		else:
+			# We write the default constructor, see 'onConstructor' for for
+			# FIXME: This is borrowed from the JS backend
+			constructor_body          = []
+			invoke_parent_constructor = None
+			# FIXME: Implement proper attribute initialization even in
+			# subclasses
+			# We have to do the following JavaScript code because we're not
+			# sure to know the parent constructors arity -- this is just a
+			# way to cover our ass. We encapsulate the __super__ declaration
+			# in a block to avoid scoping problems.
+			for parent in classElement.getParentClassesRefs():
+				constructor_body.append("%s.__init__(self)" % (self.write(parent)))
+			# FIXME: This could probably be removed
+			#for a in classElement.getAttributes():
+			#	if not a.getDefaultValue(): continue
+			#	constructor_body.append(
+			#		"self.%s = %s};" % (
+			#			self.jsSelf, self._rewriteSymbol(a.getName()),
+			#			self.write(a.getDefaultValue())
+			#	))
+			# We only need a default constructor when we have class attributes
+			# declared and no constructor declared
 			constructor = [
-				"def __init__(self):",
-				[self._writeConstructorAttributes(classElement)]
+				"def __init__( self ):",
+				['"""Default constructor"""', "pass"],
+				constructor_body,
+				self._writeConstructorAttributes(classElement)
 			]
 		c_attrs = classElement.getClassAttributes()
 		c_inst  = classElement.getInstanceMethods()
@@ -341,6 +364,8 @@ class Writer(AbstractWriter):
 	def onClassAttribute( self, element ):
 		"""Writes an argument element."""
 		default_value = element.getDefaultValue()
+		# FIXME: Resolution of variables must occur at class scope, not at
+		# instance scope
 		if default_value:
 			res = "%s = %s" % (element.getName(), self.write(default_value))
 		else:
@@ -620,6 +645,12 @@ class Writer(AbstractWriter):
 		"""Writes an invocation operation."""
 		self.inInvocation = True
 		t = self.write(invocation.getTarget())
+		if isinstance(invocation.getTarget(), interfaces.IReference):
+			# In case the target of an invocation is super, then we
+			# add the "__init__". Maybe we should also check that the
+			# invocation happens within a constructor. Not sure though.
+			if invocation.getTarget().getReferenceName() == "super":
+				t += ".__init__"
 		target_type = invocation.getTarget().getResultAbstractType()
 		if target_type:
 			concrete_type = target_type.concreteType()
@@ -838,4 +869,4 @@ class Writer(AbstractWriter):
 			return None
 
 MAIN_CLASS = Writer
-# EOF
+# EOF - vim: tw=80 ts=4 sw=4 noet
