@@ -3,18 +3,18 @@
 # -----------------------------------------------------------------------------
 # Project           :   LambdaFactory
 # -----------------------------------------------------------------------------
-# Author            :   Sebastien Pierre                 <sebastien@type-z.org>
+# Author            :   Sebastien Pierre           <sebastien.pierre@gmail.com>
 # License           :   Revised BSD License
 # -----------------------------------------------------------------------------
 # Creation date     :   17-Mar-2008
-# Last mod.         :   17-Mar-2008
+# Last mod.         :   01-Jul-2011
 # -----------------------------------------------------------------------------
 
 from distutils.core import setup
 
 NAME        = "LambdaFactory"
-VERSION     = "0.8.6"
-WEBSITE     = "http://www.ivy.fr/" + NAME.lower()
+VERSION     = "0.8.7"
+WEBSITE     = "http://github.com/sebastien/lambdafactory/" + NAME.lower()
 SUMMARY     = "Programming language development toolkit"
 DESCRIPTION = """\
 LambdaFactory is a library/tool/framework that eases the development of
@@ -52,6 +52,7 @@ setup(
         "lambdafactory.languages",
         "lambdafactory.languages.actionscript",
         "lambdafactory.languages.javascript",
+        "lambdafactory.languages.python",
         "lambdafactory.languages.pnuts"
     ],
     classifiers = [
