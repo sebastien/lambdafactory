@@ -881,7 +881,7 @@ class Writer(AbstractWriter):
 	
 	def write( self, element ):
 		print element.__class__
-		return ""
+		return AbstractWriter.write(self, element)
 
 MAIN_CLASS = Writer
 # EOF - vim: tw=80 ts=4 sw=4 noet
