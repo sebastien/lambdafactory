@@ -294,6 +294,7 @@ class Writer(AbstractWriter):
 			"def %s(%s):" % (name, ", ".join(map(self.write, closure.getArguments()))),
 				self._writeFunctionArgumentsInit(closure),
 				map(self.write, closure.getOperations()) or ["pass"],
+			")"
 		)
 
 	def onFunctionWhen(self, function ):
@@ -347,10 +348,9 @@ class Writer(AbstractWriter):
 
 	def onBlock( self, block ):
 		"""Writes a block element."""
-		res = []
-		for operation in block.getOperations():
-			res.push(str(operation))
-		return self._format(*res)
+		return self._format(
+			*(map(self.write, block.getOperations()))
+		)
 
 	def onArgument( self, argElement ):
 		"""Writes an argument element."""
@@ -878,6 +878,10 @@ class Writer(AbstractWriter):
 			return '"""%s"""' % (doc.getContent().replace('"""', '\\"\\"\\"'))
 		else:
 			return None
+	
+	def write( self, element ):
+		print element.__class__
+		return []
 
 MAIN_CLASS = Writer
 # EOF - vim: tw=80 ts=4 sw=4 noet
