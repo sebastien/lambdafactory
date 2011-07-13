@@ -880,7 +880,8 @@ class Writer(AbstractWriter):
 			return None
 	
 	def write( self, element ):
-		print element.__class__
+		if isinstance(interfaces.IOperation):
+			print "OPERATION", element.__class__
 		return AbstractWriter.write(self, element)
 
 MAIN_CLASS = Writer
