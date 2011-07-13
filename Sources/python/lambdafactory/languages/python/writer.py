@@ -286,6 +286,16 @@ class Writer(AbstractWriter):
 			")"
 		)
 
+	def doPrepareClosure( self, closure, name ):
+		"""Writes a closure element as a defined function."""
+		# FIXME: Find a way to this properly
+		return self._format(
+			self._document(closure),
+			"def %s(%s):" % (name, ", ".join(map(self.write, closure.getArguments()))),
+				self._writeFunctionArgumentsInit(closure),
+				map(self.write, closure.getOperations()) or ["pass"],
+		)
+
 	def onFunctionWhen(self, function ):
 		res = []
 		for a in function.getAnnotations("when"):
@@ -337,9 +347,10 @@ class Writer(AbstractWriter):
 
 	def onBlock( self, block ):
 		"""Writes a block element."""
-		return self._format(
-			*(map(self.write, block.getOperations()))
-		)
+		res = []
+		for operation in block.getOperations():
+			res.push(str(operation))
+		return self._format(*res)
 
 	def onArgument( self, argElement ):
 		"""Writes an argument element."""
