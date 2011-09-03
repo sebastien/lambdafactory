@@ -65,6 +65,7 @@
 				continue_walking = True
 			end
 		end
+		# FIXME: Elements should offer a 'walk' interface
 		# If we continue the walking, then we recurse on context slots and
 		# in operations (if we're in a process).
 		if continue_walking != False
