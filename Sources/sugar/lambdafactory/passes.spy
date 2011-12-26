@@ -437,7 +437,6 @@
 		"cons"
 		"createMapFromItems"
 		"error"
-		"filter"
 		"getChildrenOf"
 		"getClass"
 		"getClasses"
@@ -456,10 +455,8 @@
 		"isString"
 		"iterate"
 		"len"
-		"map"
 		"print"
 		"range"
-		"reduce"
 		"slice"
 		"sliceArguments"
 	]
