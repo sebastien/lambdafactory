@@ -147,8 +147,8 @@ class Writer(AbstractWriter):
 			# sure to know the parent constructors arity -- this is just a
 			# way to cover our ass. We encapsulate the __super__ declaration
 			# in a block to avoid scoping problems.
-			for parent in classElement.getParentClassesRefs():
-				constructor_body.append("%s.__init__(self)" % (self.write(parent)))
+			# for parent in classElement.getParentClassesRefs():
+			# 	constructor_body.append("%s.__init__(self)" % (self.write(parent)))
 			# FIXME: This could probably be removed
 			#for a in classElement.getAttributes():
 			#	if not a.getDefaultValue(): continue
