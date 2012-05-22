@@ -148,8 +148,8 @@ class Writer(AbstractWriter):
 			# way to cover our ass. We encapsulate the __super__ declaration
 			# in a block to avoid scoping problems.
 			parents = [] + classElement.getParentClassesRefs()
-			while parents:
-				constructor_body.append("%s.__init__(self)" % (self.write(parents.pop())))
+			# while parents:
+			# 	constructor_body.append("%s.__init__(self)" % (self.write(parents.pop())))
 			# FIXME: This could probably be removed
 			#for a in classElement.getAttributes():
 			#	if not a.getDefaultValue(): continue
