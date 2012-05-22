@@ -141,6 +141,9 @@ class Factory:
 	# parameters that can be named.
 	# FIXME: RENAME ARGS (for invoke) and PARAMS (for functions)
 	def invoke( self, evaluable, *arguments ):
+		return self.invoke_args(evaluable, arguments)
+	
+	def invoke_args( self, evaluable, arguments ):
 		arguments = map(self._ensureParam,arguments)
 		# FIXME: Arguments should not be a list, they should be wrapped in an
 		# arguments object that supports copy () and detach () properly
