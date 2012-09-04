@@ -79,7 +79,7 @@ class Writer(AbstractWriter):
 		# FIXME: This is used by the hack in writeReference
 		if self._isSymbolValid(string):
 			return string
-		res = "_RW_"
+		res = "_LF_"
 		for letter in string:
 			if letter not in VALID_SYMBOL_CHARS:
 				res += str(ord(letter))
@@ -119,7 +119,8 @@ class Writer(AbstractWriter):
 			self._document(moduleElement),
 			self.options["ENABLE_METADATA"] and "function _meta_(v,m){var ms=v['__meta__']||{};for(var k in m){ms[k]=m[k]};v['__meta__']=ms;return v}" or "",
 			"var %s=%s||{}" % (module_name, module_name),
-			"var %s=%s" % (self.jsSelf, module_name)
+			"(function(%s){" % (module_name),
+			"var %s=%s" % (self.jsSelf, module_name),
 		]
 		version = moduleElement.getAnnotation("version")
 		if version:
@@ -135,10 +136,12 @@ class Writer(AbstractWriter):
 					code.extend(["%s.%s=%s" %
 					(self._rewriteSymbol(moduleElement.getName()), self.renameModuleSlot(name), value_code)])
 		module_name = self._rewriteSymbol(moduleElement.getName())
+		# FIXME: Init should be only invoked once
 		code.append('if (typeof(%s.init)!="undefined") {%s.init();}' % (
 			module_name,
 			module_name
 		))
+		code.append("})(%s);" % (module_name))
 		return self._format(
 			*code
 		)
