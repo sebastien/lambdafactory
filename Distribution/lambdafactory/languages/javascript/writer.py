@@ -118,7 +118,7 @@ class Writer(AbstractWriter):
 			"// " + SNIP % ("%s.js" % (self.getAbsoluteName(moduleElement).replace(".", "/"))),
 			self._document(moduleElement),
 			self.options["ENABLE_METADATA"] and "function _meta_(v,m){var ms=v['__meta__']||{};for(var k in m){ms[k]=m[k]};v['__meta__']=ms;return v}" or "",
-			"var %s=%s||{}" % (module_name, module_name),
+			"var %s=%s||{};" % (module_name, module_name),
 			"(function(%s){" % (module_name),
 			"var %s=%s" % (self.jsSelf, module_name),
 		]
