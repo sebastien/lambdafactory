@@ -5,7 +5,7 @@
 # License   : Revised BSD License
 # -----------------------------------------------------------------------------
 # Creation  : 02-Nov-2006
-# Last mod  : 26-Jul-2009
+# Last mod  : 22-Jan-2013
 # -----------------------------------------------------------------------------
 
 # TODO: When constructor is empty, should assign default attributes anyway
@@ -492,14 +492,11 @@ class Writer(AbstractWriter):
 			"}"
 		)
 
-	def onArgument( self, argElement ):
-		"""Writes an argument element."""
-		return "%s" % (
-			self._rewriteSymbol(argElement.getName()),
-		)
+	def onParameter( self, param ):
+		"""Writes a parameter element."""
+		return "%s" % (self._rewriteSymbol(param.getName()))
 
 	def onAttribute( self, element ):
-		"""Writes an argument element."""
 		default_value = element.getDefaultValue()
 		if default_value: default_value = self.write(default_value)
 		else: default_value="undefined"
@@ -857,15 +854,15 @@ class Writer(AbstractWriter):
 					extra_str
 				)
 	
-	def onParameter( self, parameter ):
-		r = self.write(parameter.getValue())
-		if parameter.isAsMap():
+	def onArgument( self, argument ):
+		r = self.write(argument.getValue())
+		if argument.isAsMap():
 			return "{'**':(%s)}" % (r)
-		elif parameter.isAsList():
+		elif argument.isAsList():
 			return "{'*':(%s)}" % (r)
-		elif parameter.isByName():
+		elif argument.isByName():
 			# FIXME: Maybe rewrite name
-			return "{'^':%s,'=':(%s)}" % (repr(self._rewriteSymbol(parameter.getName())), r)
+			return "{'^':%s,'=':(%s)}" % (repr(self._rewriteSymbol(argument.getName())), r)
 		else:
 			return r
 

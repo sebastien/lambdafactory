@@ -5,7 +5,7 @@
 # License   : Revised BSD License
 # -----------------------------------------------------------------------------
 # Creation  : 03-Aug-2007
-# Last mod  : 28-Oct-2010
+# Last mod  : 22-Jan-2013
 # -----------------------------------------------------------------------------
 
 # TODO: When constructor is empty, should assign default attributes anyway
@@ -360,14 +360,14 @@ class Writer(AbstractWriter):
 			*(map(self.write, block.getOperations()))
 		)
 
-	def onParameter( self, argElement ):
+	def onParameter( self, param ):
 		"""Writes a parameter element."""
-		default = argElement.getDefaultValue()
+		default = param.getDefaultValue()
 		if default is None:
-			res = "%s" % (argElement.getName())
+			res = "%s" % (param.getName())
 		else:
-			res = "%s=None" % (argElement.getName())
-		if argElement.isRest(): res = "*" + res
+			res = "%s=None" % (param.getName())
+		if param.isRest(): res = "*" + res
 		return res
 
 	def onAttribute( self, element ):
@@ -699,14 +699,14 @@ class Writer(AbstractWriter):
 				", ".join(map(self.write, invocation.getArguments()))
 				)
 
-	def onArgument( self, parameter ):
-		r = self.write(parameter.getValue())
-		if parameter.isAsMap():
+	def onArgument( self, argument ):
+		r = self.write(argument.getValue())
+		if argument.isAsMap():
 			return "**(%s)" % (r)
-		elif parameter.isAsList():
+		elif argument.isAsList():
 			return "*(%s)" % (r)
-		elif parameter.isByName():
-			return "%s=(%s)" % (parameter.getName(), r)
+		elif argument.isByName():
+			return "%s=(%s)" % (argument.getName(), r)
 		else:
 			return r
 
