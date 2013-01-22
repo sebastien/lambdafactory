@@ -4,7 +4,7 @@
 
 # ============================================================================
 #
-# BasicDataFlow
+# BASIC DATAFLOW
 #
 # ============================================================================
 
@@ -44,7 +44,7 @@
 		interfaces IContext
 		interfaces IAllocation
 		interfaces IOperation
-		interfaces IParameter
+		interfaces IArgument
 		interfaces IValue
 	]
 	@shared NAME    = "Resolution"
@@ -157,7 +157,7 @@
 		end
 	@end
 
-	@method onParameter element
+	@method onArgument element
 		# NOTE: We have to process parameter values as well !
 		var value = element getValue ()
 		# FIXME: This does not work (recursive loop when compiling in passes.spy)
@@ -175,6 +175,12 @@
 	@end
 
 @end
+
+# ============================================================================
+#
+# DATAFLOW BINDING
+#
+# ============================================================================
 
 @class DataFlowBinding: Pass
 | This pass will target classes, resolving their parent classes and binding the

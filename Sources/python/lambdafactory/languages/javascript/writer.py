@@ -405,20 +405,20 @@ class Writer(AbstractWriter):
 		i = 0
 		l = len(closure.getParameters())
 		result = []
-		for argument in closure.getParameters():
-			arg_name = self.write(argument)
-			if argument.isRest():
+		for param in closure.getParameters():
+			arg_name = self.write(param)
+			if param.isRest():
 				assert i >= l - 2
 				result.append("%s = %s(arguments,%d)" % (
 					arg_name,
 					self.jsPrefix + self.jsCore + "sliceArguments",
 					i
 				))
-			if not (argument.getDefaultValue() is None):
+			if not (param.getDefaultValue() is None):
 				result.append("%s = %s === undefined ? %s : %s" % (
 					arg_name,
 					arg_name,
-					self.write(argument.getDefaultValue()),
+					self.write(param.getDefaultValue()),
 					arg_name
 				))
 			i += 1

@@ -401,12 +401,12 @@
 @end
 
 @protocol IParameter: ISlot
-|	Parameters are slots which can be interpreted in different ways.
+| Parameters defined slots that will receive arguments upon invocation.
 |	
-|	When an argument is _optional_, it does not need to be defined in the
-|	invocation. When an argument is _variable_, it means it references the
-|	rest of the arguments lists. When an argument is _keywords_, it will reference
-|	the named arguments of the rest of the arguments list.
+| When a parameter is _optional_, it does not need to be defined in the
+| invocation. When it is is _variable_, it means it references the
+| rest of the arguments lists. When it is _keywords_, it will reference
+| the named arguments of the rest of the arguments list.
 
 	@abstract @method isOptional
 	|	Tells if the argument is optional or not.
@@ -431,14 +431,19 @@
 	|	the invocation
 
 	@abstract @method setDefaultValue value
-	|	Sets the @methodault value for this argument.
+	|	Sets the default value for this argument.
 
 	@abstract @method getDefaultValue
-	|	Returns the @methodault value for this slot.
+	|	Returns the default value for this slot.
 
 @end
 
-@protocol IArgument: IElement, ISlot
+@protocol IArgument: IElement, ISlot, IEvaluable
+| An argument is an actual value that is given in function
+| invocation. As a result, arguments encapsulate a value
+| with a name and extra information, such as wether they
+| are passed as a list of arguments (Pythons's `*args`)
+| or as a map of arguments (Python's `**args`).
 
 	@abstract @method isByName
 	@abstract @method setByName n:String

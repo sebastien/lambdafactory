@@ -1627,7 +1627,12 @@
 	@end
 
 	@method setOptional value
-		optional = value and value
+		optional     = value and value
+		if isinstance(value, IElement)
+			setDefaultValue (value)
+		else
+			setDefaultValue (None)
+		end
 	@end
 
 	@method isRest
