@@ -127,8 +127,8 @@ class Writer(AbstractWriter):
 			parents = "(%s):" % (", ".join(map(self.write, parents)))
 		else:
 			# FIXME: This does not seem to work with complex inheritance
-			parents = "(object):"
-			#parents = ":"
+			#parents = "(object):"
+			parents = ":"
 		constructor  = None
 		constructors = classElement.getConstructors()
 		attributes   = classElement.getAttributes()

@@ -817,8 +817,11 @@ class Operation(Element, IOperation):
 				for e in a:
 					r.append(e.copy().detach())
 				op_copy.addOpArgument(r)
-			elif True:
+
+			elif isinstance(a, IElement):
 				op_copy.addOpArgument(a.copy().detach())
+			elif True:
+				op_copy.addOpArgument(a)
 		return op_copy
 	
 	def setOpArguments(self, arguments):
