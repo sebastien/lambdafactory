@@ -139,6 +139,7 @@ class Writer(AbstractWriter):
 		else:
 			# We write the default constructor, see 'onConstructor' for for
 			# FIXME: This is borrowed from the JS backend
+			constructor               = []
 			constructor_body          = []
 			invoke_parent_constructor = None
 			# FIXME: Implement proper attribute initialization even in
@@ -147,9 +148,8 @@ class Writer(AbstractWriter):
 			# sure to know the parent constructors arity -- this is just a
 			# way to cover our ass. We encapsulate the __super__ declaration
 			# in a block to avoid scoping problems.
-			parents = [] + classElement.getParentClassesRefs()
-			# while parents:
-			# 	constructor_body.append("%s.__init__(self)" % (self.write(parents.pop())))
+			for parent in classElement.getParentClassesRefs():
+				constructor_body.append("%s.__init__(self)" % (self.write(parent)))
 			# FIXME: This could probably be removed
 			#for a in classElement.getAttributes():
 			#	if not a.getDefaultValue(): continue
@@ -158,14 +158,16 @@ class Writer(AbstractWriter):
 			#			self.jsSelf, self._rewriteSymbol(a.getName()),
 			#			self.write(a.getDefaultValue())
 			#	))
-			# We only need a default constructor when we have class attributes
+			# NOTE: We only need a default constructor when we have class attributes
 			# declared and no constructor declared
-			constructor = [
-				"def __init__( self ):",
-				['"""Default constructor"""', "pass"],
-				constructor_body,
-				self._writeConstructorAttributes(classElement)
-			]
+			constructor_attributes = self._writeConstructorAttributes(classElement)
+			if constructor_body or constructor_attributes:
+				constructor = [
+					"def __init__( self ):",
+					['"""Default constructor"""', "pass"],
+					constructor_body,
+					self._writeConstructorAttributes(classElement)
+				]
 		c_attrs = classElement.getClassAttributes()
 		c_inst  = classElement.getInstanceMethods()
 		c_ops   = classElement.getClassMethods()
