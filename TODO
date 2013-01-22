@@ -1,3 +1,50 @@
+URGENT
+======
+
+When importing a module in Sugar, it is output in 100%. For instance.
+
+-- 8< -- a.sjs
+@module a
+
+@function f
+	print "a.f()"
+@end
+
+-- 8< -- a-b.sjs
+@module a
+@import f from a
+
+@function g
+	print "a.g()"
+@end
+
+and then
+
+sugar -cljs -L. a-b.sjs
+
+will output, while it should only output the part defined in a-b.sjs
+
+// 8< ---[a.js]---
+
+var a=a||{};
+(function(a){
+var self=a
+a.g=	function(){
+		var self=a;
+		extend.print('a.g()')
+	}
+a.f=	function(){
+		var self=a;
+		extend.print('a.f()')
+	}
+a.init=	function(){
+		var self=a;
+	}
+if (typeof(a.init)!="undefined") {a.init();}
+})(a);
+
+
+
 Design
 ======
 

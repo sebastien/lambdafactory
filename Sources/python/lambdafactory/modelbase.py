@@ -18,6 +18,8 @@ import model
 import modeltypes as mt
 import interfaces
 
+ANONYMOUS_SLOTS_INDEX = 0
+
 def assertImplements(v,i):
 	return True
 
@@ -129,6 +131,7 @@ class Factory:
 		return self._getImplementation("Evaluation")(evaluable)
 
 	def allocate( self, slot, value=None ):
+		if type(slot) in (str, unicode): slot = self._slot(slot)
 		return self._getImplementation("Allocation")(slot, value)
 
 	def assign( self, name, evaluable ):
@@ -216,7 +219,11 @@ class Factory:
 	def _ref( self, name ):
 		return self._getImplementation("Reference")(name)
 
-	def _slot( self, name, typeinfo=None ):
+	def _slot( self, name=None, typeinfo=None ):
+		global ANONYMOUS_SLOTS_INDEX
+		if not name:
+			name = "__anonymous" + str(ANONYMOUS_SLOTS_INDEX)
+			ANONYMOUS_SLOTS_INDEX += 1
 		return self._getImplementation("Slot")(name, typeinfo)
 
 	def _arg( self, name, typeinfo=None, optional=False ):
