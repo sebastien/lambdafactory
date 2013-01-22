@@ -1016,33 +1016,43 @@
 
 @class Closure: Process, IAssignable, IClosure, IEvaluable
 	
-	@property arguments = Undefined
+	@property parameters = Undefined
 	@property returnTypeDescription = Undefined
 
-	@constructor arguments, name=Undefined
+	@constructor parameters, name=Undefined
 		#REWRITE: super(name)
 		Process __init__ ( self,  name)
-		setArguments(arguments)
+		setParameters(parameters)
 	@end
 
-	@method setArguments arguments
-		self arguments = []
-		if arguments
-			for argument in arguments
-				if not isinstance(argument, ISlot)
+	@method setParameters parameters
+		self parameters = []
+		if parameters
+			for param in parameters
+				if not isinstance(param, ISlot)
 					raise ERR_CLOSURE_ARGUMENT_NOT_SLOT
 				end
-				self arguments append(argument)
+				self parameters append (param)
 			end
 		end
 	@end
 	
-	@method  getArguments
-		return arguments
+	@method  getParameters
+		return parameters
+	@end
+
+	@method getArguments
+		# FIXME: This is deprecated, due to confusion between Parameter & Argument
+		return parameters
 	@end
 	
 	@method getArgument index
-		return arguments[index]
+		# FIXME: This is deprecated, due to confusion between Parameter & Argument
+		return parameters[index]
+	@end
+
+	@method getParameter index
+		return parameters[index]
 	@end
 
 	@method getReturnTypeDescription
@@ -1057,9 +1067,9 @@
 
 @class Function: Closure, IFunction, IReferencable
 
-	@constructor name, arguments
-		#REWRITE: super arguments, name)
-		Closure __init__ ( self,  arguments, name)
+	@constructor name, parameters
+		#REWRITE: super parameters, name)
+		Closure __init__ ( self,  parameters, name)
 	@end
 
 	@method getAbsoluteName
@@ -1083,9 +1093,9 @@
 
 @class Constructor: Method, IConstructor
 
-	@constructor arguments
-		#REWRITE: super(arguments, Constants Constructor)
-		Method __init__ ( self, Constants Constructor, arguments)
+	@constructor parameters
+		#REWRITE: super(parameters, Constants Constructor)
+		Method __init__ ( self, Constants Constructor, parameters)
 	@end
 @end
 

@@ -218,7 +218,7 @@ class Writer(AbstractWriter):
 	def onClassMethod( self, methodElement ):
 		"""Writes a class method element."""
 		method_name = methodElement.getName()
-		args        = methodElement.getArguments()
+		args        = methodElement.getParameters()
 		default_body = ["pass"]
 		if methodElement.isAbstract():
 			default_body = [
@@ -238,7 +238,7 @@ class Writer(AbstractWriter):
 		)
 
 	def _writeMethodArguments( self, method ):
-		args = ", ".join(map(self.write, method.getArguments()))
+		args = ", ".join(map(self.write, method.getParameters()))
 		if args: return "self, " + args
 		else: return "self"
 
@@ -260,7 +260,7 @@ class Writer(AbstractWriter):
 		"""Returns a list of operations that initialize the default attributes
 		in case they weren't already."""
 		result = []
-		for argument in function.getArguments():
+		for argument in function.getParameters():
 			if not (argument.getDefaultValue() is None):
 				a = argument.getName()
 				result.append("if %s is None: %s = %s" % (
@@ -287,8 +287,8 @@ class Writer(AbstractWriter):
 		# FIXME: Find a way to this properly
 		return self._format(
 			self._document(closure),
-			"lambda %s:(" % ( ", ".join(map(self.write, closure.getArguments()))),
-				", ".join(map(self.write, closure.getArguments())),
+			"lambda %s:(" % ( ", ".join(map(self.write, closure.getParameters()))),
+				", ".join(map(self.write, closure.getParameters())),
 				self._writeFunctionArgumentsInit(closure),
 				map(self.write, closure.getOperations()) or ["pass"],
 			")"
@@ -299,7 +299,7 @@ class Writer(AbstractWriter):
 		# FIXME: Find a way to this properly
 		return self._format(
 			self._document(closure),
-			"def %s(%s):" % (name, ", ".join(map(self.write, closure.getArguments()))),
+			"def %s(%s):" % (name, ", ".join(map(self.write, closure.getParameters()))),
 				self._writeFunctionArgumentsInit(closure),
 				map(self.write, closure.getOperations()) or ["pass"],
 			")"
@@ -325,7 +325,7 @@ class Writer(AbstractWriter):
 			res = [
 				"def %s (%s):" % (
 					name,
-					", ".join(map(self.write, function.getArguments()))
+					", ".join(map(self.write, function.getParameters()))
 				),
 				[self._document(function)],
 				['self=__module__'],
@@ -339,7 +339,7 @@ class Writer(AbstractWriter):
 				self._document(function),
 				"def %s (%s)" % (
 					name,
-					", ".join(map(self.write, function.getArguments()))
+					", ".join(map(self.write, function.getParameters()))
 				),
 				#self.writeFunctionWhen(function),
 				map(self.write, function.getOperations()),
@@ -648,7 +648,7 @@ class Writer(AbstractWriter):
 	RE_TEMPLATE = re.compile("\$\{[^\}]+\}")
 	def _rewriteInvocation(self, invocation, closure, template):
 		arguments = tuple([self.write(a) for a in invocation.getArguments()])
-		parameters = tuple([a.getName() for a  in closure.getArguments()])
+		parameters = tuple([a.getName() for a  in closure.getParameters()])
 		args = {}
 		for i in range(len(arguments)):
 			args[parameters[i]] = arguments[i]
@@ -780,7 +780,7 @@ class Writer(AbstractWriter):
 		it_name = self._unique("_iterator")
 		iterator = iteration.getIterator()
 		closure  = iteration.getClosure()
-		args  = map(lambda a:a.getName(), closure.getArguments())
+		args  = map(lambda a:a.getName(), closure.getParameters())
 		if len(args) == 0: args.append("__iterator_value")
 		if len(args) == 1: args.append("__iterator_index")
 		i = args[1]
