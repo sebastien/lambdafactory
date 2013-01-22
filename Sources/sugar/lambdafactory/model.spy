@@ -1135,8 +1135,10 @@
 					r append (e copy () detach ())
 				end
 				op_copy addOpArgument (r)
-			else
+			if isinstance(a, IElement)
 				op_copy addOpArgument (a copy() detach())
+			else
+				op_copy addOpArgument (a)
 			end
 
 		end
