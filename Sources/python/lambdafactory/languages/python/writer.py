@@ -148,8 +148,13 @@ class Writer(AbstractWriter):
 			# sure to know the parent constructors arity -- this is just a
 			# way to cover our ass. We encapsulate the __super__ declaration
 			# in a block to avoid scoping problems.
+			is_first = True
 			for parent in classElement.getParentClassesRefs():
-				constructor_body.append("%s.__init__(self)" % (self.write(parent)))
+				if is_first:
+					constructor_body.insert(0,"%s.__init__(self, *args, **kwargs)" % (self.write(parent)))
+				else:
+					constructor_body.insert(0,"%s.__init__(self)" % (self.write(parent)))
+				is_first = False
 			# FIXME: This could probably be removed
 			#for a in classElement.getAttributes():
 			#	if not a.getDefaultValue(): continue
@@ -161,12 +166,12 @@ class Writer(AbstractWriter):
 			# NOTE: We only need a default constructor when we have class attributes
 			# declared and no constructor declared
 			constructor_attributes = self._writeConstructorAttributes(classElement)
-			if constructor_body or constructor_attributes:
+			if constructor_attributes:
 				constructor = [
-					"def __init__( self ):",
-					['"""Default constructor"""', "pass"],
+					"def __init__( self, *args, **kwargs ):",
+					['"""Constructor wrapper to intialize class attributes"""'],
 					constructor_body,
-					self._writeConstructorAttributes(classElement)
+					constructor_attributes,
 				]
 		c_attrs = classElement.getClassAttributes()
 		c_inst  = classElement.getInstanceMethods()
@@ -412,9 +417,13 @@ class Writer(AbstractWriter):
 		elif symbolName == "super":
 			assert self.resolve("self")[0], "Super must be used inside method"
 			# FIXME: Should check that the element has a method in parent scope
-			return "super(%s, self)" % (
-				self.getAbsoluteNameFromModule(self.getCurrentClass(), self.getCurrentModule())
-			)
+			parent = self.getCurrentClassParents()
+			if parent:
+				return self.getAbsoluteNameFromModule(parent[0], self.getCurrentModule())
+			else:
+				return "%s.__bases__[0]" % (
+					self.getAbsoluteNameFromModule(self.getCurrentClass(), self.getCurrentModule())
+				)
 		else:
 			assert None
 
@@ -575,9 +584,17 @@ class Writer(AbstractWriter):
 	def onResolution( self, resolution ):
 		"""Writes a resolution operation."""
 		resolved_name = resolution.getReference().getReferenceName()
-		if resolution.getContext():
-			if resolved_name == "super":
-				return "super(%s,self)" % (self.write(resolution.getContext()))
+		context       = resolution.getContext()
+		if context:
+			if isinstance(context, interfaces.IReference) and context.getReferenceName() == "super":
+				return "(lambda *a,**kw:%s.%s(self,*a,**kw))" % (
+					self.write(resolution.getContext()),
+					resolved_name
+				)
+			# FIXME: Not sure what test case this is supposed to cover...
+			#elif resolved_name == "super":
+			#	t = self.write(resolution.getContext())
+			#	return "(lambda *a,**kw:%s.__self__.__class__.__bases__[0].%s(%s.__self__))" % (t,t,t)
 			elif resolution.getContext() == self.getCurrentModule():
 				return "%s" % (resolve_name)
 			else:
@@ -664,7 +681,9 @@ class Writer(AbstractWriter):
 			# add the "__init__". Maybe we should also check that the
 			# invocation happens within a constructor. Not sure though.
 			if invocation.getTarget().getReferenceName() == "super":
-				t += ".__init__"
+				t += ".__init__(self,"
+		# We add a paren in case we weren't re-defining a call
+		if t[-1] != ",": t+= "("
 		target_type = invocation.getTarget().getResultAbstractType()
 		if target_type:
 			concrete_type = target_type.concreteType()
@@ -675,8 +694,8 @@ class Writer(AbstractWriter):
 			return self._rewriteInvocation(invocation, concrete_type, "\n".join([r.getCode() for r in rewrite]))
 		else:
 			self.inInvocation = False
-			return "%s(%s)" % (
-							t,
+			return "%s%s)" % (
+				t,
 				", ".join(map(self.write, invocation.getArguments()))
 				)
 
