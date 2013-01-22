@@ -280,7 +280,7 @@ class ExtendJSRuntime(Pass):
 	"""This pass is like an importation and will simply bind the symbols"""
 	HANDLES = [interfaces.IProgram, interfaces.IModule]
 	NAME = 'GlobalRuntime'
-	FUNCTIONS = ['assert', 'access', 'car', 'cdr', 'cons', 'createMapFromItems', 'error', 'filter', 'getChildrenOf', 'getClass', 'getClasses', 'getClassOf', 'getMethod', 'getMethodOf', 'getParentClass', 'getSuperMethod', 'invoke', 'isDefined', 'isFunction', 'isIn', 'isInstance', 'isList', 'isMap', 'isString', 'iterate', 'len', 'map', 'print', 'range', 'reduce', 'slice', 'sliceArguments']
+	FUNCTIONS = ['assert', 'access', 'car', 'cdr', 'cons', 'createMapFromItems', 'error', 'getChildrenOf', 'getClass', 'getClasses', 'getClassOf', 'getMethod', 'getMethodOf', 'getParentClass', 'getSuperMethod', 'invoke', 'isDefined', 'isFunction', 'isIn', 'isInstance', 'isList', 'isMap', 'isString', 'iterate', 'len', 'print', 'range', 'slice', 'sliceArguments']
 	def __init__ (self):
 		self.runtime = None
 		Pass.__init__(self)

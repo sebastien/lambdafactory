@@ -817,7 +817,6 @@ class Operation(Element, IOperation):
 				for e in a:
 					r.append(e.copy().detach())
 				op_copy.addOpArgument(r)
-
 			elif isinstance(a, IElement):
 				op_copy.addOpArgument(a.copy().detach())
 			elif True:
