@@ -128,6 +128,7 @@ class Factory:
 		return self._getImplementation("ImportModulesOperation")(names)
 			
 	def evaluate( self, evaluable ):
+		if type(evaluable) in (str, unicode): evaluable = self._ref(evaluable)
 		return self._getImplementation("Evaluation")(evaluable)
 
 	def allocate( self, slot, value=None ):
@@ -135,6 +136,7 @@ class Factory:
 		return self._getImplementation("Allocation")(slot, value)
 
 	def assign( self, name, evaluable ):
+		if type(name) in (str, unicode): name = self._ref(name)
 		return self._getImplementation("Assignation")(name, evaluable)
 
 	def compute( self, operatorName, leftOperand, rightOperand=None ):
@@ -156,6 +158,7 @@ class Factory:
 		return self._getImplementation("Instanciation")(evaluable, arguments)
 
 	def resolve( self, reference, context=None ):
+		if type(reference) in (str, unicode): reference = self._ref(reference)
 		return self._getImplementation("Resolution")(reference, context)
 
 	def select( self, *rules ):
@@ -218,6 +221,9 @@ class Factory:
 	# FIXME: RENAME TO SYMBOL
 	def _ref( self, name ):
 		return self._getImplementation("Reference")(name)
+
+	def _symbol(self, name):
+		return self._ref(name)
 
 	def _slot( self, name=None, typeinfo=None ):
 		global ANONYMOUS_SLOTS_INDEX
