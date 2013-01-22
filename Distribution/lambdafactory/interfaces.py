@@ -378,8 +378,8 @@ class ISlot(IReferencable):
 		raise Exception("Abstract method ISlot.getTypeDescription not implemented in: " + str(self))
 	
 
-class IArgument(ISlot):
-	"""Arguments are slots which can be interpreted in different ways.
+class IParameter(ISlot):
+	"""Parameters are slots which can be interpreted in different ways.
 	
 	When an argument is _optional_, it does not need to be defined in the
 	invocation. When an argument is _variable_, it means it references the
@@ -387,67 +387,67 @@ class IArgument(ISlot):
 	the named arguments of the rest of the arguments list."""
 	def isOptional(self):
 		"""Tells if the argument is optional or not."""
-		raise Exception("Abstract method IArgument.isOptional not implemented in: " + str(self))
+		raise Exception("Abstract method IParameter.isOptional not implemented in: " + str(self))
 	
 	def setOptional(self, value):
 		"""Sets this argument as optional or not."""
-		raise Exception("Abstract method IArgument.setOptional not implemented in: " + str(self))
+		raise Exception("Abstract method IParameter.setOptional not implemented in: " + str(self))
 	
 	def isRest(self):
 		"""Tells if this argument represents ''the rest'' of arguments in the
 		invocation"""
-		raise Exception("Abstract method IArgument.isRest not implemented in: " + str(self))
+		raise Exception("Abstract method IParameter.isRest not implemented in: " + str(self))
 	
 	def setRest(self, value):
 		"""Tells this argument represents ''the rest'' of arguments in the
 		invocation"""
-		raise Exception("Abstract method IArgument.setRest not implemented in: " + str(self))
+		raise Exception("Abstract method IParameter.setRest not implemented in: " + str(self))
 	
 	def setKeywordsRest(self, value):
 		"""Tells this arguments represents ''the rest'' of the keyword argument in
 		the invocation"""
-		raise Exception("Abstract method IArgument.setKeywordsRest not implemented in: " + str(self))
+		raise Exception("Abstract method IParameter.setKeywordsRest not implemented in: " + str(self))
 	
 	def isKeywordsRest(self):
 		"""Tells if this arguments represents ''the rest'' of the keyword argument in
 		the invocation"""
-		raise Exception("Abstract method IArgument.isKeywordsRest not implemented in: " + str(self))
+		raise Exception("Abstract method IParameter.isKeywordsRest not implemented in: " + str(self))
 	
 	def setDefaultValue(self, value):
 		"""Sets the @methodault value for this argument."""
-		raise Exception("Abstract method IArgument.setDefaultValue not implemented in: " + str(self))
+		raise Exception("Abstract method IParameter.setDefaultValue not implemented in: " + str(self))
 	
 	def getDefaultValue(self):
 		"""Returns the @methodault value for this slot."""
-		raise Exception("Abstract method IArgument.getDefaultValue not implemented in: " + str(self))
+		raise Exception("Abstract method IParameter.getDefaultValue not implemented in: " + str(self))
 	
 
-class IParameter(IElement, ISlot):
+class IArgument(IElement, ISlot):
 	def isByName(self):
-		raise Exception("Abstract method IParameter.isByName not implemented in: " + str(self))
+		raise Exception("Abstract method IArgument.isByName not implemented in: " + str(self))
 	
 	def setByName(self, n):
-		raise Exception("Abstract method IParameter.setByName not implemented in: " + str(self))
+		raise Exception("Abstract method IArgument.setByName not implemented in: " + str(self))
 	
 	def getValue(self):
-		raise Exception("Abstract method IParameter.getValue not implemented in: " + str(self))
+		raise Exception("Abstract method IArgument.getValue not implemented in: " + str(self))
 	
 	def setValue(self, v):
-		raise Exception("Abstract method IParameter.setValue not implemented in: " + str(self))
+		raise Exception("Abstract method IArgument.setValue not implemented in: " + str(self))
 	
 	def isAsList(self):
-		raise Exception("Abstract method IParameter.isAsList not implemented in: " + str(self))
+		raise Exception("Abstract method IArgument.isAsList not implemented in: " + str(self))
 	
 	def isAsMap(self):
-		raise Exception("Abstract method IParameter.isAsMap not implemented in: " + str(self))
+		raise Exception("Abstract method IArgument.isAsMap not implemented in: " + str(self))
 	
 	def setAsList(self, v=None):
 		if v is None: v = True
-		raise Exception("Abstract method IParameter.setAsList not implemented in: " + str(self))
+		raise Exception("Abstract method IArgument.setAsList not implemented in: " + str(self))
 	
 	def setAsMap(self, v=None):
 		if v is None: v = True
-		raise Exception("Abstract method IParameter.setAsMap not implemented in: " + str(self))
+		raise Exception("Abstract method IArgument.setAsMap not implemented in: " + str(self))
 	
 
 class IAttribute(ISlot):
@@ -653,11 +653,11 @@ class IBlock(IGroup, IAssignable):
 	pass
 
 class IClosure(IProcess, IContext):
-	def getArguments(self):
-		raise Exception("Abstract method IClosure.getArguments not implemented in: " + str(self))
+	def getParameters(self):
+		raise Exception("Abstract method IClosure.getParameters not implemented in: " + str(self))
 	
-	def setArguments(self):
-		raise Exception("Abstract method IClosure.setArguments not implemented in: " + str(self))
+	def setParameters(self):
+		raise Exception("Abstract method IClosure.setParameters not implemented in: " + str(self))
 	
 	def getReturnTypeDescription(self):
 		"""Returns the return type description for this closure, if any"""

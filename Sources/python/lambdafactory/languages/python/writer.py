@@ -360,8 +360,8 @@ class Writer(AbstractWriter):
 			*(map(self.write, block.getOperations()))
 		)
 
-	def onArgument( self, argElement ):
-		"""Writes an argument element."""
+	def onParameter( self, argElement ):
+		"""Writes a parameter element."""
 		default = argElement.getDefaultValue()
 		if default is None:
 			res = "%s" % (argElement.getName())
@@ -699,7 +699,7 @@ class Writer(AbstractWriter):
 				", ".join(map(self.write, invocation.getArguments()))
 				)
 
-	def onParameter( self, parameter ):
+	def onArgument( self, parameter ):
 		r = self.write(parameter.getValue())
 		if parameter.isAsMap():
 			return "**(%s)" % (r)

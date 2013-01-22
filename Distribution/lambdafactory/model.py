@@ -734,26 +734,32 @@ class Block(Group, IBlock):
 	pass
 
 class Closure(Process, IAssignable, IClosure, IEvaluable):
-	def __init__ (self, arguments, name=None):
-		self.arguments = None
+	def __init__ (self, parameters, name=None):
+		self.parameters = None
 		self.returnTypeDescription = None
 		if name is None: name = None
 		Process.__init__(self, name)
-		self.setArguments(arguments)
+		self.setParameters(parameters)
 	
-	def setArguments(self, arguments):
-		self.arguments = []
-		if arguments:
-			for argument in arguments:
-				if (not isinstance(argument, ISlot)):
+	def setParameters(self, parameters):
+		self.parameters = []
+		if parameters:
+			for param in parameters:
+				if (not isinstance(param, ISlot)):
 					raise ERR_CLOSURE_ARGUMENT_NOT_SLOT
-				self.arguments.append(argument)
+				self.parameters.append(param)
+	
+	def getParameters(self):
+		return self.parameters
 	
 	def getArguments(self):
-		return self.arguments
+		return self.parameters
 	
 	def getArgument(self, index):
-		return self.arguments[index]
+		return self.parameters[index]
+	
+	def getParameter(self, index):
+		return self.parameters[index]
 	
 	def getReturnTypeDescription(self):
 		return self.returnTypeDescription
@@ -763,8 +769,8 @@ class Closure(Process, IAssignable, IClosure, IEvaluable):
 	
 
 class Function(Closure, IFunction, IReferencable):
-	def __init__ (self, name, arguments):
-		Closure.__init__(self, arguments, name)
+	def __init__ (self, name, parameters):
+		Closure.__init__(self, parameters, name)
 	
 	def getAbsoluteName(self):
 		if self.getParent():
@@ -783,8 +789,8 @@ class Mutator(Method, IMutator):
 	pass
 
 class Constructor(Method, IConstructor):
-	def __init__ (self, arguments):
-		Method.__init__(self, Constants.Constructor, arguments)
+	def __init__ (self, parameters):
+		Method.__init__(self, Constants.Constructor, parameters)
 	
 	pass
 
@@ -1147,7 +1153,7 @@ class Slot(Element, ISlot):
 		return self.defaultValue
 	
 
-class Argument(Slot, IArgument):
+class Parameter(Slot, IParameter):
 	def __init__ (self, name, typeDescription):
 		self.rest = False
 		self.keywordRest = False
@@ -1173,7 +1179,7 @@ class Argument(Slot, IArgument):
 		self.rest = (value and value)
 	
 
-class Parameter(Element, IParameter):
+class Argument(Element, IArgument):
 	def __init__ (self, name=None, value=None):
 		self.name = None
 		self.value = None

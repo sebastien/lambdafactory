@@ -277,7 +277,7 @@ class Writer(AbstractWriter):
 				or "%s:function(%s){"
 			) % (
 				method_name,
-				", ".join(map(self.write, methodElement.getArguments()))
+				", ".join(map(self.write, methodElement.getParameters()))
 			),
 			["var %s=this" % (self.jsSelf)],
 			self._writeClosureArguments(methodElement),
@@ -292,7 +292,7 @@ class Writer(AbstractWriter):
 	def _writeFunctionMeta( self, function ):
 		arguments = []
 		arity     = 0
-		for arg in function.getArguments():
+		for arg in function.getParameters():
 			a = {"name":self._rewriteSymbol(arg.getName())}
 			if arg.isOptional():
 				a["flags"] = "?"
@@ -311,7 +311,7 @@ class Writer(AbstractWriter):
 	def onClassMethod( self, methodElement ):
 		"""Writes a class method element."""
 		method_name = self._rewriteSymbol(methodElement.getName())
-		args        = methodElement.getArguments()
+		args        = methodElement.getParameters()
 		return self._format(
 			self._document(methodElement),
 			(
@@ -334,7 +334,7 @@ class Writer(AbstractWriter):
 		properly. This may look a bit dirty, but it's the only way I found to
 		implement this properly"""
 		method_name = self._rewriteSymbol(inheritedMethodElement.getName())
-		method_args = inheritedMethodElement.getArguments()
+		method_args = inheritedMethodElement.getParameters()
 		return self._format(
 			(
 				self.options["ENABLE_METADATA"] and "%s:_meta_(function(%s){" \
@@ -369,7 +369,7 @@ class Writer(AbstractWriter):
 				self.options["ENABLE_METADATA"] and "initialize:_meta_(function(%s){" \
 				or "initialize:function(%s){"
 			)  % (
-				", ".join(map(self.write, element.getArguments()))
+				", ".join(map(self.write, element.getParameters()))
 			),
 			["var %s=this" % (self.jsSelf)],
 			self._writeClosureArguments(element),
@@ -403,9 +403,9 @@ class Writer(AbstractWriter):
 	def _writeClosureArguments(self, closure):
 		# NOTE: Don't forget to update in AS backend as well
 		i = 0
-		l = len(closure.getArguments())
+		l = len(closure.getParameters())
 		result = []
-		for argument in closure.getArguments():
+		for argument in closure.getParameters():
 			arg_name = self.write(argument)
 			if argument.isRest():
 				assert i >= l - 2
@@ -446,7 +446,7 @@ class Writer(AbstractWriter):
 					self.options["ENABLE_METADATA"] and "_meta_(function(%s){" \
 					or "function(%s){"
 				)  % (
-					", ".join(map(self.write, function.getArguments()))
+					", ".join(map(self.write, function.getParameters()))
 				),
 				[self._document(function)],
 				['var %s=%s;' % (self.jsSelf, self.getAbsoluteName(parent))],
@@ -465,7 +465,7 @@ class Writer(AbstractWriter):
 					self.options["ENABLE_METADATA"] and "_meta_(function(%s){" \
 					or "function(%s){"
 				)  % (
-					", ".join(map(self.write, function.getArguments()))
+					", ".join(map(self.write, function.getParameters()))
 				),
 				self._writeClosureArguments(function),
 				self.writeFunctionWhen(function),
@@ -789,7 +789,7 @@ class Writer(AbstractWriter):
 	RE_TEMPLATE = re.compile("\$\{[^\}]+\}")
 	def _rewriteInvocation(self, invocation, closure, template):
 		arguments = tuple([self.write(a) for a in invocation.getArguments()])
-		parameters = tuple([self._rewriteSymbol(a.getName()) for a  in closure.getArguments()])
+		parameters = tuple([self._rewriteSymbol(a.getName()) for a  in closure.getParameters()])
 		args = {}
 		for i in range(len(arguments)):
 			args[parameters[i]] = arguments[i]
@@ -959,7 +959,7 @@ class Writer(AbstractWriter):
 			# If start <= end then step >  0 
 			else:
 				if step < 0: step = -step
-			args  = map(lambda a:self._rewriteSymbol(a.getName()), closure.getArguments())
+			args  = map(lambda a:self._rewriteSymbol(a.getName()), closure.getParameters())
 			if len(args) == 0: args.append("__iterator_value")
 			if len(args) == 1: args.append("__iterator_index")
 			i = args[1]

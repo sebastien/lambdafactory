@@ -149,7 +149,7 @@ class Factory:
 		return self.invoke_args(evaluable, arguments)
 	
 	def invoke_args( self, evaluable, arguments ):
-		arguments = map(self._ensureParam,arguments)
+		arguments = map(self._ensureArg,arguments)
 		# FIXME: Arguments should not be a list, they should be wrapped in an
 		# arguments object that supports copy () and detach () properly
 		return self._getImplementation("Invocation")(evaluable, arguments)
@@ -232,16 +232,22 @@ class Factory:
 			ANONYMOUS_SLOTS_INDEX += 1
 		return self._getImplementation("Slot")(name, typeinfo)
 
-	def _arg( self, name, typeinfo=None, optional=False ):
-		arg = self._getImplementation("Argument")(name, typeinfo)
+	def _param( self, name, typeinfo=None, optional=False ):
+		arg = self._getImplementation("Parameter")(name, typeinfo)
 		arg.setOptional(optional)
 		return arg
 	
-	def _param( self, name=None, value=None, asList=False, asMap=False ):
-		param = self._getImplementation("Parameter")(name,value)
+	def _arg( self, name=None, value=None, asList=False, asMap=False ):
+		param = self._getImplementation("Argument")(name,value)
 		if asList: param.setAsList()
 		if asMap:  param.setAsMap()
 		return param
+
+	def _ensureArg( self, value ):
+		if isinstance(value, interfaces.IArgument):
+			return value
+		else:
+			return self._arg(None, value)
 
 	def _ensureParam( self, value ):
 		if isinstance(value, interfaces.IParameter):

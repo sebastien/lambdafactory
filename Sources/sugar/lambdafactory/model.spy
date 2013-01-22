@@ -1611,7 +1611,7 @@
 @end
 
 
-@class Argument: Slot, IArgument
+@class Parameter: Slot, IParameter
 
 	# FIXME: This should rather be a state
 	@property rest = False
@@ -1648,7 +1648,7 @@
 
 @end
 
-@class Parameter: Element, IParameter
+@class Argument: Element, IArgument
 
 	@property name    = None
 	@property value   = None

@@ -79,32 +79,32 @@ class Factory:
 		if operations: map(r.addOperation, operations)
 		return r
 
-	def createClosure( self, arguments, *operations ):
-		r = self._getImplementation("Closure")(arguments)
+	def createClosure( self, parameters, *operations ):
+		r = self._getImplementation("Closure")(parameters)
 		if operations: map(r.addOperation, operations)
 		return r
 
-	def createFunction( self, name, arguments=None ):
-		# FIXME: Implement optional arguments for all of that
-		return self._getImplementation("Function")(name, arguments)
+	def createFunction( self, name, parameters=None ):
+		# FIXME: Implement optional parameters for all of that
+		return self._getImplementation("Function")(name, parameters)
 
-	def createMethod( self, name, arguments=None ):
-		return self._getImplementation("InstanceMethod")(name, arguments)
+	def createMethod( self, name, parameters=None ):
+		return self._getImplementation("InstanceMethod")(name, parameters)
 
-	def createAccessor( self, name, arguments=None ):
-		return self._getImplementation("Accessor")(name, arguments)
+	def createAccessor( self, name, parameters=None ):
+		return self._getImplementation("Accessor")(name, parameters)
 
-	def createMutator( self, name, arguments=None ):
-		return self._getImplementation("Mutator")(name, arguments)
+	def createMutator( self, name, parameters=None ):
+		return self._getImplementation("Mutator")(name, parameters)
 
-	def createConstructor( self, arguments=None ):
-		return self._getImplementation("Constructor")(arguments)
+	def createConstructor( self, parameters=None ):
+		return self._getImplementation("Constructor")(parameters)
 
 	def createDestructor( self ):
 		return self._getImplementation("Destructor")()
 
-	def createClassMethod( self, name, arguments=() ):
-		return self._getImplementation("ClassMethod")(name, arguments)
+	def createClassMethod( self, name, parameters=() ):
+		return self._getImplementation("ClassMethod")(name, parameters)
 
 	def createClass( self, name, inherited=() ):
 		return self._getImplementation("Class")(name, inherited)
@@ -149,7 +149,7 @@ class Factory:
 		return self.invoke_args(evaluable, arguments)
 	
 	def invoke_args( self, evaluable, arguments ):
-		arguments = map(self._ensureParam,arguments)
+		arguments = map(self._ensureArg,arguments)
 		# FIXME: Arguments should not be a list, they should be wrapped in an
 		# arguments object that supports copy () and detach () properly
 		return self._getImplementation("Invocation")(evaluable, arguments)
@@ -232,16 +232,22 @@ class Factory:
 			ANONYMOUS_SLOTS_INDEX += 1
 		return self._getImplementation("Slot")(name, typeinfo)
 
-	def _arg( self, name, typeinfo=None, optional=False ):
-		arg = self._getImplementation("Argument")(name, typeinfo)
+	def _param( self, name, typeinfo=None, optional=False ):
+		arg = self._getImplementation("Parameter")(name, typeinfo)
 		arg.setOptional(optional)
 		return arg
 	
-	def _param( self, name=None, value=None, asList=False, asMap=False ):
-		param = self._getImplementation("Parameter")(name,value)
+	def _arg( self, name=None, value=None, asList=False, asMap=False ):
+		param = self._getImplementation("Argument")(name,value)
 		if asList: param.setAsList()
 		if asMap:  param.setAsMap()
 		return param
+
+	def _ensureArg( self, value ):
+		if isinstance(value, interfaces.IArgument):
+			return value
+		else:
+			return self._arg(None, value)
 
 	def _ensureParam( self, value ):
 		if isinstance(value, interfaces.IParameter):
@@ -269,11 +275,13 @@ class Factory:
 
 	def _list( self, *args ):
 		r = self._getImplementation("List")()
-		map(lambda a:r.addValue(a), args)
+		if len(args) == 1 and type(args[0]) in (list,tuple):
+			map(lambda a:r.addValue(a), args[0])
+		else:
+			map(lambda a:r.addValue(a), args)
 		return r
 
 	def _dict( self ):
 		return self._getImplementation("Dict")()
-	
 
 # EOF

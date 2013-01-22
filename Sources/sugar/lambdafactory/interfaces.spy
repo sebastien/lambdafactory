@@ -400,8 +400,8 @@
 
 @end
 
-@protocol IArgument: ISlot
-|	Arguments are slots which can be interpreted in different ways.
+@protocol IParameter: ISlot
+|	Parameters are slots which can be interpreted in different ways.
 |	
 |	When an argument is _optional_, it does not need to be defined in the
 |	invocation. When an argument is _variable_, it means it references the
@@ -438,7 +438,7 @@
 
 @end
 
-@protocol IParameter: IElement, ISlot
+@protocol IArgument: IElement, ISlot
 
 	@abstract @method isByName
 	@abstract @method setByName n:String
@@ -640,9 +640,9 @@
 
 @protocol IClosure: IProcess, IContext
 
-	@abstract @method getArguments
+	@abstract @method getParameters
 
-	@abstract @method setArguments
+	@abstract @method setParameters
 
 	@abstract @method getReturnTypeDescription
 	| Returns the return type description for this closure, if any
