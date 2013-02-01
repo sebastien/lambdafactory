@@ -330,7 +330,6 @@
 | A literal is a value that does not need a context to be evaluated. The
 | evaluation is direct.
 	
-		
 	@abstract @method getActualValue
 	| Returns the (implementation language) value for this literal
 

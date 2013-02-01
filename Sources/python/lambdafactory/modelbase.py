@@ -222,6 +222,9 @@ class Factory:
 	def _ref( self, name ):
 		return self._getImplementation("Reference")(name)
 
+	def _absref( self, name ):
+		return self._getImplementation("AbsoluteReference")(name)
+
 	def _symbol(self, name):
 		return self._ref(name)
 

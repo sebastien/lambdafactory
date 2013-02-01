@@ -1025,7 +1025,7 @@ class Writer(AbstractWriter):
 
 	def onBreaking( self, breking ):
 		"""Writes a break operation."""
-		return "return false"
+		return "throw extend.FLOW_BREAK;"
 	
 	def onExcept( self, exception ):
 		"""Writes a except operation."""
