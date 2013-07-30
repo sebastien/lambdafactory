@@ -44,7 +44,7 @@
 	| Returns the name of this annotation.
 
 @end
-	
+
 @protocol IComment:IAnnotation
 | A comment is an annotation that can occur anywhere in a source file.
 @end
@@ -88,11 +88,11 @@
 	# origin is
 
 	@abstract @method declareArgument:None name:String, value:IElement
-	
+
 	@abstract @method declareEnvironment:None name:String, value:IElement
 	| Declares an environment variable with the given name, value
 	| and origin.
-	
+
 	@abstract @method declareVariable:None name:String, value:IElement, origin:IElement=None
 	| Declares a (local) variable with the given name, value and
 	| origin
@@ -148,21 +148,21 @@
 @protocol IDataFlowSlot
 
 	@abstract @method addOperation
-	
+
 	@abstract @method getOperations:<[IOperation]>
 	| Returns the (ordered) list of operations that affected the slot.
 	| Operations usually constrain the dataflow abstract type, and
 	| exception/warnings/errors may be raised by the type system
 	| when a type constraint fails.
-	
+
 	@abstract @method getOrigin:IElement
-	
+
 	@abstract @method getOriginalValue:IElement
-	
+
 	@abstract @method getName:String
-	
+
 	@abstract @method getAbstractType
-	
+
 @end
 
 @protocol IDataFlowOwner
@@ -187,7 +187,7 @@
 
 	@abstract @method getAbstractType
 	| Returns the abstract type for this element
-	
+
 	@abstract @method setAbstractType type
 	| Sets the abstract type for this element
 
@@ -200,7 +200,7 @@
 
 	@abstract @method hasAnnotation name
 	| Tells if the given element has an annotation with the given name
-	
+
 	@abstract @method removeAnnotation name
 	| Removes the annotations with the given name
 
@@ -259,7 +259,6 @@
 | Types are good examples of referencables: they have an *absolute name* (like
 | `Data.List`), but can also be bound to slots within contexts which give them
 | "local names" (like `List := Data.List`)
-
 
 	@abstract @method getName
 	| Returns the local name for this referencable element
@@ -329,7 +328,7 @@
 @protocol ILiteral: IValue
 | A literal is a value that does not need a context to be evaluated. The
 | evaluation is direct.
-	
+
 	@abstract @method getActualValue
 	| Returns the (implementation language) value for this literal
 
@@ -343,7 +342,7 @@
 
 @protocol IList: IValue
 
-	@abstract @method addValue value 
+	@abstract @method addValue value
 	| Adds a value to this list.
 
 
@@ -356,7 +355,7 @@
 | A dictionary is a binding of key to values. It may or may not be ordered,
 | depending on the implementation/model semantics.
 
-	@abstract @method setValue key, value 
+	@abstract @method setValue key, value
 	|	Sets the value to be associated to the given key (which must be an
 	|	evaluable).
 
@@ -383,9 +382,9 @@
 
 @protocol IOperator: IReference
 
-	@abstract @method setPriority priority 
+	@abstract @method setPriority priority
 	|	Sets the priority for this operator
-	
+
 	@abstract @method getPriority
 	|	Gets the priority for this operator
 @end
@@ -401,7 +400,7 @@
 
 @protocol IParameter: ISlot
 | Parameters defined slots that will receive arguments upon invocation.
-|	
+|
 | When a parameter is _optional_, it does not need to be defined in the
 | invocation. When it is is _variable_, it means it references the
 | rest of the arguments lists. When it is _keywords_, it will reference
@@ -425,7 +424,7 @@
 	|	Tells this arguments represents ''the rest'' of the keyword argument in
 	|	the invocation
 
-	@abstract @method isKeywordsRest 
+	@abstract @method isKeywordsRest
 	|	Tells if this arguments represents ''the rest'' of the keyword argument in
 	|	the invocation
 
@@ -446,10 +445,10 @@
 
 	@abstract @method isByName
 	@abstract @method setByName n:String
-	
+
 	@abstract @method getValue
 	@abstract @method setValue v
-	
+
 	@abstract @method isAsList
 	@abstract @method isAsMap
 	@abstract @method setAsList v:Boolean=True
@@ -458,7 +457,7 @@
 @end
 
 @protocol IAttribute: ISlot
-	
+
 	@abstract @method setDefaultValue
 	|	Sets the @methodault value for this attribute
 
@@ -483,7 +482,7 @@
 |	(aka values) to names. Slots should be ordered, preserving the order in
 |	which they were added.
 
-	@abstract @method setSlot name, evaluable 
+	@abstract @method setSlot name, evaluable
 	|	Binds the given evaluable to the named slot. If there is already a slot
 	|	with the same name, then 'getSlot(name)' should return the evaluable
 	|	given as parameter.
@@ -491,13 +490,13 @@
 	|	In the default implementation, setSlot preserves the ''history'' of
 	|	added slots, and will always return the latest one.
 
-	@abstract @method getSlot name 
+	@abstract @method getSlot name
 	|	Returns the given evaluable bound to named slot.
 
-	@abstract @method hasSlot name 
+	@abstract @method hasSlot name
 	|	Tells if the context has a slot with the given name.
 
-	@abstract @method getSlots 
+	@abstract @method getSlots
 	|	Returns (key, evaluable) pairs representing the slots within this
 	|	context. In the case of context that may inherits slots, this only
 	|	returns the slots that are owned by the context (ie. it does not
@@ -506,7 +505,7 @@
 	@abstract @method getSlotNames
 	|	Returns the list of slot names (in order) for this context
 
-	@abstract @method setParent context 
+	@abstract @method setParent context
 	|	Sets the parent context for this context.
 
 	@abstract @method getParent
@@ -522,32 +521,32 @@
 
 	@abstract @method setParentClasses:<[IClass]>
 	|	gives the list of parent classes that will
-		
+
 	@abstract @method getAttributes
 	|	Returns the (non-class) attributes defined within this class.
 
-	@abstract @method getClassAttributes 
+	@abstract @method getClassAttributes
 	|	Returns the class attributes defined within this class.
-	
-	@abstract @method getOperations 
+
+	@abstract @method getOperations
 	|	Returns the operations (methods and class methods) defined within this class.
-	
-	@abstract @method getMethods 
+
+	@abstract @method getMethods
 	|	Returns the methods defined within this class.
-	
+
 	@abstract @method getConstructors
 	|	Returns the constructors for this class
-	
+
 	@abstract @method getDestructors
 	|	Returns the destructors for this class
-	
-	@abstract @method getInstanceMethods 
+
+	@abstract @method getInstanceMethods
 	|	Returns the instance methods defined within this class.
-	
-	@abstract @method getClassMethods 
+
+	@abstract @method getClassMethods
 	|	Returns the class method defined within this class.
 
-	@abstract @method getName 
+	@abstract @method getName
 	|	Returns this class name. It can be `None` if the class is anonymous.
 
 	@abstract @method getParentClassesRefs
@@ -577,16 +576,16 @@
 
 	@abstract @method addImportOperation operation
 	| Returns the list of import operations declared in this module
-	|  
+	|
 	@abstract @method getImportOperations:<[IClass]>
-	| Returns the list of import operations declared in this module 
-	
+	| Returns the list of import operations declared in this module
+
 	@abstract @method getClasses:<[IClass]>
 	| Returns the list of classes defined in this module. This is mainly a
 	| convenience function.
 
 	@abstract @method getParentName:<String|None>
-	| Returns the parent name of this module (if any) 
+	| Returns the parent name of this module (if any)
 
 	@abstract @method mergeWith module:<Module>
 	| Merges this module with the given module
@@ -603,7 +602,7 @@
 
 	@abstract @method getModule:<[IModule|None]> moduleAbsoluteName
 	| Returns the module (if any) with the given absolute name
-	
+
 	@abstract @method getModules:<[IModule]>
 	| Returns the list of modules declared/imported in this program
 
@@ -659,7 +658,7 @@
 
 @protocol IFunction: IClosure, IReferencable, IAbstractable, IConstruct
 
-	@abstract @method getName 
+	@abstract @method getName
 	|	Returns this @protocol name. It can be `None` if the @protocol is anonymous.
 
 	@abstract @method hasExplicitTermination
@@ -705,11 +704,11 @@
 
 @protocol IOperation: IElement
 
-	@abstract @method addOpArgument argument 
+	@abstract @method addOpArgument argument
 	|	Adds an argument to this operation. This should do checking of
 	|	arguments (by expected internal type and number).
 
-	@abstract @method getOpArguments 
+	@abstract @method getOpArguments
 	|	Returns the arguments to this operation.
 
 	@abstract @method getOpArgument i
@@ -722,7 +721,7 @@
 	|	Returns the *internal types* for this operations arguments. This is
 	|	typically the list of interfaces or @protocols that the arguments must
 	|	comply to.
-	
+
 @end
 
 @class IImportOperation: IOperation
@@ -731,37 +730,37 @@
 @class IImportSymbolOperation: IImportOperation
 
 	@shared ARGS      = [ IEvaluable, IEvaluable, IEvaluable ]
-	@shared ARG_NAMES = [ "ImportedElement", "ImportOrigin", "Alias" ] 
+	@shared ARG_NAMES = [ "ImportedElement", "ImportOrigin", "Alias" ]
 
 	@method getImportedElement
 	|	Returns a reference or a resolution that will allow to get the
 	|	imported element.
 		return getOpArgument(0)
 	@end
-	
+
 	@method getImportOrigin
 		return getOpArgument(1)
 	@end
-	
+
 	@method getAlias
 	|	Returns the (optional) alias which will allow to reference the
 	|	element.
 		return getOpArgument(2)
 	@end
-	
+
 @end
 
 @class IImportSymbolsOperation: IImportOperation
 
 	@shared ARGS     = [ [IEvaluable], IEvaluable ]
-	@shared ARG_NAMES = [ "ImportedElements", "ImportOrigin" ] 
+	@shared ARG_NAMES = [ "ImportedElements", "ImportOrigin" ]
 
 	@method getImportedElements
 	|	Returns a reference or a resolution that will allow to get the
 	|	imported element.
 		return getOpArgument(0)
 	@end
-	
+
 	@method getImportOrigin
 		return getOpArgument(1)
 	@end
@@ -771,13 +770,13 @@
 @class IImportModuleOperation: IImportOperation
 
 	@shared ARGS      = [ IEvaluable, IEvaluable ]
-	@shared ARG_NAMES = [ "ImportedModuleName", "Alias"] 
+	@shared ARG_NAMES = [ "ImportedModuleName", "Alias"]
 
 	@method getImportedModuleName
 	| Returns the list of names representing the modules to load
 		return getOpArgument(0)
 	@end
-		
+
 	@method getAlias
 		return getOpArgument(1)
 	@end
@@ -786,19 +785,19 @@
 @class IImportModulesOperation: IImportOperation
 
 	@shared ARGS      = [ [IEvaluable] ]
-	@shared ARG_NAMES = [ "ImportedModuleNames" ] 
+	@shared ARG_NAMES = [ "ImportedModuleNames" ]
 
 	@method getImportedModuleNames
 	| Returns the list of names representing the modules to load
 		return getOpArgument(0)
 	@end
-	
+
 @end
 
 @class IEvaluation: IOperation
 	@shared ARGS = [ IEvaluable, IEvaluable ]
-	@shared ARG_NAMES = [ "Evaluable" ] 
-	
+	@shared ARG_NAMES = [ "Evaluable" ]
+
 	@method getEvaluable
 		return getOpArgument(0)
 	@end
@@ -808,22 +807,22 @@
 @class IAssignation: IOperation, IEvaluable
 	@shared ARGS = [ IEvaluable, IEvaluable ]
 
-	@abstract @method getTarget 
+	@abstract @method getTarget
 	|	Returns this assignation target reference, which can be an evaluable
 	|	(in case you assign to self.something, or a reference)
 
-	@abstract @method getAssignedValue 
+	@abstract @method getAssignedValue
 	|	Returns this assigned evaluable.
-	
+
 @end
 
 @class IAllocation: IOperation, IEvaluable
 	@shared ARGS = [ ISlot, IEvaluable ]
 
-	@abstract @method getSlotToAllocate 
+	@abstract @method getSlotToAllocate
 	|	Returns slot to be allocated by this operation.
 
-	@abstract @method getDefaultValue 
+	@abstract @method getDefaultValue
 	|	Returns the expression that assigns the @methodault value.
 
 @end
@@ -832,10 +831,10 @@
 |	A resolution resolves a reference into a value.
 	@shared ARGS = [ IReferencable, IEvaluable ]
 
-	@abstract @method getReference 
+	@abstract @method getReference
 	|	Returns the reference to be resolved.
 
-	@abstract @method getContext 
+	@abstract @method getContext
 	|	Returns the (optional) context in which the resolution should occur.
 
 @end
@@ -843,46 +842,46 @@
 @class IComputation: IOperation, IEvaluable
 	@shared ARGS = [ IOperator, IEvaluable, IEvaluable ]
 
-	@method getOperator 
+	@method getOperator
 	|	Gets the operator for this computation
 		return getOpArgument(0)
 	@end
-	
-	@method setOperator operator 
+
+	@method setOperator operator
 	|	Sets the operator for this computation
 		return getOpArgument(0, operator)
 	@end
-	
-	@method getOperand 
+
+	@method getOperand
 	|	Returns the left operand of this computation.
 		return getLeftOperand()
 	@end
-	
-	@method getOperands 
+
+	@method getOperands
 	|	Returns the left (and right, if any) operands of this computation.
 		return [getLeftOperand(), getRightOperand()]
 	@end
-	
-	@method getLeftOperand 
+
+	@method getLeftOperand
 	|	Returns the left operand of this computation.
 		return getOpArgument(1)
 	@end
-	
-	@method getRightOperand 
+
+	@method getRightOperand
 	|	Returns the right operand of this computation (if any)
 		return getOpArgument(2)
 	@end
-	
-	@method setLeftOperand operand 
+
+	@method setLeftOperand operand
 	|	Sets the left operand of this computation.
 		return setOpArgument(1, operand)
 	@end
-	
-	@method setRightOperand operand 
+
+	@method setRightOperand operand
 	|	Sets the right operand of this computation
 		return setOpArgument(2, operand)
 	@end
-	
+
 @end
 
 @class IInvocation: IOperation, IEvaluable
@@ -892,47 +891,47 @@
 	| Tells if this invocation is only by position. Otherwise, some arguments
 	| are given by name, as list or as a map (and they should be handled in
 	| a specific way)
-	
-	@method getTarget 
+
+	@method getTarget
 	|	Returns the invocation target reference.
 		return getOpArgument(0)
 	@end
-	
-	@method getArguments 
+
+	@method getArguments
 	|	Returns evaluable arguments.
 		return getOpArgument(1)
 	@end
-	
+
 @end
 
 @class IInstanciation: IOperation, IEvaluable
 	@shared ARGS = [ IEvaluable, [IEvaluable] ]
 
-	@method getInstanciable 
+	@method getInstanciable
 	|	Returns the instanciable used in this operation.
 		return getOpArgument(0)
 	@end
 
-	@method getArguments 
+	@method getArguments
 	|	Returns evaluable arguments.
 		return getOpArgument(1)
 	@end
-	
+
 @end
 
 @class ISubsetOperation: IOperation, IEvaluable
-	
-	@method getTarget 
+
+	@method getTarget
 	|	Returns the operation target.
 		return getOpArgument(0)
 	@end
 
 @end
-	
+
 @class IAccessOperation: ISubsetOperation
 	@shared ARGS = [ IEvaluable, IEvaluable]
-	
-	@method getIndex 
+
+	@method getIndex
 	|	Returns evaluable that will return the access index
 		return getOpArgument(1)
 	@end
@@ -940,70 +939,70 @@
 @end
 
 @class ISliceOperation: ISubsetOperation
-	
+
 	@shared ARGS = [ IEvaluable, IEvaluable, IEvaluable ]
-		
-	@method getSliceStart 
+
+	@method getSliceStart
 	|	Returns evaluable that will return the slice start
 		return getOpArgument(1)
 	@end
 
-	@method getSliceEnd 
+	@method getSliceEnd
 	|	Returns evaluable that will return the slice end
 		return getOpArgument(2)
 	@end
-	
+
 @end
 
 # TODO: Rename this to RULE
 @class IMatchOperation: IOperation
 |	A match operation is the binding of an expression and a process.
 
-	@method getPredicate 
+	@method getPredicate
 	|	Returns the evaluable that acts as a predicate for this operation.
 		return getOpArgument(0)
 	@end
-	
-	@method setPredicate v 
+
+	@method setPredicate v
 		return setOpArgument(0, v)
 	@end
-	
+
 @end
 
 @class IMatchExpressionOperation: IMatchOperation
 |	A match expression is a predicate that is associated to an expression.
 |	This is typically used in conditional expressions like in C:
-|	
+|
 |	>	int a = ( b==2 ? 1 : 2 )
-	
+
 	@shared ARGS = [ IEvaluable, IEvaluable ]
-		
-	@method getExpression 
+
+	@method getExpression
 	|	Returns the process that will be executed if the rule matches.
 		return getOpArgument(1)
 	@end
-	
-	@method setExpression v 
+
+	@method setExpression v
 		return setOpArgument(1, v)
 	@end
-	
+
 @end
 
 @class IMatchProcessOperation: IMatchOperation
 |	A match process is a predicate associate to a process, which is typically
 |	used for implementing 'if', 'else', etc.
-	
+
 	@shared ARGS = [ IEvaluable, IProcess ]
-	
-	@method getProcess 
+
+	@method getProcess
 	|	Returns the process that will be executed if the rule matches.
 		return getOpArgument(1)
 	@end
-	
-	@method setProcess v 
+
+	@method setProcess v
 		return setOpArgument(1, v)
 	@end
-	
+
 @end
 
 @class ISelection: IOperation
@@ -1012,79 +1011,79 @@
 |	arguments, which bind a subprocess to a predicate expression.
 	@shared ARGS = [ [IMatchOperation] ]
 
-	@abstract @method addRule evaluable 
+	@abstract @method addRule evaluable
 	|	Adds a rule to this operation.
 
-	@abstract @method getRules 
+	@abstract @method getRules
 	|	Returns the ordered set of rule for this selection.
 
 @end
 
-@class IIteration: IOperation 
+@class IIteration: IOperation
 |	An iteration is the multiple application of a process given a set of
 |	values produced by an iterator.
 	@shared ARGS = [IEvaluable, IEvaluable ]
 
-	@method getIterator 
+	@method getIterator
 	|	Returns this iteration iterator.
 		return getOpArgument(0)
 	@end
 
-	@method getClosure 
+	@method getClosure
 	|	Returns the closure that will be applied to the iterator.
 		return getOpArgument(1)
 	@end
 
 @end
 
-@class IEnumeration: IOperation 
+@class IEnumeration: IOperation
 |	An enumeration produces values between a start and an end value, with the
 |	given step.
 	@shared ARGS = [ IEvaluable, IEvaluable, IEvaluable ]
 
-	@method getStart 
+	@method getStart
 	|	Returns this enumeration start.
 		return getOpArgument(0)
 	@end
-	
-	@method getEnd 
+
+	@method getEnd
 	|	Returns this enumeration end.
 		return getOpArgument(1)
 	@end
-	
-	@method getStep 
+
+	@method getStep
 	|	Returns this enumeration step.
 		return getOpArgument(2)
 	@end
-	
-	@method setStep value 
+
+	@method setStep value
 	|	Sets this enumeration step
 		return setOpArgument(2, value)
 	@end
-	
+
 @end
 
-@class IRepetition: IOperation 
+@class IRepetition: IOperation
 |	A repetition is the repetitive execution of a process according to a
 |	predicate expression which can be modified by the process.
 
 	@shared ARGS = [ IEvaluable, IProcess ]
 
-	@method getCondition 
+	@method getCondition
 	|	Gets the expression that is the condition for this repetition.
 		return getOpArgument(0)
 	@end
-	
-	@method getProcess 
+
+	@method getProcess
 		return getOpArgument(1)
 	@end
-	
+
 @end
 
 @class ITermination: IOperation
 	@shared ARGS = [ IEvaluable ]
 
-	@abstract @method getReturnedEvaluable 
+	@abstract @method getReturnedEvaluable
 	|	Returns the termination return evaluable.
 @end
 
@@ -1100,11 +1099,11 @@
 |	An interruption that raises some value
 	@shared ARGS = [ IEvaluable ]
 
-	@method getValue 
+	@method getValue
 	|	Returns the termination return evaluable.
 		return getOpArgument(0)
 	@end
-	
+
 @end
 
 @class IInterception: IOperation
@@ -1112,55 +1111,55 @@
 |	enclosed process to parent contexts.
 	@shared ARGS = [ IProcess, IProcess, IProcess ]
 
-	@method setProcess process 
+	@method setProcess process
 	|	Sets the process from which interruptions will be intercepted.
 		return setOpArgument(0, process)
 	@end
-	
-	 @method getProcess 
+
+	 @method getProcess
 	|	Returns the process that we will intercept interruptions from.
 		return getOpArgument(0)
 	@end
-	
-	@method setIntercept process 
+
+	@method setIntercept process
 	|	Sets the process that will do the interception
 		return setOpArgument(1, process)
 	@end
-	
-	@method getIntercept 
+
+	@method getIntercept
 	|	Returns the process that will do the interception
 		return getOpArgument(1)
 	@end
-	
-	@method setConclusion process 
+
+	@method setConclusion process
 	|	Sets the process that will conclude the interception (finally)
 		return setOpArgument(2, process)
 	@end
-	
-	@method getConclusion 
+
+	@method getConclusion
 	|	Returns the process that will conclude the interception (finally)
 		return getOpArgument(2)
 	@end
-	
+
 @end
 
 @class IEmbed: IOperation
 |	An embedded operation represents a bit of verbatim code written in
 |	a different language. This allows for embedding code written specifically
 |	in a target language (which may happen for optimizing stuff, for instance).
-	
+
 	@shared ARGS = []
-	
-	@abstract @method getLanguage 
+
+	@abstract @method getLanguage
 	|	Returns the language in which the emebedded code is written.
-		
-	@abstract @method setLanguage language 
+
+	@abstract @method setLanguage language
 	|	Sets the language in which the emebedded code is written.
-	
+
 	@abstract @method getCode
 	|	Returns the embedded code string.
-	
-	@abstract @method setCode code 
+
+	@abstract @method setCode code
 	|	Sets the code of this embed operation.
 @end
 

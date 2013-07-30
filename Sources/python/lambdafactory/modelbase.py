@@ -55,6 +55,14 @@ class Factory:
 		self.ModuleInit    = model.Constants.ModuleInit
 		self.CurrentValue  = model.Constants.CurrentValue
 
+	def _processName( self, name ):
+		"""Will ensure that the given name is returned as a string, expanding
+		the reference if name is an `IReference`."""
+		if isinstance(name, interfaces.IReference):
+			return name.getReferenceName()
+		else:
+			return name
+
 	def _getImplementation( self, name ):
 		if not hasattr(self._module, name ):
 			raise ModelException("Module %s does not implement: %s" % \
@@ -86,32 +94,39 @@ class Factory:
 
 	def createFunction( self, name, parameters=None ):
 		# FIXME: Implement optional parameters for all of that
+		name = self._processName(name)
 		return self._getImplementation("Function")(name, parameters)
 
 	def createMethod( self, name, parameters=None ):
+		name = self._processName(name)
 		return self._getImplementation("InstanceMethod")(name, parameters)
 
 	def createAccessor( self, name, parameters=None ):
+		name = self._processName(name)
 		return self._getImplementation("Accessor")(name, parameters)
 
 	def createMutator( self, name, parameters=None ):
+		name = self._processName(name)
 		return self._getImplementation("Mutator")(name, parameters)
 
-	def createConstructor( self, parameters=None ):
+	def createConstructor( self, name=None, parameters=None ):
+		if parameters is None: parameters = name
 		return self._getImplementation("Constructor")(parameters)
 
 	def createDestructor( self ):
 		return self._getImplementation("Destructor")()
 
 	def createClassMethod( self, name, parameters=() ):
+		name = self._processName(name)
 		return self._getImplementation("ClassMethod")(name, parameters)
 
 	def createClass( self, name, inherited=() ):
+		name = self._processName(name)
 		return self._getImplementation("Class")(name, inherited)
 
 	def createInterface( self, name, inherited=() ):
 		return self._getImplementation("Interface")(name, inherited)
-	
+
 	def createModule( self, name ):
 		return self._getImplementation("Module")(name)
 
@@ -123,10 +138,10 @@ class Factory:
 
 	def importModule( self, name, alias ):
 		return self._getImplementation("ImportModuleOperation")(name, alias)
-			
+
 	def importModules( self, names ):
 		return self._getImplementation("ImportModulesOperation")(names)
-			
+
 	def evaluate( self, evaluable ):
 		if type(evaluable) in (str, unicode): evaluable = self._ref(evaluable)
 		return self._getImplementation("Evaluation")(evaluable)
@@ -147,7 +162,7 @@ class Factory:
 	# FIXME: RENAME ARGS (for invoke) and PARAMS (for functions)
 	def invoke( self, evaluable, *arguments ):
 		return self.invoke_args(evaluable, arguments)
-	
+
 	def invoke_args( self, evaluable, arguments ):
 		arguments = map(self._ensureArg,arguments)
 		# FIXME: Arguments should not be a list, they should be wrapped in an
@@ -165,7 +180,7 @@ class Factory:
 		s = self._getImplementation("Selection")()
 		if rules: map(s.addRule, rules)
 		return s
-	
+
 	def rule( self, evaluable, process ):
 		"""Alias for matchProcess"""
 		return self.matchProcess(evaluable, process)
@@ -184,7 +199,7 @@ class Factory:
 
 	def access( self, target, _index ):
 		return self._getImplementation("AccessOperation")(target, _index)
-	
+
 	def slice( self, target, _start, _end=None ):
 		return self._getImplementation("SliceOperation")(target, _start, _end)
 
@@ -193,31 +208,31 @@ class Factory:
 
 	def returns( self, evaluable ):
 		return self._getImplementation("Termination")(evaluable)
-	
+
 	def breaks( self ):
 		return self._getImplementation("Breaking")()
 
 	def exception( self, exception ):
 		return self._getImplementation("Except")(exception)
-	
+
 	def intercept( self, tryProcess, catchProcess=None, finallyProcess=None ):
 		return self._getImplementation("Interception")(tryProcess, catchProcess, finallyProcess)
-	
+
 	def embed(self, lang, code):
 		return self._getImplementation("Embed")(lang,code)
 
 	def embedTemplate(self, lang, code):
 		return self._getImplementation("EmbedTemplate")(lang,code)
-		
+
 	def comment( self, content ):
 		return self._getImplementation("Comment")(content)
-	
+
 	def doc( self, content ):
 		return self._getImplementation("Documentation")(content)
-	
+
 	def annotation( self, name, content=None ):
 		return self._getImplementation("Annotation")(name, content)
-	
+
 	# FIXME: RENAME TO SYMBOL
 	def _ref( self, name ):
 		return self._getImplementation("Reference")(name)
@@ -226,7 +241,7 @@ class Factory:
 		return self._getImplementation("AbsoluteReference")(name)
 
 	def _symbol(self, name):
-		return self._ref(name)
+		return self._absref(name)
 
 	def _slot( self, name=None, typeinfo=None ):
 		global ANONYMOUS_SLOTS_INDEX
@@ -239,7 +254,7 @@ class Factory:
 		arg = self._getImplementation("Parameter")(name, typeinfo)
 		arg.setOptional(optional)
 		return arg
-	
+
 	def _arg( self, name=None, value=None, asList=False, asMap=False ):
 		param = self._getImplementation("Argument")(name,value)
 		if asList: param.setAsList()
@@ -266,7 +281,7 @@ class Factory:
 
 	def _moduleattr( self, name, typeinfo=None, value=None):
 		return self._getImplementation("ModuleAttribute")(name, typeinfo, value)
-	
+
 	def _op( self, symbol, priority=0 ):
 		return self._getImplementation("Operator")(symbol, priority)
 

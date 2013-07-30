@@ -32,7 +32,7 @@
 	@property slotType
 	@property operations = []
 	@property dataflow
-	
+
  	@constructor name, value, origin, slotType
 		self name = name
 		self value = value
@@ -51,7 +51,7 @@
 	@method getName
 		return name
 	@end
-		
+
 	@method getValue
 		return value
 	@end
@@ -120,7 +120,7 @@
 	@property destinations:<[IDafaFlow]> = []
 	@property slots:<[IDataFlowSlot>     = []
 	@property children:<[IDataFlow]>     = []
-	
+
 	@constructor element, parent=Undefined
 		# FIXME: Resolution should happen in pass, no program required
 		self element  = element
@@ -130,20 +130,20 @@
 		end
 		element setDataFlow(self)
 	@end
-	
+
 	# FIXME: Argument should be 'element' rather than 'value'
 	@method declareArgument  name, value
 		self _declare(name, value, None, ARGUMENT)
 	@end
-	
+
 	@method  declareEnvironment name, value
 		self _declare(name, value, None, ENVIRONMENT)
 	@end
-	
+
 	@method  declareVariable name, value, origin
 		self _declare(name, value, origin, LOCAL)
 	@end
-	
+
 	@method  declareImported  name, value, origin
 		self _declare(name, value, origin, IMPORTED)
 	@end
@@ -238,8 +238,8 @@
 		end
 		return False
 	@end
-	
-	
+
+
 	@method getSlot name
 		return hasSlot (name)
 	@end
@@ -279,7 +279,7 @@
 		assert (not (child in children))
 		children append(child)
 	@end
-	
+
 	@method getChildren
 		return children
 	@end
@@ -346,7 +346,7 @@
 		return tuple([None, None])
 	@end
 
-	
+
 	@method defines name
 		var slot = getSlot(name)
 		if slot
@@ -389,17 +389,17 @@
 	@property sourceLocation    = [-1,-1,-1]
 	@property dataflow          = Undefined
 	@property parent            = Undefined
-	
+
 	@constructor name=Undefined
 		self name = name
 		id   = COUNT
 		COUNT += 1
 	@end
-	
+
 	@method setName name
 		self name = name
 	@end
-	
+
 	@method getName
 		assert (isinstance(self,IReferencable) or isinstance(self,IAnnotation))
 		return self name
@@ -433,7 +433,7 @@
 		end
 		return self
 	@end
-	
+
 	@method setSource source
 		self source = source
 	@end
@@ -504,20 +504,20 @@
 	@method getDocumentation
 		return getAnnotation "documentation"
 	@end
-	
+
 	@method getDataFlow
 		return dataflow
 	@end
-	
+
 	@method setDataFlow f
 		dataflow = f
 	@end
-	
+
 	# FIXME: To deprecate
 	@method hasDataFlow
 		return dataflow
 	@end
-	
+
 	@method ownsDataFlow
 		raise "Not implemented"
 	@end
@@ -528,21 +528,21 @@
 		end
 		return abstractType
 	@end
-	
+
 	@method setAbstractType abstractType
 		self abstractType = abstractType
 	@end
-	
+
 	@method getResultAbstractType
 		# TODO: Assert this is evaluable
 		return resultAbtractType
 	@end
-	
+
 	@method setResultAbstractType abstractType
 		# TODO: Assert this is evaluable
 		resultAbtractType = abstractType
 	@end
-	
+
 	@method prettyList
 		return pprint pprint(asList())
 	@end
@@ -583,14 +583,14 @@
 @class Annotation: Element, IAnnotation
 
 	@property content
-	
+
 	@constructor name=None, content=None
 		#REWRITE: super()
 		Element __init__ ( self, name )
 		self name = name
 		self content = content
 	@end
-	
+
 	@method getContent
 		return content
 	@end
@@ -622,12 +622,12 @@
 # ------------------------------------------------------------------------------
 
 @class Context: Element
-	
+
 	@property slots     = []
 	@property slotIndex = {}
 	@property parent    = Undefined
 	@property abstract  = False
-	
+
 	@constructor name=Undefined
 		#REWRITE: super( name )
 		Element __init__ ( self,  name)
@@ -636,11 +636,11 @@
 	@method setAbstract isAbstract
 		abstract = isAbstract
 	@end
-	
+
 	@method isAbstract
 		return abstract
 	@end
-	
+
 	@method setSlot name, evaluable, assignParent=True
 		if not isinstance(evaluable, IAssignable)
 			raise ERR_SLOT_VALUE_NOT_ASSIGNABLE
@@ -684,7 +684,7 @@
 		end
 		raise ERR_SLOT_NOT_FOUND
 	@end
-	
+
 	@method getSlots
 		return slots
 	@end
@@ -700,7 +700,7 @@
 	@method setParent context:Context
 		parent = context
 	@end
-	
+
 	@method getParent
 		return parent
 	@end
@@ -725,7 +725,7 @@
 @class Class: Context, IClass, IReferencable, IAssignable
 
 	@property parentClasses:<[IClass]> = []
-	
+
 	@constructor name=Undefined, parentClasses=Undefined
 		#REWRITE: super( name )
 		Context __init__ ( self,  name)
@@ -733,7 +733,7 @@
 			setParentClasses(parentClasses)
 		end
 	@end
-	
+
 	@method slotValuesImplementing interface, without=Undefined
 		var res = []
 		for slot in getSlots()
@@ -762,7 +762,7 @@
 	@method getAttributeMethods
 		return slotValuesImplementing(IAttributeMethod)
 	@end
-	
+
 	@method getAccessors
 		return slotValuesImplementing(IAccessor)
 	@end
@@ -778,27 +778,27 @@
 	@method getOperations
 		return slotValuesImplementing(IInvocable)
 	@end
-	
+
 	@method getConstructors
 		return slotValuesImplementing(IConstructor)
 	@end
-	
+
 	@method getDestructors
 		return slotValuesImplementing(IDestructor)
 	@end
-	
+
 	@method getMethods
 		return slotValuesImplementing( IMethod)
 	@end
-	
+
 	@method getInstanceMethods
 		return slotValuesImplementing(IInstanceMethod)
 	@end
-	
+
 	@method getClassMethods
 		return slotValuesImplementing(IClassMethod)
 	@end
-		
+
 	@method getParentClassesRefs
 		return parentClasses
 	@end
@@ -814,10 +814,13 @@
 	@end
 
 	@method getInheritedLike protocol
-		res = {}
-		for slot in getDataFlow() getSourcesSlots()
-			if isinstance(slot getValue(), protocol)
-				res[slot getName()] = slot getValue()
+		var res  = {}
+		var flow = getDataFlow ()
+		if flow
+			for slot in flow getSourcesSlots()
+				if isinstance(slot getValue(), protocol)
+					res[slot getName()] = slot getValue()
+				end
 			end
 		end
 		return res
@@ -825,8 +828,11 @@
 
 	@method getInheritedSlots
 		var r = []
-		for slot in getDataFlow() getSourcesSlots()
-			r append ([slot getName(), slot getValue()])
+		var flow = getDataFlow()
+		if flow
+			for slot in flow getSourcesSlots()
+				r append ([slot getName(), slot getValue()])
+			end
 		end
 		return r
 	@end
@@ -849,12 +855,12 @@
 
 	@property importOperations = []
 	@property imported = False
-	
+
 	@constructor name=Undefined
 		#REWRITE: super( name )
 		Context __init__ ( self,  name)
 	@end
-	
+
 	@method getParentName
 	| Returns 'grandparentname.parentname'
 		return "." join (name split "." [0:-1]) or None
@@ -869,7 +875,7 @@
 	@method isImported
 		return imported
 	@end
-	
+
 	@method setImported value=True
 		imported = value
 	@end
@@ -878,7 +884,7 @@
 		importOperations append (operation)
 		operation setParent ( self )
 	@end
-	
+
 	@method mergeWith module
 		for op in module getImportOperations ()
 			op detach ()
@@ -942,31 +948,31 @@
 				return module
 			end
 		end
-	@end 
+	@end
 
 	@method getModules
 		return modules
-	@end 
-	
+	@end
+
 	@method getModuleNames
 		var res = []
 		for m in modules
 			res append ( m getName() )
 		end
 		return res
-	@end 
+	@end
 
 	@method setFactory factory
 	| Sets the factory that was used to create this program
 		self factory = factory
 	@end
-	
+
 	@method getFactory
 	| Gets the factory that was used to create this program. It can be
 	| used to create more elements in the program.
 		return factory
 	@end
-	
+
 @end
 
 # ------------------------------------------------------------------------------
@@ -982,7 +988,7 @@
 		#REWRITE: super(name)
 		Context __init__ ( self,  name)
 	@end
-	
+
 	@method addOperation operation:IOperation
 		if isAbstract()
 			raise ERR_ABSTRACT_PROCESS_NO_OPERATIONS
@@ -1015,7 +1021,7 @@
 @end
 
 @class Closure: Process, IAssignable, IClosure, IEvaluable
-	
+
 	@property parameters = Undefined
 	@property returnTypeDescription = Undefined
 
@@ -1036,7 +1042,7 @@
 			end
 		end
 	@end
-	
+
 	@method  getParameters
 		return parameters
 	@end
@@ -1045,7 +1051,7 @@
 		# FIXME: This is deprecated, due to confusion between Parameter & Argument
 		return parameters
 	@end
-	
+
 	@method getArgument index
 		# FIXME: This is deprecated, due to confusion between Parameter & Argument
 		return parameters[index]
@@ -1125,7 +1131,7 @@
 
 	@shared   ARGS:List = Undefined
 	@property opArguments:<[IElement]> = []
-	
+
 	@constructor arguments...
 		Element __init__ ( self )
 		self setOpArguments(arguments)
@@ -1205,7 +1211,7 @@
 	@method getOpArguments
 		return opArguments
 	@end
-	
+
 	@method getOpArgument i
 		return opArguments[i]
 	@end
@@ -1232,11 +1238,11 @@
 	@method getTarget
 		return self getOpArgument(0)
 	@end
-	
+
 	@method getAssignedValue
 		return self getOpArgument(1)
 	@end
-	
+
 @end
 
 @class Allocation: Operation, IAllocation
@@ -1248,7 +1254,7 @@
 	@method getDefaultValue
 		return self getOpArgument(1)
 	@end
-	
+
 @end
 
 @class Resolution: Operation, IResolution
@@ -1256,7 +1262,7 @@
 	@method getReference
 		return self getOpArgument(0)
 	@end
-	
+
 	@method getContext
 		return self getOpArgument(1)
 	@end
@@ -1269,7 +1275,7 @@
 		|Operation.__init__(self, *arguments)
 		@end
 	@end
-	
+
 @end
 
 @class Invocation: Operation, IInvocation
@@ -1282,7 +1288,7 @@
 		end
 		return True
 	@end
-	
+
 @end
 
 @class Instanciation: Operation, IInstanciation
@@ -1357,13 +1363,13 @@
 @end
 
 @class ImportOperation: Operation, IImportOperation
-	
+
 	@constructor arguments...
 		@embed Python
 		|Operation.__init__(self, *arguments)
 		@end
 	@end
-	
+
 @end
 
 @class ImportSymbolOperation: Operation, IImportSymbolOperation
@@ -1373,50 +1379,50 @@
 		|Operation.__init__(self, *arguments)
 		@end
 	@end
-	
+
 @end
 
 @class ImportSymbolsOperation: Operation, IImportSymbolsOperation
-	
+
 	@constructor arguments...
 		@embed Python
 		|Operation.__init__(self, *arguments)
 		@end
 	@end
-	
+
 @end
 
 @class ImportModuleOperation: Operation, IImportModuleOperation
-	
+
 	@constructor arguments...
 		@embed Python
 		|Operation.__init__(self, *arguments)
 		@end
 	@end
-	
+
 @end
 
 @class ImportModulesOperation: Operation, IImportModulesOperation
-	
+
 	@constructor arguments...
 		@embed Python
 		|Operation.__init__(self, *arguments)
 		@end
 	@end
-	
+
 @end
 
 @class Embed: Operation, IEmbed
 
 	@property language = Undefined
 	@property code     = None
-	
+
 	@constructor lang=None, code=None
 		Operation __init__( self )
 		self language = lang
 		self code = code
 	@end
-	
+
 	@method getLanguage
 		return language
 	@end
@@ -1424,7 +1430,7 @@
 	@method setLanguage language
 		self language = language
 	@end
-	
+
 	@method getCode
 		return self code
 	@end
@@ -1455,7 +1461,7 @@
 		Value __init__ (self)
 		self actualValue = actualValue
 	@end
-	
+
 	@method getActualValue
 		return actualValue
 	@end
@@ -1478,7 +1484,7 @@
 @class List: Value, IList
 
 	@property values = []
-	
+
 	@constructor
 		Value __init__ (self)
 	@end
@@ -1487,7 +1493,7 @@
 		values append (value)
 		value setParent(self)
 	@end
-	
+
 	@method getValues
 		return values
 	@end
@@ -1511,15 +1517,15 @@
 @class Dict: Value, IDict
 
 	@property items:<[(IElement,IElement)]> = []
-	
+
 	@constructor
 		Value __init__(self)
 	@end
-	
+
 	@method setValue key:IElement, value:IElement
 		items append([key,value])
 	@end
-	
+
 	@method getItems
 		return items
 	@end
@@ -1529,16 +1535,20 @@
 @class Reference: Value, IReference
 
 	@property referenceName:String
-	
+
 	@constructor name:String
 		Value __init__ (self)
 		self referenceName = name
 	@end
-	
+
+	@method getName
+		return getReferenceName ()
+	@end
+
 	@method getReferenceName
 		return self referenceName
 	@end
-	
+
 	@method asList
 		return tuple([self __class__ __name__, referenceName])
 	@end
@@ -1554,11 +1564,11 @@
 @class AbsoluteReference: Reference, IAbsoluteReference
 
 	@property referenceName:String
-	
+
 	@constructor name:String
 		Reference __init__ (self, name)
 	@end
-		
+
 @end
 
 @class Operator: Reference, IOperator
@@ -1569,11 +1579,11 @@
 		Reference __init__ (self, operator )
 		setPriority(priority)
 	@end
-	
+
 	@method getPriority
 		return priority
 	@end
-	
+
 	@method setPriority priority
 		self priority = priority
 	@end
@@ -1590,7 +1600,7 @@
 
 	@property defaultValue:IElement = None
 	@property typeDescription = Undefined
-	
+
 	@constructor name, typeDescription
 		Element __init__ ( self, name )
 		self typeDescription = typeDescription
@@ -1659,25 +1669,25 @@
 	@property value   = None
 	@property _asList = False
 	@property _asMap  = False
-	
+
 	@constructor name=None, value=None
 		Element __init__ ( self, name )
 		self name  = name
 		self value = value
 	@end
-	
+
 	@method isByName
 		return name != None
 	@end
-	
+
 	@method getName
 		return name
 	@end
-	
+
 	@method setByName n:String
 		self name = n
 	@end
-	
+
 	@method getValue
 		return value
 	@end
@@ -1686,24 +1696,24 @@
 	| An alias for getValue()
 		return value
 	@end
-	
+
 	@method setValue v
 		value = v
 	@end
-	
+
 	@method isAsList
 		return _asList
 	@end
-	
+
 	@method isAsMap
 		return _asMap
 	@end
-	
+
 	@method setAsList v:Boolean=True
 		_asMap  = False
 		_asList = True
 	@end
-	
+
 	@method setAsMap  v:Boolean=True
 		_asMap  = True
 		_asList = False
@@ -1719,11 +1729,11 @@
 		ref_copy _asMap  = _asMap
 		return ref_copy
 	@end
-	
+
 @end
 
 @class Attribute: Slot, IAttribute
-	
+
 	@constructor name, typeDescription, value=None
 		Slot __init__ (self, name, typeDescription)
 		setDefaultValue ( value )

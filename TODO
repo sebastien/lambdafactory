@@ -1,3 +1,32 @@
+NEXT VERSION
+============
+
+Cache for system-wide parsing and compilation:
+
+	use the fastest signature possible. Could use (filename,mtime) instead of sha
+	Pre-parsing     cache (LFVERSION, SHA1, DATA)
+	Pre-compilation cache (LFVERSION, SHA1, DATA)
+
+Fixes:
+
+	local dataflow for lambda: they are 
+
+Updates
+
+	Binding primitive types to functions: {} -> createMap, [] -> Create array
+	and let the backend choose what to do.
+
+	Support for _ __ _0 _1 _2, etc automatic argumnents
+
+	__module__, __class__, __instance__, __closure___ prefixes for absolute reference
+
+	Support for "yield" and [_ for _ in _ if _]
+
+	Support for @singleton
+
+	Support for dot.notation in adddition to dot notation
+
+
 URGENT
 ======
 
