@@ -5,7 +5,7 @@
 # License   : Revised BSD License
 # -----------------------------------------------------------------------------
 # Creation  : 02-Nov-2006
-# Last mod  : 22-Jan-2013
+# Last mod  : 16-Aug-2013
 # -----------------------------------------------------------------------------
 
 # TODO: When constructor is empty, should assign default attributes anyway
@@ -218,12 +218,12 @@ class Writer(AbstractWriter):
 				invoke_parent_constructor = "".join([
 					"\tif (true) {var __super__=",
 					"%s.getSuper(%s.getParent());" % (self.jsSelf, self.getAbsoluteName(classElement)),
-					"__super__.initialize.apply(__super__,arguments)}"
+					"__super__.initialize.apply(__super__,arguments);}"
 				])
 			for a in classElement.getAttributes():
 				if not a.getDefaultValue(): continue
 				constructor_attributes.append(
-					"if (typeof(%s.%s)=='undefined') {%s.%s = %s};" % (
+					"if (typeof(%s.%s)=='undefined') {%s.%s = %s;};" % (
 						self.jsSelf, self._rewriteSymbol(a.getName()),
 						self.jsSelf, self._rewriteSymbol(a.getName()),
 						self.write(a.getDefaultValue())
@@ -235,7 +235,7 @@ class Writer(AbstractWriter):
 					self.options["ENABLE_METADATA"] and "initialize:_meta_(function(){" \
 					or "initialize:function(){"
 				),
-				["var %s=this" % (self.jsSelf)],
+				["var %s=this;" % (self.jsSelf)],
 				constructor_attributes or None,
 				invoke_parent_constructor,
 				(
@@ -279,7 +279,7 @@ class Writer(AbstractWriter):
 				method_name,
 				", ".join(map(self.write, methodElement.getParameters()))
 			),
-			["var %s=this" % (self.jsSelf)],
+			["var %s=this;" % (self.jsSelf)],
 			self._writeClosureArguments(methodElement),
 			self.writeFunctionWhen(methodElement),
 			map(self.write, methodElement.getOperations()),
@@ -358,7 +358,7 @@ class Writer(AbstractWriter):
 		# FIXME: Same as onClass
 		for a in current_class.getAttributes():
 			if not a.getDefaultValue(): continue
-			attributes.append("if (typeof(%s.%s)=='undefined') {%s.%s = %s};" % (
+			attributes.append("if (typeof(%s.%s)=='undefined') {%s.%s = %s;};" % (
 				self.jsSelf, self._rewriteSymbol(a.getName()),
 				self.jsSelf, self._rewriteSymbol(a.getName()),
 				self.write(a.getDefaultValue()))
@@ -371,7 +371,7 @@ class Writer(AbstractWriter):
 			)  % (
 				", ".join(map(self.write, element.getParameters()))
 			),
-			["var %s=this" % (self.jsSelf)],
+			["var %s=this;" % (self.jsSelf)],
 			self._writeClosureArguments(element),
 			attributes or None,
 			map(self.write, element.getOperations()),
