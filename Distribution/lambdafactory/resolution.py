@@ -29,7 +29,7 @@ class BasicDataFlow(Pass):
 	2) Properly flow classes (so that resolution in parents can happen)
 	3) Attaches operations that reference a value to the original slot (this
 	prepares the path for the typing pass)"""
-	HANDLES = [interfaces.IProgram, interfaces.IModule, interfaces.IClass, interfaces.IMethod, interfaces.IClosure, interfaces.IProcess, interfaces.IContext, interfaces.IAllocation, interfaces.IOperation, interfaces.IParameter, interfaces.IValue]
+	HANDLES = [interfaces.IProgram, interfaces.IModule, interfaces.IClass, interfaces.IMethod, interfaces.IClosure, interfaces.IProcess, interfaces.IContext, interfaces.IAllocation, interfaces.IOperation, interfaces.IArgument, interfaces.IValue]
 	NAME = 'Resolution'
 	def __init__ (self):
 		Pass.__init__(self)
@@ -106,7 +106,7 @@ class BasicDataFlow(Pass):
 				elif True:
 					self.walk(op_arg)
 	
-	def onParameter(self, element):
+	def onArgument(self, element):
 		value=element.getValue()
 	
 	def onValue(self, element):

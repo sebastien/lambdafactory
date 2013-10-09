@@ -417,9 +417,15 @@ class Writer(AbstractWriter):
 		elif symbolName == "super":
 			assert self.resolve("self")[0], "Super must be used inside method"
 			# FIXME: Should check that the element has a method in parent scope
-			parent = self.getCurrentClassParents()
-			if parent:
-				return self.getAbsoluteNameFromModule(parent[0], self.getCurrentModule())
+			parents = self.getCurrentClassParents()
+			if parents:
+				absolute_name = self.getAbsoluteNameFromModule(parents[0], self.getCurrentModule())
+				if not absolute_name:
+					# In this case, it means we couldn't resolve the parent, so we'll just write it
+					# as-is
+					return parents[0].getReferenceName()
+				else:
+					return absolute_name
 			else:
 				return "%s.__bases__[0]" % (
 					self.getAbsoluteNameFromModule(self.getCurrentClass(), self.getCurrentModule())

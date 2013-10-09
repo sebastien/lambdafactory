@@ -379,11 +379,11 @@ class ISlot(IReferencable):
 	
 
 class IParameter(ISlot):
-	"""Parameters are slots which can be interpreted in different ways.
+	"""Parameters defined slots that will receive arguments upon invocation.
 	
-	When an argument is _optional_, it does not need to be defined in the
-	invocation. When an argument is _variable_, it means it references the
-	rest of the arguments lists. When an argument is _keywords_, it will reference
+	When a parameter is _optional_, it does not need to be defined in the
+	invocation. When it is is _variable_, it means it references the
+	rest of the arguments lists. When it is _keywords_, it will reference
 	the named arguments of the rest of the arguments list."""
 	def isOptional(self):
 		"""Tells if the argument is optional or not."""
@@ -414,15 +414,20 @@ class IParameter(ISlot):
 		raise Exception("Abstract method IParameter.isKeywordsRest not implemented in: " + str(self))
 	
 	def setDefaultValue(self, value):
-		"""Sets the @methodault value for this argument."""
+		"""Sets the default value for this argument."""
 		raise Exception("Abstract method IParameter.setDefaultValue not implemented in: " + str(self))
 	
 	def getDefaultValue(self):
-		"""Returns the @methodault value for this slot."""
+		"""Returns the default value for this slot."""
 		raise Exception("Abstract method IParameter.getDefaultValue not implemented in: " + str(self))
 	
 
-class IArgument(IElement, ISlot):
+class IArgument(IElement, ISlot, IEvaluable):
+	"""An argument is an actual value that is given in function
+	invocation. As a result, arguments encapsulate a value
+	with a name and extra information, such as wether they
+	are passed as a list of arguments (Pythons's `*args`)
+	or as a map of arguments (Python's `**args`)."""
 	def isByName(self):
 		raise Exception("Abstract method IArgument.isByName not implemented in: " + str(self))
 	
@@ -585,7 +590,7 @@ class IModule(IContext, IReferencable, IAssignable, IConstruct):
 		raise Exception("Abstract method IModule.addImportOperation not implemented in: " + str(self))
 	
 	def getImportOperations(self):
-		"""Returns the list of import operations declared in this module """
+		"""Returns the list of import operations declared in this module"""
 		raise Exception("Abstract method IModule.getImportOperations not implemented in: " + str(self))
 	
 	def getClasses(self):
@@ -594,7 +599,7 @@ class IModule(IContext, IReferencable, IAssignable, IConstruct):
 		raise Exception("Abstract method IModule.getClasses not implemented in: " + str(self))
 	
 	def getParentName(self):
-		"""Returns the parent name of this module (if any) """
+		"""Returns the parent name of this module (if any)"""
 		raise Exception("Abstract method IModule.getParentName not implemented in: " + str(self))
 	
 	def mergeWith(self, module):

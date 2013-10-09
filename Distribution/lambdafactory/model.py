@@ -588,16 +588,20 @@ class Class(Context, IClass, IReferencable, IAssignable):
 			self.parentClasses.append(the_class)
 	
 	def getInheritedLike(self, protocol):
-		res = {}
-		for slot in self.getDataFlow().getSourcesSlots():
-			if isinstance(slot.getValue(), protocol):
-				res[slot.getName()] = slot.getValue()
+		res={}
+		flow=self.getDataFlow()
+		if flow:
+			for slot in flow.getSourcesSlots():
+				if isinstance(slot.getValue(), protocol):
+					res[slot.getName()] = slot.getValue()
 		return res
 	
 	def getInheritedSlots(self):
 		r=[]
-		for slot in self.getDataFlow().getSourcesSlots():
-			r.append([slot.getName(), slot.getValue()])
+		flow=self.getDataFlow()
+		if flow:
+			for slot in flow.getSourcesSlots():
+				r.append([slot.getName(), slot.getValue()])
 		return r
 	
 	def getInheritedClassMethods(self):
@@ -1100,6 +1104,9 @@ class Reference(Value, IReference):
 		Value.__init__(self)
 		self.referenceName = name
 	
+	def getName(self):
+		return self.getReferenceName()
+	
 	def getReferenceName(self):
 		return self.referenceName
 	
@@ -1165,6 +1172,10 @@ class Parameter(Slot, IParameter):
 	
 	def setOptional(self, value):
 		self.optional = (value and value)
+		if isinstance(value, IElement):
+			self.setDefaultValue(value)
+		elif True:
+			self.setDefaultValue(None)
 	
 	def isRest(self):
 		return self.rest

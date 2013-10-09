@@ -5,7 +5,7 @@
 # License   : Revised BSD License
 # -----------------------------------------------------------------------------
 # Creation  : 02-Nov-2006
-# Last mod  : 22-Jan-2013
+# Last mod  : 09-Oct-2013
 # -----------------------------------------------------------------------------
 
 # TODO: When constructor is empty, should assign default attributes anyway
@@ -55,6 +55,7 @@ class Writer(AbstractWriter):
 		self.jsPrefix = ""
 		self.jsCore   = "extend."
 		self.jsSelf   = "self"
+		self.jsModule = "__module__"
 		self.supportedEmbedLanguages = ["ecmascript", "js", "javascript"]
 		self.inInvocation = False
 		self.options = {}
@@ -120,7 +121,7 @@ class Writer(AbstractWriter):
 			self.options["ENABLE_METADATA"] and "function _meta_(v,m){var ms=v['__meta__']||{};for(var k in m){ms[k]=m[k]};v['__meta__']=ms;return v}" or "",
 			"var %s=%s||{};" % (module_name, module_name),
 			"(function(%s){" % (module_name),
-			"var %s=%s" % (self.jsSelf, module_name),
+			"var %s=%s=%s" % (self.jsSelf, self.jsModule, module_name),
 		]
 		version = moduleElement.getAnnotation("version")
 		if version:
@@ -128,7 +129,7 @@ class Writer(AbstractWriter):
 		for name, value in moduleElement.getSlots():
 			if isinstance(value, interfaces.IModuleAttribute):
 				code.extend(["%s.%s" % (self._rewriteSymbol(moduleElement.getName()), self.write(value))])
-			else: 
+			else:
 				# NOTE: Some slot values may be shadowed, in which case they
 				# won't return any value
 				value_code = self.write(value)
@@ -168,8 +169,8 @@ class Writer(AbstractWriter):
 		for name, method in classElement.getInheritedClassMethods().items():
 			# FIXME: Maybe use wrapper instead
 			classOperations[name] = self._writeClassMethodProxy(classElement, method)
-		# Here, we've got to cheat a little bit. Each class method will 
-		# generate an '_imp' suffixed method that will be invoked by the 
+		# Here, we've got to cheat a little bit. Each class method will
+		# generate an '_imp' suffixed method that will be invoked by the
 		for meth in classElement.getClassMethods():
 			classOperations[self._rewriteSymbol(meth.getName())] = meth
 		classOperations = classOperations.values()
@@ -218,12 +219,12 @@ class Writer(AbstractWriter):
 				invoke_parent_constructor = "".join([
 					"\tif (true) {var __super__=",
 					"%s.getSuper(%s.getParent());" % (self.jsSelf, self.getAbsoluteName(classElement)),
-					"__super__.initialize.apply(__super__,arguments)}"
+					"__super__.initialize.apply(__super__,arguments);}"
 				])
 			for a in classElement.getAttributes():
 				if not a.getDefaultValue(): continue
 				constructor_attributes.append(
-					"if (typeof(%s.%s)=='undefined') {%s.%s = %s};" % (
+					"if (typeof(%s.%s)=='undefined') {%s.%s = %s;};" % (
 						self.jsSelf, self._rewriteSymbol(a.getName()),
 						self.jsSelf, self._rewriteSymbol(a.getName()),
 						self.write(a.getDefaultValue())
@@ -235,7 +236,7 @@ class Writer(AbstractWriter):
 					self.options["ENABLE_METADATA"] and "initialize:_meta_(function(){" \
 					or "initialize:function(){"
 				),
-				["var %s=this" % (self.jsSelf)],
+				["var %s=this;" % (self.jsSelf)],
 				constructor_attributes or None,
 				invoke_parent_constructor,
 				(
@@ -279,7 +280,7 @@ class Writer(AbstractWriter):
 				method_name,
 				", ".join(map(self.write, methodElement.getParameters()))
 			),
-			["var %s=this" % (self.jsSelf)],
+			["var %s=this;" % (self.jsSelf)],
 			self._writeClosureArguments(methodElement),
 			self.writeFunctionWhen(methodElement),
 			map(self.write, methodElement.getOperations()),
@@ -327,7 +328,7 @@ class Writer(AbstractWriter):
 				"},%s)" % ( self._writeFunctionMeta(methodElement))
 			)
 		)
-		
+
 	def _writeClassMethodProxy(self, currentClass, inheritedMethodElement):
 		"""This function is used to wrap class methods inherited from parent
 		classes, so that inheriting operations from parent classes works
@@ -358,9 +359,9 @@ class Writer(AbstractWriter):
 		# FIXME: Same as onClass
 		for a in current_class.getAttributes():
 			if not a.getDefaultValue(): continue
-			attributes.append("if (typeof(%s.%s)=='undefined') {%s.%s = %s};" % (
-				self.jsSelf, self._rewriteSymbol(a.getName()), 
-				self.jsSelf, self._rewriteSymbol(a.getName()), 
+			attributes.append("if (typeof(%s.%s)=='undefined') {%s.%s = %s;};" % (
+				self.jsSelf, self._rewriteSymbol(a.getName()),
+				self.jsSelf, self._rewriteSymbol(a.getName()),
 				self.write(a.getDefaultValue()))
 			)
 		return self._format(
@@ -371,7 +372,7 @@ class Writer(AbstractWriter):
 			)  % (
 				", ".join(map(self.write, element.getParameters()))
 			),
-			["var %s=this" % (self.jsSelf)],
+			["var %s=this;" % (self.jsSelf)],
 			self._writeClosureArguments(element),
 			attributes or None,
 			map(self.write, element.getOperations()),
@@ -396,7 +397,7 @@ class Writer(AbstractWriter):
 				"},%s)" % ( self._writeFunctionMeta(closure))
 			)
 		)
-	
+
 	def onClosureBody(self, closure):
 		return self._format('{', map(self.write, closure.getOperations()), '}')
 
@@ -405,20 +406,20 @@ class Writer(AbstractWriter):
 		i = 0
 		l = len(closure.getParameters())
 		result = []
-		for argument in closure.getParameters():
-			arg_name = self.write(argument)
-			if argument.isRest():
+		for param in closure.getParameters():
+			arg_name = self.write(param)
+			if param.isRest():
 				assert i >= l - 2
 				result.append("%s = %s(arguments,%d)" % (
 					arg_name,
 					self.jsPrefix + self.jsCore + "sliceArguments",
 					i
 				))
-			if not (argument.getDefaultValue() is None):
+			if not (param.getDefaultValue() is None):
 				result.append("%s = %s === undefined ? %s : %s" % (
 					arg_name,
 					arg_name,
-					self.write(argument.getDefaultValue()),
+					self.write(param.getDefaultValue()),
 					arg_name
 				))
 			i += 1
@@ -435,7 +436,7 @@ class Writer(AbstractWriter):
 		for a in function.getAnnotations(withName="post"):
 			res.append("if (!(%s)) {throw new Exception('Assertion failed')}" % (self.write(a.getContent())))
 		return self._format(res) or None
-	
+
 	def onFunction( self, function ):
 		"""Writes a function element."""
 		parent = function.getParent()
@@ -536,6 +537,10 @@ class Writer(AbstractWriter):
 			return self.jsSelf
 		if symbol_name == "target":
 			return "this"
+		if symbol_name == "__class__":
+			return self._rewriteSymbol(self.getCurrentClass().getName())
+		if symbol_name == "__module__":
+			return self._rewriteSymbol(self.getCurrentModule().getName())
 		elif symbol_name == "Undefined":
 			return "undefined"
 		elif symbol_name == "True":
@@ -667,7 +672,7 @@ class Writer(AbstractWriter):
 		else:
 			# FIXME: Raise an error, because JavaScript only allow strings as keys
 			return "(%s)" % (self.write(key))
-		
+
 	def onDict( self, element ):
 		# We test the keys and see if we only have litterals or not
 		only_litterals = True
@@ -708,8 +713,8 @@ class Writer(AbstractWriter):
 
 	def onEnumeration( self, operation ):
 		"""Writes an enumeration operation."""
-		start = operation.getStart() 
-		end   = operation.getEnd() 
+		start = operation.getStart()
+		end   = operation.getEnd()
 		if isinstance(start, interfaces.ILiteral): start = self.write(start)
 		else: start = "(%s)" % (self.write(start))
 		if isinstance(end, interfaces.ILiteral): end = self.write(end)
@@ -796,13 +801,13 @@ class Writer(AbstractWriter):
 		assert isinstance(target, interfaces.IResolution)
 		args["self"] = "self_" + str(time.time()).replace(".","_") + str(random.randint(0,100))
 		args["self_once"] = self.write(target.getContext())
-		vars = [] 
+		vars = []
 		for var in self.RE_TEMPLATE.findall(template):
 			var = var[2:-1]
 			vars.append(var)
 			if var[0] == "_":
 				if var not in args:
-					args[var] = "var_" + str(time.time()).replace(".","_") + str(random.randint(0,100)) 
+					args[var] = "var_" + str(time.time()).replace(".","_") + str(random.randint(0,100))
 		return "%s%s" % (
 			"self" in vars and "%s=%s\n" % (args["self"],self.write(args["self_once"])) or "",
 			string.Template(template).substitute(args)
@@ -853,7 +858,7 @@ class Writer(AbstractWriter):
 					normal_str,
 					extra_str
 				)
-	
+
 	def onArgument( self, argument ):
 		r = self.write(argument.getValue())
 		if argument.isAsMap():
@@ -891,7 +896,7 @@ class Writer(AbstractWriter):
 		for r in rules:
 			text += ")"
 		return text
-	
+
 	def onSelection( self, selection ):
 		# If we are in an assignataion and allocation which is contained in a
 		# closure (because we can have a closure being assigned to something.)
@@ -902,8 +907,8 @@ class Writer(AbstractWriter):
 		result = []
 		for i in range(0,len(rules)):
 			rule = rules[i]
-			if isinstance(rule, interfaces.IMatchProcessOperation):	
-				process = self.write(rule.getProcess()) 
+			if isinstance(rule, interfaces.IMatchProcessOperation):
+				process = self.write(rule.getProcess())
 			else:
 				assert isinstance(rule, interfaces.IMatchExpressionOperation)
 				process = "{%s}" % (self.write(rule.getExpression()))
@@ -953,7 +958,7 @@ class Writer(AbstractWriter):
 			if start > end:
 				if step > 0: step =  -step
 				comp = ">"
-			# If start <= end then step >  0 
+			# If start <= end then step >  0
 			else:
 				if step < 0: step = -step
 			args  = map(lambda a:self._rewriteSymbol(a.getName()), closure.getParameters())
@@ -1025,12 +1030,12 @@ class Writer(AbstractWriter):
 
 	def onBreaking( self, breking ):
 		"""Writes a break operation."""
-		return "return false"
-	
+		return "throw extend.FLOW_BREAK;"
+
 	def onExcept( self, exception ):
 		"""Writes a except operation."""
 		return "throw " + self.write(exception.getValue())
-	
+
 	def onInterception( self, interception ):
 		"""Writes an interception operation."""
 		try_block   = interception.getProcess()
