@@ -5,7 +5,7 @@
 # License   : Revised BSD License
 # -----------------------------------------------------------------------------
 # Creation  : 02-Nov-2006
-# Last mod  : 16-Aug-2013
+# Last mod  : 09-Oct-2013
 # -----------------------------------------------------------------------------
 
 # TODO: When constructor is empty, should assign default attributes anyway
@@ -55,6 +55,7 @@ class Writer(AbstractWriter):
 		self.jsPrefix = ""
 		self.jsCore   = "extend."
 		self.jsSelf   = "self"
+		self.jsModule = "__module__"
 		self.supportedEmbedLanguages = ["ecmascript", "js", "javascript"]
 		self.inInvocation = False
 		self.options = {}
@@ -120,7 +121,7 @@ class Writer(AbstractWriter):
 			self.options["ENABLE_METADATA"] and "function _meta_(v,m){var ms=v['__meta__']||{};for(var k in m){ms[k]=m[k]};v['__meta__']=ms;return v}" or "",
 			"var %s=%s||{};" % (module_name, module_name),
 			"(function(%s){" % (module_name),
-			"var %s=%s" % (self.jsSelf, module_name),
+			"var %s=%s=%s" % (self.jsSelf, self.jsModule, module_name),
 		]
 		version = moduleElement.getAnnotation("version")
 		if version:
@@ -536,6 +537,10 @@ class Writer(AbstractWriter):
 			return self.jsSelf
 		if symbol_name == "target":
 			return "this"
+		if symbol_name == "__class__":
+			return self._rewriteSymbol(self.getCurrentClass().getName())
+		if symbol_name == "__module__":
+			return self._rewriteSymbol(self.getCurrentModule().getName())
 		elif symbol_name == "Undefined":
 			return "undefined"
 		elif symbol_name == "True":
