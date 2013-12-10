@@ -22,7 +22,7 @@
 | so that we ensure that the DF remains consitent.
 |
 | Rules:
-| 
+|
 | - DataFlows are created for Context and Processes
 | - DataFlowSlots begin with nothing or an allocation
 | - DataFlowSlots operations are the operations that reference the slot (stage 2)
@@ -79,9 +79,10 @@
 		var dataflow = ensureDataFlow (element)
 		# FIXME: Factor this in some specific file
 		dataflow declareEnvironment("Undefined", None)
-		dataflow declareEnvironment("True", None)
-		dataflow declareEnvironment("False", None)
-		dataflow declareEnvironment("Null", None)
+		dataflow declareEnvironment("True",      None)
+		dataflow declareEnvironment("False",     None)
+		dataflow declareEnvironment("Null",      None)
+		# TODO: Should have NaN, Nothing, Error, None (remove Null)
 		# TODO: We register modules in the dataflow
 	@end
 

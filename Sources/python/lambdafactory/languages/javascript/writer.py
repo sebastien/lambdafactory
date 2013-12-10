@@ -706,6 +706,8 @@ class Writer(AbstractWriter):
 
 	def onAssignation( self, assignation ):
 		"""Writes an assignation operation."""
+		# TODO: If assignation target is an  access, we should rewrite it with
+		# explicit length
 		return "%s = %s;" % (
 			self.write(assignation.getTarget()),
 			self.write(assignation.getAssignedValue())

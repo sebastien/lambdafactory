@@ -16,7 +16,7 @@
 | an interrogate contexts.
 |
 | NOTE that a single pass context can be shared among various passes.
-    
+
 	@property environment = None
 	@property context     = []
 	@property programPass = None
@@ -55,7 +55,7 @@
 		# REWRITE: context push(element)
 		context append (element)
 		var continue_walking = True
-		# We iterate on the program passes, if every pass 
+		# We iterate on the program passes, if every pass
 		# FIXME: There should be only one pass/context
 		var handle = programPass getHandler(element)
 		if handle
@@ -106,21 +106,21 @@
 	@end
 
 	@group ContextAccessors
-	
+
 		@method filterContext interface
 		@as internal
 			@embed Python
-			|return filter(lambda x:isinstance(x,interface), self.context) 
+			|return filter(lambda x:isinstance(x,interface), self.context)
 			@end
 		@end
-		
+
 		@method filter list, interface
 		@as internal
 			@embed Python
-			|return filter(lambda x:isinstance(x,interface), list) 
+			|return filter(lambda x:isinstance(x,interface), list)
 			@end
 		@end
-		
+
 		@method findInContext interface
 		@as internal
 			var res = filterContext(interface)
@@ -144,7 +144,7 @@
 		@as alias
 			return context[-1]
 		@end
-		
+
 		@method getProgram
 		@as alias
 			return environment getProgram()
@@ -158,11 +158,11 @@
 		@method isIn interface
 			return findInContext (interface ) != None
 		@end
-		
+
 		@method getCurrentClosure
 			return findInContext (interfaces IClosure)
 		@end
-		
+
 		@method getCurrentFunction
 			return findInContext (interfaces IFunction)
 		@end
@@ -198,7 +198,7 @@
 		@method getCurrentProcess
 			return findInContext (interfaces IProcess)
 		@end
-		
+
 		@method getCurrentClassParents
 			return getClassParents (self getCurrentClass())
 		@end
@@ -262,7 +262,7 @@
 		@end
 
 	@end
-	
+
 	@method annotate value, name, content=None
 		value addAnnotation (environment factory annotation (name, content))
 	@end
@@ -319,7 +319,7 @@
 				end
 				# We see if the referenceOrName starts with the current module
 				# name, meaning it is a submodule.
-				var match_index = mname find (referenceOrName) 
+				var match_index = mname find (referenceOrName)
 				if match_index == 0 and referenceOrName startswith (mname) and referenceOrName[mname_len] == "."
 					if not matching_module
 						matching_module = module
@@ -385,7 +385,7 @@
 	@shared   HANDLES  = []
 	@shared   NAME     = ""
 
-	@constructor 
+	@constructor
 		PassContext __init__ (self)
 		setPass(self)
 	@end
@@ -435,6 +435,7 @@
 		"car"
 		"cdr"
 		"cons"
+		"cmp"
 		"createMapFromItems"
 		"error"
 		"getChildrenOf"
@@ -453,10 +454,13 @@
 		"isList"
 		"isMap"
 		"isString"
+		"isNumber"
 		"iterate"
 		"len"
 		"print"
 		"range"
+		"sorted"
+		"str"
 		"slice"
 		"sliceArguments"
 	]
@@ -480,6 +484,9 @@
 
 	@method onModule module
 		var imports = module getImportOperations()
+		@embed Python
+		|assert self.runtime, "No runtime defined in ExtendJSRuntime pass"
+		@end
 		module addImportOperation (environment factory importSymbols (runtime getSlotNames(), runtime getAbsoluteName ()))
 		return False
 	@end
@@ -524,7 +531,7 @@
 		end
 		return False
 	@end
-	
+
 @end
 
 # ============================================================================
@@ -583,7 +590,7 @@
 @class CountReferences: Pass
 | This pass adds "refcount" and "referers" annotations to all the referenced
 | elements by handling every 'IReference' element.
-| 
+|
 | This is the first pass to be applied before actually removing the dead
 | code.
 

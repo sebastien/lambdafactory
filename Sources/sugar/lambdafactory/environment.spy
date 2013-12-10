@@ -17,7 +17,7 @@
 | corresponding to the given module.
 
 	@property environment
-	
+
 	@constructor environment
 		self environment = environment
 	@end
@@ -85,7 +85,7 @@
 	@property runner:<Class|None>
 	@property environment
 	@property readExtensions = []
-	
+
 	@constructor name, environment
 		self environment = environment
 		self name = name
@@ -160,7 +160,7 @@
 	@property options={}
 	@property cache={}
 	| Stores data (such as parsed modules) to speed up the process
-	
+
 	@constructor
 		importer = new Importer(self)
 		factory  = new Factory()
@@ -184,13 +184,13 @@
 
 	@method addPass programPass
 		passes append (programPass)
-		programPass setEnvironment(self)
+		programPass setEnvironment (self)
 	@end
-	
+
 	@method getPass name
 		name = name lower()
 		for p in passes
-			if p getName() lower() == name 
+			if p getName() lower() == name
 				return p
 			end
 		end
@@ -199,25 +199,26 @@
 	@method getPasses
 		return passes
 	@end
-	
+
 	@method runPasses
 		for p in passes
 			p run()
 		end
 	@end
-	
+
 	@method getProgram
 		return program
 	@end
-	
+
 	@method setProgram program
 		self program = program
+		return self
 	@end
 
 	@method getFactory
 		return factory
 	@end
-	
+
 	@method importModule name
 		return importer importModule(name)
 	@end
@@ -243,7 +244,7 @@
 		var source_and_module = parser parseSource( source, moduleName)
 		return source_and_module[1]
 	@end
-	
+
 	# FIXME: The language should be initialized for the environment
 	@method listAvailableLanguages
 	| Returns a list of available languages
@@ -256,7 +257,7 @@
 		end
 		return languages
 	@end
-	
+
 	@method loadLanguages
 		for language in listAvailableLanguages()
 			loadLanguage(language)

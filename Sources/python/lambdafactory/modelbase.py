@@ -170,6 +170,7 @@ class Factory:
 		return self._getImplementation("Invocation")(evaluable, arguments)
 
 	def instanciate( self, evaluable, *arguments ):
+		# FIXME: Same remark as for invoke_args?
 		return self._getImplementation("Instanciation")(evaluable, arguments)
 
 	def resolve( self, reference, context=None ):
