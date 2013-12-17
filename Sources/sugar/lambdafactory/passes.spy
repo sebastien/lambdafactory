@@ -20,6 +20,7 @@
 	@property environment = None
 	@property context     = []
 	@property programPass = None
+	@property program     = None
 
     # REWRITE: @constructor reporter=reporter.DefaultReporter
 	@constructor environment=None, programPass=None
@@ -35,8 +36,11 @@
 		self programPass = programPass
 	@end
 
-	@method run
-		walk ( environment getProgram() )
+	@method run program
+		assert (program == None, "Pass is already being run with another program")
+		self program = program
+		walk ( program )
+		self program = None
 	@end
 
 	@method handle element
@@ -147,7 +151,7 @@
 
 		@method getProgram
 		@as alias
-			return environment getProgram()
+			return program
 		@end
 
 		@method getFactory

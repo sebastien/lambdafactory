@@ -633,6 +633,16 @@
 		Element __init__ ( self,  name)
 	@end
 
+	@method copy
+		var res   = Element _copy (self)
+		res name  = name
+		res slots = [] + slots
+		res slotIndex update (slotIndex)
+		res parent   = parent
+		res abstract = abstract
+		return res
+	@end
+
 	@method setAbstract isAbstract
 		abstract = isAbstract
 	@end
@@ -859,6 +869,13 @@
 	@constructor name=Undefined
 		#REWRITE: super( name )
 		Context __init__ ( self,  name)
+	@end
+
+	@method copy
+		var res  = Context copy (self)
+		res importOperations  = [] + importOperations
+		res imported          = False
+		return res
 	@end
 
 	@method getParentName

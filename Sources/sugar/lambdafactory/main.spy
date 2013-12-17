@@ -51,7 +51,7 @@
 		run (args, output)
 		return "" + output getvalue()
 	@end
-	
+
 	@method run arguments, output=sys stdout
 		if type(arguments) != list
 			arguments = list(arguments)
@@ -69,7 +69,7 @@
 		|help=self.OPT_RUNTIME)
 		|option_parser.add_option("-l", "--lang", action="store", dest="lang",
 		|	help=self.OPT_LANG)
-		|option_parser.add_option("-o", "--output", action="store", dest="output", 
+		|option_parser.add_option("-o", "--output", action="store", dest="output",
 		|	help=self.OPT_OUTPUT)
 		|option_parser.add_option("-v", "--verbose", action="store_true", dest="verbose",
 		|	help=self.OPT_VERBOSE)
@@ -77,27 +77,28 @@
 		|	help=self.OPT_MODULE)
 		|option_parser.add_option("-a", "--api", action="store", dest="api",
 		|	help=self.OPT_API)
-		|option_parser.add_option("-p", "--preprocess", action="append", dest="preprocess", 
+		|option_parser.add_option("-p", "--preprocess", action="append", dest="preprocess",
 		|	help=self.OPT_PREPROC)
-		|option_parser.add_option("-t", "--test", action="store_true", dest="test", 
+		|option_parser.add_option("-t", "--test", action="store_true", dest="test",
 		|	help=self.OPT_TEST)
-		|option_parser.add_option("-s", "--source", action="store", dest="source", 
+		|option_parser.add_option("-s", "--source", action="store", dest="source",
 		|	help=self.OPT_SOURCE)
-		|option_parser.add_option("-D", "--define", action="append", dest="targets", 
+		|option_parser.add_option("-D", "--define", action="append", dest="targets",
 		|	help=self.OPT_DEFINE)
-		|option_parser.add_option("-O", "--options", action="append", dest="passOptions", 
+		|option_parser.add_option("-O", "--options", action="append", dest="passOptions",
 		|	help=self.OPT_OPTIONS)
-		|option_parser.add_option("-L", "--lib", action="append", dest="libraries", 
+		|option_parser.add_option("-L", "--lib", action="append", dest="libraries",
 		|	help=self.OPT_LIB)
-		|option_parser.add_option("-I", "--include", action="append", dest="includes", 
+		|option_parser.add_option("-I", "--include", action="append", dest="includes",
 		|	help=self.OPT_INCLUDES)
-		|option_parser.add_option("-P", "--passes", action="store", dest="passes", 
+		|option_parser.add_option("-P", "--passes", action="store", dest="passes",
 		|	help=self.OPT_PASSES)
-		|option_parser.add_option("-V", None, action="store", dest="version", 
+		|option_parser.add_option("-V", None, action="store", dest="version",
 		|	help=self.OPT_VERSION)
 		|options, args = option_parser.parse_args(args=arguments)
 		@end
 		var language = options lang
+		var program  = environment getFactory () createProgram ()
 		if options targets
 			for option_target in options targets
 				environment options [option_target] = True
@@ -109,8 +110,9 @@
 		# If we have includes, we parse them before parsing the main module
 		if options includes
 			for i in options includes
-				if os path isfile(i)
-					parseFile(i)
+				if os path isfile (i)
+					var parsed_module = parseFile (i)
+					program addModule (parsed_module)
 				end
 			end
 		end
@@ -126,11 +128,12 @@
 			# we don't need to have all the dependencies loaded. This will be done at a the
 			# program transformation stage.
 			for source_path in args
-				var result_module = parseFile(source_path, options module)
+				var result_module = parseFile (source_path, options module)
+				program addModule (result_module)
 				# REWRITE: language = options get "lang" ? guessLanguage(source_path) ? raise ERR_NOT_LANGUAGE_SPECIFIED
 				# We get the language to which we'd like to translate the program to
 				if not language
-					language = guessLanguage(source_path)
+					language = guessLanguage (source_path)
 				else
 					language = environment normalizeLanguage (language)
 				end
@@ -139,10 +142,11 @@
 		# Add library path and parses libraries given as files
 		if options libraries
 			for l in options libraries
-				if os path isfile(l)
+				if os path isfile (l)
 					# Here we annotate as shadow the parts of the imported module that are imported
 					# as a library.
-					var module = parseFile(l)
+					var module = parseFile (l)
+					program addModule (module)
 					for name_and_value in module getSlots ()
 						name_and_value[1] addAnnotation (environment getFactory () annotation "shadow")
 					end
@@ -159,10 +163,10 @@
 		else
 			setupPasses (language, None, options passOptions or [])
 		end
-		transformProgram()
+		transformProgram (program)
 		# We compile, run or simply test
 		if options api
-			html_documentation =  environment getPass "Documentation" asHTML() 
+			html_documentation =  environment getPass "Documentation" asHTML()
 			if options api == "-"
 				output write ( html_documentation )
 			else
@@ -171,7 +175,7 @@
 				f close ()
 			end
 		if options compile
-			var program_source = writeProgram (language, options runtime)
+			var program_source = writeProgram (program, language, options runtime)
 			if not options output
 				output write( program_source + "\n" )
 			if os path isdir (options output)
@@ -179,10 +183,10 @@
 				splitter fromString ( program_source )
 			else
 				var f = file(options output, mode = "a")
-				f write(program_source)
+				f write (program_source)
 			end
 		if options run
-			var program_source = writeProgram (language, True)
+			var program_source = writeProgram (program, language, True)
 			var file_and_path = tempfile mkstemp()
 			os write(file_and_path[0],program_source )
 			os close(file_and_path[0])
@@ -207,17 +211,17 @@
 			os unlink(path)
 		end
 	@end
-	
+
 	@method parseFile sourcePath, moduleName=None
-		return environment parseFile (sourcePath, moduleName) 
+		return environment parseFile (sourcePath, moduleName)
 	@end
 
-	@method parseSource source, extension, moduleName=None
-		return environment parseSource (source, extension, moduleName) 
+	@method parseString text, extension, moduleName=None
+		return environment parseString (text, extension, moduleName)
 	@end
 
-	@method transformProgram
-		environment runPasses()
+	@method transformProgram program
+		environment runPasses (program)
 	@end
 
 	@method guessLanguage sourcePath
@@ -228,33 +232,25 @@
 		end
 		return None
 	@end
-	
-	@method setProgram program
-		return environment setProgram (program)
-	@end
 
-	@method getProgram
-		return environment getProgram ()
-	@end
-
-	@method writeProgram inLanguage, includeRuntime=False
+	@method writeProgram program, inLanguage, includeRuntime=False
 		var language = environment loadLanguage (inLanguage)
 		# FIXME: The language should be initialized for the environment
-		var writer   = language writer()
+		var writer   = language writer ()
 		# FIXME: Writer should take environ
 		writer report = environment report
 		writer setEnvironment (environment)
-		var program_source = writer run ()
+		var program_source = writer run (program)
 		if includeRuntime
 			program_source = writer getRuntimeSource() + program_source
 		end
 		return program_source
 	@end
-	
+
 	@method createEnvironment
 		environment = Environment()
 	@end
-	
+
 	@method setupEnvironment
 	@end
 
@@ -264,9 +260,9 @@
 			if (language == "javascript" or language == "actionscript") and (not ("NORUNTIME" in options))
 				environment addPass ( new passes ExtendJSRuntime() )
 			end
-			environment addPass ( new passes Importation() )
-			environment addPass ( new resolution BasicDataFlow() )
-			environment addPass ( new resolution DataFlowBinding() )
+			environment addPass ( new passes Importation         ())
+			environment addPass ( new resolution BasicDataFlow   ())
+			environment addPass ( new resolution DataFlowBinding ())
 		else
 			# We have a custom set of passes
 			for the_pass in withPasses
@@ -299,7 +295,7 @@
 		#  Typing
 		# environment addPass (new passes TypingPass() )
 	@end
-	
+
 @end
 
 # EOF

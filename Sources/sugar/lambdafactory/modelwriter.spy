@@ -5,7 +5,7 @@
 
 @shared PREFIX     = "\t"
 
-@function _format value, level=-1 
+@function _format value, level=-1
 | Format helper operation. See @format
 	@embed Python
 	|if type(value) in (list, tuple):
@@ -143,8 +143,8 @@
 		end
 	@end
 
-	@method run
-		return self write (self environment getProgram())
+	@method run program:IProgram
+		return self write (program)
 	@end
 
 	@method onProgram element
