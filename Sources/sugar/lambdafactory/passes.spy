@@ -37,7 +37,7 @@
 	@end
 
 	@method run program
-		assert (program == None, "Pass is already being run with another program")
+		assert (self program == None)
 		self program = program
 		walk ( program )
 		self program = None

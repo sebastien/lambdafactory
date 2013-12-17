@@ -201,8 +201,14 @@
 		var content = sourceAndModule[0]
 		var p   = _getPathForSignature(hashlib sha256 (content) hexdigest ())
 		var f   = open (p, "wb")
-		pickle dump (sourceAndModule, f)
-		f close ()
+		try
+			pickle dump (sourceAndModule, f)
+			f close ()
+		catch e
+			f close ()
+			os unlink (p)
+			return None
+		end
 		var pm  = _getPathForModuleName (sourceAndModule[1] getAbsoluteName ())
 		if os path exists (pm)
 			os unlink (pm)
