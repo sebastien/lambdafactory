@@ -266,6 +266,7 @@
 	@property libraryPaths = []
 	@property options      = {}
 	@property cache        = None
+	@property useCache     = False
 
 	@constructor
 		importer = new Importer (self)
@@ -321,6 +322,7 @@
 		return importer importModule(name)
 	@end
 
+	# TODO: Cache should be per parser
 	@method parseFile path, moduleName=None
 		var f    = open (path, "rb")
 		var text = f read ()
@@ -336,7 +338,9 @@
 			if not parser -> parser = parsers get "sg"
 			source_and_module       = parser parseString (text, moduleName, path)
 			var res                 = [source_and_module[0], source_and_module[1] copy () detach ()]
-			cache set (res)
+			if useCache
+				cache set (res)
+			end
 		end
 		return source_and_module[1]
 	@end

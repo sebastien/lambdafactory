@@ -27,6 +27,7 @@
 	@shared OPT_RUNTIME    = "Outputs the runtime as well when compiled"
 	@shared OPT_VERSION    = "Ensures that Sugar is at least of the given version"
 	@shared OPT_SOURCE     = "Directly gives the source"
+	@shared OPT_CACHE      = "Uses compilation cache"
 	@shared OPT_MODULE     = "Specifies the module name"
 	@shared OPT_LIB        = "Specifies a file to be used as a library or a library directory"
 	@shared OPT_INCLUDES   = "Specifies a file to be included in the copmilation output"
@@ -71,6 +72,8 @@
 		|	help=self.OPT_LANG)
 		|option_parser.add_option("-o", "--output", action="store", dest="output",
 		|	help=self.OPT_OUTPUT)
+		|option_parser.add_option("-C", "--cache", action="store_true", dest="cache", default=False,
+		|	help=self.OPT_CACHE)
 		|option_parser.add_option("-v", "--verbose", action="store_true", dest="verbose",
 		|	help=self.OPT_VERBOSE)
 		|option_parser.add_option("-m", "--module", action="store", dest="module",
@@ -99,6 +102,7 @@
 		@end
 		var language = options lang
 		var program  = environment getFactory () createProgram ()
+		environment useCache = options cache
 		if options targets
 			for option_target in options targets
 				environment options [option_target] = True
