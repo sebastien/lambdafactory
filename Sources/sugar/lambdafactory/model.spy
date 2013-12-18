@@ -965,6 +965,26 @@
 		end
 	@end
 
+	@method hasModule module
+		for existing_module in modules
+			if module  == existing_module
+				return True
+			if module getAbsoluteName () == existing_module getAbsoluteName ()
+				retrun True
+			end
+		end
+		return False
+	@end
+
+	@method hasModuleWithName moduleName
+		for existing_module in modules
+			if existing_module getAbsoluteName () == moduleName
+				return True
+			end
+		end
+		return False
+	@end
+
 	@method getModule moduleAbsoluteName
 		for module in modules
 			if module getName() == moduleAbsoluteName
