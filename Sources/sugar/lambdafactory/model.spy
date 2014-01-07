@@ -579,7 +579,6 @@
 #
 # ------------------------------------------------------------------------------
 
-
 @class Annotation: Element, IAnnotation
 
 	@property content
@@ -589,6 +588,13 @@
 		Element __init__ ( self, name )
 		self name = name
 		self content = content
+	@end
+
+	@method copy
+		var res     = Element _copy (self)
+		res name    = name
+		res content = content
+		return res
 	@end
 
 	@method getContent
@@ -631,6 +637,16 @@
 	@constructor name=Undefined
 		#REWRITE: super( name )
 		Element __init__ ( self,  name)
+	@end
+
+	@method copy
+		var res   = Element _copy (self)
+		res name  = name
+		res slots = [] + slots
+		res slotIndex update (slotIndex)
+		res parent   = parent
+		res abstract = abstract
+		return res
 	@end
 
 	@method setAbstract isAbstract
@@ -861,6 +877,13 @@
 		Context __init__ ( self,  name)
 	@end
 
+	@method copy
+		var res  = Context copy (self)
+		res importOperations  = [] + importOperations
+		res imported          = False
+		return res
+	@end
+
 	@method getParentName
 	| Returns 'grandparentname.parentname'
 		return "." join (name split "." [0:-1]) or None
@@ -940,6 +963,26 @@
 			modules append (module)
 			module setParent (self)
 		end
+	@end
+
+	@method hasModule module
+		for existing_module in modules
+			if module  == existing_module
+				return True
+			if module getAbsoluteName () == existing_module getAbsoluteName ()
+				retrun True
+			end
+		end
+		return False
+	@end
+
+	@method hasModuleWithName moduleName
+		for existing_module in modules
+			if existing_module getAbsoluteName () == moduleName
+				return True
+			end
+		end
+		return False
 	@end
 
 	@method getModule moduleAbsoluteName

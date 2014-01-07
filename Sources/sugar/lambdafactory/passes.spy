@@ -20,6 +20,7 @@
 	@property environment = None
 	@property context     = []
 	@property programPass = None
+	@property program     = None
 
     # REWRITE: @constructor reporter=reporter.DefaultReporter
 	@constructor environment=None, programPass=None
@@ -35,8 +36,11 @@
 		self programPass = programPass
 	@end
 
-	@method run
-		walk ( environment getProgram() )
+	@method run program
+		assert (self program == None)
+		self program = program
+		walk ( program )
+		self program = None
 	@end
 
 	@method handle element
@@ -147,7 +151,7 @@
 
 		@method getProgram
 		@as alias
-			return environment getProgram()
+			return program
 		@end
 
 		@method getFactory
@@ -515,18 +519,28 @@
 	@method onModule module
 		var imports = module getImportOperations()
 		for i in imports
+			var imported_module = None
 			if isinstance(i, interfaces IImportModuleOperation)
 				var imported_module_name = i getImportedModuleName()
 				var imported_module_origin = i getAlias()
-				var imported_module = environment importModule (imported_module_name)
+				if not program hasModuleWithName (imported_module_name)
+					imported_module = environment importModule (imported_module_name)
+				end
 			if isinstance(i, interfaces IImportSymbolOperation)
 				var imported_module_name = i getImportOrigin()
-				var imported_module = environment importModule (imported_module_name)
+				if not program hasModuleWithName (imported_module_name)
+					imported_module = environment importModule (imported_module_name)
+				end
 			if isinstance(i, interfaces IImportSymbolsOperation)
 				var imported_module_name = i getImportOrigin()
-				var imported_module = environment importModule (imported_module_name)
+				if not program hasModuleWithName (imported_module_name)
+					imported_module = environment importModule (imported_module_name)
+				end
 			else
 				environment report error ("Importation pass: operation not implemented " + repr(i))
+			end
+			if imported_module and (not program hasModule (imported_module))
+				program addModule (imported_module)
 			end
 		end
 		return False
