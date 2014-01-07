@@ -1,14 +1,14 @@
-@module lambdafactory.environment
-@import os, sys
+@module lambdafactry.environment
+@import os, sys, pickle
 @import DefaultReporter from lambdafactory.reporter
 @import Factory from lambdafactory.modelbase
 @import PassContext from lambdafactory.passes
 
-# ------------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 #
 # IMPORTER
 #
-# ------------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 
 @class Importer
 | The Environment importer class acts like a "hub" for language-specific
@@ -68,11 +68,11 @@
 
 @end
 
-# ------------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 #
 # LANGUAGE
 #
-# ------------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 
 @class Language
 
@@ -124,11 +124,87 @@
 
 @end
 
-# ------------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
+#
+# CACHE
+#
+# -----------------------------------------------------------------------------
+
+@class Cache
+| A cache that allows to store pre-compiled AST and modules.
+| Each compiled module is saved in two different locations:
+|
+| modules/<modulename>.model
+| content/<sig>.model
+
+	@property root = "/tmp/lambdafactory-cache"
+
+	@constructor
+		for d in [root, root + "/module", root + "/content"]
+			if not os path exits (d)
+				os makedirs (d)
+			end
+		end
+	@end
+
+	@method hasContent content
+		return hasSignature (hashlib sha256 (content) hexdigest ())
+	@end
+
+	@method hasModule name
+		return os path exist (_getPathForModuleName(name))
+	@end
+
+	@method hasSignature sig
+		return os path exist (_getPathForSignature(name))
+	@end
+
+	@method getFromContent content
+		return getFromSignature (hashlib sha256 (content) hexdigest ())
+	@end
+
+	@method getFromSignature sig
+		var f   = open (_getPathForSignature(sig))
+		var res = pickle load (f)
+		f close ()
+		return res
+	@end
+
+	@method getFromModuleName name
+		var f   = open (_getPathForModuleName(name))
+		var res = pickle load (f)
+		f close ()
+		return res
+	@end
+
+	@method set content, module
+		var p   = _getPathForSignature(hashlib sha256 (content) hexdigest ())
+		var f   = open (p, "wb")
+		pickle save (module, f)
+		f close ()
+		os symlink (p, _getPathForModuleName (module getAbsoluteName ()))
+		return p
+	@end
+
+	@method clean
+		# FIXME: Implement
+	@end
+
+	@method _getPathForSignature sig
+		return  root + "/content/" + sig + ".cache"
+	@end
+
+	@method _getPathForModuleName name
+		return  root + "/module/" + name + ".cache"
+	@end
+
+@end
+
+# -----------------------------------------------------------------------------
 #
 # ENVIRONMENT
 #
-# ------------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 
 @class Environment
 |
@@ -158,8 +234,6 @@
 	@property languages={}
 	@property libraryPaths   = []
 	@property options={}
-	@property cache={}
-	| Stores data (such as parsed modules) to speed up the process
 
 	@constructor
 		importer = new Importer(self)
@@ -239,9 +313,10 @@
 		end
 	@end
 
-	@method parseSource source, extension, moduleName=None
-		var parser = parsers get (extension)
-		var source_and_module = parser parseSource( source, moduleName)
+	@method parseString text, path, moduleName=None
+		var extension         = path split "." [-1]
+		var parser            = parsers get (extension)
+		var source_and_module = parser parseString (text, moduleName, path)
 		return source_and_module[1]
 	@end
 
