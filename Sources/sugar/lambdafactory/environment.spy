@@ -338,6 +338,7 @@
 			if not parser -> parser = parsers get "sg"
 			source_and_module       = parser parseString (text, moduleName, path)
 			var res                 = [source_and_module[0], source_and_module[1] copy () detach ()]
+			res[1] setSource (res[0])
 			if useCache
 				cache set (res)
 			end

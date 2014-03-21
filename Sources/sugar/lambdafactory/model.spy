@@ -405,6 +405,22 @@
 		return self name
 	@end
 
+	@method getAbsoluteName
+		var name = getName ()
+		if name
+			if parent
+				var parent_name =  parent getAbsoluteName ()
+				if parent_name
+					return parent_name + "." + name
+				else
+					return name
+				end
+			end
+		else
+			return Undefined
+		end
+	@end
+
 	@method hasName
 		return isinstance(self,IReferencable) or isinstance(self,IAnnotation)
 	@end
@@ -871,6 +887,7 @@
 
 	@property importOperations = []
 	@property imported = False
+	@property source:String = None
 
 	@constructor name=Undefined
 		#REWRITE: super( name )
@@ -932,6 +949,14 @@
 		@embed Python
 		| return [value for name, value in self.getSlots() if isinstance(value, IClass)]
 		@end
+	@end
+
+	@method setSource source
+		self source = source
+	@end
+
+	@method getSource
+		return self source
 	@end
 
 @end
@@ -1660,6 +1685,8 @@
 	@method getDefaultValue
 		return defaultValue
 	@end
+
+
 
 @end
 

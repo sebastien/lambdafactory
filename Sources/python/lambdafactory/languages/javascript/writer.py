@@ -5,7 +5,7 @@
 # License   : Revised BSD License
 # -----------------------------------------------------------------------------
 # Creation  : 02-Nov-2006
-# Last mod  : 09-Oct-2013
+# Last mod  : 21-Mar-2014
 # -----------------------------------------------------------------------------
 
 # TODO: When constructor is empty, should assign default attributes anyway
@@ -16,7 +16,7 @@ from lambdafactory.modelwriter import AbstractWriter, flatten
 import lambdafactory.interfaces as interfaces
 import lambdafactory.reporter as reporter
 from lambdafactory.splitter import SNIP
-import os.path,re,time,string, random
+import os.path, re, time, string, random, json
 
 #------------------------------------------------------------------------------
 #
@@ -112,14 +112,14 @@ class Writer(AbstractWriter):
 		if name == interfaces.Constants.MainFunction: name = "main"
 		return name
 
-	def onModule( self, moduleElement):
+	def onModule( self, moduleElement ):
 		"""Writes a Module element."""
 		module_name = self._rewriteSymbol(moduleElement.getName())
 		code = [
 			"// " + SNIP % ("%s.js" % (self.getAbsoluteName(moduleElement).replace(".", "/"))),
 			self._document(moduleElement),
 			self.options["ENABLE_METADATA"] and "function _meta_(v,m){var ms=v['__meta__']||{};for(var k in m){ms[k]=m[k]};v['__meta__']=ms;return v}" or "",
-			"var %s=%s||{};" % (module_name, module_name),
+			"var %s=(typeof('extend')!='undefined' && extend && extend.Module && extend.Module(\"%s\")) || %s || {};" % (module_name, self.getAbsoluteName(moduleElement) or module_name, module_name),
 			"(function(%s){" % (module_name),
 			"var %s=%s=%s" % (self.jsSelf, self.jsModule, module_name),
 		]
@@ -143,6 +143,9 @@ class Writer(AbstractWriter):
 			module_name
 		))
 		code.append("})(%s);" % (module_name))
+		if moduleElement.getSource():
+			code.append("%s.__source__=%s;" % (module_name,
+				json.dumps(moduleElement.getSource())))
 		return self._format(
 			*code
 		)
@@ -579,7 +582,7 @@ class Writer(AbstractWriter):
 					return self._extendGetMethodByName(symbol_name)
 			elif isinstance(value, interfaces.IClassMethod):
 				if self.isIn(interfaces.IInstanceMethod):
-					return self._extendGetClass() + "." + symbol_name
+					return self._extendGetClass() + ".getOperation('%s')" % (symbol_name)
 				else:
 					return "%s.%s" % (self.jsSelf, symbol_name)
 			elif isinstance(value, interfaces.IClassAttribute):
