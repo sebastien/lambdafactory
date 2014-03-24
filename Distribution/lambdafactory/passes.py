@@ -16,6 +16,7 @@ class PassContext:
 		self.environment = None
 		self.context = []
 		self.programPass = None
+		self.program = None
 		if environment is None: environment = None
 		if programPass is None: programPass = None
 		self.environment = environment
@@ -27,8 +28,11 @@ class PassContext:
 	def setPass(self, programPass):
 		self.programPass = programPass
 	
-	def run(self):
-		self.walk(self.environment.getProgram())
+	def run(self, program):
+		assert((self.program == None))
+		self.program = program
+		self.walk(program)
+		self.program = None
 	
 	def handle(self, element):
 		"""Handles a sungle element, without recursing through its children"""
@@ -68,11 +72,11 @@ class PassContext:
 		self.context.pop()
 	
 	def filterContext(self, interface):
-		return filter(lambda x:isinstance(x,interface), self.context) 
+		return filter(lambda x:isinstance(x,interface), self.context)
 		
 	
 	def filter(self, list, interface):
-		return filter(lambda x:isinstance(x,interface), list) 
+		return filter(lambda x:isinstance(x,interface), list)
 		
 	
 	def findInContext(self, interface):
@@ -92,7 +96,7 @@ class PassContext:
 		return self.context[-1]
 	
 	def getProgram(self):
-		return self.environment.getProgram()
+		return self.program
 	
 	def getFactory(self):
 		return self.environment.getFactory()
@@ -280,7 +284,7 @@ class ExtendJSRuntime(Pass):
 	"""This pass is like an importation and will simply bind the symbols"""
 	HANDLES = [interfaces.IProgram, interfaces.IModule]
 	NAME = 'GlobalRuntime'
-	FUNCTIONS = ['assert', 'access', 'car', 'cdr', 'cons', 'createMapFromItems', 'error', 'getChildrenOf', 'getClass', 'getClasses', 'getClassOf', 'getMethod', 'getMethodOf', 'getParentClass', 'getSuperMethod', 'invoke', 'isDefined', 'isFunction', 'isIn', 'isInstance', 'isList', 'isMap', 'isString', 'iterate', 'len', 'print', 'range', 'slice', 'sliceArguments']
+	FUNCTIONS = ['assert', 'access', 'car', 'cdr', 'cons', 'cmp', 'createMapFromItems', 'error', 'getChildrenOf', 'getClass', 'getClasses', 'getClassOf', 'getMethod', 'getMethodOf', 'getParentClass', 'getSuperMethod', 'invoke', 'isDefined', 'isFunction', 'isIn', 'isInstance', 'isList', 'isMap', 'isString', 'isNumber', 'iterate', 'len', 'print', 'range', 'sorted', 'str', 'slice', 'sliceArguments']
 	def __init__ (self):
 		self.runtime = None
 		Pass.__init__(self)
@@ -296,6 +300,8 @@ class ExtendJSRuntime(Pass):
 	
 	def onModule(self, module):
 		imports=module.getImportOperations()
+		assert self.runtime, "No runtime defined in ExtendJSRuntime pass"
+		
 		module.addImportOperation(self.environment.factory.importSymbols(self.runtime.getSlotNames(), self.runtime.getAbsoluteName()))
 		return False
 	
@@ -313,18 +319,24 @@ class Importation(Pass):
 	def onModule(self, module):
 		imports=module.getImportOperations()
 		for i in imports:
+			imported_module=None
 			if isinstance(i, interfaces.IImportModuleOperation):
 				imported_module_name=i.getImportedModuleName()
 				imported_module_origin=i.getAlias()
-				imported_module=self.environment.importModule(imported_module_name)
+				if (not self.program.hasModuleWithName(imported_module_name)):
+					imported_module = self.environment.importModule(imported_module_name)
 			elif isinstance(i, interfaces.IImportSymbolOperation):
 				imported_module_name=i.getImportOrigin()
-				imported_module=self.environment.importModule(imported_module_name)
+				if (not self.program.hasModuleWithName(imported_module_name)):
+					imported_module = self.environment.importModule(imported_module_name)
 			elif isinstance(i, interfaces.IImportSymbolsOperation):
 				imported_module_name=i.getImportOrigin()
-				imported_module=self.environment.importModule(imported_module_name)
+				if (not self.program.hasModuleWithName(imported_module_name)):
+					imported_module = self.environment.importModule(imported_module_name)
 			elif True:
 				self.environment.report.error(('Importation pass: operation not implemented ' + repr(i)))
+			if (imported_module and (not self.program.hasModule(imported_module))):
+				self.program.addModule(imported_module)
 		return False
 	
 

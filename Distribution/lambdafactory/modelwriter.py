@@ -84,8 +84,8 @@ class AbstractWriter(Pass):
 				raise Exception("Element implements unsupported interface: " + str(element))
 				
 	
-	def run(self):
-		return self.write(self.environment.getProgram())
+	def run(self, program):
+		return self.write(program)
 	
 	def onProgram(self, element):
 		"""Writes a Program element"""

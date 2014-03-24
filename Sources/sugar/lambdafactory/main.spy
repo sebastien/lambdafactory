@@ -37,11 +37,11 @@
 	@property programName
 	@property environment:Environment
 
-	@constructor programName="lambdaf"
+	@constructor programName="lambdafactory"
 		self programName = programName
-		createEnvironment()
-		environment loadLanguages()
-		setupEnvironment()
+		createEnvironment         ()
+		environment loadLanguages ()
+		setupEnvironment          ()
 	@end
 
  	@method runAsString args
@@ -101,13 +101,18 @@
 		|options, args = option_parser.parse_args(args=arguments)
 		@end
 		var language = options lang
-		var program  = environment getFactory () createProgram ()
+		# FIXME: Not sure exactly what to do... the program seems to be
+		# shared in the environment, which makes sense, but we should
+		# refactor the command methods to have env as parameter.
+		var program  = environment program
+		# environment getFactory () createProgram ()
 		environment useCache = options cache
 		if options targets
 			for option_target in options targets
 				environment options [option_target] = True
 			end
 		end
+		# FIXME: This should be deprecated
 		if options api
 			environment addPass ( new passes DocumentationPass() )
 		end
@@ -214,6 +219,7 @@
 			status = (os system(command) / 256) or status
 			os unlink(path)
 		end
+		return program
 	@end
 
 	@method parseFile sourcePath, moduleName=None

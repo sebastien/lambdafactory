@@ -297,6 +297,18 @@ class Element:
 		assert((isinstance(self, IReferencable) or isinstance(self, IAnnotation)))
 		return self.name
 	
+	def getAbsoluteName(self):
+		name=self.getName()
+		if name:
+			if self.parent:
+				parent_name=self.parent.getAbsoluteName()
+				if parent_name:
+					return ((parent_name + '.') + name)
+				elif True:
+					return name
+		elif True:
+			return None
+	
 	def hasName(self):
 		return (isinstance(self, IReferencable) or isinstance(self, IAnnotation))
 	
@@ -429,6 +441,12 @@ class Annotation(Element, IAnnotation):
 		self.name = name
 		self.content = content
 	
+	def copy(self):
+		res=Element._copy(self)
+		res.name = self.name
+		res.content = self.content
+		return res
+	
 	def getContent(self):
 		return self.content
 	
@@ -459,6 +477,15 @@ class Context(Element):
 		self.abstract = False
 		if name is None: name = None
 		Element.__init__(self, name)
+	
+	def copy(self):
+		res=Element._copy(self)
+		res.name = self.name
+		res.slots = ([] + self.slots)
+		res.slotIndex.update(self.slotIndex)
+		res.parent = self.parent
+		res.abstract = self.abstract
+		return res
 	
 	def setAbstract(self, isAbstract):
 		self.abstract = isAbstract
@@ -619,8 +646,15 @@ class Module(Context, IModule):
 	def __init__ (self, name=None):
 		self.importOperations = []
 		self.imported = False
+		self.source = None
 		if name is None: name = None
 		Context.__init__(self, name)
+	
+	def copy(self):
+		res=Context.copy(self)
+		res.importOperations = ([] + self.importOperations)
+		res.imported = False
+		return res
 	
 	def getParentName(self):
 		"""Returns 'grandparentname.parentname'"""
@@ -662,6 +696,12 @@ class Module(Context, IModule):
 		 return [value for name, value in self.getSlots() if isinstance(value, IClass)]
 		
 	
+	def setSource(self, source):
+		self.source = source
+	
+	def getSource(self):
+		return self.source
+	
 
 class Program(Context, IProgram):
 	def __init__ (self, name=None):
@@ -682,6 +722,20 @@ class Program(Context, IProgram):
 		elif True:
 			self.modules.append(module)
 			module.setParent(self)
+	
+	def hasModule(self, module):
+		for existing_module in self.modules:
+			if (module == existing_module):
+				return True
+			elif (module.getAbsoluteName() == existing_module.getAbsoluteName()):
+				retrun.True
+		return False
+	
+	def hasModuleWithName(self, moduleName):
+		for existing_module in self.modules:
+			if (existing_module.getAbsoluteName() == moduleName):
+				return True
+		return False
 	
 	def getModule(self, moduleAbsoluteName):
 		for module in self.modules:

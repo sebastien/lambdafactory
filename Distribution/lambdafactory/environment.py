@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 import sys
 __module__ = sys.modules[__name__]
-import os, sys
+import os, sys, pickle, hashlib
 from lambdafactory.reporter import DefaultReporter
 from lambdafactory.modelbase import Factory
 from lambdafactory.passes import PassContext
@@ -86,6 +86,83 @@ class Language:
 			return None
 	
 
+class Cache:
+	"""A cache that allows to store pre-compiled AST and modules.
+	Each compiled module is saved in two different locations:
+	
+	modules/<modulename>.model
+	content/<sig>.model"""
+	def __init__ (self):
+		self.root = '/tmp/lambdafactory-cache'
+		for d in [self.root, (self.root + '/module'), (self.root + '/content')]:
+			if (not os.path.exists(d)):
+				os.makedirs(d)
+	
+	def hasContent(self, content):
+		return self.hasSignature(hashlib.sha256(content).hexdigest())
+	
+	def hasModule(self, name):
+		return os.path.exist(self._getPathForModuleName(name))
+	
+	def hasSignature(self, sig):
+		return os.path.exist(self._getPathForSignature(name))
+	
+	def getFromContent(self, content):
+		return self.getFromSignature(hashlib.sha256(content).hexdigest())
+	
+	def getFromSignature(self, sig):
+		p=self._getPathForSignature(sig)
+		if os.path.exists(p):
+			f=open(p)
+			try:
+				res=pickle.load(f)
+			except Exception, e:
+				res = None
+			f.close()
+			return res
+		elif True:
+			return None
+	
+	def getFromModuleName(self, name):
+		p=self._getPathForModuleName(name)
+		if os.path.exists(p):
+			f=open(p)
+			try:
+				res=pickle.load(f)
+			except Exception, e:
+				res = None
+			f.close()
+			return res
+		elif True:
+			return None
+	
+	def set(self, sourceAndModule):
+		content=sourceAndModule[0]
+		p=self._getPathForSignature(hashlib.sha256(content).hexdigest())
+		f=open(p, 'wb')
+		try:
+			pickle.dump(sourceAndModule, f)
+			f.close()
+		except Exception, e:
+			f.close()
+			os.unlink(p)
+			return None
+		pm=self._getPathForModuleName(sourceAndModule[1].getAbsoluteName())
+		if os.path.exists(pm):
+			os.unlink(pm)
+		os.symlink(p, pm)
+		return p
+	
+	def clean(self):
+		pass
+	
+	def _getPathForSignature(self, sig):
+		return (((self.root + '/content/') + sig) + '.cache')
+	
+	def _getPathForModuleName(self, name):
+		return (((self.root + '/module/') + name) + '.cache')
+	
+
 class Environment:
 	"""
 	Passes
@@ -107,9 +184,11 @@ class Environment:
 		self.languages = {}
 		self.libraryPaths = []
 		self.options = {}
-		self.cache = {}
+		self.cache = None
+		self.useCache = False
 		self.importer = Importer(self)
 		self.factory = Factory()
+		self.cache = Cache()
 		self.program = self.factory.createProgram()
 	
 	def addLibraryPath(self, path):
@@ -135,15 +214,9 @@ class Environment:
 	def getPasses(self):
 		return self.passes
 	
-	def runPasses(self):
+	def runPasses(self, program):
 		for p in self.passes:
-			p.run()
-	
-	def getProgram(self):
-		return self.program
-	
-	def setProgram(self, program):
-		self.program = program
+			p.run(program)
 	
 	def getFactory(self):
 		return self.factory
@@ -153,27 +226,28 @@ class Environment:
 	
 	def parseFile(self, path, moduleName=None):
 		if moduleName is None: moduleName = None
-		cache_key=('module-' + str(path))
-		if self.cache.has_key(cache_key):
-			return self.cache[cache_key]
-		elif True:
-			self.report.info('Reading module file', path)
-			extension=os.path.splitext(path)[-1][1:].lower()
+		f=open(path, 'rb')
+		text=f.read()
+		f.close()
+		return self.parseString(text, path, moduleName)
+	
+	def parseString(self, text, path, moduleName=None):
+		if moduleName is None: moduleName = None
+		source_and_module=self.cache.getFromContent(text)
+		if (not source_and_module):
+			extension=path.split('.')[-1]
 			parser=self.parsers.get(extension)
 			if (not parser):
 				parser = self.parsers.get('sg')
-			source_and_module=parser.parse(path, moduleName)
-			self.cache[cache_key] = source_and_module[1]
-			return source_and_module[1]
-	
-	def parseSource(self, source, extension, moduleName=None):
-		if moduleName is None: moduleName = None
-		parser=self.parsers.get(extension)
-		source_and_module=parser.parseSource(source, moduleName)
+			source_and_module = parser.parseString(text, moduleName, path)
+			res=[source_and_module[0], source_and_module[1].copy().detach()]
+			res[1].setSource(res[0])
+			if self.useCache:
+				self.cache.set(res)
 		return source_and_module[1]
 	
 	def listAvailableLanguages(self):
-		"""Returns a list of available languages"""
+		"""Returns a list of available languages by introspecting the modules"""
 		base_dir=os.path.join(os.path.dirname(os.path.abspath(__file__)), 'languages')
 		languages=[]
 		for name in os.listdir(base_dir):
