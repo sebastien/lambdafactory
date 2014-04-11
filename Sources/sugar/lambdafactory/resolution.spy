@@ -179,6 +179,95 @@
 
 # ============================================================================
 #
+# CLEAR DATAFLOW
+#
+# ============================================================================
+
+@class ClearDataFlow: Pass
+| Cleares the dataflows from the elements
+
+	@shared HANDLES = [
+		interfaces IProgram
+		interfaces IModule
+		interfaces IClass
+		interfaces IMethod
+		interfaces IClosure
+		interfaces IProcess
+		interfaces IContext
+		interfaces IAllocation
+		interfaces IOperation
+		interfaces IArgument
+		interfaces IValue
+	]
+
+	@shared NAME    = "ClearDataflow"
+
+	@constructor
+		Pass __init__ (self)
+	@end
+
+	@method getParentDataFlow
+	| Returns the dataflow of the parent element. It is supposed to exist.
+		if self hasParentElement()
+			return self getParentElement() getDataFlow()
+		else
+			return None
+		end
+	@end
+
+	@method clearDataFlow element
+	@as internal
+	| Ensures that the given element has an attached DataFlow
+		element setDataFlow (None)
+	@end
+
+	@method onProgram element
+		clearDataFlow (element)
+	@end
+
+	@method onModule element
+		clearDataFlow (element)
+	@end
+
+	@method onClass element
+		clearDataFlow (element)
+	@end
+
+	@method onMethod element
+		clearDataFlow (element)
+	@end
+
+	@method onClosure element
+		clearDataFlow (element)
+	@end
+
+	@method onProcess element
+		clearDataFlow (element)
+	@end
+
+	@method onContext element
+		clearDataFlow (element)
+	@end
+
+	@method onAllocation element
+		clearDataFlow (element)
+	@end
+
+	@method onOperation element
+		clearDataFlow (element)
+	@end
+
+	@method onArgument element
+	@end
+
+	@method onValue element
+		clearDataFlow (element)
+	@end
+
+@end
+
+# ============================================================================
+#
 # DATAFLOW BINDING
 #
 # ============================================================================

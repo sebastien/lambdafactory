@@ -1,8 +1,18 @@
 @module lambdafactory.environment
-@import os, sys, pickle, hashlib
+@import os, sys, dill, hashlib
 @import DefaultReporter from lambdafactory.reporter
 @import Factory from lambdafactory.modelbase
 @import PassContext from lambdafactory.passes
+@import ClearDataFlow from lambdafactory.resolution
+
+# FIXME: User reporter
+@function error message
+	sys stderr write ("[!] {0}\n" format (message))
+@end
+
+@function info message
+	sys stderr write ("--- {0}\n" format (message))
+@end
 
 # -----------------------------------------------------------------------------
 #
@@ -49,7 +59,7 @@
 		# all the time
 		var module_path = findSugarModule(moduleName)
 		if module_path
-			environment report info ("Importing module", moduleName)
+			environment report info ("Importing module", moduleName, "from", module_path)
 			#, "from", module_path, "...")
 			return importModuleFromFile (module_path)
 		else
@@ -140,15 +150,19 @@
 	@property root = "/tmp/lambdafactory-cache"
 
 	@constructor
-		for d in [root, root + "/module", root + "/content"]
+		for d in [root]
 			if not os path exists (d)
 				os makedirs (d)
 			end
 		end
 	@end
 
+	@method getKeyForContent content
+		return hashlib sha256 (content) hexdigest ()
+	@end
+
 	@method hasContent content
-		return hasSignature (hashlib sha256 (content) hexdigest ())
+		return hasSignature (getKeyForContent (content))
 	@end
 
 	@method hasModule name
@@ -160,7 +174,7 @@
 	@end
 
 	@method getFromContent content
-		return getFromSignature (hashlib sha256 (content) hexdigest ())
+		return getFromSignature (getKeyForContent (content))
 	@end
 
 	@method getFromSignature sig
@@ -168,9 +182,9 @@
 		if os path exists (p)
 			var f   = open (p)
 			try
-				var res = pickle load (f)
+				var res = dill load (f)
 			catch e
-				# TODO: Report error
+				error ("Cache.getFromSignature {0}: {1}" format (sig, e))
 				res = None
 			end
 			f close ()
@@ -185,9 +199,9 @@
 		if os path exists (p)
 			var f   = open (p)
 			try
-				var res = pickle load (f)
+				var res = dill load (f)
 			catch e
-				# TODO: Report error
+				error ("Cache.getFromModuleName {0}: {1}" format (sig, e))
 				res = None
 			end
 			f close ()
@@ -199,14 +213,20 @@
 
 	@method set sourceAndModule
 		var content = sourceAndModule[0]
-		var p   = _getPathForSignature(hashlib sha256 (content) hexdigest ())
+		var k   = getKeyForContent     (content)
+		var p   = _getPathForSignature (k)
 		var f   = open (p, "wb")
+		# @embed Python
+		# |import ipdb
+		# |ipdb.set_trace()
+		# @end
 		try
-			pickle dump (sourceAndModule, f)
+			dill dump (sourceAndModule, f)
 			f close ()
 		catch e
 			f close ()
 			os unlink (p)
+			error ("Cache.set {0}: {1}" format (k, e))
 			return None
 		end
 		var pm  = _getPathForModuleName (sourceAndModule[1] getAbsoluteName ())
@@ -222,11 +242,11 @@
 	@end
 
 	@method _getPathForSignature sig
-		return  root + "/content/" + sig + ".cache"
+		return  root + "/content-" + sig + ".cache"
 	@end
 
 	@method _getPathForModuleName name
-		return  root + "/module/" + name + ".cache"
+		return  root + "/module-" + name + ".cache"
 	@end
 
 @end
@@ -310,6 +330,7 @@
 
 	@method runPasses program
 		for p in passes
+			report info ("Running pass {0}" format (p __class__ __name__))
 			p run (program)
 		end
 	@end
@@ -319,7 +340,7 @@
 	@end
 
 	@method importModule name
-		return importer importModule(name)
+		return importer importModule (name)
 	@end
 
 	# TODO: Cache should be per parser
@@ -332,16 +353,29 @@
 
 	@method parseString text, path, moduleName=None
 		var source_and_module = cache getFromContent (text)
-		if not source_and_module
+		if (not useCache) or (not source_and_module)
 			var extension           = path split "." [-1]
 			var parser              = parsers get (extension)
 			if not parser -> parser = parsers get "sg"
 			source_and_module       = parser parseString (text, moduleName, path)
 			var res                 = [source_and_module[0], source_and_module[1] copy () detach ()]
+			assert (res[0] == text)
 			res[1] setSource (res[0])
 			if useCache
 				cache set (res)
 			end
+		else
+			info ("Parsing from cache {0}: {1}" format (cache getKeyForContent (source_and_module[0]), path))
+			# We need to strip the dataflow from the module on importing (we actually should do it on save)
+			var clear_dataflow = new ClearDataFlow ()
+			clear_dataflow run (source_and_module[1])
+			# if not program hasModule (source_and_module[1])
+			# 	program addModule (source_and_module[1])
+			# end
+			# @embed Python
+			# |import ipdb
+			# |ipdb.set_trace()
+			# @end
 		end
 		return source_and_module[1]
 	@end

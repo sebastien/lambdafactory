@@ -7,6 +7,7 @@
 # Creation  : 02-Nov-2006
 # Last mod  : 12-Aug-2010
 # -----------------------------------------------------------------------------
+
 @module lambdafactory.model
 | This module is the default implementation of the LambdaFactory interfaces.
 | It defines objects that allow you to build a complete OO program model on
@@ -19,7 +20,7 @@
 
 # ------------------------------------------------------------------------------
 #
-# Data Flow Elements
+# DATA FLOW ELEMENTS
 #
 # ------------------------------------------------------------------------------
 
@@ -34,9 +35,9 @@
 	@property dataflow
 
  	@constructor name, value, origin, slotType
-		self name = name
-		self value = value
-		self origin = origin
+		self name     = name
+		self value    = value
+		self origin   = origin
 		self slotType = slotType
 	@end
 
@@ -345,7 +346,6 @@
 		end
 		return tuple([None, None])
 	@end
-
 
 	@method defines name
 		var slot = getSlot(name)

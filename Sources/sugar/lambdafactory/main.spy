@@ -196,7 +196,7 @@
 			end
 		if options run
 			var program_source = writeProgram (program, language, True)
-			var file_and_path = tempfile mkstemp()
+			var file_and_path = tempfile mkstemp ()
 			os write(file_and_path[0],program_source )
 			os close(file_and_path[0])
 			var args_str = " " join(args[1:])

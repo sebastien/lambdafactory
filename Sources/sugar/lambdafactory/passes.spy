@@ -210,14 +210,16 @@
 		@method getClassParents theClass
 			var parents = []
 			if not theClass
-				return tuple([])
+				return tuple ([])
 			end
 			var current_class = theClass
 			# The given class can be either a class object or a reference
 			assert (isinstance(theClass, interfaces IClass))
-			for parent_class_ref in current_class getParentClassesRefs()
-				var parent_class_name = parent_class_ref getReferenceName()
-				var resolution = resolve ( parent_class_name, current_class getParent () )
+			for parent_class_ref in current_class getParentClassesRefs ()
+				var parent_class_name = parent_class_ref getReferenceName ()
+				# NOTE: We resolve in the parent dataflow to avoid resoling the parent class name
+				# in case such as @class Application: Application with @import Application from app
+				var resolution = resolve ( parent_class_name, current_class getDataFlow () parent)
 				# We resolve the parent_class_name in the 'current_class' parent context, as resolving
 				# directly in class may have context clashes (like you have an operation or attribute
 				# with the same name as the parent_class_name).
@@ -230,6 +232,9 @@
 					# Here we add the reference anyway, even if the class is not resolved
 					parents append (parent_class_ref)
 					environment report error ("Unable to resolve parent class:", parent_class_name, "from", current_class getName())
+					@embed Python
+					|import ipdb ; ipdb.set_trace()
+					@end
 				end
 			end
 			return parents
@@ -434,14 +439,26 @@
 	@shared HANDLES  = [ interfaces IProgram, interfaces IModule ]
 	@shared NAME     = "GlobalRuntime"
 	@shared FUNCTIONS = [
-		"assert"
 		"access"
+		"asMap"
+		"assert"
 		"car"
 		"cdr"
-		"cons"
+		"Class"
 		"cmp"
+		"copy"
 		"createMapFromItems"
+		"debug"
+		"equals"
 		"error"
+		"extendPrimitiveTypes"
+		"fail"
+		"filter"
+		"find"
+		"findLike"
+		"findOneOf"
+		"first"
+		"foldl"
 		"getChildrenOf"
 		"getClass"
 		"getClasses"
@@ -450,23 +467,44 @@
 		"getMethodOf"
 		"getParentClass"
 		"getSuperMethod"
+		"getType"
+		"greater"
 		"invoke"
 		"isDefined"
 		"isFunction"
 		"isIn"
 		"isInstance"
+		"isIterable"
 		"isList"
 		"isMap"
-		"isString"
 		"isNumber"
+		"isObject"
+		"isString"
+		"items"
 		"iterate"
+		"keys"
+		"last"
 		"len"
+		"map"
+		"merge"
+		"Module"
+		"pairs"
 		"print"
+		"Protocol"
 		"range"
-		"sorted"
-		"str"
+		"reduce"
+		"replace"
+		"Singleton"
 		"slice"
 		"sliceArguments"
+		"smaller"
+		"sorted"
+		"sprintf"
+		"str"
+		"strip"
+		"type"
+		"values"
+		"warning"
 	]
 
 	@property runtime

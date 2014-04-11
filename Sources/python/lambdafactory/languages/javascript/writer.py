@@ -143,7 +143,8 @@ class Writer(AbstractWriter):
 			module_name
 		))
 		code.append("})(%s);" % (module_name))
-		if moduleElement.getSource():
+		# FIXME: Disabled for now
+		if False and moduleElement.getSource():
 			code.append("%s.__source__=%s;" % (module_name,
 				json.dumps(moduleElement.getSource())))
 		return self._format(
