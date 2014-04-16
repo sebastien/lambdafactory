@@ -369,13 +369,6 @@
 			# We need to strip the dataflow from the module on importing (we actually should do it on save)
 			var clear_dataflow = new ClearDataFlow ()
 			clear_dataflow run (source_and_module[1])
-			# if not program hasModule (source_and_module[1])
-			# 	program addModule (source_and_module[1])
-			# end
-			# @embed Python
-			# |import ipdb
-			# |ipdb.set_trace()
-			# @end
 		end
 		return source_and_module[1]
 	@end
