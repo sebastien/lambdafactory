@@ -161,9 +161,12 @@
 	@end
 
 	@method addSource dataflow
-		if not (dataflow in sources)
+		@embed Python
+		|assert dataflow != self, "DataFlow added as its own source"
+		@end
+		if (dataflow != self ) and (not (dataflow in sources))
 			sources append (dataflow)
-			dataflow addDestination( self )
+			dataflow addDestination (self)
 		end
 	@end
 
@@ -210,8 +213,9 @@
 		return _getAvailableSlots() values()
 	@end
 
-	@method getSourcesSlots slots=None
+	@method getSourcesSlots slots=None, visited=None
 	| Returns the list of slots defined in the sources, using the sources axis.
+		visited = visited or []
 		if slots is None
 			slots = {}
 		else
@@ -221,8 +225,12 @@
 				end
 			end
 		end
+		# This allows to prevent doing an infinite recursion
 		for source in getSources()
-			source getSourcesSlots( slots)
+			if not (source in visited)
+				visited append (source)
+				source getSourcesSlots (slots, visited)
+			end
 		end
 		return slots values()
 	@end
@@ -287,7 +295,7 @@
 
 	@method resolveInSources name
 		if sources
-			for source in getSources()
+			for source in getSources ()
 				var slot_and_value = source resolveLocally (name)
 				if slot_and_value[1] != None
 					return slot_and_value

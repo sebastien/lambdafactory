@@ -31,7 +31,7 @@ class Command:
 	def __init__ (self, programName=None):
 		self.programName = None
 		self.environment = None
-		if programName is None: programName = 'lambdaf'
+		if programName is None: programName = 'lambdafactory'
 		self.programName = programName
 		self.createEnvironment()
 		self.environment.loadLanguages()
@@ -63,7 +63,7 @@ class Command:
 			help=self.OPT_LANG)
 		option_parser.add_option("-o", "--output", action="store", dest="output",
 			help=self.OPT_OUTPUT)
-		option_parser.add_option("-C", "--cache", action="store_true", dest="cache", default=False,
+		option_parser.add_option("-C", "--cache", action="store_true", dest="cache", default=True,
 			help=self.OPT_CACHE)
 		option_parser.add_option("-v", "--verbose", action="store_true", dest="verbose",
 			help=self.OPT_VERBOSE)
@@ -92,7 +92,7 @@ class Command:
 		options, args = option_parser.parse_args(args=arguments)
 		
 		language=options.lang
-		program=self.environment.getFactory().createProgram()
+		program=self.environment.program
 		self.environment.useCache = options.cache
 		if options.targets:
 			for option_target in options.targets:
@@ -173,6 +173,7 @@ class Command:
 				raise ERR_NO_RUNTIME_AVAILABLE(language)
 			status = ((os.system(command) / 256) or status)
 			os.unlink(path)
+		return program
 	
 	def parseFile(self, sourcePath, moduleName=None):
 		if moduleName is None: moduleName = None

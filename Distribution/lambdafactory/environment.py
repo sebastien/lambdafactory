@@ -1,11 +1,22 @@
 #!/usr/bin/env python
 import sys
 __module__ = sys.modules[__name__]
-import os, sys, pickle, hashlib
+import os, sys, dill, hashlib
 from lambdafactory.reporter import DefaultReporter
 from lambdafactory.modelbase import Factory
 from lambdafactory.passes import PassContext
+from lambdafactory.resolution import ClearDataFlow
 __module_name__ = 'lambdafactory.environment'
+def error (message):
+	self=__module__
+	sys.stderr.write('[!] {0}\n'.format(message))
+
+
+def info (message):
+	self=__module__
+	sys.stderr.write('--- {0}\n'.format(message))
+
+
 class Importer:
 	"""The Environment importer class acts like a "hub" for language-specific
 	importers. It will try, according to the current environment settings,
@@ -33,7 +44,7 @@ class Importer:
 	def importModule(self, moduleName):
 		module_path=self.findSugarModule(moduleName)
 		if module_path:
-			self.environment.report.info('Importing module', moduleName)
+			self.environment.report.info('Importing module', moduleName, 'from', module_path)
 			return self.importModuleFromFile(module_path)
 		elif True:
 			self.environment.report.error('Module not found:', moduleName)
@@ -93,13 +104,16 @@ class Cache:
 	modules/<modulename>.model
 	content/<sig>.model"""
 	def __init__ (self):
-		self.root = '/tmp/lambdafactory-cache'
-		for d in [self.root, (self.root + '/module'), (self.root + '/content')]:
+		self.root = '/tmp/lambdafactory-cache-{0}'.format(os.getuid())
+		for d in [self.root]:
 			if (not os.path.exists(d)):
 				os.makedirs(d)
 	
+	def getKeyForContent(self, content):
+		return hashlib.sha256(content).hexdigest()
+	
 	def hasContent(self, content):
-		return self.hasSignature(hashlib.sha256(content).hexdigest())
+		return self.hasSignature(self.getKeyForContent(content))
 	
 	def hasModule(self, name):
 		return os.path.exist(self._getPathForModuleName(name))
@@ -108,15 +122,16 @@ class Cache:
 		return os.path.exist(self._getPathForSignature(name))
 	
 	def getFromContent(self, content):
-		return self.getFromSignature(hashlib.sha256(content).hexdigest())
+		return self.getFromSignature(self.getKeyForContent(content))
 	
 	def getFromSignature(self, sig):
 		p=self._getPathForSignature(sig)
 		if os.path.exists(p):
 			f=open(p)
 			try:
-				res=pickle.load(f)
+				res=dill.load(f)
 			except Exception, e:
+				error('Cache.getFromSignature {0}: {1}'.format(sig, e))
 				res = None
 			f.close()
 			return res
@@ -128,8 +143,9 @@ class Cache:
 		if os.path.exists(p):
 			f=open(p)
 			try:
-				res=pickle.load(f)
+				res=dill.load(f)
 			except Exception, e:
+				error('Cache.getFromModuleName {0}: {1}'.format(sig, e))
 				res = None
 			f.close()
 			return res
@@ -138,14 +154,16 @@ class Cache:
 	
 	def set(self, sourceAndModule):
 		content=sourceAndModule[0]
-		p=self._getPathForSignature(hashlib.sha256(content).hexdigest())
+		k=self.getKeyForContent(content)
+		p=self._getPathForSignature(k)
 		f=open(p, 'wb')
 		try:
-			pickle.dump(sourceAndModule, f)
+			dill.dump(sourceAndModule, f)
 			f.close()
 		except Exception, e:
 			f.close()
 			os.unlink(p)
+			error('Cache.set {0}: {1}'.format(k, e))
 			return None
 		pm=self._getPathForModuleName(sourceAndModule[1].getAbsoluteName())
 		if os.path.exists(pm):
@@ -157,10 +175,10 @@ class Cache:
 		pass
 	
 	def _getPathForSignature(self, sig):
-		return (((self.root + '/content/') + sig) + '.cache')
+		return (((self.root + '/content-') + sig) + '.cache')
 	
 	def _getPathForModuleName(self, name):
-		return (((self.root + '/module/') + name) + '.cache')
+		return (((self.root + '/module-') + name) + '.cache')
 	
 
 class Environment:
@@ -216,6 +234,7 @@ class Environment:
 	
 	def runPasses(self, program):
 		for p in self.passes:
+			self.report.info('Running pass {0}'.format(p.__class__.__name__))
 			p.run(program)
 	
 	def getFactory(self):
@@ -234,16 +253,21 @@ class Environment:
 	def parseString(self, text, path, moduleName=None):
 		if moduleName is None: moduleName = None
 		source_and_module=self.cache.getFromContent(text)
-		if (not source_and_module):
+		if ((not self.useCache) or (not source_and_module)):
 			extension=path.split('.')[-1]
 			parser=self.parsers.get(extension)
 			if (not parser):
 				parser = self.parsers.get('sg')
 			source_and_module = parser.parseString(text, moduleName, path)
 			res=[source_and_module[0], source_and_module[1].copy().detach()]
+			assert((res[0] == text))
 			res[1].setSource(res[0])
 			if self.useCache:
 				self.cache.set(res)
+		elif True:
+			info('Parsing from cache {0}: {1}'.format(self.cache.getKeyForContent(source_and_module[0]), path))
+			clear_dataflow=ClearDataFlow()
+			clear_dataflow.run(source_and_module[1])
 		return source_and_module[1]
 	
 	def listAvailableLanguages(self):

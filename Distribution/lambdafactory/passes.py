@@ -145,7 +145,7 @@ class PassContext:
 		assert(isinstance(theClass, interfaces.IClass))
 		for parent_class_ref in current_class.getParentClassesRefs():
 			parent_class_name=parent_class_ref.getReferenceName()
-			resolution=self.resolve(parent_class_name, current_class.getParent())
+			resolution=self.resolve(parent_class_name, current_class.getDataFlow().parent)
 			slot=resolution[0]
 			parent_class=resolution[1]
 			if parent_class:
@@ -284,7 +284,7 @@ class ExtendJSRuntime(Pass):
 	"""This pass is like an importation and will simply bind the symbols"""
 	HANDLES = [interfaces.IProgram, interfaces.IModule]
 	NAME = 'GlobalRuntime'
-	FUNCTIONS = ['assert', 'access', 'car', 'cdr', 'cons', 'cmp', 'createMapFromItems', 'error', 'getChildrenOf', 'getClass', 'getClasses', 'getClassOf', 'getMethod', 'getMethodOf', 'getParentClass', 'getSuperMethod', 'invoke', 'isDefined', 'isFunction', 'isIn', 'isInstance', 'isList', 'isMap', 'isString', 'isNumber', 'iterate', 'len', 'print', 'range', 'sorted', 'str', 'slice', 'sliceArguments']
+	FUNCTIONS = ['access', 'asMap', 'assert', 'car', 'cdr', 'Class', 'cmp', 'copy', 'createMapFromItems', 'debug', 'equals', 'error', 'extendPrimitiveTypes', 'fail', 'filter', 'find', 'findLike', 'findOneOf', 'first', 'foldl', 'getChildrenOf', 'getClass', 'getClasses', 'getClassOf', 'getMethod', 'getMethodOf', 'getParentClass', 'getSuperMethod', 'getType', 'greater', 'invoke', 'isDefined', 'isFunction', 'isIn', 'isInstance', 'isIterable', 'isList', 'isMap', 'isNumber', 'isObject', 'isString', 'items', 'iterate', 'keys', 'last', 'len', 'map', 'merge', 'Module', 'pairs', 'print', 'Protocol', 'range', 'reduce', 'replace', 'Singleton', 'slice', 'sliceArguments', 'smaller', 'sorted', 'sprintf', 'str', 'strip', 'type', 'values', 'warning']
 	def __init__ (self):
 		self.runtime = None
 		Pass.__init__(self)

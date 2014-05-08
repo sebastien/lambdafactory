@@ -232,9 +232,6 @@
 					# Here we add the reference anyway, even if the class is not resolved
 					parents append (parent_class_ref)
 					environment report error ("Unable to resolve parent class:", parent_class_name, "from", current_class getName())
-					@embed Python
-					|import ipdb ; ipdb.set_trace()
-					@end
 				end
 			end
 			return parents

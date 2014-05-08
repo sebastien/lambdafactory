@@ -147,7 +147,7 @@
 | modules/<modulename>.model
 | content/<sig>.model
 
-	@property root = "/tmp/lambdafactory-cache"
+	@property root = "/tmp/lambdafactory-cache-{0}" format (os getuid ())
 
 	@constructor
 		for d in [root]
@@ -216,10 +216,6 @@
 		var k   = getKeyForContent     (content)
 		var p   = _getPathForSignature (k)
 		var f   = open (p, "wb")
-		# @embed Python
-		# |import ipdb
-		# |ipdb.set_trace()
-		# @end
 		try
 			dill dump (sourceAndModule, f)
 			f close ()

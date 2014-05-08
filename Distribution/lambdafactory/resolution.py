@@ -116,6 +116,58 @@ class BasicDataFlow(Pass):
 			element.setDataFlow(dataflow)
 	
 
+class ClearDataFlow(Pass):
+	"""Cleares the dataflows from the elements"""
+	HANDLES = [interfaces.IProgram, interfaces.IModule, interfaces.IClass, interfaces.IMethod, interfaces.IClosure, interfaces.IProcess, interfaces.IContext, interfaces.IAllocation, interfaces.IOperation, interfaces.IArgument, interfaces.IValue]
+	NAME = 'ClearDataflow'
+	def __init__ (self):
+		Pass.__init__(self)
+	
+	def getParentDataFlow(self):
+		"""Returns the dataflow of the parent element. It is supposed to exist."""
+		if self.hasParentElement():
+			return self.getParentElement().getDataFlow()
+		elif True:
+			return None
+	
+	def clearDataFlow(self, element):
+		"""Ensures that the given element has an attached DataFlow"""
+		element.setDataFlow(None)
+	
+	def onProgram(self, element):
+		self.clearDataFlow(element)
+	
+	def onModule(self, element):
+		self.clearDataFlow(element)
+	
+	def onClass(self, element):
+		self.clearDataFlow(element)
+	
+	def onMethod(self, element):
+		self.clearDataFlow(element)
+	
+	def onClosure(self, element):
+		self.clearDataFlow(element)
+	
+	def onProcess(self, element):
+		self.clearDataFlow(element)
+	
+	def onContext(self, element):
+		self.clearDataFlow(element)
+	
+	def onAllocation(self, element):
+		self.clearDataFlow(element)
+	
+	def onOperation(self, element):
+		self.clearDataFlow(element)
+	
+	def onArgument(self, element):
+		pass
+	
+	def onValue(self, element):
+		self.clearDataFlow(element)
+	
+
 class DataFlowBinding(Pass):
 	"""This pass will target classes, resolving their parent classes and binding the
 	dataflow slot to the proper value. If the binding fails, an exception will be
