@@ -316,7 +316,7 @@ class Writer(AbstractWriter):
 		for a in function.getAnnotations("post"):
 			res.append("if (not (%s)): raise new Exception('Assertion failed')" % (self.write(a.getContent())))
 		return self._format(res) or None
-	
+
 	def onFunction( self, function ):
 		"""Writes a function element."""
 		parent = function.getParent()
@@ -548,14 +548,14 @@ class Writer(AbstractWriter):
 		else:
 			# FIXME: Raise an error, because JavaScript only allow strings as keys
 			return "(%s)" % (self.write(key))
-		
+
 	def onDict( self, element ):
 		return '{%s}' % (", ".join([
 			"%s:%s" % ( self._writeDictKey(k),self.write(v))
 			for k,v in element.getItems()
 			])
 		)
-		
+
 	def onAllocation( self, allocation ):
 		"""Writes an allocation operation."""
 		s = allocation.getSlotToAllocate()
@@ -574,8 +574,8 @@ class Writer(AbstractWriter):
 
 	def onEnumeration( self, operation ):
 		"""Writes an enumeration operation."""
-		start = operation.getStart() 
-		end   = operation.getEnd() 
+		start = operation.getStart()
+		end   = operation.getEnd()
 		if isinstance(start, interfaces.ILiteral): start = self.write(start)
 		else: start = "(%s)" % (self.write(start))
 		if isinstance(end, interfaces.ILiteral): end = self.write(end)
@@ -664,13 +664,13 @@ class Writer(AbstractWriter):
 		assert isinstance(target, interfaces.IResolution)
 		args["self"] = "self_" + str(time.time()).replace(".","_") + str(random.randint(0,100))
 		args["self_once"] = self.write(target.getContext())
-		vars = [] 
+		vars = []
 		for var in self.RE_TEMPLATE.findall(template):
 			var = var[2:-1]
 			vars.append(var)
 			if var[0] == "_":
 				if var not in args:
-					args[var] = "var_" + str(time.time()).replace(".","_") + str(random.randint(0,100)) 
+					args[var] = "var_" + str(time.time()).replace(".","_") + str(random.randint(0,100))
 		# FIXME: Ensure that all arguments are provided, otherwise there may
 		# be a template error.
 		return "%s%s" % (
@@ -741,7 +741,7 @@ class Writer(AbstractWriter):
 		for r in rules:
 			text += ")"
 		return text
-	
+
 	def onSelection( self, selection ):
 		# If we are in an assignataion and allocation which is contained in a
 		# closure (because we can have a closure being assigned to something.)
@@ -752,8 +752,8 @@ class Writer(AbstractWriter):
 		result = []
 		for i in range(0,len(rules)):
 			rule = rules[i]
-			if isinstance(rule, interfaces.IMatchProcessOperation):	
-				process = self.write(rule.getProcess()) 
+			if isinstance(rule, interfaces.IMatchProcessOperation):
+				process = self.write(rule.getProcess())
 			else:
 				assert isinstance(rule, interfaces.IMatchExpressionOperation)
 				process = "%s" % (self.write(rule.getExpression()))
@@ -795,7 +795,7 @@ class Writer(AbstractWriter):
 				"for %s in %s:" % (v, self.write(iterator)),
 				map(self.write, closure.getOperations())
 		)
-		
+
 
 	def onRepetition( self, repetition ):
 		return self._format(
@@ -833,11 +833,11 @@ class Writer(AbstractWriter):
 	def onBreaking( self, breking ):
 		"""Writes a break operation."""
 		return "break"
-	
+
 	def onExcept( self, exception ):
 		"""Writes a except operation."""
 		return "raise " + self.write(exception.getValue())
-	
+
 	def onInterception( self, interception ):
 		"""Writes an interception operation."""
 		try_block   = interception.getProcess()
@@ -906,7 +906,7 @@ class Writer(AbstractWriter):
 			return '"""%s"""' % (doc.getContent().replace('"""', '\\"\\"\\"'))
 		else:
 			return None
-	
+
 	def write( self, element ):
 		#if isinstance(element, interfaces.IOperation):
 		#	print "OPERATION", element.__class__
