@@ -116,7 +116,9 @@ class DataFlow(IDataFlow):
 		self.addSlot(DataFlowSlot(name, value, [origin], slotType))
 	
 	def addSource(self, dataflow):
-		if (not (dataflow in self.sources)):
+		assert dataflow != self, "DataFlow added as its own source"
+		
+		if ((dataflow != self) and (not (dataflow in self.sources))):
 			self.sources.append(dataflow)
 			dataflow.addDestination(self)
 	
@@ -151,9 +153,11 @@ class DataFlow(IDataFlow):
 	def getAvailableSlots(self):
 		return self._getAvailableSlots().values()
 	
-	def getSourcesSlots(self, slots=None):
+	def getSourcesSlots(self, slots=None, visited=None):
 		"""Returns the list of slots defined in the sources, using the sources axis."""
 		if slots is None: slots = None
+		if visited is None: visited = None
+		visited = (visited or [])
 		if (slots is None):
 			slots = {}
 		elif True:
@@ -161,7 +165,9 @@ class DataFlow(IDataFlow):
 				if (slots.get(slot.getName()) is None):
 					slots[slot.getName()] = slot
 		for source in self.getSources():
-			source.getSourcesSlots(slots)
+			if (not (source in visited)):
+				visited.append(source)
+				source.getSourcesSlots(slots, visited)
 		return slots.values()
 	
 	def getAvailableSlotNames(self):

@@ -5,7 +5,7 @@
 # License   : Revised BSD License
 # -----------------------------------------------------------------------------
 # Creation  : 02-Nov-2006
-# Last mod  : 21-Mar-2014
+# Last mod  : 17-May-2014
 # -----------------------------------------------------------------------------
 
 # TODO: When constructor is empty, should assign default attributes anyway
@@ -564,6 +564,7 @@ class Writer(AbstractWriter):
 			# FIXME: This is temporary, we should have an AbsoluteReference
 			# operation that uses symbols as content
 			symbol_name = ".".join(map(self._rewriteSymbol, symbol_name.split(".")))
+
 		# If there is no scope, then the symmbol is undefined
 		if not scope:
 			if symbol_name == "print": return self.jsPrefix + self.jsCore + "print"
@@ -572,7 +573,7 @@ class Writer(AbstractWriter):
 		elif slot.isImported():
 			return self._onImportedReference(symbol_name, slot)
 		# It is a method of the current class
-		elif self.getCurrentClass() == scope or scope in self.getCurrentClassParents():
+		elif self.getCurrentClass() == scope or scope in self.getCurrentClassAncestors():
 			if isinstance(value, interfaces.IInstanceMethod):
 				# Here we need to wrap the method if they are given as values (
 				# that means used outside of direct invocations), because when
