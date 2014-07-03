@@ -72,7 +72,7 @@
 		|	help=self.OPT_LANG)
 		|option_parser.add_option("-o", "--output", action="store", dest="output",
 		|	help=self.OPT_OUTPUT)
-		|option_parser.add_option("-C", "--cache", action="store_true", dest="cache", default=True,
+		|option_parser.add_option("-C", "--cache", action="store_true", dest="cache", default=False,
 		|	help=self.OPT_CACHE)
 		|option_parser.add_option("-v", "--verbose", action="store_true", dest="verbose",
 		|	help=self.OPT_VERBOSE)

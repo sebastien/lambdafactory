@@ -759,12 +759,18 @@ class Writer(AbstractWriter):
 			)
 		else:
 			if operator.getReferenceName() == "has":
-					res = '(typeof(%s.%s)!="undefined")' % (
+				res = '(typeof(%s.%s)!="undefined")' % (
 					self.write(operands[0]),
 					self.write(operands[1])
 				)
 			elif operator.getReferenceName() == "in":
-					res = '(%sisIn(%s,%s))' % (
+				res = '(%sisIn(%s,%s))' % (
+					self.jsPrefix + self.jsCore,
+					self.write(operands[0]),
+					self.write(operands[1])
+				)
+			elif operator.getReferenceName() == "not in":
+				res = '(!(%sisIn(%s,%s)))' % (
 					self.jsPrefix + self.jsCore,
 					self.write(operands[0]),
 					self.write(operands[1])

@@ -849,7 +849,7 @@
 
 	@method setOperator operator
 	|	Sets the operator for this computation
-		return getOpArgument(0, operator)
+		return setOpArgument(0, operator)
 	@end
 
 	@method getOperand
