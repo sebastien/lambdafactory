@@ -5,7 +5,7 @@
 # License   : Revised BSD License
 # -----------------------------------------------------------------------------
 # Creation  : 02-Nov-2006
-# Last mod  : 17-May-2014
+# Last mod  : 03-Jul-2014
 # -----------------------------------------------------------------------------
 
 # TODO: When constructor is empty, should assign default attributes anyway
@@ -997,7 +997,7 @@ class Writer(AbstractWriter):
 
 	def onRepetition( self, repetition ):
 		return self._format(
-			"while (%s)" % (self.write(repetition.getCondition())),
+			"while (%s) " % (self.write(repetition.getCondition())),
 			self.write(repetition.getProcess())
 		)
 
@@ -1047,7 +1047,7 @@ class Writer(AbstractWriter):
 
 	def onExcept( self, exception ):
 		"""Writes a except operation."""
-		return "throw " + self.write(exception.getValue())
+		return "throw " + self.write(exception.getValue()) + ";"
 
 	def onInterception( self, interception ):
 		"""Writes an interception operation."""
@@ -1056,13 +1056,14 @@ class Writer(AbstractWriter):
 		try_finally = interception.getConclusion()
 		res         = ["try {", map(self.write, try_block.getOperations()), "}"]
 		if try_catch:
+			res[-1] += " catch(%s) {" % ( self.write(try_catch.getArguments()[0]))
 			res.extend([
-				"catch(%s){" % ( self.write(try_catch.getArguments()[0])) ,
 				map(self.write, try_catch.getOperations()),
 				"}"
 			])
 		if try_finally:
-			res.extend(["finally {", map(self.write, try_finally.getOperations()), "}"])
+			res[-1] += " finally {"
+			res.extend([map(self.write, try_finally.getOperations()), "}"])
 		return self._format(*res)
 
 	def onEmbed( self, embed ):

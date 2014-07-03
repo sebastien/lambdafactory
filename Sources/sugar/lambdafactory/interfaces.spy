@@ -1095,6 +1095,7 @@
 	@shared ARGS = []
 @end
 
+# FIXME: Should be refactored to IException
 @class IExcept: IInterruption
 |	An interruption that raises some value
 	@shared ARGS = [ IEvaluable ]
