@@ -1,5 +1,5 @@
 @module lambdafactory.environment
-@import os, sys, dill, hashlib
+@import os, sys, pickle, hashlib
 @import DefaultReporter from lambdafactory.reporter
 @import Factory from lambdafactory.modelbase
 @import PassContext from lambdafactory.passes
@@ -99,6 +99,9 @@
 	@constructor name, environment
 		self environment = environment
 		self name = name
+		@embed Python
+		|assert name, "No language specified"
+		@end
 		self basePath = basePath
 		self runtime  = loadModule "runtime"
 		self importer = loadModule "importer"
@@ -126,7 +129,7 @@
 		catch e
 			var error = str(e)
 			if not (error startswith "No module")
-				environment report error ("Language " + name + ", cannot import module " + moduleName + ": " + str(e))
+				environment report error ("Language " + str(name) + ", cannot import module " + str(moduleName) + ": " + str(e))
 			end
 			return None
 		end
@@ -182,7 +185,7 @@
 		if os path exists (p)
 			var f   = open (p)
 			try
-				var res = dill load (f)
+				var res = pickle load (f)
 			catch e
 				error ("Cache.getFromSignature {0}: {1}" format (sig, e))
 				res = None
@@ -199,7 +202,7 @@
 		if os path exists (p)
 			var f   = open (p)
 			try
-				var res = dill load (f)
+				var res = pickle load (f)
 			catch e
 				error ("Cache.getFromModuleName {0}: {1}" format (sig, e))
 				res = None
@@ -217,7 +220,7 @@
 		var p   = _getPathForSignature (k)
 		var f   = open (p, "wb")
 		try
-			dill dump (sourceAndModule, f)
+			pickle dump (sourceAndModule, f)
 			f close ()
 		catch e
 			f close ()
@@ -375,7 +378,7 @@
 		var base_dir = os path join(os path dirname(os path abspath (__file__)),"languages")
 		var languages = []
 		for name in os listdir(base_dir)
-			if (not name startswith ".") and (os path isdir(os path join(base_dir, name)))
+			if (not name startswith ".") and (os path isdir(os path join(base_dir, name))) and (not name startswith "_")
 				languages append (name)
 			end
 		end
@@ -384,7 +387,7 @@
 
 	@method loadLanguages
 		for language in listAvailableLanguages()
-			loadLanguage(language)
+			loadLanguage (language)
 		end
 	@end
 
