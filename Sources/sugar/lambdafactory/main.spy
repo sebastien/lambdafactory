@@ -121,7 +121,10 @@
 			for i in options includes
 				if os path isfile (i)
 					var parsed_module = parseFile (i)
-					program addModule (parsed_module)
+					if parsed_module
+						# There might be a parsing error
+						program addModule (parsed_module)
+					end
 				end
 			end
 		end
@@ -138,7 +141,10 @@
 			# program transformation stage.
 			for source_path in args
 				var result_module = parseFile (source_path, options module)
-				program addModule (result_module)
+				if result_module
+					# There might have been a parsing error
+					program addModule (result_module)
+				end
 				# REWRITE: language = options get "lang" ? guessLanguage(source_path) ? raise ERR_NOT_LANGUAGE_SPECIFIED
 				# We get the language to which we'd like to translate the program to
 				if not language
@@ -172,7 +178,9 @@
 		else
 			setupPasses (language, None, options passOptions or [])
 		end
-		transformProgram (program)
+		if program getModules ()
+			transformProgram (program)
+		end
 		# We compile, run or simply test
 		if options api
 			html_documentation =  environment getPass "Documentation" asHTML()

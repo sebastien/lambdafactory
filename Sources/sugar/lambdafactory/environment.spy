@@ -120,7 +120,7 @@
 	@end
 
 	@method loadModule moduleName
-	| Dynamically loads the language module
+	| Dynamically loads the language (sub) module
 		try
 			var module = None
 			@embed Python
@@ -360,11 +360,15 @@
 			var parser              = parsers get (extension)
 			if not parser -> parser = parsers get "sg"
 			source_and_module       = parser parseString (text, moduleName, path)
-			var res                 = [source_and_module[0], source_and_module[1] copy () detach ()]
-			assert (res[0] == text)
-			res[1] setSource (res[0])
-			if useCache
-				cache set (res)
+			if source_and_module[1]
+				var res                 = [source_and_module[0], source_and_module[1] copy () detach ()]
+				assert (res[0] == text)
+				res[1] setSource (res[0])
+				if useCache
+					cache set (res)
+				end
+			else
+				error ("Could not parse file: " + path)
 			end
 		else
 			info ("Parsing from cache {0}: {1}" format (cache getKeyForContent (source_and_module[0]), path))
