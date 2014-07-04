@@ -6,7 +6,7 @@
 
 	@shared MODULE_IGNORES = ["__builtins__"]
 	@property environment
-	
+
 	@constructor environment
 		self environment = environment
 	@end
@@ -23,7 +23,7 @@
 		var python_module = eval(moduleName)
 		var module = environment getFactory() createModule(moduleName)
 		# TODO: Create the interfaces for that
-		#environment getFactory() 
+		#environment getFactory()
 		for slot_name in dir(python_module)
 			var slot_value = getattr(python_module, slot_name)
 			var slot_type  = type(slot_value)
@@ -47,7 +47,7 @@
 		end
 		return c
 	@end
-	
+
 	@method _getPythonFunctionArguments function
 	@as Utility
 		if hasattr(function, "im_func")
@@ -87,7 +87,7 @@
 		end
 		return arguments
 	@end
-	
+
 	@method importInstanceMethod methodObject
 		var f = environment getFactory()
 		var args = _getPythonFunctionArguments(methodObject)
@@ -95,16 +95,16 @@
 		# FIXME: Add 'imported' annotation
 		return f createMethod ( methodObject __name__, args )
 	@end
-	
+
 	@method importFunction functionObject
 	@end
-	
+
 	@method importList l
 	@end
-	
+
 	@method importDict d
 	@end
-	
+
 	@method importValue value
 		var value_type = type(value)
 		# REWRITE: Match
