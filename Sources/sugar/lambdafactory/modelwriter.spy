@@ -113,6 +113,11 @@
 		Pass __init__ (self)
 	@end
 
+	@method setOption name, value
+		self options [name] = value
+		return self
+	@end
+
 	@method write element
 		var res = None
 		if element is None

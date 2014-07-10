@@ -45,7 +45,8 @@ try var void
 volatile while with""".replace("\n", " ").split()
 
 OPTIONS = {
-	"ENABLE_METADATA":False
+	"ENABLE_METADATA":False,
+	"INCLUDE_SOURCE":False,
 }
 
 class Writer(AbstractWriter):
@@ -143,10 +144,12 @@ class Writer(AbstractWriter):
 			module_name
 		))
 		code.append("})(%s);" % (module_name))
-		# FIXME: Disabled for now
-		if False and moduleElement.getSource():
-			code.append("%s.__source__=%s;" % (module_name,
-				json.dumps(moduleElement.getSource())))
+		source = moduleElement.getSource()
+		if self.options.get("INCLUDE_SOURCE") and source:
+			# NOTE: The source is prefixed with the URL scheme
+			source = source.split("://",1)[-1]
+			with open(source) as f:
+				code.append("%s.__source__=%s;" % (module_name, json.dumps(f.read())))
 		return self._format(
 			*code
 		)

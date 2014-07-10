@@ -15,24 +15,25 @@
 
 @class Command
 
-	@shared OPT_LANG       = "Specifies the target language (js, java, pnuts, actionscript)"
-	@shared OPT_OUTPUT     = "Specifies the output where the files will be generated (stdout, file or folder)"
-	@shared OPT_VERBOSE    = "Verbose parsing output (useful for debugging)"
-	@shared OPT_API        = "Generates SDoc API documentation (given the API filename)"
-	@shared OPT_TEST       = "Tells wether the source code is valid or not"
-	@shared OPT_DEFINE     = "Defines a specific target (for @specific)"
-	@shared OPT_OPTIONS    = "Options for program transformation passes"
-	@shared OPT_RUN        = "Directly runs the script (default)"
-	@shared OPT_COMPILE    = "Compiles the given code to the output (current) directory"
-	@shared OPT_RUNTIME    = "Outputs the runtime as well when compiled"
-	@shared OPT_VERSION    = "Ensures that Sugar is at least of the given version"
-	@shared OPT_SOURCE     = "Directly gives the source"
-	@shared OPT_CACHE      = "Uses compilation cache"
-	@shared OPT_MODULE     = "Specifies the module name"
-	@shared OPT_LIB        = "Specifies a file to be used as a library or a library directory"
-	@shared OPT_INCLUDES   = "Specifies a file to be included in the copmilation output"
-	@shared OPT_PREPROC    = "Applies the given preprocessor to the source"
-	@shared OPT_PASSES     = "Specifies the passes used in the compilation process. Passes are identified by the class name which is expected to be found in either lambdafactory.passes or lambdafactory.resolution modules, or is given as an absolute class name."
+	@shared OPT_LANG           = "Specifies the target language (js, java, pnuts, actionscript)"
+	@shared OPT_OUTPUT         = "Specifies the output where the files will be generated (stdout, file or folder)"
+	@shared OPT_VERBOSE        = "Verbose parsing output (useful for debugging)"
+	@shared OPT_API            = "Generates SDoc API documentation (given the API filename)"
+	@shared OPT_TEST           = "Tells wether the source code is valid or not"
+	@shared OPT_DEFINE         = "Defines a specific target (for @specific)"
+	@shared OPT_OPTIONS        = "Options for program transformation passes"
+	@shared OPT_RUN            = "Directly runs the script (default)"
+	@shared OPT_COMPILE        = "Compiles the given code to the output (current) directory"
+	@shared OPT_RUNTIME        = "Outputs the runtime as well when compiled"
+	@shared OPT_VERSION        = "Ensures that Sugar is at least of the given version"
+	@shared OPT_SOURCE         = "Directly gives the source"
+	@shared OPT_INCLUDE_SOURCE = "Includes source in compiled code"
+	@shared OPT_CACHE          = "Uses compilation cache"
+	@shared OPT_MODULE         = "Specifies the module name"
+	@shared OPT_LIB            = "Specifies a file to be used as a library or a library directory"
+	@shared OPT_INCLUDES       = "Specifies a file to be included in the copmilation output"
+	@shared OPT_PREPROC        = "Applies the given preprocessor to the source"
+	@shared OPT_PASSES         = "Specifies the passes used in the compilation process. Passes are identified by the class name which is expected to be found in either lambdafactory.passes or lambdafactory.resolution modules, or is given as an absolute class name."
 
 	@property programName
 	@property environment:Environment
@@ -86,6 +87,8 @@
 		|	help=self.OPT_TEST)
 		|option_parser.add_option("-s", "--source", action="store", dest="source",
 		|	help=self.OPT_SOURCE)
+		|option_parser.add_option("-S", "--include-source", action="store", dest="includeSource",
+		|	help=self.OPT_INCLUDE_SOURCE)
 		|option_parser.add_option("-D", "--define", action="append", dest="targets",
 		|	help=self.OPT_DEFINE)
 		|option_parser.add_option("-O", "--options", action="append", dest="passOptions",
@@ -192,7 +195,7 @@
 				f close ()
 			end
 		if options compile
-			var program_source = writeProgram (program, language, options runtime)
+			var program_source = writeProgram (program, language, options runtime, options includeSource)
 			if not options output
 				output write( program_source + "\n" )
 			if os path isdir (options output)
@@ -203,7 +206,7 @@
 				f write (program_source)
 			end
 		if options run
-			var program_source = writeProgram (program, language, True)
+			var program_source = writeProgram (program, language, True, options includeSource)
 			var file_and_path = tempfile mkstemp ()
 			os write(file_and_path[0],program_source )
 			os close(file_and_path[0])
@@ -251,13 +254,14 @@
 		return None
 	@end
 
-	@method writeProgram program, inLanguage, includeRuntime=False
+	@method writeProgram program, inLanguage, includeRuntime=False, includeSource=False
 		var language = environment loadLanguage (inLanguage)
 		# FIXME: The language should be initialized for the environment
 		var writer   = language writer ()
 		# FIXME: Writer should take environ
 		writer report = environment report
 		writer setEnvironment (environment)
+		writer setOption ("INCLUDE_SOURCE", includeSource)
 		var program_source = writer run (program)
 		if includeRuntime
 			program_source = writer getRuntimeSource() + program_source
