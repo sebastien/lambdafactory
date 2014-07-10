@@ -148,8 +148,9 @@ class Writer(AbstractWriter):
 		if self.options.get("INCLUDE_SOURCE") and source:
 			# NOTE: The source is prefixed with the URL scheme
 			source = source.split("://",1)[-1]
-			with open(source) as f:
-				code.append("%s.__source__=%s;" % (module_name, json.dumps(f.read())))
+			if os.path.exists(source):
+				with open(source) as f:
+					code.append("%s.__source__=%s;" % (module_name, json.dumps(f.read())))
 		return self._format(
 			*code
 		)

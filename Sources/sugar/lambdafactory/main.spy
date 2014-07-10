@@ -87,7 +87,7 @@
 		|	help=self.OPT_TEST)
 		|option_parser.add_option("-s", "--source", action="store", dest="source",
 		|	help=self.OPT_SOURCE)
-		|option_parser.add_option("-S", "--include-source", action="store", dest="includeSource",
+		|option_parser.add_option("-S", "--include-source", action="store_true", dest="includeSource",
 		|	help=self.OPT_INCLUDE_SOURCE)
 		|option_parser.add_option("-D", "--define", action="append", dest="targets",
 		|	help=self.OPT_DEFINE)
