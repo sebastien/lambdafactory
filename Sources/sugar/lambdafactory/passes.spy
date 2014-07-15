@@ -391,6 +391,8 @@
 	@shared   HANDLES  = []
 	@shared   NAME     = ""
 
+	@property options  = {}
+
 	@constructor
 		PassContext __init__ (self)
 		setPass(self)
