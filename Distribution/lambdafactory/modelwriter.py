@@ -60,6 +60,10 @@ class AbstractWriter(Pass):
 		self._generatedSymbols = {}
 		Pass.__init__(self)
 	
+	def setOption(self, name, value):
+		self.options[name] = value
+		return self
+	
 	def write(self, element):
 		res=None
 		if (element is None):

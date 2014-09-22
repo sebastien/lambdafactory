@@ -331,6 +331,20 @@ class Element:
 		assert(((self.parent is None) or (parent == self.parent)))
 		self.parent = parent
 	
+	def setOffset(self, start, end):
+		self.sourceLocation[0] = start
+		self.sourceLocation[1] = end
+		return self
+	
+	def getStartOffset(self):
+		return self.sourceLocation[0]
+	
+	def getEndOffset(self):
+		return self.sourceLocation[1]
+	
+	def getText(self, text):
+		return text[self.getStartOffset():self.getEndOffset()]
+	
 	def detach(self):
 		if self.parent:
 			self.parent = None

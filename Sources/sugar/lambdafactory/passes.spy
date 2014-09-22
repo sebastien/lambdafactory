@@ -451,7 +451,6 @@
 		"equals"
 		"error"
 		"extendPrimitiveTypes"
-		"fail"
 		"filter"
 		"find"
 		"findLike"

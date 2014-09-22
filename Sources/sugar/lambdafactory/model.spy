@@ -450,6 +450,18 @@
 		self parent = parent
 	@end
 
+	@method setSourcePath path
+		sourceLocation[2] = path
+	@end
+
+	@method getSourcePath
+		return sourceLocation[2]
+	@end
+
+	@method getOffset
+		return [sourceLocation[0], sourceLocation[1]]
+	@end
+
 	@method setOffset start, end
 		sourceLocation[0] = start
 		sourceLocation[1] = end

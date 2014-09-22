@@ -22,6 +22,7 @@ class Command:
 	OPT_RUNTIME = 'Outputs the runtime as well when compiled'
 	OPT_VERSION = 'Ensures that Sugar is at least of the given version'
 	OPT_SOURCE = 'Directly gives the source'
+	OPT_INCLUDE_SOURCE = 'Includes source in compiled code'
 	OPT_CACHE = 'Uses compilation cache'
 	OPT_MODULE = 'Specifies the module name'
 	OPT_LIB = 'Specifies a file to be used as a library or a library directory'
@@ -63,7 +64,7 @@ class Command:
 			help=self.OPT_LANG)
 		option_parser.add_option("-o", "--output", action="store", dest="output",
 			help=self.OPT_OUTPUT)
-		option_parser.add_option("-C", "--cache", action="store_true", dest="cache", default=True,
+		option_parser.add_option("-C", "--cache", action="store_true", dest="cache", default=False,
 			help=self.OPT_CACHE)
 		option_parser.add_option("-v", "--verbose", action="store_true", dest="verbose",
 			help=self.OPT_VERBOSE)
@@ -77,6 +78,8 @@ class Command:
 			help=self.OPT_TEST)
 		option_parser.add_option("-s", "--source", action="store", dest="source",
 			help=self.OPT_SOURCE)
+		option_parser.add_option("-S", "--include-source", action="store_true", dest="includeSource",
+			help=self.OPT_INCLUDE_SOURCE)
 		option_parser.add_option("-D", "--define", action="append", dest="targets",
 			help=self.OPT_DEFINE)
 		option_parser.add_option("-O", "--options", action="append", dest="passOptions",
@@ -103,7 +106,8 @@ class Command:
 			for i in options.includes:
 				if os.path.isfile(i):
 					parsed_module=self.parseFile(i)
-					program.addModule(parsed_module)
+					if parsed_module:
+						program.addModule(parsed_module)
 		if options.source:
 			parseSource(args[0], options.source, options.module)
 		elif True:
@@ -112,7 +116,8 @@ class Command:
 					throw.Exception('Only one source file is accepted with the -m option')
 			for source_path in args:
 				result_module=self.parseFile(source_path, options.module)
-				program.addModule(result_module)
+				if result_module:
+					program.addModule(result_module)
 				if (not language):
 					language = self.guessLanguage(source_path)
 				elif True:
@@ -132,7 +137,8 @@ class Command:
 			self.setupPasses(language, options.passes.split(','), (options.passOptions or []))
 		elif True:
 			self.setupPasses(language, None, (options.passOptions or []))
-		self.transformProgram(program)
+		if program.getModules():
+			self.transformProgram(program)
 		if options.api:
 			html_documentation = self.environment.getPass('Documentation').asHTML()
 			if (options.api == '-'):
@@ -142,7 +148,7 @@ class Command:
 				f.write(html_documentation)
 				f.close()
 		elif options.compile:
-			program_source=self.writeProgram(program, language, options.runtime)
+			program_source=self.writeProgram(program, language, options.runtime, options.includeSource)
 			if (not options.output):
 				output.write((program_source + '\n'))
 			elif os.path.isdir(options.output):
@@ -152,7 +158,7 @@ class Command:
 				f=file(options.output, mode=('a'))
 				f.write(program_source)
 		elif options.run:
-			program_source=self.writeProgram(program, language, True)
+			program_source=self.writeProgram(program, language, True, options.includeSource)
 			file_and_path=tempfile.mkstemp()
 			os.write(file_and_path[0], program_source)
 			os.close(file_and_path[0])
@@ -192,12 +198,14 @@ class Command:
 				return name_and_value[0]
 		return None
 	
-	def writeProgram(self, program, inLanguage, includeRuntime=None):
+	def writeProgram(self, program, inLanguage, includeRuntime=None, includeSource=None):
 		if includeRuntime is None: includeRuntime = False
+		if includeSource is None: includeSource = False
 		language=self.environment.loadLanguage(inLanguage)
 		writer=language.writer()
 		writer.report = self.environment.report
 		writer.setEnvironment(self.environment)
+		writer.setOption('INCLUDE_SOURCE', includeSource)
 		program_source=writer.run(program)
 		if includeRuntime:
 			program_source = (writer.getRuntimeSource() + program_source)

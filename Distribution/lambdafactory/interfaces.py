@@ -840,7 +840,7 @@ class IComputation(IOperation, IEvaluable):
 	
 	def setOperator(self, operator):
 		"""Sets the operator for this computation"""
-		return self.getOpArgument(0, operator)
+		return self.setOpArgument(0, operator)
 	
 	def getOperand(self):
 		"""Returns the left operand of this computation."""

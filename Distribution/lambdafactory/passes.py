@@ -257,6 +257,7 @@ class Pass(PassContext):
 	HANDLES = []
 	NAME = ''
 	def __init__ (self):
+		self.options = {}
 		PassContext.__init__(self)
 		self.setPass(self)
 	
@@ -284,7 +285,7 @@ class ExtendJSRuntime(Pass):
 	"""This pass is like an importation and will simply bind the symbols"""
 	HANDLES = [interfaces.IProgram, interfaces.IModule]
 	NAME = 'GlobalRuntime'
-	FUNCTIONS = ['access', 'asMap', 'assert', 'car', 'cdr', 'Class', 'cmp', 'copy', 'createMapFromItems', 'debug', 'equals', 'error', 'extendPrimitiveTypes', 'fail', 'filter', 'find', 'findLike', 'findOneOf', 'first', 'foldl', 'getChildrenOf', 'getClass', 'getClasses', 'getClassOf', 'getMethod', 'getMethodOf', 'getParentClass', 'getSuperMethod', 'getType', 'greater', 'invoke', 'isDefined', 'isFunction', 'isIn', 'isInstance', 'isIterable', 'isList', 'isMap', 'isNumber', 'isObject', 'isString', 'items', 'iterate', 'keys', 'last', 'len', 'map', 'merge', 'Module', 'pairs', 'print', 'Protocol', 'range', 'reduce', 'replace', 'Singleton', 'slice', 'sliceArguments', 'smaller', 'sorted', 'sprintf', 'str', 'strip', 'type', 'values', 'warning']
+	FUNCTIONS = ['access', 'asMap', 'assert', 'car', 'cdr', 'Class', 'cmp', 'copy', 'createMapFromItems', 'debug', 'equals', 'error', 'extendPrimitiveTypes', 'filter', 'find', 'findLike', 'findOneOf', 'first', 'foldl', 'getChildrenOf', 'getClass', 'getClasses', 'getClassOf', 'getMethod', 'getMethodOf', 'getParentClass', 'getSuperMethod', 'getType', 'greater', 'invoke', 'isDefined', 'isFunction', 'isIn', 'isInstance', 'isIterable', 'isList', 'isMap', 'isNumber', 'isObject', 'isString', 'items', 'iterate', 'keys', 'last', 'len', 'map', 'merge', 'Module', 'pairs', 'print', 'Protocol', 'range', 'reduce', 'replace', 'Singleton', 'slice', 'sliceArguments', 'smaller', 'sorted', 'sprintf', 'str', 'strip', 'type', 'values', 'warning']
 	def __init__ (self):
 		self.runtime = None
 		Pass.__init__(self)

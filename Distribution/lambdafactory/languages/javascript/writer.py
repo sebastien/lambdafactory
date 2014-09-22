@@ -5,7 +5,7 @@
 # License   : Revised BSD License
 # -----------------------------------------------------------------------------
 # Creation  : 02-Nov-2006
-# Last mod  : 17-May-2014
+# Last mod  : 03-Jul-2014
 # -----------------------------------------------------------------------------
 
 # TODO: When constructor is empty, should assign default attributes anyway
@@ -45,7 +45,8 @@ try var void
 volatile while with""".replace("\n", " ").split()
 
 OPTIONS = {
-	"ENABLE_METADATA":False
+	"ENABLE_METADATA":False,
+	"INCLUDE_SOURCE":False,
 }
 
 class Writer(AbstractWriter):
@@ -118,7 +119,7 @@ class Writer(AbstractWriter):
 		code = [
 			"// " + SNIP % ("%s.js" % (self.getAbsoluteName(moduleElement).replace(".", "/"))),
 			self._document(moduleElement),
-			self.options["ENABLE_METADATA"] and "function _meta_(v,m){var ms=v['__meta__']||{};for(var k in m){ms[k]=m[k]};v['__meta__']=ms;return v}" or "",
+			self.options["ENABLE_METADATA"] and "function __def(v,m){var ms=v['__def__']||{};for(var k in m){ms[k]=m[k]};v['__def__']=ms;return v}" or "",
 			"var %s=(typeof('extend')!='undefined' && extend && extend.Module && extend.Module(\"%s\")) || %s || {};" % (module_name, self.getAbsoluteName(moduleElement) or module_name, module_name),
 			"(function(%s){" % (module_name),
 			"var %s=%s=%s" % (self.jsSelf, self.jsModule, module_name),
@@ -143,10 +144,13 @@ class Writer(AbstractWriter):
 			module_name
 		))
 		code.append("})(%s);" % (module_name))
-		# FIXME: Disabled for now
-		if False and moduleElement.getSource():
-			code.append("%s.__source__=%s;" % (module_name,
-				json.dumps(moduleElement.getSource())))
+		source = moduleElement.getSource()
+		if self.options.get("INCLUDE_SOURCE") and source:
+			# NOTE: The source is prefixed with the URL scheme
+			source = source.split("://",1)[-1]
+			if os.path.exists(source):
+				with open(source) as f:
+					code.append("%s.__source__=%s;" % (module_name, json.dumps(f.read())))
 		return self._format(
 			*code
 		)
@@ -237,7 +241,7 @@ class Writer(AbstractWriter):
 			# declared and no constructor declared
 			default_constructor = self._format(
 				(
-					self.options["ENABLE_METADATA"] and "initialize:_meta_(function(){" \
+					self.options["ENABLE_METADATA"] and "initialize:__def(function(){" \
 					or "initialize:function(){"
 				),
 				["var %s=this;" % (self.jsSelf)],
@@ -278,7 +282,7 @@ class Writer(AbstractWriter):
 		return self._format(
 			self._document(methodElement),
 			(
-				self.options["ENABLE_METADATA"] and "%s:_meta_(function(%s){" \
+				self.options["ENABLE_METADATA"] and "%s:__def(function(%s){" \
 				or "%s:function(%s){"
 			) % (
 				method_name,
@@ -320,7 +324,7 @@ class Writer(AbstractWriter):
 		return self._format(
 			self._document(methodElement),
 			(
-				self.options["ENABLE_METADATA"] and "%s:_meta_(function(%s){" \
+				self.options["ENABLE_METADATA"] and "%s:__def(function(%s){" \
 				or "%s:function(%s){"
 			) % (method_name, ", ".join(map(self.write, args))),
 			["var %s = this;" % (self.jsSelf)],
@@ -342,7 +346,7 @@ class Writer(AbstractWriter):
 		method_args = inheritedMethodElement.getParameters()
 		return self._format(
 			(
-				self.options["ENABLE_METADATA"] and "%s:_meta_(function(%s){" \
+				self.options["ENABLE_METADATA"] and "%s:__def(function(%s){" \
 				or "%s:function(%s){"
 			) % (method_name, ", ".join(map(self.write, method_args))),
 			["return %s.%s.apply(%s, arguments);" % (
@@ -371,7 +375,7 @@ class Writer(AbstractWriter):
 		return self._format(
 			self._document(element),
 			(
-				self.options["ENABLE_METADATA"] and "initialize:_meta_(function(%s){" \
+				self.options["ENABLE_METADATA"] and "initialize:__def(function(%s){" \
 				or "initialize:function(%s){"
 			)  % (
 				", ".join(map(self.write, element.getParameters()))
@@ -391,7 +395,7 @@ class Writer(AbstractWriter):
 		return self._format(
 			self._document(closure),
 			(
-				self.options["ENABLE_METADATA"] and "_meta_(function(%s){" \
+				self.options["ENABLE_METADATA"] and "__def(function(%s){" \
 				or "function(%s){"
 			) % ( ", ".join(map(self.write, closure.getArguments()))),
 			self._writeClosureArguments(closure),
@@ -448,7 +452,7 @@ class Writer(AbstractWriter):
 		if parent and isinstance(parent, interfaces.IModule):
 			res = [
 				(
-					self.options["ENABLE_METADATA"] and "_meta_(function(%s){" \
+					self.options["ENABLE_METADATA"] and "__def(function(%s){" \
 					or "function(%s){"
 				)  % (
 					", ".join(map(self.write, function.getParameters()))
@@ -460,14 +464,14 @@ class Writer(AbstractWriter):
 				map(self.write, function.getOperations()),
 				(
 					(not self.options["ENABLE_METADATA"] and "}") or \
-					"},%s)" % ( self._writeFunctionMeta(closure))
+					"},%s)" % ( self._writeFunctionMeta(function))
 				)
 			]
 		else:
 			res = [
 				self._document(function),
 				(
-					self.options["ENABLE_METADATA"] and "_meta_(function(%s){" \
+					self.options["ENABLE_METADATA"] and "__def(function(%s){" \
 					or "function(%s){"
 				)  % (
 					", ".join(map(self.write, function.getParameters()))
@@ -759,12 +763,18 @@ class Writer(AbstractWriter):
 			)
 		else:
 			if operator.getReferenceName() == "has":
-					res = '(typeof(%s.%s)!="undefined")' % (
+				res = '(typeof(%s.%s)!="undefined")' % (
 					self.write(operands[0]),
 					self.write(operands[1])
 				)
 			elif operator.getReferenceName() == "in":
-					res = '(%sisIn(%s,%s))' % (
+				res = '(%sisIn(%s,%s))' % (
+					self.jsPrefix + self.jsCore,
+					self.write(operands[0]),
+					self.write(operands[1])
+				)
+			elif operator.getReferenceName() == "not in":
+				res = '(!(%sisIn(%s,%s)))' % (
 					self.jsPrefix + self.jsCore,
 					self.write(operands[0]),
 					self.write(operands[1])
@@ -991,7 +1001,7 @@ class Writer(AbstractWriter):
 
 	def onRepetition( self, repetition ):
 		return self._format(
-			"while (%s)" % (self.write(repetition.getCondition())),
+			"while (%s) " % (self.write(repetition.getCondition())),
 			self.write(repetition.getProcess())
 		)
 
@@ -1041,7 +1051,7 @@ class Writer(AbstractWriter):
 
 	def onExcept( self, exception ):
 		"""Writes a except operation."""
-		return "throw " + self.write(exception.getValue())
+		return "throw " + self.write(exception.getValue()) + ";"
 
 	def onInterception( self, interception ):
 		"""Writes an interception operation."""
@@ -1050,13 +1060,14 @@ class Writer(AbstractWriter):
 		try_finally = interception.getConclusion()
 		res         = ["try {", map(self.write, try_block.getOperations()), "}"]
 		if try_catch:
+			res[-1] += " catch(%s) {" % ( self.write(try_catch.getArguments()[0]))
 			res.extend([
-				"catch(%s){" % ( self.write(try_catch.getArguments()[0])) ,
 				map(self.write, try_catch.getOperations()),
 				"}"
 			])
 		if try_finally:
-			res.extend(["finally {", map(self.write, try_finally.getOperations()), "}"])
+			res[-1] += " finally {"
+			res.extend([map(self.write, try_finally.getOperations()), "}"])
 		return self._format(*res)
 
 	def onEmbed( self, embed ):

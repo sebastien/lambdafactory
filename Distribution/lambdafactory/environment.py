@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 import sys
 __module__ = sys.modules[__name__]
-import os, sys, dill, hashlib
+import os, sys, pickle, hashlib, imp
 from lambdafactory.reporter import DefaultReporter
 from lambdafactory.modelbase import Factory
 from lambdafactory.passes import PassContext
@@ -70,6 +70,8 @@ class Language:
 		self.readExtensions = []
 		self.environment = environment
 		self.name = name
+		assert name, "No language specified"
+		
 		self.basePath = self.basePath
 		self.runtime = self.loadModule('runtime')
 		self.importer = self.loadModule('importer')
@@ -85,15 +87,18 @@ class Language:
 		return (extension in self.readExtensions)
 	
 	def loadModule(self, moduleName):
-		"""Dynamically loads the language module"""
+		"""Dynamically loads the language (sub) module"""
 		try:
-			exec((((('import lambdafactory.languages.' + self.name) + '.') + moduleName) + ' as m'))
-			module=eval('m')
+			module=None
+			module_name   = "lambdafactory.languages." + self.name + "." + moduleName
+			root_module   = __import__(module_name)
+			module        = getattr(getattr(getattr(root_module, "languages"), self.name), moduleName)
+			
 			return getattr(module, 'MAIN_CLASS')
 		except Exception, e:
 			error=str(e)
 			if (not error.startswith('No module')):
-				self.environment.report.error(((((('Language ' + self.name) + ', cannot import module ') + moduleName) + ': ') + str(e)))
+				self.environment.report.error(((((('Language ' + str(self.name)) + ', cannot import module ') + str(moduleName)) + ': ') + str(e)))
 			return None
 	
 
@@ -129,7 +134,7 @@ class Cache:
 		if os.path.exists(p):
 			f=open(p)
 			try:
-				res=dill.load(f)
+				res=pickle.load(f)
 			except Exception, e:
 				error('Cache.getFromSignature {0}: {1}'.format(sig, e))
 				res = None
@@ -143,7 +148,7 @@ class Cache:
 		if os.path.exists(p):
 			f=open(p)
 			try:
-				res=dill.load(f)
+				res=pickle.load(f)
 			except Exception, e:
 				error('Cache.getFromModuleName {0}: {1}'.format(sig, e))
 				res = None
@@ -158,7 +163,7 @@ class Cache:
 		p=self._getPathForSignature(k)
 		f=open(p, 'wb')
 		try:
-			dill.dump(sourceAndModule, f)
+			pickle.dump(sourceAndModule, f)
 			f.close()
 		except Exception, e:
 			f.close()
@@ -259,11 +264,14 @@ class Environment:
 			if (not parser):
 				parser = self.parsers.get('sg')
 			source_and_module = parser.parseString(text, moduleName, path)
-			res=[source_and_module[0], source_and_module[1].copy().detach()]
-			assert((res[0] == text))
-			res[1].setSource(res[0])
-			if self.useCache:
-				self.cache.set(res)
+			if source_and_module[1]:
+				res=[source_and_module[0], source_and_module[1].copy().detach()]
+				assert((res[0] == text))
+				res[1].setSource(res[0])
+				if self.useCache:
+					self.cache.set(res)
+			elif True:
+				error(('Could not parse file: ' + path))
 		elif True:
 			info('Parsing from cache {0}: {1}'.format(self.cache.getKeyForContent(source_and_module[0]), path))
 			clear_dataflow=ClearDataFlow()
@@ -275,7 +283,7 @@ class Environment:
 		base_dir=os.path.join(os.path.dirname(os.path.abspath(__file__)), 'languages')
 		languages=[]
 		for name in os.listdir(base_dir):
-			if ((not name.startswith('.')) and os.path.isdir(os.path.join(base_dir, name))):
+			if (((not name.startswith('.')) and os.path.isdir(os.path.join(base_dir, name))) and (not name.startswith('_'))):
 				languages.append(name)
 		return languages
 	
