@@ -452,6 +452,7 @@
 
 	@method setSourcePath path
 		sourceLocation[2] = path
+		return self
 	@end
 
 	@method getSourcePath
@@ -1033,7 +1034,7 @@
 			if module  == existing_module
 				return True
 			if module getAbsoluteName () == existing_module getAbsoluteName ()
-				retrun True
+				return True
 			end
 		end
 		return False
