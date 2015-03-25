@@ -120,7 +120,7 @@ class Writer(AbstractWriter):
 			"// " + SNIP % ("%s.js" % (self.getAbsoluteName(moduleElement).replace(".", "/"))),
 			self._document(moduleElement),
 			self.options["ENABLE_METADATA"] and "function __def(v,m){var ms=v['__def__']||{};for(var k in m){ms[k]=m[k]};v['__def__']=ms;return v}" or "",
-			"var %s=(typeof('extend')!='undefined' && extend && extend.Module && extend.Module(\"%s\")) || %s || {};" % (module_name, self.getAbsoluteName(moduleElement) or module_name, module_name),
+			"var %s=(typeof('extend')!='undefined' && extend && extend.module && extend.module(\"%s\")) || %s || {};" % (module_name, self.getAbsoluteName(moduleElement) or module_name, module_name),
 			"(function(%s){" % (module_name),
 			"var %s=%s=%s" % (self.jsSelf, self.jsModule, module_name),
 		]

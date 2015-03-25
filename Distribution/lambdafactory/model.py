@@ -331,6 +331,16 @@ class Element:
 		assert(((self.parent is None) or (parent == self.parent)))
 		self.parent = parent
 	
+	def setSourcePath(self, path):
+		self.sourceLocation[2] = path
+		return self
+	
+	def getSourcePath(self):
+		return self.sourceLocation[2]
+	
+	def getOffset(self):
+		return [self.sourceLocation[0], self.sourceLocation[1]]
+	
 	def setOffset(self, start, end):
 		self.sourceLocation[0] = start
 		self.sourceLocation[1] = end
@@ -748,7 +758,7 @@ class Program(Context, IProgram):
 			if (module == existing_module):
 				return True
 			elif (module.getAbsoluteName() == existing_module.getAbsoluteName()):
-				retrun.True
+				return True
 		return False
 	
 	def hasModuleWithName(self, moduleName):
