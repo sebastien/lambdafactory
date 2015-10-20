@@ -327,7 +327,7 @@ class Writer(AbstractWriter):
 				self.options["ENABLE_METADATA"] and "%s:__def(function(%s){" \
 				or "%s:function(%s){"
 			) % (method_name, ", ".join(map(self.write, args))),
-			["var %s = this;" % (self.jsSelf)],
+			["var %s = this;" % (self.jsSelf)], #, self.getAbsoluteName(methodElement.getParent()))],
 			self._writeClosureArguments(methodElement),
 			self.writeFunctionWhen(methodElement),
 			map(self.write, methodElement.getOperations()),

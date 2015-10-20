@@ -149,6 +149,7 @@
 	@end
 
 	@method run program:IProgram
+		self program = program
 		return self write (program)
 	@end
 

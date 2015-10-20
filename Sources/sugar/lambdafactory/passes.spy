@@ -26,6 +26,9 @@
 	@constructor environment=None, programPass=None
 		self environment = environment
 		self programPass = programPass
+		if environment
+			self program = environment program
+		end
 	@end
 
 	@method setEnvironment environment
@@ -220,6 +223,9 @@
 				# NOTE: We resolve in the parent dataflow to avoid resoling the parent class name
 				# in case such as @class Application: Application with @import Application from app
 				var resolution = resolve ( parent_class_name, current_class getDataFlow () parent)
+				if not resolution[1]
+					resolution = resolveAbsolute (parent_class_name)
+				end
 				# We resolve the parent_class_name in the 'current_class' parent context, as resolving
 				# directly in class may have context clashes (like you have an operation or attribute
 				# with the same name as the parent_class_name).
@@ -301,6 +307,7 @@
 		|('.'-separated list of names), starting from the root dataflow (the program
 		| dataflow).
 			var program          = getProgram()
+			assert (program)
 			var program_dataflow = program getDataFlow()
 			var slot_and_value   = None
 			var matching_module  = None
@@ -311,7 +318,10 @@
 				referenceOrName = referenceOrName getReferenceName()
 			end
 			# We get the module with the name that matches most of the reference
-			# name
+			# name. This allows for absolute module names like (a.b.c) even if
+			# module `a` has a slot named `b`. The result of this section is
+			# that `matching_module` will reference the module with the longest
+			# name that prefixes the current reference.
 			# FIXME: There might be some edge cases with functions having the
 			# same name as a child module (then creating ambiguity)
 			for module in program getModules()
@@ -325,7 +335,7 @@
 				end
 				# We see if the referenceOrName starts with the current module
 				# name, meaning it is a submodule.
-				var match_index = mname find (referenceOrName)
+				var match_index = referenceOrName find (mname)
 				if match_index == 0 and referenceOrName startswith (mname) and referenceOrName[mname_len] == "."
 					if not matching_module
 						matching_module = module
@@ -335,21 +345,15 @@
 				end
 			end
 			if not matching_module
+				# We haven't found a matching module, in which case
+				# we return (None, None)
 				return tuple([None,None])
 			else
-				var symbol_name = referenceOrName
+				var symbol_name = referenceOrName[len(matching_module getName ())+1:]
 				# We do a resolution from the current data flow
-				slot_and_value = current_dataflow resolve (ref_name)
-				if not slot_and_value[1]
-					# If it fails, we fail the resolution
-					return slot_and_value
-				else
-					# Otherwise we proceed
-					current_dataflow = slot_and_value[0] getDataFlow()
-				end
+				slot_and_value = matching_module getDataFlow () resolve (symbol_name)
+				return slot_and_value
 			end
-			# We now have the proper slot and value
-			return slot_and_value
 		@end
 
 		@method resolveAbsoluteOrLocal referenceOrName, contextOrDataFlow=None
@@ -366,7 +370,7 @@
 		@method resolveLocalOrAbsolute referenceOrName, contextOrDataFlow=None
 		| Tries a local resolution first, then will look in the program scope if
 		| it fails.
-			var slot_and_value = resolve(referenceOrName, contextOrDataFlow)
+			var slot_and_value = resolve (referenceOrName, contextOrDataFlow)
 			if not slot_and_value[0]
 				return resolveAbsolute (referenceOrName)
 			else
@@ -555,28 +559,38 @@
 	@method onModule module
 		var imports = module getImportOperations()
 		for i in imports
-			var imported_module = None
+			var imported_modules = []
+			# We parse the imports and import the corresponding modules
 			if isinstance(i, interfaces IImportModuleOperation)
-				var imported_module_name = i getImportedModuleName()
+				var imported_module_name   = i getImportedModuleName()
 				var imported_module_origin = i getAlias()
 				if not program hasModuleWithName (imported_module_name)
-					imported_module = environment importModule (imported_module_name)
+					imported_modules append (environment importModule (imported_module_name))
 				end
-			if isinstance(i, interfaces IImportSymbolOperation)
+			elif isinstance(i, interfaces IImportModulesOperation)
+				for imported_module_name in i getImportedModuleNames ()
+					if not program hasModuleWithName (imported_module_name)
+						imported_modules append (environment importModule (imported_module_name))
+					end
+				end
+			elif isinstance(i, interfaces IImportSymbolOperation)
 				var imported_module_name = i getImportOrigin()
 				if not program hasModuleWithName (imported_module_name)
-					imported_module = environment importModule (imported_module_name)
+					imported_modules append (environment importModule (imported_module_name))
 				end
-			if isinstance(i, interfaces IImportSymbolsOperation)
+			elif isinstance(i, interfaces IImportSymbolsOperation)
 				var imported_module_name = i getImportOrigin()
 				if not program hasModuleWithName (imported_module_name)
-					imported_module = environment importModule (imported_module_name)
+					imported_modules append (environment importModule (imported_module_name))
 				end
 			else
 				environment report error ("Importation pass: operation not implemented " + repr(i))
 			end
-			if imported_module and (not program hasModule (imported_module))
-				program addModule (imported_module)
+			# If the imported module is not in the program, then we add it.
+			for m in imported_modules
+				if m and (not program hasModule (m))
+					program addModule (m)
+				end
 			end
 		end
 		return False

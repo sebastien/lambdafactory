@@ -919,8 +919,20 @@
 
 @end
 
+# -----------------------------------------------------------------------------
+#
+# INTERFACE
+#
+# -----------------------------------------------------------------------------
+
 @class Interface: Class, IInterface
 @end
+
+# -----------------------------------------------------------------------------
+#
+# MODULE
+#
+# -----------------------------------------------------------------------------
 
 @class Module: Context, IModule
 
@@ -1016,9 +1028,9 @@
 		for existing_module in modules
 			if module  == existing_module
 				raise (ERR_MODULE_ADDED_TWICE(module))
-			if module getAbsoluteName () == existing_module getAbsoluteName ()
+			elif module getAbsoluteName () == existing_module getAbsoluteName ()
 				same_name_module = existing_module
-				#TODO: break
+				break
 			end
 		end
 		if same_name_module

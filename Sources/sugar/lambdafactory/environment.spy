@@ -61,18 +61,19 @@
 		if module_path
 			environment report info ("Importing module", moduleName, "from", module_path)
 			#, "from", module_path, "...")
-			return importModuleFromFile (module_path)
+			return importModuleFromFile (module_path, moduleName)
 		else
 			environment report error ("Module not found:", moduleName)
 		end
 	@end
 
-	@method importModuleFromFile  modulePath
+	@method importModuleFromFile  modulePath:String, moduleName:String=None
 		environment report indent()
 		# The module is automatically addded to the program
 		var module = environment parseFile (modulePath)
+		if moduleName -> module setName (moduleName)
 		module setImported (True)
-		environment report dedent()
+		environment report dedent ()
 		return module
 	@end
 
@@ -341,8 +342,17 @@
 		return factory
 	@end
 
-	@method importModule name
-		return importer importModule (name)
+	@method importModule moduleName, importModule=True
+		assert (program)
+		if importModule and (not program hasModuleWithName (moduleName))
+			var module = importer importModule (moduleName)
+			if module
+				program addModule (module)
+			end
+			return module
+		else
+			return program getModule (moduleName)
+		end
 	@end
 
 	# TODO: Cache should be per parser

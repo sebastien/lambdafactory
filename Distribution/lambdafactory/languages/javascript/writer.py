@@ -5,7 +5,7 @@
 # License   : Revised BSD License
 # -----------------------------------------------------------------------------
 # Creation  : 02-Nov-2006
-# Last mod  : 03-Jul-2014
+# Last mod  : 25-Mar-2015
 # -----------------------------------------------------------------------------
 
 # TODO: When constructor is empty, should assign default attributes anyway
@@ -667,7 +667,7 @@ class Writer(AbstractWriter):
 
 	def onString( self, element ):
 		"""Writes a string element."""
-		return repr(element.getActualValue())
+		return json.dumps(element.getActualValue())
 
 	def onList( self, element ):
 		"""Writes a list element."""
