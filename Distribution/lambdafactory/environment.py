@@ -45,13 +45,16 @@ class Importer:
 		module_path=self.findSugarModule(moduleName)
 		if module_path:
 			self.environment.report.info('Importing module', moduleName, 'from', module_path)
-			return self.importModuleFromFile(module_path)
+			return self.importModuleFromFile(module_path, moduleName)
 		elif True:
 			self.environment.report.error('Module not found:', moduleName)
 	
-	def importModuleFromFile(self, modulePath):
+	def importModuleFromFile(self, modulePath, moduleName=None):
+		if moduleName is None: moduleName = None
 		self.environment.report.indent()
 		module=self.environment.parseFile(modulePath)
+		if moduleName:
+			module.setName(moduleName)
 		module.setImported(True)
 		self.environment.report.dedent()
 		return module
@@ -245,8 +248,16 @@ class Environment:
 	def getFactory(self):
 		return self.factory
 	
-	def importModule(self, name):
-		return self.importer.importModule(name)
+	def importModule(self, moduleName, importModule=None):
+		if importModule is None: importModule = True
+		assert(self.program)
+		if (importModule and (not self.program.hasModuleWithName(moduleName))):
+			module=self.importer.importModule(moduleName)
+			if module:
+				self.program.addModule(module)
+			return module
+		elif True:
+			return self.program.getModule(moduleName)
 	
 	def parseFile(self, path, moduleName=None):
 		if moduleName is None: moduleName = None

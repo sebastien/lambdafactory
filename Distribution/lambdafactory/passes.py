@@ -21,6 +21,8 @@ class PassContext:
 		if programPass is None: programPass = None
 		self.environment = environment
 		self.programPass = programPass
+		if environment:
+			self.program = environment.program
 	
 	def setEnvironment(self, environment):
 		self.environment = environment
@@ -146,6 +148,8 @@ class PassContext:
 		for parent_class_ref in current_class.getParentClassesRefs():
 			parent_class_name=parent_class_ref.getReferenceName()
 			resolution=self.resolve(parent_class_name, current_class.getDataFlow().parent)
+			if (not resolution[1]):
+				resolution = self.resolveAbsolute(parent_class_name)
 			slot=resolution[0]
 			parent_class=resolution[1]
 			if parent_class:
@@ -202,6 +206,7 @@ class PassContext:
 		('.'-separated list of names), starting from the root dataflow (the program
 		dataflow)."""
 		program=self.getProgram()
+		assert(program)
 		program_dataflow=program.getDataFlow()
 		slot_and_value=None
 		matching_module=None
@@ -215,7 +220,7 @@ class PassContext:
 			if (mname == referenceOrName):
 				matching_module = module
 				return tuple([None, module])
-			match_index=mname.find(referenceOrName)
+			match_index=referenceOrName.find(mname)
 			if (((match_index == 0) and referenceOrName.startswith(mname)) and (referenceOrName[mname_len] == '.')):
 				if (not matching_module):
 					matching_module = module
@@ -224,13 +229,9 @@ class PassContext:
 		if (not matching_module):
 			return tuple([None, None])
 		elif True:
-			symbol_name=referenceOrName
-			slot_and_value = current_dataflow.resolve(ref_name)
-			if (not slot_and_value[1]):
-				return slot_and_value
-			elif True:
-				current_dataflow = slot_and_value[0].getDataFlow()
-		return slot_and_value
+			symbol_name=referenceOrName[(len(matching_module.getName()) + 1):]
+			slot_and_value = matching_module.getDataFlow().resolve(symbol_name)
+			return slot_and_value
 	
 	def resolveAbsoluteOrLocal(self, referenceOrName, contextOrDataFlow=None):
 		"""Tries an absolute resolution first, then will look in the local scope if
@@ -285,7 +286,7 @@ class ExtendJSRuntime(Pass):
 	"""This pass is like an importation and will simply bind the symbols"""
 	HANDLES = [interfaces.IProgram, interfaces.IModule]
 	NAME = 'GlobalRuntime'
-	FUNCTIONS = ['access', 'asMap', 'assert', 'car', 'cdr', 'Class', 'cmp', 'copy', 'createMapFromItems', 'debug', 'equals', 'error', 'extendPrimitiveTypes', 'filter', 'find', 'findLike', 'findOneOf', 'first', 'foldl', 'getChildrenOf', 'getClass', 'getClasses', 'getClassOf', 'getMethod', 'getMethodOf', 'getParentClass', 'getSuperMethod', 'getType', 'greater', 'invoke', 'isDefined', 'isFunction', 'isIn', 'isInstance', 'isIterable', 'isList', 'isMap', 'isNumber', 'isObject', 'isString', 'items', 'iterate', 'keys', 'last', 'len', 'map', 'merge', 'Module', 'pairs', 'print', 'Protocol', 'range', 'reduce', 'replace', 'Singleton', 'slice', 'sliceArguments', 'smaller', 'sorted', 'sprintf', 'str', 'strip', 'type', 'values', 'warning']
+	FUNCTIONS = ['access', 'asMap', 'assert', 'car', 'cdr', 'Class', 'cmp', 'copy', 'createMapFromItems', 'debug', 'equals', 'error', 'extendPrimitiveTypes', 'filter', 'find', 'findLike', 'findOneOf', 'first', 'foldl', 'getChildrenOf', 'getClass', 'getClasses', 'getClassOf', 'getMethod', 'getMethodOf', 'getParentClass', 'getSuperMethod', 'getType', 'greater', 'invoke', 'isDefined', 'isUndefined', 'isFunction', 'isIn', 'isInstance', 'isIterable', 'isList', 'isMap', 'isNumber', 'isObject', 'isString', 'items', 'iterate', 'keys', 'last', 'len', 'map', 'merge', 'Module', 'pairs', 'print', 'Protocol', 'range', 'reduce', 'replace', 'Singleton', 'slice', 'sliceArguments', 'smaller', 'sorted', 'sprintf', 'str', 'strip', 'type', 'values', 'warning']
 	def __init__ (self):
 		self.runtime = None
 		Pass.__init__(self)
@@ -320,24 +321,29 @@ class Importation(Pass):
 	def onModule(self, module):
 		imports=module.getImportOperations()
 		for i in imports:
-			imported_module=None
+			imported_modules=[]
 			if isinstance(i, interfaces.IImportModuleOperation):
 				imported_module_name=i.getImportedModuleName()
 				imported_module_origin=i.getAlias()
 				if (not self.program.hasModuleWithName(imported_module_name)):
-					imported_module = self.environment.importModule(imported_module_name)
+					imported_modules.append(self.environment.importModule(imported_module_name))
+			elif isinstance(i, interfaces.IImportModulesOperation):
+				for imported_module_name in i.getImportedModuleNames():
+					if (not self.program.hasModuleWithName(imported_module_name)):
+						imported_modules.append(self.environment.importModule(imported_module_name))
 			elif isinstance(i, interfaces.IImportSymbolOperation):
 				imported_module_name=i.getImportOrigin()
 				if (not self.program.hasModuleWithName(imported_module_name)):
-					imported_module = self.environment.importModule(imported_module_name)
+					imported_modules.append(self.environment.importModule(imported_module_name))
 			elif isinstance(i, interfaces.IImportSymbolsOperation):
 				imported_module_name=i.getImportOrigin()
 				if (not self.program.hasModuleWithName(imported_module_name)):
-					imported_module = self.environment.importModule(imported_module_name)
+					imported_modules.append(self.environment.importModule(imported_module_name))
 			elif True:
 				self.environment.report.error(('Importation pass: operation not implemented ' + repr(i)))
-			if (imported_module and (not self.program.hasModule(imported_module))):
-				self.program.addModule(imported_module)
+			for m in imported_modules:
+				if (m and (not self.program.hasModule(m))):
+					self.program.addModule(m)
 		return False
 	
 

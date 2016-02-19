@@ -89,6 +89,7 @@ class AbstractWriter(Pass):
 				
 	
 	def run(self, program):
+		self.program = program
 		return self.write(program)
 	
 	def onProgram(self, element):

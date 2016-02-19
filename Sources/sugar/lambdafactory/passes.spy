@@ -473,6 +473,7 @@
 		"greater"
 		"invoke"
 		"isDefined"
+		"isUndefined"
 		"isFunction"
 		"isIn"
 		"isInstance"

@@ -28,8 +28,9 @@ VALID_SYMBOL = re.compile("^[\$_A-Za-z][\$_A-Za-z0-9]*$")
 VALID_SYMBOL_CHARS = "_" + string.digits + string.letters
 # NOTE: This is not the complete list of keywords for JavaScript, we removed
 # some such as typeof, null, which may be used as functions/values in code.
+# NOTE: removed catch, as it clashes with the Promise
 KEYWORDS = """abstract boolean break byte
-case catch char class
+case char class
 continue const debugger default
 delete do double else
 enum export extends

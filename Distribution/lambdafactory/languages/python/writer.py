@@ -846,7 +846,7 @@ class Writer(AbstractWriter):
 		res         = ["try:", map(self.write, try_block.getOperations())]
 		if try_catch:
 			res.extend([
-				"except Exception, %s:" % ( self.write(try_catch.getArguments()[0])) ,
+				"except Exception as %s:" % ( self.write(try_catch.getArguments()[0])) ,
 				map(self.write, try_catch.getOperations())
 			])
 		if try_finally:

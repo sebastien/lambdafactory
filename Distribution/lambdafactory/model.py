@@ -747,6 +747,7 @@ class Program(Context, IProgram):
 				raise ERR_MODULE_ADDED_TWICE(module)
 			elif (module.getAbsoluteName() == existing_module.getAbsoluteName()):
 				same_name_module = existing_module
+				break
 		if same_name_module:
 			same_name_module.mergeWith(module)
 		elif True:
