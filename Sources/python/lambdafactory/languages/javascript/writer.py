@@ -315,6 +315,19 @@ class Writer(AbstractWriter):
 			arguments.append(a)
 		return "{arguments:%s}" % (arguments)
 
+	def _writeLValue( self, lvalue ):
+		if isinstance(lvalue, interfaces.IAccessOperation):
+			target = lvalue.getOpArgument(0)
+			index  = lvalue.getIndex()
+			if isinstance(index, interfaces.IString) or (isinstance(index, interfaces.INumber) and index.getActualValue() >= 0):
+				return "{0}[{1}]".format(self.write(target), self.write(index))
+			elif isinstance(target, interfaces.IReferencable):
+				return "{0}[extend.offset({0},{1})]".format(self.write(lvalue.getOpArgument(0)), self.write(index))
+			else:
+				return "var __lf_a={0};__lf_a[extend.offset(__lf_a,{1})]".format(self.write(lvalue.getOpArgument(0)), self.write(index))
+		else:
+			return self.write(lvalue)
+
 	def writeFunctionWhen(self, methodElement):
 		return None
 
@@ -719,7 +732,7 @@ class Writer(AbstractWriter):
 		# TODO: If assignation target is an  access, we should rewrite it with
 		# explicit length
 		return "%s = %s;" % (
-			self.write(assignation.getTarget()),
+			self._writeLValue(assignation.getTarget()),
 			self.write(assignation.getAssignedValue())
 		)
 
