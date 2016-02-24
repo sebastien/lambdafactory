@@ -44,7 +44,7 @@ class Importer:
 	def importModule(self, moduleName):
 		module_path=self.findSugarModule(moduleName)
 		if module_path:
-			self.environment.report.info('Importing module', moduleName, 'from', module_path)
+			self.environment.report.trace('Importing module', moduleName, 'from', module_path)
 			return self.importModuleFromFile(module_path, moduleName)
 		elif True:
 			self.environment.report.error('Module not found:', moduleName)
@@ -98,7 +98,7 @@ class Language:
 			module        = getattr(getattr(getattr(root_module, "languages"), self.name), moduleName)
 			
 			return getattr(module, 'MAIN_CLASS')
-		except Exception, e:
+		except Exception as e:
 			error=str(e)
 			if (not error.startswith('No module')):
 				self.environment.report.error(((((('Language ' + str(self.name)) + ', cannot import module ') + str(moduleName)) + ': ') + str(e)))
@@ -138,7 +138,7 @@ class Cache:
 			f=open(p)
 			try:
 				res=pickle.load(f)
-			except Exception, e:
+			except Exception as e:
 				error('Cache.getFromSignature {0}: {1}'.format(sig, e))
 				res = None
 			f.close()
@@ -152,7 +152,7 @@ class Cache:
 			f=open(p)
 			try:
 				res=pickle.load(f)
-			except Exception, e:
+			except Exception as e:
 				error('Cache.getFromModuleName {0}: {1}'.format(sig, e))
 				res = None
 			f.close()
@@ -168,7 +168,7 @@ class Cache:
 		try:
 			pickle.dump(sourceAndModule, f)
 			f.close()
-		except Exception, e:
+		except Exception as e:
 			f.close()
 			os.unlink(p)
 			error('Cache.set {0}: {1}'.format(k, e))
@@ -242,7 +242,7 @@ class Environment:
 	
 	def runPasses(self, program):
 		for p in self.passes:
-			self.report.info('Running pass {0}'.format(p.__class__.__name__))
+			self.report.trace('Running pass {0}'.format(p.__class__.__name__))
 			p.run(program)
 	
 	def getFactory(self):

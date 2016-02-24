@@ -321,10 +321,12 @@ class Writer(AbstractWriter):
 			index  = lvalue.getIndex()
 			if isinstance(index, interfaces.IString) or (isinstance(index, interfaces.INumber) and index.getActualValue() >= 0):
 				return "{0}[{1}]".format(self.write(target), self.write(index))
-			elif isinstance(target, interfaces.IReferencable):
-				return "{0}[extend.offset({0},{1})]".format(self.write(lvalue.getOpArgument(0)), self.write(index))
+			elif isinstance(index, interfaces.INumber):
+				return "{0}[extend.len({0}) {1}]".format(self.write(lvalue.getOpArgument(0)), self.write(index))
 			else:
-				return "var __lf_a={0};__lf_a[extend.offset(__lf_a,{1})]".format(self.write(lvalue.getOpArgument(0)), self.write(index))
+				# FIXME: This does not work all the time
+				# return "var __lf_a={0};__lf_a[extend.offset(__lf_a,{1})]".format(self.write(lvalue.getOpArgument(0)), self.write(index))
+				return self.write(lvalue)
 		else:
 			return self.write(lvalue)
 

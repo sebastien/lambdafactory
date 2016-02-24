@@ -30,7 +30,7 @@ class Reporter:
 
 	def dedent( self ):
 		self._indent -= 1
-		
+
 	def isDone(self, message, element, update=True):
 		key = "%s:%s" % (message, element)
 		if self._alreadyDone.has_key(key):
@@ -38,7 +38,7 @@ class Reporter:
 		if update:
 			self._alreadyDone[key] = 1
 		return False
-	
+
 	def warning( self, message, element=None ):
 		if self.isDone(message, element): return
 		self.warnings.append(message)
@@ -47,6 +47,9 @@ class Reporter:
 	def error( self, *message ):
 		self.errors.append(message)
 		map( lambda c:c(message), self._onError)
+
+	def trace( self, *message):
+		pass
 
 	def info( self, *message):
 		sys.stderr.write(" -  %s%s\n" % ((" " * self._indent) , " ".join(map(str, message))))

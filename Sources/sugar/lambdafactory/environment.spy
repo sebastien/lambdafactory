@@ -59,7 +59,7 @@
 		# all the time
 		var module_path = findSugarModule(moduleName)
 		if module_path
-			environment report info ("Importing module", moduleName, "from", module_path)
+			environment report trace ("Importing module", moduleName, "from", module_path)
 			#, "from", module_path, "...")
 			return importModuleFromFile (module_path, moduleName)
 		else
@@ -333,7 +333,7 @@
 
 	@method runPasses program
 		for p in passes
-			report info ("Running pass {0}" format (p __class__ __name__))
+			report trace ("Running pass {0}" format (p __class__ __name__))
 			p run (program)
 		end
 	@end
