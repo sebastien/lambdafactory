@@ -366,11 +366,14 @@ class Element:
 	def getSource(self):
 		return self.source
 	
-	def addAnnotation(self, annotation):
+	def addAnnotation(self, annotation, value=None):
+		if value is None: value = True
 		if (not annotation):
 			return None
 		if (type(annotation) in [tuple, list]):
 			map(self.addAnnotation , annotation)
+		elif (type(annotation) in [str, unicode]):
+			self.addAnnotation(Annotation(annotation, value))
 		elif True:
 			assert(isinstance(annotation, IAnnotation))
 			self.annotations.append(annotation)
@@ -1049,6 +1052,9 @@ class Termination(Operation, ITermination):
 	
 
 class Breaking(Operation, IBreaking):
+	pass
+
+class Continue(Operation, IContinue):
 	pass
 
 class Except(Operation, IExcept):

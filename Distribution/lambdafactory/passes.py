@@ -71,6 +71,8 @@ class PassContext:
 							self.walk(arg)
 					elif True:
 						self.walk(op_arg)
+			if isinstance(element, interfaces.IArgument):
+				self.walk(element.getValue())
 		self.context.pop()
 	
 	def filterContext(self, interface):
@@ -87,6 +89,29 @@ class PassContext:
 			return res[-1]
 		elif True:
 			return None
+	
+	def indexInContext(self, value):
+		for i,e in enumerate(self.context):
+			if e is value:
+				return i
+		
+		return -1
+	
+	def indexLikeInContext(self, interface):
+		for i,e in enumerate(self.context):
+			if isinstance(e,interface):
+				return i
+		
+		return -1
+	
+	def lastIndexInContext(self, interface):
+		i=(len(self.context) - 1)
+		while (i >= 0):
+			v=self.context[i]
+			if isinstance(v, interface):
+				return i
+			i = (i - 1)
+		return -1
 	
 	def getParentElement(self):
 		return self.context[-2]

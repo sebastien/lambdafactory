@@ -29,7 +29,7 @@ class BasicDataFlow(Pass):
 	2) Properly flow classes (so that resolution in parents can happen)
 	3) Attaches operations that reference a value to the original slot (this
 	prepares the path for the typing pass)"""
-	HANDLES = [interfaces.IProgram, interfaces.IModule, interfaces.IClass, interfaces.IMethod, interfaces.IClosure, interfaces.IProcess, interfaces.IContext, interfaces.IAllocation, interfaces.IOperation, interfaces.IArgument, interfaces.IValue]
+	HANDLES = [interfaces.IProgram, interfaces.IModule, interfaces.IClass, interfaces.IMethod, interfaces.IClosure, interfaces.IProcess, interfaces.IContext, interfaces.IAllocation, interfaces.IOperation, interfaces.IReference, interfaces.IValue]
 	NAME = 'Resolution'
 	def __init__ (self):
 		Pass.__init__(self)
@@ -37,7 +37,13 @@ class BasicDataFlow(Pass):
 	def getParentDataFlow(self):
 		"""Returns the dataflow of the parent element. It is supposed to exist."""
 		if self.hasParentElement():
-			return self.getParentElement().getDataFlow()
+			i=(len(self.context) - 2)
+			while (i >= 0):
+				d=self.context[i].getDataFlow()
+				if d:
+					return d
+				i = (i - 1)
+			return None
 		elif True:
 			return None
 	
@@ -46,7 +52,11 @@ class BasicDataFlow(Pass):
 		dataflow=element.getDataFlow()
 		if (not dataflow):
 			dataflow = self.getFactory().createDataFlow(element)
-			dataflow.setParent(self.getParentDataFlow())
+			parent_df=self.getParentDataFlow()
+			if (self.hasParentElement()) and (not parent_df):
+				sys.stderr.write(" create dataflow for {0}:{1}\n".format(element,self.getParentDataFlow()))
+			
+			dataflow.setParent(parent_df)
 			element.setDataFlow(dataflow)
 		return dataflow
 	
@@ -97,23 +107,32 @@ class BasicDataFlow(Pass):
 		if (not dataflow):
 			dataflow = self.getParentDataFlow()
 			element.setDataFlow(dataflow)
-		if False:
-			for op_arg in element.getOpArguments():
-				if (type(op_arg) in [tuple, list]):
-					for arg in op_arg:
-						assert(isinstance(arg, interfaces.IElement))
-						self.walk(arg)
-				elif True:
-					self.walk(op_arg)
-	
-	def onArgument(self, element):
-		value=element.getValue()
 	
 	def onValue(self, element):
 		dataflow=element.getDataFlow()
 		if (not dataflow):
 			dataflow = self.getParentDataFlow()
 			element.setDataFlow(dataflow)
+	
+	def onReference(self, element):
+		i=self.lastIndexInContext(interfaces.IArgument)
+		j=self.lastIndexInContext(interfaces.IClosure)
+		k=self.lastIndexInContext(interfaces.IIteration)
+		kk=self.lastIndexInContext(interfaces.IRepetition)
+		if (((i >= j) and (j > (k + 1))) and (k >= 0)):
+			slots=self.resolve(element.getName())
+			if slots:
+				scope=slots[0].getDataFlow().getElement()
+				if scope:
+					if scope.hasAnnotation('iteration'):
+						scope.addAnnotation('force-scope')
+		elif ((j and (j > kk)) and (kk >= 0)):
+			slots=self.resolve(element.getName())
+			if slots:
+				scope=slots[0].getDataFlow().getElement()
+				si=self.indexInContext(scope)
+				if (scope and (si < j)):
+					self.context[j].addAnnotation('encloses', slots[0])
 	
 
 class ClearDataFlow(Pass):

@@ -1029,6 +1029,9 @@ class IInterruption(IOperation):
 class IBreaking(IInterruption):
 	ARGS = []
 
+class IContinue(IInterruption):
+	ARGS = []
+
 class IExcept(IInterruption):
 	"""An interruption that raises some value"""
 	ARGS = [IEvaluable]
