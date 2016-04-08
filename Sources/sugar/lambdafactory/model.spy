@@ -497,12 +497,14 @@
 		return source
 	@end
 
-	@method addAnnotation annotation:IAnnotation
+	@method addAnnotation annotation:IAnnotation, value=True
 		if not annotation
 			return None
 		end
 		if type(annotation) in [tuple, list]
 			map(addAnnotation, annotation)
+		elif type(annotation) in [str, unicode]
+			addAnnotation (new Annotation (annotation, value))
 		else
 			assert (isinstance(annotation, IAnnotation))
 			annotations append (annotation)

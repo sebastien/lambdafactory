@@ -50,6 +50,23 @@ OPTIONS = {
 	"INCLUDE_SOURCE":False,
 }
 
+# The following generates short random variables. Note that it's not thread
+# safe.
+RNDVAR=0
+RNDVARLETTERS = string.ascii_letters + "01234567890"
+def rndvar(name):
+	global RNDVAR
+	s = "__" + name + "_"
+	i = RNDVAR
+	c = RNDVARLETTERS
+	l = len(c)
+	while i >= l:
+		s += c[i % l]
+		i  = i / l
+	s += c[i]
+	RNDVAR += 1
+	return s
+
 class Writer(AbstractWriter):
 
 	def __init__( self ):
@@ -408,7 +425,7 @@ class Writer(AbstractWriter):
 
 	def onClosure( self, closure ):
 		"""Writes a closure element."""
-		return self._format(
+		result   = [
 			self._document(closure),
 			(
 				self.options["ENABLE_METADATA"] and "__def(function(%s){" \
@@ -420,7 +437,30 @@ class Writer(AbstractWriter):
 				(not self.options["ENABLE_METADATA"] and "}") or \
 				"},%s)" % ( self._writeFunctionMeta(closure))
 			)
-		)
+		]
+		# If the closure has `encloses` annotation, it means that we need
+		# to capture its environment
+		encloses = closure.getAnnotations("encloses")
+		if encloses:
+			wrapper = []
+			# The scope will be a map containing the current enclosed values
+			scope   = rndvar("scope")
+			enclosed = [a.content.getName() for a in encloses]
+			# We create a scope in which we're going to copy the value of the variables
+			# This is *fairly ugly*, but it's easier for now as otherwise we
+			# would need to do rewriting of variables/arguments
+			wrapper.append(
+				"(function(){var %s={%s};return function(){%s;return (" % (
+					scope,
+					", ".join('"%s":%s'      % (_, _)        for _ in enclosed),
+					"; ".join("var %s=%s.%s" % (_, scope, _) for _ in enclosed),
+			))
+			wrapper.extend(result)
+			wrapper.append(")}()}())")
+			result = wrapper
+		return self._format(result)
+
+
 
 	def onClosureBody(self, closure):
 		return self._format('{', map(self.write, closure.getOperations()), '}')
@@ -569,7 +609,7 @@ class Writer(AbstractWriter):
 			return "undefined"
 		elif symbol_name == "True":
 			return "true"
-		elif symbol_name == "False":
+		elif symbol_name == "ealse":
 			return "false"
 		elif symbol_name == "None":
 			return "null"
@@ -971,49 +1011,84 @@ class Writer(AbstractWriter):
 
 	def onIteration( self, iteration ):
 		"""Writes a iteration operation."""
-		it_name = self._unique("_iterator")
+		it_name     = self._unique("_iterator")
+		iterator    = iteration.getIterator()
+		closure     = iteration.getClosure()
+		force_scope = closure.hasAnnotation("force-scope")
+		# If the iteration iterates on an enumeration, we can use a for
+		# loop instead. We have to make sure that there is no scope forcing
+		# though
+		if (not force_scope) and isinstance(iterator, interfaces.IEnumeration) \
+		and isinstance(iterator.getStart(), interfaces.INumber) \
+		and isinstance(iterator.getEnd(),   interfaces.INumber) \
+		and (isinstance(iterator.getStep(), interfaces.INumber) or not iterator.getStep()):
+			return self._writeRawForIteration(iteration)
+		else:
+			return self._writeExtendIteration(iteration)
+
+	def _writeRawForIteration( self, iteration ):
 		iterator = iteration.getIterator()
 		closure  = iteration.getClosure()
-		# If the iteration iterates on an enumeration, we can use a for
-		# loop instead.
-		if isinstance(iterator, interfaces.IEnumeration) \
-		and isinstance(iterator.getStart(), interfaces.INumber) \
-		and isinstance(iterator.getEnd(), interfaces.INumber) \
-		and (isinstance(iterator.getStep(), interfaces.INumber) or not iter):
-			start = self.write(iterator.getStart())
-			end   = self.write(iterator.getEnd())
-			step  = self.write(iterator.getStep()) or "1"
-			if "." in start or "." in end or "." in step: filt = float
-			else: filt = int
-			comp = "<"
-			start, end, step = map(filt, (start, end, step))
-			# If start > end, then step < 0
-			if start > end:
-				if step > 0: step =  -step
-				comp = ">"
-			# If start <= end then step >  0
-			else:
-				if step < 0: step = -step
+		start    = self.write(iterator.getStart())
+		end      = self.write(iterator.getEnd())
+		step     = self.write(iterator.getStep()) or "1"
+		if "." in start or "." in end or "." in step: filt = float
+		else: filt = int
+		comp = "<"
+		start, end, step = map(filt, (start, end, step))
+		# If start > end, then step < 0
+		if start > end:
+			if step > 0: step =  -step
+			comp = ">"
+		# If start <= end then step >  0
+		else:
+			if step < 0: step = -step
+		args  = map(lambda a:self._rewriteSymbol(a.getName()), closure.getParameters())
+		if len(args) == 0: args.append(rndvar("iv"))
+		if len(args) == 1: args.append(rndvar("ii"))
+		i = args[1]
+		v = args[0]
+		return self._format(
+			"for ( var %s=%s ; %s %s %s ; %s += %s ) {" % (i, start, i, comp, end, i, step),
+			["var %s=%s;" % (v,i)],
+			map(self.write, closure.getOperations()),
+			"}"
+		)
+
+	def _writeExtendIteration( self, iteration ):
+		# Now, this requires some explanation. If the iteration is annotated
+		# as `force-scope`, this means that there is a nested closure that references
+		# some variable that is going to be re-assigned here
+		closure     = iteration.getClosure()
+		force_scope = closure.hasAnnotation("force-scope")
+		if not force_scope:
 			args  = map(lambda a:self._rewriteSymbol(a.getName()), closure.getParameters())
-			if len(args) == 0: args.append("__iterator_value")
-			if len(args) == 1: args.append("__iterator_index")
-			i = args[1]
+			if len(args) == 0: args.append(rndvar("iv"))
+			if len(args) == 1: args.append(rndvar("ii"))
 			v = args[0]
+			i = args[1]
+			iterated    = rndvar("it")
+			# If there is no scope forcing, then we can do a simple iteration
+			# over the array/object
 			return self._format(
-				"for ( var %s=%s ; %s %s %s ; %s += %s ) {" % (i, start, i, comp, end, i, step),
-				["var %s=%s;" % (v,i)],
+				"let %s=(%s);" % (iterated, self.write(iteration.getIterator())),
+				"for ( var %s in (%s) ) {" % (i, iterated),
+				["var %s=%s[%s];" % (v,iterated,i)],
+				"",
 				map(self.write, closure.getOperations()),
 				"}"
 			)
 		else:
+			# Otherwise we have to use the extend wrapper
 			return self._format(
 				"%siterate(%s, %s, %s)" % (
 					self.jsPrefix + self.jsCore,
 					self.write(iteration.getIterator()),
-					self.write(iteration.getClosure()),
+					self.write(closure),
 					self.jsSelf
 				)
 			)
+
 
 	def onRepetition( self, repetition ):
 		return self._format(
@@ -1063,8 +1138,8 @@ class Writer(AbstractWriter):
 
 	def onBreaking( self, breaking ):
 		"""Writes a break operation."""
-		iteration  = self.indexInContext(interfaces.IIteration)
-		repetition = self.indexInContext(interfaces.IRepetition)
+		iteration  = self.indexLikeInContext(interfaces.IIteration)
+		repetition = self.indexLikeInContext(interfaces.IRepetition)
 		if iteration > repetition:
 			return "return extend.FLOW_BREAK;"
 		else:
@@ -1072,8 +1147,8 @@ class Writer(AbstractWriter):
 
 	def onContinue( self, breaking ):
 		"""Writes a break operation."""
-		iteration  = self.indexInContext(interfaces.IIteration)
-		repetition = self.indexInContext(interfaces.IRepetition)
+		iteration  = self.indexLikeInContext(interfaces.IIteration)
+		repetition = self.indexLikeInContext(interfaces.IRepetition)
 		if iteration > repetition:
 			return "return extend.FLOW_CONTINUE;"
 		else:

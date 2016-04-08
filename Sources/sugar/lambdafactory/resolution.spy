@@ -44,7 +44,7 @@
 		interfaces IContext
 		interfaces IAllocation
 		interfaces IOperation
-		interfaces IArgument
+		interfaces IReference
 		interfaces IValue
 	]
 	@shared NAME    = "Resolution"
@@ -56,7 +56,16 @@
 	@method getParentDataFlow
 	| Returns the dataflow of the parent element. It is supposed to exist.
 		if self hasParentElement()
-			return self getParentElement() getDataFlow()
+			# The current data flow is context[-1], the parent is [-2]
+			var i = len(context) - 2
+			while i >= 0
+				var d = context[i] getDataFlow ()
+				if d
+					return d
+				end
+				i -= 1
+			end
+			return None
 		else
 			return None
 		end
@@ -67,8 +76,13 @@
 	| Ensures that the given element has an attached DataFlow
 		var dataflow = element getDataFlow()
 		if not dataflow
-			dataflow = self getFactory() createDataFlow(element)
-			dataflow setParent ( getParentDataFlow() )
+			dataflow = self getFactory() createDataFlow (element)
+			var parent_df = getParentDataFlow()
+			@embed Python
+			|if (self.hasParentElement()) and (not parent_df):
+			|	sys.stderr.write(" create dataflow for {0}:{1}\n".format(element,self.getParentDataFlow()))
+			@end
+			dataflow setParent (parent_df)
 			element setDataFlow( dataflow )
 		end
 		return dataflow
@@ -113,6 +127,9 @@
 		for argument in element getArguments()
 			dataflow declareArgument(argument getName(), argument)
 		end
+		# @embed Python
+		# |import ipdb;ipdb.set_trace()
+		# @end
 	@end
 
 	@method onProcess element
@@ -124,7 +141,7 @@
 		# Contexts have thir own dataflows
 		var dataflow = ensureDataFlow (element)
 		for name_and_value in element getSlots()
-			dataflow declareVariable(name_and_value[0], name_and_value[1], element)
+			dataflow declareVariable (name_and_value[0], name_and_value[1], element)
 		end
 	@end
 
@@ -141,30 +158,6 @@
 			dataflow = getParentDataFlow()
 			element setDataFlow(dataflow)
 		end
-		# FIXME: I disabled this as it kills performance. However, this will
-		# cause problems when closures are declared as parameters.
-		if False
-			for op_arg in element getOpArguments()
-				# TODO: Rewrite me (see passes.PassContext.walk)
-				if type(op_arg) in [tuple, list]
-					for arg in op_arg
-						assert (isinstance(arg, interfaces IElement))
-						walk(arg)
-					end
-				else
-					walk (op_arg)
-				end
-			end
-		end
-	@end
-
-	@method onArgument element
-		# NOTE: We have to process parameter values as well !
-		var value = element getValue ()
-		# FIXME: This does not work (recursive loop when compiling in passes.spy)
-		# if value and not (isinstance(value, interfaces IReference))
-		# 	walk (element getValue ())
-		# end
 	@end
 
 	@method onValue element
@@ -172,6 +165,42 @@
 		if not dataflow
 			dataflow = getParentDataFlow()
 			element setDataFlow(dataflow)
+		end
+	@end
+
+	@method onReference element
+		var i  = lastIndexInContext (interfaces IArgument)
+		var j  = lastIndexInContext (interfaces IClosure)
+		var k  = lastIndexInContext (interfaces IIteration)
+		var kk = lastIndexInContext (interfaces IRepetition)
+		# Iteration have an implicit closure as first child, so we want
+		# to make sure we have one more closure
+		if i >= j and j > (k + 1) and k >= 0
+			# So here we have a reference in a nested closure within an
+			# iteration. We resolve the closure and see where it's coming from
+			var slots = resolve (element getName ())
+			if slots
+				var scope = slots[0] getDataFlow () getElement ()
+				if scope
+					if scope hasAnnotation "iteration"
+						# The force-scope annotation has to be used for
+						# the JavaScript backend
+						scope addAnnotation "force-scope"
+					end
+				end
+			end
+		elif j and j > kk and kk >= 0
+			# We are in a reference that's in a closure in a WHILE loop
+			var slots = resolve (element getName ())
+			if slots
+				var scope = slots[0] getDataFlow () getElement ()
+				var si    = indexInContext (scope)
+				if scope and (si < j)
+					# If the reference resolves outside of the closure we'll
+					# need to wrap the creation of the closure
+					context[j] addAnnotation ("encloses", slots[0])
+				end
+			end
 		end
 	@end
 

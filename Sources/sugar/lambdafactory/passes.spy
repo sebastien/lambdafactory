@@ -108,6 +108,11 @@
 					end
 				end
 			end
+			# NOTE: Added 2016-03-08
+			# Is the element an Argument ? -> walk value
+			if isinstance(element, interfaces IArgument)
+				walk (element getValue ())
+			end
 		end
 		context pop()
 	@end
@@ -130,6 +135,7 @@
 
 		@method findInContext interface
 		@as internal
+			# FIXME: Should be findLikeInContext...
 			var res = filterContext(interface)
 			if res
 				return res[-1]
@@ -138,12 +144,37 @@
 			end
 		@end
 
-		@method indexInContext interface
+		@method indexInContext value
+			# FIXME: Should be find
+			@embed Python
+			|for i,e in enumerate(self.context):
+			|	if e is value:
+			|		return i
+			@end
+			return -1
+		@end
+
+
+		@method indexLikeInContext interface
+			# FIXME: Should be find
 			@embed Python
 			|for i,e in enumerate(self.context):
 			|	if isinstance(e,interface):
 			|		return i
 			@end
+			return -1
+		@end
+
+		@method lastIndexInContext interface
+			# FIXME: Should be rfind
+			var i = len(context) - 1
+			while i >= 0
+				var v = context[i]
+				if isinstance (v, interface)
+					return i
+				end
+				i -= 1
+			end
 			return -1
 		@end
 
@@ -448,7 +479,7 @@
 @class ExtendJSRuntime: Pass
 | This pass is like an importation and will simply bind the symbols
 
-	@shared HANDLES  = [ interfaces IProgram, interfaces IModule ]
+	@shared HANDLES  = [ interfaces IProgram, interfaces IModule]
 	@shared NAME     = "GlobalRuntime"
 	@shared FUNCTIONS = [
 		"access"
