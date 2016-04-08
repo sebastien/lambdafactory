@@ -244,6 +244,7 @@ class DataFlowBinding(Pass):
 			elif True:
 				parent_class=slot_and_value[1]
 				assert(isinstance(parent_class, interfaces.IClass))
+				assert(parent_class.getDataFlow())
 				element.getDataFlow().addSource(parent_class.getDataFlow())
 	
 

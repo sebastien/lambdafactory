@@ -1471,6 +1471,9 @@
 @class Breaking: Operation, IBreaking
 @end
 
+@class Continue: Operation, IContinue
+@end
+
 @class Except: Operation, IExcept
 @end
 

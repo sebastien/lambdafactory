@@ -138,6 +138,15 @@
 			end
 		@end
 
+		@method indexInContext interface
+			@embed Python
+			|for i,e in enumerate(self.context):
+			|	if isinstance(e,interface):
+			|		return i
+			@end
+			return -1
+		@end
+
 		@method getParentElement
 		@as alias
 			return context[-2]

@@ -213,6 +213,9 @@ class Factory:
 	def breaks( self ):
 		return self._getImplementation("Breaking")()
 
+	def continues( self ):
+		return self._getImplementation("Continue")()
+
 	def exception( self, exception ):
 		return self._getImplementation("Except")(exception)
 

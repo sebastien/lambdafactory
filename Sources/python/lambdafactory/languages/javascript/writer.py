@@ -1061,9 +1061,23 @@ class Writer(AbstractWriter):
 		"""Writes a termination operation."""
 		return "return %s" % ( self.write(termination.getReturnedEvaluable()) )
 
-	def onBreaking( self, breking ):
+	def onBreaking( self, breaking ):
 		"""Writes a break operation."""
-		return "throw extend.FLOW_BREAK;"
+		iteration  = self.indexInContext(interfaces.IIteration)
+		repetition = self.indexInContext(interfaces.IRepetition)
+		if iteration > repetition:
+			return "return extend.FLOW_BREAK;"
+		else:
+			return "break"
+
+	def onContinue( self, breaking ):
+		"""Writes a break operation."""
+		iteration  = self.indexInContext(interfaces.IIteration)
+		repetition = self.indexInContext(interfaces.IRepetition)
+		if iteration > repetition:
+			return "return extend.FLOW_CONTINUE;"
+		else:
+			return "continue"
 
 	def onExcept( self, exception ):
 		"""Writes a except operation."""
