@@ -1014,11 +1014,13 @@ class Writer(AbstractWriter):
 		it_name     = self._unique("_iterator")
 		iterator    = iteration.getIterator()
 		closure     = iteration.getClosure()
-		force_scope = closure.hasAnnotation("force-scope")
+		# Closure might be a refernce, in which case we need to force iterate
+		force_scope   = closure.hasAnnotation("force-scope")
+		force_iterate = not isinstance(closure, interfaces.IClosure)
 		# If the iteration iterates on an enumeration, we can use a for
 		# loop instead. We have to make sure that there is no scope forcing
 		# though
-		if (not force_scope) and isinstance(iterator, interfaces.IEnumeration) \
+		if (not force_scope and not force_iterate) and isinstance(iterator, interfaces.IEnumeration) \
 		and isinstance(iterator.getStart(), interfaces.INumber) \
 		and isinstance(iterator.getEnd(),   interfaces.INumber) \
 		and (isinstance(iterator.getStep(), interfaces.INumber) or not iterator.getStep()):
@@ -1061,7 +1063,8 @@ class Writer(AbstractWriter):
 		# some variable that is going to be re-assigned here
 		closure     = iteration.getClosure()
 		force_scope = closure.hasAnnotation("force-scope")
-		if not force_scope:
+		force_iterate = not isinstance(closure, interfaces.IClosure)
+		if not (force_scope or force_iterate):
 			args  = map(lambda a:self._rewriteSymbol(a.getName()), closure.getParameters())
 			if len(args) == 0: args.append(rndvar("iv"))
 			if len(args) == 1: args.append(rndvar("ii"))

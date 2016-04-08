@@ -179,7 +179,7 @@
 			# So here we have a reference in a nested closure within an
 			# iteration. We resolve the closure and see where it's coming from
 			var slots = resolve (element getName ())
-			if slots
+			if slots and slots[0]
 				var scope = slots[0] getDataFlow () getElement ()
 				if scope
 					if scope hasAnnotation "iteration"
@@ -192,7 +192,7 @@
 		elif j and j > kk and kk >= 0
 			# We are in a reference that's in a closure in a WHILE loop
 			var slots = resolve (element getName ())
-			if slots
+			if slots and slots[0]
 				var scope = slots[0] getDataFlow () getElement ()
 				var si    = indexInContext (scope)
 				if scope and (si < j)
