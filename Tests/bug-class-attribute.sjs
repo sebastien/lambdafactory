@@ -1,3 +1,6 @@
+# EXPECTS: <<<
+# { a: 1 }
+# <<<
 @class A
 	@property uis = {}
 	@constructor
@@ -11,4 +14,4 @@
 
 var b = new B ()
 # Prints ({}) while it should be ({a:1})
-print (b uis)
+console log (b uis)
