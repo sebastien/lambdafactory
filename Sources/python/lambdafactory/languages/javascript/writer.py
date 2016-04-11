@@ -51,13 +51,12 @@ OPTIONS = {
 	"INCLUDE_SOURCE":False,
 }
 
-# The following generates short random variables. Note that it's not thread
-# safe.
-RNDVAR=0
-RNDVARLETTERS = string.ascii_letters + "01234567890"
-
 
 class Writer(AbstractWriter):
+
+	# The following generates short random variables. Note that it's not thread
+	# safe.
+	RNDVARLETTERS = string.ascii_letters + "01234567890"
 
 	def __init__( self ):
 		AbstractWriter.__init__(self)
@@ -75,7 +74,7 @@ class Writer(AbstractWriter):
 		"""Generates a new random variable."""
 		s = "__"
 		i = self._generatedVars[-1]
-		c = RNDVARLETTERS
+		c = self.RNDVARLETTERS
 		l = len(c)
 		while i >= l:
 			s += c[i % l]
@@ -435,21 +434,24 @@ class Writer(AbstractWriter):
 			)
 		)
 
-	def onClosure( self, closure ):
+	def onClosure( self, closure, bodyOnly=False ):
 		"""Writes a closure element."""
-		result   = [
-			self._document(closure),
-			(
-				self.options["ENABLE_METADATA"] and "__def(function(%s){" \
-				or "function(%s){"
-			) % ( ", ".join(map(self.write, closure.getArguments()))),
-			self._writeClosureArguments(closure),
-			map(self.write, closure.getOperations()),
-			(
-				(not self.options["ENABLE_METADATA"] and "}") or \
-				"},%s)" % ( self._writeFunctionMeta(closure))
-			)
-		]
+		if bodyOnly:
+			result = map(self.write, closure.getOperations()),
+		else:
+			result   = [
+				self._document(closure),
+				(
+					self.options["ENABLE_METADATA"] and "__def(function(%s){" \
+					or "function(%s){"
+				) % ( ", ".join(map(self.write, closure.getArguments()))),
+				self._writeClosureArguments(closure),
+				map(self.write, closure.getOperations()),
+				(
+					(not self.options["ENABLE_METADATA"] and "}") or \
+					"},%s)" % ( self._writeFunctionMeta(closure))
+				)
+			]
 		# If the closure has `encloses` annotation, it means that we need
 		# to capture its environment, because JS only has function-level
 		# scoping.
@@ -462,7 +464,7 @@ class Writer(AbstractWriter):
 			# We create a scope in which we're going to copy the value of the variables
 			# This is *fairly ugly*, but it's easier for now as otherwise we
 			# would need to do rewriting of variables/arguments
-			wrapper.append("(function({0}){{return ({1})}}({0})".format(
+			wrapper.append("(function({0}){{return ({1})}}({0}))".format(
 				", ".join(enclosed),
 				self._format(result)
 			))
@@ -1019,22 +1021,18 @@ class Writer(AbstractWriter):
 		"""Writes a iteration operation."""
 		it_name     = self._unique("_iterator")
 		iterator    = iteration.getIterator()
-		closure     = iteration.getClosure()
-		# Closure might be a refernce, in which case we need to force iterate
-		force_scope   = closure.hasAnnotation("force-scope")
-		force_iterate = not isinstance(closure, interfaces.IClosure)
 		# If the iteration iterates on an enumeration, we can use a for
 		# loop instead. We have to make sure that there is no scope forcing
 		# though
-		if (not force_scope and not force_iterate) and isinstance(iterator, interfaces.IEnumeration) \
+		if isinstance(iterator, interfaces.IEnumeration) \
 		and isinstance(iterator.getStart(), interfaces.INumber) \
 		and isinstance(iterator.getEnd(),   interfaces.INumber) \
 		and (isinstance(iterator.getStep(), interfaces.INumber) or not iterator.getStep()):
-			return self._writeRawForIteration(iteration)
+			return self._writeRangeIteration(iteration)
 		else:
-			return self._writeExtendIteration(iteration)
+			return self._writeObjectIteration(iteration)
 
-	def _writeRawForIteration( self, iteration ):
+	def _writeRangeIteration( self, iteration ):
 		iterator = iteration.getIterator()
 		closure  = iteration.getClosure()
 		start    = self.write(iterator.getStart())
@@ -1059,45 +1057,31 @@ class Writer(AbstractWriter):
 		return self._format(
 			"for ( var %s=%s ; %s %s %s ; %s += %s ) {" % (i, start, i, comp, end, i, step),
 			["var %s=%s;" % (v,i)],
-			map(self.write, closure.getOperations()),
+			self.onClosure(closure, bodyOnly=True),
 			"}"
 		)
 
-	def _writeExtendIteration( self, iteration ):
+	def _writeObjectIteration( self, iteration ):
 		# Now, this requires some explanation. If the iteration is annotated
 		# as `force-scope`, this means that there is a nested closure that references
 		# some variable that is going to be re-assigned here
 		closure     = iteration.getClosure()
-		force_scope = closure.hasAnnotation("force-scope")
-		force_iterate = not isinstance(closure, interfaces.IClosure)
-		if not (force_scope or force_iterate):
-			args  = map(lambda a:self._rewriteSymbol(a.getName()), closure.getParameters())
-			if len(args) == 0: args.append(self._getRandomVariable())
-			if len(args) == 1: args.append(self._getRandomVariable())
-			v = args[0]
-			i = args[1]
-			iterated = self._getRandomVariable()
-			# If there is no scope forcing, then we can do a simple iteration
-			# over the array/object
-			return self._format(
-				"var %s=(%s);" % (iterated, self.write(iteration.getIterator())),
-				"for ( var %s in (%s) ) {" % (i, iterated),
-				["var %s=%s[%s];" % (v,iterated,i)],
-				"",
-				map(self.write, closure.getOperations()),
-				"}"
-			)
-		else:
-			# Otherwise we have to use the extend wrapper
-			return self._format(
-				"%siterate(%s, %s, %s)" % (
-					self.jsPrefix + self.jsCore,
-					self.write(iteration.getIterator()),
-					self.write(closure),
-					self.jsSelf
-				)
-			)
-
+		args  = map(lambda a:self._rewriteSymbol(a.getName()), closure.getParameters())
+		if len(args) == 0: args.append(self._getRandomVariable())
+		if len(args) == 1: args.append(self._getRandomVariable())
+		v = args[0]
+		i = args[1]
+		iterated = self._getRandomVariable()
+		# If there is no scope forcing, then we can do a simple iteration
+		# over the array/object
+		return self._format(
+			"var %s=(%s);" % (iterated, self.write(iteration.getIterator())),
+			"for ( var %s in (%s) ) {" % (i, iterated),
+			["var %s=%s[%s];" % (v,iterated,i)],
+			"",
+			self.onClosure(closure, bodyOnly=True),
+			"}"
+		)
 
 	def onRepetition( self, repetition ):
 		return self._format(
