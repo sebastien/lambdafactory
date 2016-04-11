@@ -47,6 +47,7 @@
 		interfaces IReference
 		interfaces IValue
 	]
+
 	@shared NAME    = "Resolution"
 
 	@constructor
@@ -169,21 +170,37 @@
 	@end
 
 	@method onReference element
+		# If a reference is made withing a closure that is not the iteration's
+		# or repetition's closure, then we need to close the scope over the closure.
 		var i  = lastIndexInContext (interfaces IClosure)
 		var j  = lastIndexInContext (interfaces IIteration)
 		var jj = lastIndexInContext (interfaces IRepetition)
-		if i and ((i > jj and jj >= 0) or (i > j and j >= 0))
+		if i and ((i > jj and jj >= 0) or (i > (j + 1) and j >= 0))
 			# We have a reference within a closure that references a scope
 			# nested in a loop. Because JS has no nested scope, we'll flag
 			# it explicitely using the `encloses` annotation.
-			var slots = resolve (element getName ())
+			var name  = element getName ()
+			var slots = resolve (name)
+			if j == -1
+				j = jj
+			end
 			if slots and slots[0]
-				var scope = slots[0] getDataFlow () getElement ()
+				var slot  = slots[0]
+				var scope = slot getDataFlow () getElement ()
 				var k     = indexInContext (scope)
-				if scope and (k < i)
+				if scope and (k < i) and (j < k)
 					# If the reference resolves outside of the closure we'll
 					# need to wrap the creation of the closure
-					context[i] addAnnotation ("encloses", slots[0])
+					var c = context[i]
+					var a = c getAnnotation "encloses"
+					@embed Python
+					|sys.stderr.write("Reference {0} resolves in {1} {2} {3} {4}: {5}\n".format(element.getName(), k, i, k < i, j < k, a))
+					@end
+					if not a
+						context[i] addAnnotation ("encloses", {(name):slot})
+					else
+						a content [name] = slot
+					end
 				end
 			end
 		end

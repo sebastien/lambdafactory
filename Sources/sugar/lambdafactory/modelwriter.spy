@@ -97,6 +97,7 @@
 		interfaces IEvaluation
 		interfaces ITermination
 		interfaces IBreaking
+		interfaces IContinue
 		interfaces IExcept
 		interfaces IInterception
 		interfaces IImportSymbolOperation

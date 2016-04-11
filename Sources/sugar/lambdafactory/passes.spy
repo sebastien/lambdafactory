@@ -225,12 +225,40 @@
 			return findInContext (interfaces IModule)
 		@end
 
+		@method getScopeName limit=-1
+			var r = []
+			for _ in context[0:limit]
+				if isinstance(_, interfaces IReferencable)
+					var n = _ getName ()
+					if n
+						r append (_ getName ())
+					end
+				end
+			end
+			return "." join (r)
+		@end
+
 		@method getCurrentDataFlow
 			var i = len(context) - 1
 			while i >= 0
 				var dataflow = context[i] getDataFlow()
 				if dataflow
 					return dataflow
+				end
+				i -= 1
+			end
+			return None
+		@end
+
+		@method getCurrentName index=0
+			var i = len(context) - 1 + index
+			while i >= 0
+				var c = context[i]
+				if isinstance (c, interfaces IReferencable)
+					var n = c getName ()
+					if n
+						return n
+					end
 				end
 				i -= 1
 			end
