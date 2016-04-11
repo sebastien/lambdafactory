@@ -59,8 +59,7 @@
 	@method walk element
 	| Walks the given element, recursively walking the child elements when the
 	| handler does not return False
-		# REWRITE: context push(element)
-		context append (element)
+		pushContext (element)
 		var continue_walking = True
 		# We iterate on the program passes, if every pass
 		# FIXME: There should be only one pass/context
@@ -114,10 +113,18 @@
 				walk (element getValue ())
 			end
 		end
-		context pop()
+		popContext ()
 	@end
 
 	@group ContextAccessors
+
+		@method pushContext value
+			context append (value)
+		@end
+
+		@method popContext
+			context pop ()
+		@end
 
 		@method filterContext interface
 		@as internal

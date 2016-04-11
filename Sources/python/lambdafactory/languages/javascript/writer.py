@@ -4,8 +4,8 @@
 # Author    : Sebastien Pierre                               <sebastien@ivy.fr>
 # License   : Revised BSD License
 # -----------------------------------------------------------------------------
-# Creation  : 02-Nov-2006
-# Last mod  : 25-Mar-2015
+# Creation  : 2006-11-02
+# Last mod  : 2015-04-11
 # -----------------------------------------------------------------------------
 
 # TODO: When constructor is empty, should assign default attributes anyway
@@ -20,10 +20,11 @@ import os.path, re, time, string, random, json
 
 #------------------------------------------------------------------------------
 #
-#  JavaScript Writer
+#  JAVASCRIPT WRITER
 #
 #------------------------------------------------------------------------------
 
+RE_TEMPLATE = re.compile("\$\{[^\}]+\}")
 VALID_SYMBOL = re.compile("^[\$_A-Za-z][\$_A-Za-z0-9]*$")
 VALID_SYMBOL_CHARS = "_" + string.digits + string.letters
 # NOTE: This is not the complete list of keywords for JavaScript, we removed
@@ -54,18 +55,7 @@ OPTIONS = {
 # safe.
 RNDVAR=0
 RNDVARLETTERS = string.ascii_letters + "01234567890"
-def rndvar(name):
-	global RNDVAR
-	s = "__" + name + "_"
-	i = RNDVAR
-	c = RNDVARLETTERS
-	l = len(c)
-	while i >= l:
-		s += c[i % l]
-		i  = i / l
-	s += c[i]
-	RNDVAR += 1
-	return s
+
 
 class Writer(AbstractWriter):
 
@@ -79,6 +69,28 @@ class Writer(AbstractWriter):
 		self.inInvocation = False
 		self.options = {}
 		self.options.update(OPTIONS)
+		self._generatedVars = [0]
+
+	def _getRandomVariable(self):
+		"""Generates a new random variable."""
+		s = "__"
+		i = self._generatedVars[-1]
+		c = RNDVARLETTERS
+		l = len(c)
+		while i >= l:
+			s += c[i % l]
+			i  = i / l
+		s += c[i]
+		self._generatedVars[-1] += 1
+		return s
+
+	def pushContext( self, value ):
+		self._generatedVars.append(self._generatedVars[-1] + 1)
+		AbstractWriter.pushContext(self, value)
+
+	def popContext( self ):
+		AbstractWriter.popContext(self, value)
+		self._generatedVars.pop()
 
 	def _extendGetMethodByName(self, name):
 		return self.jsSelf + ".getMethod('%s') " % (name)
@@ -439,28 +451,23 @@ class Writer(AbstractWriter):
 			)
 		]
 		# If the closure has `encloses` annotation, it means that we need
-		# to capture its environment
+		# to capture its environment, because JS only has function-level
+		# scoping.
 		encloses = closure.getAnnotations("encloses")
 		if encloses:
 			wrapper = []
-			# The scope will be a map containing the current enclosed values
-			scope   = rndvar("scope")
+			# The scope will be a map containing the current enclosed values. We
+			# get the list of names of enclosed variables.
 			enclosed = [a.content.getName() for a in encloses]
 			# We create a scope in which we're going to copy the value of the variables
 			# This is *fairly ugly*, but it's easier for now as otherwise we
 			# would need to do rewriting of variables/arguments
-			wrapper.append(
-				"(function(){var %s={%s};return function(){%s;return (" % (
-					scope,
-					", ".join('"%s":%s'      % (_, _)        for _ in enclosed),
-					"; ".join("var %s=%s.%s" % (_, scope, _) for _ in enclosed),
+			wrapper.append("(function({0}){{return ({1})}}({0})".format(
+				", ".join(enclosed),
+				self._format(result)
 			))
-			wrapper.extend(result)
-			wrapper.append(")}()}())")
 			result = wrapper
 		return self._format(result)
-
-
 
 	def onClosureBody(self, closure):
 		return self._format('{', map(self.write, closure.getOperations()), '}')
@@ -609,7 +616,7 @@ class Writer(AbstractWriter):
 			return "undefined"
 		elif symbol_name == "True":
 			return "true"
-		elif symbol_name == "ealse":
+		elif symbol_name == "False":
 			return "false"
 		elif symbol_name == "None":
 			return "null"
@@ -861,7 +868,6 @@ class Writer(AbstractWriter):
 		else:
 			return ()
 
-	RE_TEMPLATE = re.compile("\$\{[^\}]+\}")
 	def _rewriteInvocation(self, invocation, closure, template):
 		arguments = tuple([self.write(a) for a in invocation.getArguments()])
 		parameters = tuple([self._rewriteSymbol(a.getName()) for a  in closure.getParameters()])
@@ -1046,8 +1052,8 @@ class Writer(AbstractWriter):
 		else:
 			if step < 0: step = -step
 		args  = map(lambda a:self._rewriteSymbol(a.getName()), closure.getParameters())
-		if len(args) == 0: args.append(rndvar("iv"))
-		if len(args) == 1: args.append(rndvar("ii"))
+		if len(args) == 0: args.append(self._getRandomVariable())
+		if len(args) == 1: args.append(self._getRandomVariable())
 		i = args[1]
 		v = args[0]
 		return self._format(
@@ -1066,15 +1072,15 @@ class Writer(AbstractWriter):
 		force_iterate = not isinstance(closure, interfaces.IClosure)
 		if not (force_scope or force_iterate):
 			args  = map(lambda a:self._rewriteSymbol(a.getName()), closure.getParameters())
-			if len(args) == 0: args.append(rndvar("iv"))
-			if len(args) == 1: args.append(rndvar("ii"))
+			if len(args) == 0: args.append(self._getRandomVariable())
+			if len(args) == 1: args.append(self._getRandomVariable())
 			v = args[0]
 			i = args[1]
-			iterated    = rndvar("it")
+			iterated = self._getRandomVariable()
 			# If there is no scope forcing, then we can do a simple iteration
 			# over the array/object
 			return self._format(
-				"let %s=(%s);" % (iterated, self.write(iteration.getIterator())),
+				"var %s=(%s);" % (iterated, self.write(iteration.getIterator())),
 				"for ( var %s in (%s) ) {" % (i, iterated),
 				["var %s=%s[%s];" % (v,iterated,i)],
 				"",
