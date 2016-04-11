@@ -446,8 +446,13 @@
 	@end
 
 	@method setParent parent
-		assert (self parent is None or parent == self parent)
+		#assert ((not parent) or (self parent is None) or (parent == self parent))
 		self parent = parent
+	@end
+
+	@method unsetParent
+		self parent = None
+		return self
 	@end
 
 	@method setSourcePath path
@@ -1119,6 +1124,12 @@
 		end
 		operation setParent(self)
 		operations append (operation)
+	@end
+
+	@method removeOperationAt index
+		op = operations[index]
+		op unsetParent ()
+		operations remove (op)
 	@end
 
 	@method getOperations:<[IOperation]>

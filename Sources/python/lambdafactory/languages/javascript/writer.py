@@ -728,7 +728,7 @@ class Writer(AbstractWriter):
 	def onOperator( self, operator ):
 		"""Writes an operator element."""
 		o = operator.getReferenceName()
-		o = self.JS_OPERATORS.get(o) or o
+		o = JS_OPERATORS.get(o) or o
 		return "%s" % (o)
 
 	def onNumber( self, number ):

@@ -75,45 +75,50 @@
 		# If we continue the walking, then we recurse on context slots and
 		# in operations (if we're in a process).
 		if continue_walking != False
-			# Is the element a Program ? -> walk modules
-			if isinstance(element, interfaces IProgram)
-				for module in element getModules()
-					walk (module)
-				end
-			end
-			# Is the element a Context ? -> walk slots
-			if isinstance(element, interfaces IContext)
-				for name_and_value in element getSlots()
-					walk (name_and_value[1])
-				end
-			end
-			# Is the element a Process ? -> walk operations
-			if isinstance(element, interfaces IProcess)
-				for operation in element getOperations()
-					walk (operation)
-				end
-			end
-			# Is the element an Operation ? -> walk arguments
-			if isinstance(element, interfaces IOperation)
-				for op_arg in element getOpArguments()
-					# TODO: Rewrite me
-					if type(op_arg) in [tuple, list]
-						for arg in op_arg
-							assert (isinstance(arg, interfaces IElement))
-							walk(arg)
-						end
-					else
-						walk (op_arg)
-					end
-				end
-			end
-			# NOTE: Added 2016-03-08
-			# Is the element an Argument ? -> walk value
-			if isinstance(element, interfaces IArgument)
-				walk (element getValue ())
-			end
+			walkChildren (element)
 		end
 		popContext ()
+	@end
+
+	@method walkChildren element
+	| Walks the children of the given element
+		# Is the element a Program ? -> walk modules
+		if isinstance(element, interfaces IProgram)
+			for module in element getModules()
+				walk (module)
+			end
+		end
+		# Is the element a Context ? -> walk slots
+		if isinstance(element, interfaces IContext)
+			for name_and_value in element getSlots()
+				walk (name_and_value[1])
+			end
+		end
+		# Is the element a Process ? -> walk operations
+		if isinstance(element, interfaces IProcess)
+			for operation in element getOperations()
+				walk (operation)
+			end
+		end
+		# Is the element an Operation ? -> walk arguments
+		if isinstance(element, interfaces IOperation)
+			for op_arg in element getOpArguments()
+				# TODO: Rewrite me
+				if type(op_arg) in [tuple, list]
+					for arg in op_arg
+						assert (isinstance(arg, interfaces IElement))
+						walk(arg)
+					end
+				else
+					walk (op_arg)
+				end
+			end
+		end
+		# NOTE: Added 2016-03-08
+		# Is the element an Argument ? -> walk value
+		if isinstance(element, interfaces IArgument)
+			walk (element getValue ())
+		end
 	@end
 
 	@group ContextAccessors
