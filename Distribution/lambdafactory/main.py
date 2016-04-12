@@ -167,7 +167,7 @@ class Command:
 			path=file_and_path[1]
 			compilers=None
 			if (language in ['js', 'javascript']):
-				interpreter = (os.getenv('SUGAR_JS') or 'rhino')
+				interpreter = (os.getenv('SUGAR_JS') or 'js')
 				command = ((((interpreter + ' ') + path) + ' ') + args_str)
 			elif (language in ['pnuts']):
 				interpreter = (os.getenv('SUGAR_PNUTS') or 'pnuts')

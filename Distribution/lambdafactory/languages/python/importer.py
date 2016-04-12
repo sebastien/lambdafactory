@@ -14,7 +14,7 @@ class Importer:
 		try:
 			exec "import %s" % (moduleName)
 			
-		except Exception, e:
+		except Exception as e:
 			return False
 		python_module=eval(moduleName)
 		module=self.environment.getFactory().createModule(moduleName)

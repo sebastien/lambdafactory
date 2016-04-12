@@ -70,6 +70,7 @@
 		interfaces IMethod
 		interfaces IFunction
 		interfaces IClosure
+		interfaces IWithBlock
 		interfaces IBlock
 		interfaces IModuleAttribute
 		interfaces IClassAttribute
@@ -91,6 +92,8 @@
 		interfaces IResolution
 		interfaces ISelection
 		interfaces IRepetition
+		interfaces IFilterIteration
+		interfaces IMapIteration
 		interfaces IIteration
 		interfaces IAccessOperation
 		interfaces ISliceOperation

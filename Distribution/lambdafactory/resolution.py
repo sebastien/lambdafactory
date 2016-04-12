@@ -3,6 +3,7 @@ import sys
 __module__ = sys.modules[__name__]
 import lambdafactory.interfaces as interfaces
 from lambdafactory.passes import Pass
+import re
 __module_name__ = 'lambdafactory.resolution'
 class BasicDataFlow(Pass):
 	"""The basic dataflow pass will associate DataFlow objects to elements which
@@ -29,6 +30,7 @@ class BasicDataFlow(Pass):
 	2) Properly flow classes (so that resolution in parents can happen)
 	3) Attaches operations that reference a value to the original slot (this
 	prepares the path for the typing pass)"""
+	RE_IMPLICIT = re.compile('^_[0-9]?$')
 	HANDLES = [interfaces.IProgram, interfaces.IModule, interfaces.IClass, interfaces.IMethod, interfaces.IClosure, interfaces.IProcess, interfaces.IContext, interfaces.IAllocation, interfaces.IOperation, interfaces.IReference, interfaces.IValue]
 	NAME = 'Resolution'
 	def __init__ (self):
@@ -115,24 +117,45 @@ class BasicDataFlow(Pass):
 			element.setDataFlow(dataflow)
 	
 	def onReference(self, element):
-		i=self.lastIndexInContext(interfaces.IArgument)
-		j=self.lastIndexInContext(interfaces.IClosure)
-		k=self.lastIndexInContext(interfaces.IIteration)
-		kk=self.lastIndexInContext(interfaces.IRepetition)
-		if (((i >= j) and (j > (k + 1))) and (k >= 0)):
-			slots=self.resolve(element.getName())
-			if slots:
-				scope=slots[0].getDataFlow().getElement()
-				if scope:
-					if scope.hasAnnotation('iteration'):
-						scope.addAnnotation('force-scope')
-		elif ((j and (j > kk)) and (kk >= 0)):
-			slots=self.resolve(element.getName())
-			if slots:
-				scope=slots[0].getDataFlow().getElement()
-				si=self.indexInContext(scope)
-				if (scope and (si < j)):
-					self.context[j].addAnnotation('encloses', slots[0])
+		i=self.lastIndexInContext(interfaces.IClosure)
+		j=self.lastIndexInContext(interfaces.IIteration)
+		jj=self.lastIndexInContext(interfaces.IRepetition)
+		name=element.getName()
+		if ((i >= 0) and self.__class__.RE_IMPLICIT.match(name)):
+			slot=self.resolve(element)
+			if (not slot[0]):
+				n=0
+				if (len(name) > 1):
+					n = int(name[1:])
+				closure=self.context[i]
+				dataflow=closure.dataflow
+				parameters=closure.parameters
+				while (len(parameters) <= n):
+					l=len(parameters)
+					p=self.environment.factory._param(('_' + str(n)))
+					parameters.append(p)
+					if dataflow:
+						dataflow.declareArgument(p.getName(), p)
+				p=parameters[n]
+				name = p.getName()
+				element.setReferenceName(name)
+		if (i and (((i > jj) and (jj >= 0)) or ((i > (j + 1)) and (j >= 0)))):
+			slots=self.resolve(name)
+			if (j == -1):
+				j = jj
+			if (slots and slots[0]):
+				slot=slots[0]
+				scope=slot.getDataFlow().getElement()
+				k=self.indexInContext(scope)
+				if ((scope and (k < i)) and (j < k)):
+					c=self.context[i]
+					a=c.getAnnotation('encloses')
+					sys.stderr.write("Reference {0} resolves in {1} {2} {3} {4}: {5}\n".format(element.getName(), k, i, k < i, j < k, a))
+					
+					if (not a):
+						self.context[i].addAnnotation('encloses', {(name):slot})
+					elif True:
+						a.content[name] = slot
 	
 
 class ClearDataFlow(Pass):

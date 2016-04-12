@@ -1150,8 +1150,29 @@
 @end
 
 @class Block: Group, IBlock
+
 @end
 
+@class WithBlock: Group, IWithBlock
+
+	@property context
+
+	@constructor context
+		Group __init__ ( self )
+		setContext (context)
+	@end
+
+	@method setContext context
+		self context = context
+	@end
+
+	@method getContext
+		return context
+	@end
+
+@end
+
+# FIXME: Confusion between arg/param
 @class Closure: Process, IAssignable, IClosure, IEvaluable
 
 	@property parameters = Undefined
@@ -1173,6 +1194,11 @@
 				self parameters append (param)
 			end
 		end
+	@end
+
+	@method addParameter parameter
+		assert (isinstance(parameter, ISlot))
+		self parameters append (parameter)
 	@end
 
 	@method  getParameters
@@ -1468,11 +1494,18 @@
 @class Iteration: Operation, IIteration
 @end
 
+@class MapIteration: Operation, IMapIteration
+@end
+
+@class FilterIteration: Operation, IFilterIteration
+@end
+
 @class Enumeration: Operation, IEnumeration
 @end
 
 @class Repetition: Operation, IRepetition
 @end
+
 
 @class Termination: Operation, ITermination
 
@@ -1682,6 +1715,11 @@
 
 	@method getReferenceName
 		return self referenceName
+	@end
+
+	@method setReferenceName name
+		self referenceName = name
+		return self
 	@end
 
 	@method asList

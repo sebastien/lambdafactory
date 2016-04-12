@@ -657,6 +657,14 @@ class IBlock(IGroup, IAssignable):
 	"""A block is a specific type of (sub) process."""
 	pass
 
+class IWithBlock(IBlock):
+	def getContext(self):
+		raise Exception("Abstract method IWithBlock.getContext not implemented in: " + str(self))
+	
+	def setContext(self, context):
+		raise Exception("Abstract method IWithBlock.setContext not implemented in: " + str(self))
+	
+
 class IClosure(IProcess, IContext):
 	def getParameters(self):
 		raise Exception("Abstract method IClosure.getParameters not implemented in: " + str(self))
@@ -980,6 +988,20 @@ class IIteration(IOperation):
 	def getClosure(self):
 		"""Returns the closure that will be applied to the iterator."""
 		return self.getOpArgument(1)
+	
+
+class IMapIteration(IIteration, IEvaluable):
+	"""An iteration that is evaluable and that will produce a map of the iterator"""
+	pass
+
+class IFilterIteration(IIteration, IEvaluable):
+	"""An iteration that is evaluable and that will produce a filtered map of the iterator"""
+	ARGS = [IEvaluable, IEvaluable, IEvaluable]
+	def getPredicate(self):
+		return self.getOpArgument(1)
+	
+	def getClosure(self):
+		return self.getOpArgument(2)
 	
 
 class IEnumeration(IOperation):

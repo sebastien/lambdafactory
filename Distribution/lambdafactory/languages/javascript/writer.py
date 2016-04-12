@@ -4,8 +4,8 @@
 # Author    : Sebastien Pierre                               <sebastien@ivy.fr>
 # License   : Revised BSD License
 # -----------------------------------------------------------------------------
-# Creation  : 02-Nov-2006
-# Last mod  : 25-Mar-2015
+# Creation  : 2006-11-02
+# Last mod  : 2015-04-11
 # -----------------------------------------------------------------------------
 
 # TODO: When constructor is empty, should assign default attributes anyway
@@ -20,10 +20,11 @@ import os.path, re, time, string, random, json
 
 #------------------------------------------------------------------------------
 #
-#  JavaScript Writer
+#  JAVASCRIPT WRITER
 #
 #------------------------------------------------------------------------------
 
+RE_TEMPLATE = re.compile("\$\{[^\}]+\}")
 VALID_SYMBOL = re.compile("^[\$_A-Za-z][\$_A-Za-z0-9]*$")
 VALID_SYMBOL_CHARS = "_" + string.digits + string.letters
 # NOTE: This is not the complete list of keywords for JavaScript, we removed
@@ -50,24 +51,20 @@ OPTIONS = {
 	"INCLUDE_SOURCE":False,
 }
 
-# The following generates short random variables. Note that it's not thread
-# safe.
-RNDVAR=0
-RNDVARLETTERS = string.ascii_letters + "01234567890"
-def rndvar(name):
-	global RNDVAR
-	s = "__" + name + "_"
-	i = RNDVAR
-	c = RNDVARLETTERS
-	l = len(c)
-	while i >= l:
-		s += c[i % l]
-		i  = i / l
-	s += c[i]
-	RNDVAR += 1
-	return s
+JS_OPERATORS = {
+	"and"   :"&&",
+	"is"    :"===",
+	"is not":"!==",
+	"not"   :"!",
+	"or"    :"||"
+}
+
 
 class Writer(AbstractWriter):
+
+	# The following generates short random variables. Note that it's not thread
+	# safe.
+	RNDVARLETTERS = string.ascii_letters + "01234567890"
 
 	def __init__( self ):
 		AbstractWriter.__init__(self)
@@ -79,6 +76,28 @@ class Writer(AbstractWriter):
 		self.inInvocation = False
 		self.options = {}
 		self.options.update(OPTIONS)
+		self._generatedVars = [0]
+
+	def _getRandomVariable(self):
+		"""Generates a new random variable."""
+		s = "__"
+		i = self._generatedVars[-1]
+		c = self.RNDVARLETTERS
+		l = len(c)
+		while i >= l:
+			s += c[i % l]
+			i  = i / l
+		s += c[i]
+		self._generatedVars[-1] += 1
+		return s
+
+	def pushContext( self, value ):
+		self._generatedVars.append(self._generatedVars[-1] + 1)
+		AbstractWriter.pushContext(self, value)
+
+	def popContext( self ):
+		AbstractWriter.popContext(self, value)
+		self._generatedVars.pop()
 
 	def _extendGetMethodByName(self, name):
 		return self.jsSelf + ".getMethod('%s') " % (name)
@@ -309,6 +328,7 @@ class Writer(AbstractWriter):
 			["var %s=this;" % (self.jsSelf)],
 			self._writeClosureArguments(methodElement),
 			self.writeFunctionWhen(methodElement),
+			self.writeFunctionPre(methodElement),
 			map(self.write, methodElement.getOperations()),
 			(
 				(not self.options["ENABLE_METADATA"] and "}") or \
@@ -348,7 +368,12 @@ class Writer(AbstractWriter):
 			return self.write(lvalue)
 
 	def writeFunctionWhen(self, methodElement):
-		return None
+		return [self.write(
+			"if (!({0})) {{return undefined}};".format(self.write(_.content))
+		) for _ in methodElement.getAnnotations("when")]
+
+	def writeFunctionPre(self, methodElement):
+		return ["extend.assert({0}, 'Precondition failed in {1}):".format(self.write(_.content), self.getScopeName()) for _ in methodElement.getAnnotations("pre")]
 
 	def onClassMethod( self, methodElement ):
 		"""Writes a class method element."""
@@ -423,44 +448,42 @@ class Writer(AbstractWriter):
 			)
 		)
 
-	def onClosure( self, closure ):
+	def onClosure( self, closure, bodyOnly=False ):
 		"""Writes a closure element."""
-		result   = [
-			self._document(closure),
-			(
-				self.options["ENABLE_METADATA"] and "__def(function(%s){" \
-				or "function(%s){"
-			) % ( ", ".join(map(self.write, closure.getArguments()))),
-			self._writeClosureArguments(closure),
-			map(self.write, closure.getOperations()),
-			(
-				(not self.options["ENABLE_METADATA"] and "}") or \
-				"},%s)" % ( self._writeFunctionMeta(closure))
-			)
-		]
+		if bodyOnly:
+			result = map(self.write, closure.getOperations()),
+		else:
+			result   = [
+				self._document(closure),
+				(
+					self.options["ENABLE_METADATA"] and "__def(function(%s){" \
+					or "function(%s){"
+				) % ( ", ".join(map(self.write, closure.getArguments()))),
+				self._writeClosureArguments(closure),
+				map(self.write, closure.getOperations()),
+				(
+					(not self.options["ENABLE_METADATA"] and "}") or \
+					"},%s)" % ( self._writeFunctionMeta(closure))
+				)
+			]
+		# We format the result as a string
+		result = self._format(result)
 		# If the closure has `encloses` annotation, it means that we need
-		# to capture its environment
-		encloses = closure.getAnnotations("encloses")
+		# to capture its environment, because JS only has function-level
+		# scoping.
+		encloses = closure.getAnnotation("encloses")
 		if encloses:
-			wrapper = []
-			# The scope will be a map containing the current enclosed values
-			scope   = rndvar("scope")
-			enclosed = [a.content.getName() for a in encloses]
+			# The scope will be a map containing the current enclosed values. We
+			# get the list of names of enclosed variables.
+			enclosed = list(encloses.content.keys())
 			# We create a scope in which we're going to copy the value of the variables
 			# This is *fairly ugly*, but it's easier for now as otherwise we
 			# would need to do rewriting of variables/arguments
-			wrapper.append(
-				"(function(){var %s={%s};return function(){%s;return (" % (
-					scope,
-					", ".join('"%s":%s'      % (_, _)        for _ in enclosed),
-					"; ".join("var %s=%s.%s" % (_, scope, _) for _ in enclosed),
-			))
-			wrapper.extend(result)
-			wrapper.append(")}()}())")
-			result = wrapper
-		return self._format(result)
-
-
+			result = "(function({0}){{return ({1})}}({0}))".format(
+				", ".join(enclosed),
+				result
+			)
+		return result
 
 	def onClosureBody(self, closure):
 		return self._format('{', map(self.write, closure.getOperations()), '}')
@@ -599,17 +622,21 @@ class Writer(AbstractWriter):
 			scope = None
 		if symbol_name == "self":
 			return self.jsSelf
-		if symbol_name == "target":
+		elif symbol_name == "target":
 			return "this"
-		if symbol_name == "__class__":
+		elif symbol_name == "__class__":
 			return self._rewriteSymbol(self.getCurrentClass().getName())
-		if symbol_name == "__module__":
+		elif symbol_name == "__module__":
 			return self._rewriteSymbol(self.getCurrentModule().getName())
+		elif symbol_name == "__scope__":
+			return json.dumps(self.getScopeName())
+		elif symbol_name == "__name__":
+			return json.dumps(self.getCurrentName(-1) or "''")
 		elif symbol_name == "Undefined":
 			return "undefined"
 		elif symbol_name == "True":
 			return "true"
-		elif symbol_name == "ealse":
+		elif symbol_name == "False":
 			return "false"
 		elif symbol_name == "None":
 			return "null"
@@ -704,17 +731,10 @@ class Writer(AbstractWriter):
 		else:
 			raise Exception("Importation operation not implemeted yet")
 
-	JS_OPERATORS = {
-				"and":"&&",
-				"is":"===",
-				"is not":"!=",
-				"not":"!",
-				"or":"||"
-	}
 	def onOperator( self, operator ):
 		"""Writes an operator element."""
 		o = operator.getReferenceName()
-		o = self.JS_OPERATORS.get(o) or o
+		o = JS_OPERATORS.get(o) or o
 		return "%s" % (o)
 
 	def onNumber( self, number ):
@@ -819,7 +839,7 @@ class Writer(AbstractWriter):
 			)
 		else:
 			if operator.getReferenceName() == "has":
-				res = '(typeof(%s.%s)!="undefined")' % (
+				res = '(!(%s.%s===undefined))' % (
 					self.write(operands[0]),
 					self.write(operands[1])
 				)
@@ -846,6 +866,8 @@ class Writer(AbstractWriter):
 		return res
 
 	def _closureIsRewrite(self, closure):
+		"""Some invocations/closures are going to be rewritten based on the
+		backend"""
 		embed_templates_for_backend = []
 		others = []
 		if not isinstance(closure, interfaces.IClosure):
@@ -861,9 +883,9 @@ class Writer(AbstractWriter):
 		else:
 			return ()
 
-	RE_TEMPLATE = re.compile("\$\{[^\}]+\}")
 	def _rewriteInvocation(self, invocation, closure, template):
-		arguments = tuple([self.write(a) for a in invocation.getArguments()])
+		"""Rewrites an invocation based on an embedding template."""
+		arguments  = tuple([self.write(a) for a in invocation.getArguments()])
 		parameters = tuple([self._rewriteSymbol(a.getName()) for a  in closure.getParameters()])
 		args = {}
 		for i in range(len(arguments)):
@@ -894,14 +916,24 @@ class Writer(AbstractWriter):
 		target_type = invocation.getTarget().getResultAbstractType()
 		if target_type:
 			concrete_type = target_type.concreteType()
-			rewrite = self._closureIsRewrite(concrete_type)
+			rewrite        = self._closureIsRewrite(concrete_type)
 		else:
 			rewrite = ""
 		if rewrite:
 			return self._rewriteInvocation(invocation, concrete_type, "\n".join([r.getCode() for r in rewrite]))
 		else:
 			self.inInvocation = False
-			if invocation.isByPositionOnly():
+			if t == "extend.assert":
+				args      = invocation.getArguments()
+				predicate = self.write(args[0])
+				rest      = args[1:]
+				# TODO: We should include the offsets
+				return "!({0}) && extend.assert(false, {1}, 'in', {2});".format(
+					predicate,
+					", ".join(self.write(_) for _ in rest),
+					json.dumps(predicate)
+				)
+			elif invocation.isByPositionOnly():
 				return "%s(%s)" % (
 					t,
 					", ".join(map(self.write, invocation.getArguments()))
@@ -951,30 +983,10 @@ class Writer(AbstractWriter):
 			", ".join(map(self.write, operation.getArguments()))
 		)
 
-	def onSelectionInExpression( self, selection ):
-		rules  = selection.getRules()
-		result = []
-		text   = ""
-		for rule in rules:
-			#assert isinstance(rule, interfaces.IMatchExpressionOperation)
-			if isinstance(rule, interfaces.IMatchExpressionOperation):
-				expression = rule.getExpression()
-			else:
-				expression = rule.getProcess()
-			text += "((%s) ? (%s) : " % (
-				self.write(rule.getPredicate()),
-				self.write(expression)
-			)
-		text += "undefined"
-		for r in rules:
-			text += ")"
-		return text
+
 
 	def onSelection( self, selection ):
-		# If we are in an assignataion and allocation which is contained in a
-		# closure (because we can have a closure being assigned to something.)
-		if self.isIn(interfaces.IAssignation) > self.isIn(interfaces.IClosure) \
-		or self.isIn(interfaces.IAllocation) > self.isIn(interfaces.IClosure):
+		if selection.hasAnnotation("if-expression"):
 			return self.writeSelectionInExpression(selection)
 		rules = selection.getRules()
 		result = []
@@ -996,37 +1008,82 @@ class Writer(AbstractWriter):
 				process = "%s" % (self.write(process))
 			else:
 				process = '{}'
+			predicate = rule.getPredicate()
+			is_else   = isinstance(predicate, interfaces.IReference) and predicate.getName() == "True"
 			if i==0:
 				rule_code = (
-					"if ( %s )" % (self.write(rule.getPredicate())),
+					"if ( %s )" % (self.write(predicate)),
 					process,
+				)
+			elif is_else or rule.hasAnnotation("else"):
+				rule_code = (
+					"else",
+					process
 				)
 			else:
 				rule_code = (
-					"else if ( %s )" % (self.write(rule.getPredicate())),
+					"else if ( %s )" % (self.write(predicate)),
 					process,
 				)
 			result.extend(rule_code)
 		return self._format(*result)
 
+	def writeSelectionInExpression( self, selection ):
+		"""Writes an embedded if expression"""
+		rules  = selection.getRules()
+		result = []
+		text   = ""
+		has_else = False
+		for rule in rules:
+			#assert isinstance(rule, interfaces.IMatchExpressionOperation)
+			if isinstance(rule, interfaces.IMatchExpressionOperation):
+				expression = rule.getExpression()
+			else:
+				expression = rule.getProcess()
+			if rule.hasAnnotation("else"):
+				text += self.write(expression)
+				has_else = True
+			else:
+				text += "(%s ? %s : " % (
+					self.write(rule.getPredicate()),
+					self.write(expression)
+				)
+		if not has_else:
+			text += "undefined"
+		for r in rules:
+			text += ")"
+		return text
+
 	def onIteration( self, iteration ):
 		"""Writes a iteration operation."""
 		it_name     = self._unique("_iterator")
 		iterator    = iteration.getIterator()
-		closure     = iteration.getClosure()
-		force_scope = closure.hasAnnotation("force-scope")
 		# If the iteration iterates on an enumeration, we can use a for
 		# loop instead. We have to make sure that there is no scope forcing
 		# though
-		if (not force_scope) and isinstance(iterator, interfaces.IEnumeration) \
+		if isinstance(iterator, interfaces.IEnumeration) \
 		and isinstance(iterator.getStart(), interfaces.INumber) \
 		and isinstance(iterator.getEnd(),   interfaces.INumber) \
 		and (isinstance(iterator.getStep(), interfaces.INumber) or not iterator.getStep()):
-			return self._writeRawForIteration(iteration)
+			return self._writeRangeIteration(iteration)
 		else:
-			return self._writeExtendIteration(iteration)
+			return self._writeObjectIteration(iteration)
 
-	def _writeRawForIteration( self, iteration ):
+	def onMapIteration( self, iteration ):
+		return "extend.map({0}, {1})".format(self.write(iteration.getIterator()), self.write(iteration.getClosure()))
+
+	def onFilterIteration( self, iteration ):
+		i= iteration.getIterator()
+		c = iteration.getClosure()
+		p = iteration.getPredicate()
+		if closure and predicate:
+			return "extend.filter({0}, {1}, {2})".format(self.write(i), self.write(p), self.write(c))
+		elif closure:
+			return "extend.map({0}, {1}, {2})".format(self.write(i), self.write(c))
+		else:
+			return "extend.filter({0}, {1})".format(self.write(i), self.write(p))
+
+	def _writeRangeIteration( self, iteration ):
 		iterator = iteration.getIterator()
 		closure  = iteration.getClosure()
 		start    = self.write(iterator.getStart())
@@ -1044,51 +1101,54 @@ class Writer(AbstractWriter):
 		else:
 			if step < 0: step = -step
 		args  = map(lambda a:self._rewriteSymbol(a.getName()), closure.getParameters())
-		if len(args) == 0: args.append(rndvar("iv"))
-		if len(args) == 1: args.append(rndvar("ii"))
+		if len(args) == 0: args.append(self._getRandomVariable())
+		if len(args) == 1: args.append(self._getRandomVariable())
 		i = args[1]
 		v = args[0]
 		return self._format(
 			"for ( var %s=%s ; %s %s %s ; %s += %s ) {" % (i, start, i, comp, end, i, step),
-			["var %s=%s;" % (v,i)],
-			map(self.write, closure.getOperations()),
+			"var %s=%s;" % (v,i),
+			self.onClosure(closure, bodyOnly=True),
 			"}"
 		)
 
-	def _writeExtendIteration( self, iteration ):
+	def _writeObjectIteration( self, iteration ):
 		# Now, this requires some explanation. If the iteration is annotated
 		# as `force-scope`, this means that there is a nested closure that references
 		# some variable that is going to be re-assigned here
-		closure     = iteration.getClosure()
-		force_scope = closure.hasAnnotation("force-scope")
-		if not force_scope:
-			args  = map(lambda a:self._rewriteSymbol(a.getName()), closure.getParameters())
-			if len(args) == 0: args.append(rndvar("iv"))
-			if len(args) == 1: args.append(rndvar("ii"))
-			v = args[0]
-			i = args[1]
-			iterated    = rndvar("it")
-			# If there is no scope forcing, then we can do a simple iteration
-			# over the array/object
-			return self._format(
-				"let %s=(%s);" % (iterated, self.write(iteration.getIterator())),
-				"for ( var %s in (%s) ) {" % (i, iterated),
-				["var %s=%s[%s];" % (v,iterated,i)],
-				"",
-				map(self.write, closure.getOperations()),
-				"}"
-			)
+		closure = iteration.getClosure()
+		args    = map(lambda a:self._rewriteSymbol(a.getName()), closure.getParameters()) if isinstance(closure, interfaces.IClosure) else []
+		if len(args) == 0: args.append(self._getRandomVariable())
+		if len(args) == 1: args.append(self._getRandomVariable())
+		v  = args[0]
+		i  = args[1]
+		l  = self._getRandomVariable()
+		k  = self._getRandomVariable()
+		ki = self._getRandomVariable()
+		iterator = self.write(iteration.getIterator())
+		prefix     = None
+		if isinstance(closure, interfaces.IClosure):
+			closure    = self.onClosure(closure, bodyOnly=True)
 		else:
-			# Otherwise we have to use the extend wrapper
-			return self._format(
-				"%siterate(%s, %s, %s)" % (
-					self.jsPrefix + self.jsCore,
-					self.write(iteration.getIterator()),
-					self.write(closure),
-					self.jsSelf
-				)
+			closure = self.handle(closure) + "({0}, {1}, {2})".format(v,i,l)
+		# If there is no scope forcing, then we can do a simple iteration
+		# over the array/object
+		# TODO: Use for of https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Statements/for...of
+		return self._format(
+			# OK, so it is a bit complicated here. We start by storing a reference
+			# to the iterated expression
+			"var {l}={iterator};"
+			"var {k}={l} instanceof Array ? {l} : Object.getOwnPropertyNames({l}||{{}});"
+			# Now if the iterated expression is not an array, we get its keys
+			"for (var {ki}=0;{ki}<{k}.length;{ki}++){{"
+			# If `k` is not the array, then it means we're iterating over an
+			# object
+			"var {i}={k}==={l}?{ki}:{k}[{ki}];"
+			"var {v}={l}[{i}];"
+			"{closure}}};".format(
+			l=l, i=i, v=v, k=k, ki=ki, iterator=iterator, closure=closure
 			)
-
+		)
 
 	def onRepetition( self, repetition ):
 		return self._format(
@@ -1134,25 +1194,23 @@ class Writer(AbstractWriter):
 
 	def onTermination( self, termination ):
 		"""Writes a termination operation."""
-		return "return %s" % ( self.write(termination.getReturnedEvaluable()) )
+		closure = self.context[self.lastIndexInContext(interfaces.IClosure)]
+		prefix  = "&&".join(
+			self.write(_.content) for _ in closure.getAnnotations("post")
+		)
+		result = self.write(termination.getReturnedEvaluable())
+		if prefix:
+			return "return ({0} || true) ? {1} : undefined;".format(prefix, result)
+		else:
+			return "return {0};".format(result)
 
 	def onBreaking( self, breaking ):
 		"""Writes a break operation."""
-		iteration  = self.indexLikeInContext(interfaces.IIteration)
-		repetition = self.indexLikeInContext(interfaces.IRepetition)
-		if iteration > repetition:
-			return "return extend.FLOW_BREAK;"
-		else:
-			return "break"
+		return "break"
 
 	def onContinue( self, breaking ):
-		"""Writes a break operation."""
-		iteration  = self.indexLikeInContext(interfaces.IIteration)
-		repetition = self.indexLikeInContext(interfaces.IRepetition)
-		if iteration > repetition:
-			return "return extend.FLOW_CONTINUE;"
-		else:
-			return "continue"
+		"""Writes a continue operation."""
+		return "continue"
 
 	def onExcept( self, exception ):
 		"""Writes a except operation."""

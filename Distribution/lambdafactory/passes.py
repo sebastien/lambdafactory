@@ -47,32 +47,42 @@ class PassContext:
 	def walk(self, element):
 		"""Walks the given element, recursively walking the child elements when the
 		handler does not return False"""
-		self.context.append(element)
+		self.pushContext(element)
 		continue_walking=True
 		handle=self.programPass.getHandler(element)
 		if handle:
 			if (handle(element) != False):
 				continue_walking = True
 		if (continue_walking != False):
-			if isinstance(element, interfaces.IProgram):
-				for module in element.getModules():
-					self.walk(module)
-			if isinstance(element, interfaces.IContext):
-				for name_and_value in element.getSlots():
-					self.walk(name_and_value[1])
-			if isinstance(element, interfaces.IProcess):
-				for operation in element.getOperations():
-					self.walk(operation)
-			if isinstance(element, interfaces.IOperation):
-				for op_arg in element.getOpArguments():
-					if (type(op_arg) in [tuple, list]):
-						for arg in op_arg:
-							assert(isinstance(arg, interfaces.IElement))
-							self.walk(arg)
-					elif True:
-						self.walk(op_arg)
-			if isinstance(element, interfaces.IArgument):
-				self.walk(element.getValue())
+			self.walkChildren(element)
+		self.popContext()
+	
+	def walkChildren(self, element):
+		"""Walks the children of the given element"""
+		if isinstance(element, interfaces.IProgram):
+			for module in element.getModules():
+				self.walk(module)
+		if isinstance(element, interfaces.IContext):
+			for name_and_value in element.getSlots():
+				self.walk(name_and_value[1])
+		if isinstance(element, interfaces.IProcess):
+			for operation in element.getOperations():
+				self.walk(operation)
+		if isinstance(element, interfaces.IOperation):
+			for op_arg in element.getOpArguments():
+				if (type(op_arg) in [tuple, list]):
+					for arg in op_arg:
+						assert(isinstance(arg, interfaces.IElement))
+						self.walk(arg)
+				elif True:
+					self.walk(op_arg)
+		if isinstance(element, interfaces.IArgument):
+			self.walk(element.getValue())
+	
+	def pushContext(self, value):
+		self.context.append(value)
+	
+	def popContext(self):
 		self.context.pop()
 	
 	def filterContext(self, interface):
@@ -140,12 +150,34 @@ class PassContext:
 	def getCurrentModule(self):
 		return self.findInContext(interfaces.IModule)
 	
+	def getScopeName(self, limit=None):
+		if limit is None: limit = -1
+		r=[]
+		for _ in self.context[0:limit]:
+			if isinstance(_, interfaces.IReferencable):
+				n=_.getName()
+				if n:
+					r.append(_.getName())
+		return '.'.join(r)
+	
 	def getCurrentDataFlow(self):
 		i=(len(self.context) - 1)
 		while (i >= 0):
 			dataflow=self.context[i].getDataFlow()
 			if dataflow:
 				return dataflow
+			i = (i - 1)
+		return None
+	
+	def getCurrentName(self, index=None):
+		if index is None: index = 0
+		i=((len(self.context) - 1) + index)
+		while (i >= 0):
+			c=self.context[i]
+			if isinstance(c, interfaces.IReferencable):
+				n=c.getName()
+				if n:
+					return n
 			i = (i - 1)
 		return None
 	

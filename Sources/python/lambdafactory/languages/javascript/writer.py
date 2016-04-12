@@ -328,6 +328,7 @@ class Writer(AbstractWriter):
 			["var %s=this;" % (self.jsSelf)],
 			self._writeClosureArguments(methodElement),
 			self.writeFunctionWhen(methodElement),
+			self.writeFunctionPre(methodElement),
 			map(self.write, methodElement.getOperations()),
 			(
 				(not self.options["ENABLE_METADATA"] and "}") or \
@@ -367,7 +368,12 @@ class Writer(AbstractWriter):
 			return self.write(lvalue)
 
 	def writeFunctionWhen(self, methodElement):
-		return None
+		return [self.write(
+			"if (!({0})) {{return undefined}};".format(self.write(_.content))
+		) for _ in methodElement.getAnnotations("when")]
+
+	def writeFunctionPre(self, methodElement):
+		return ["extend.assert({0}, 'Precondition failed in {1}):".format(self.write(_.content), self.getScopeName()) for _ in methodElement.getAnnotations("pre")]
 
 	def onClassMethod( self, methodElement ):
 		"""Writes a class method element."""
@@ -977,30 +983,10 @@ class Writer(AbstractWriter):
 			", ".join(map(self.write, operation.getArguments()))
 		)
 
-	def onSelectionInExpression( self, selection ):
-		rules  = selection.getRules()
-		result = []
-		text   = ""
-		for rule in rules:
-			#assert isinstance(rule, interfaces.IMatchExpressionOperation)
-			if isinstance(rule, interfaces.IMatchExpressionOperation):
-				expression = rule.getExpression()
-			else:
-				expression = rule.getProcess()
-			text += "((%s) ? (%s) : " % (
-				self.write(rule.getPredicate()),
-				self.write(expression)
-			)
-		text += "undefined"
-		for r in rules:
-			text += ")"
-		return text
+
 
 	def onSelection( self, selection ):
-		# If we are in an assignataion and allocation which is contained in a
-		# closure (because we can have a closure being assigned to something.)
-		if self.isIn(interfaces.IAssignation) > self.isIn(interfaces.IClosure) \
-		or self.isIn(interfaces.IAllocation) > self.isIn(interfaces.IClosure):
+		if selection.hasAnnotation("if-expression"):
 			return self.writeSelectionInExpression(selection)
 		rules = selection.getRules()
 		result = []
@@ -1042,6 +1028,32 @@ class Writer(AbstractWriter):
 			result.extend(rule_code)
 		return self._format(*result)
 
+	def writeSelectionInExpression( self, selection ):
+		"""Writes an embedded if expression"""
+		rules  = selection.getRules()
+		result = []
+		text   = ""
+		has_else = False
+		for rule in rules:
+			#assert isinstance(rule, interfaces.IMatchExpressionOperation)
+			if isinstance(rule, interfaces.IMatchExpressionOperation):
+				expression = rule.getExpression()
+			else:
+				expression = rule.getProcess()
+			if rule.hasAnnotation("else"):
+				text += self.write(expression)
+				has_else = True
+			else:
+				text += "(%s ? %s : " % (
+					self.write(rule.getPredicate()),
+					self.write(expression)
+				)
+		if not has_else:
+			text += "undefined"
+		for r in rules:
+			text += ")"
+		return text
+
 	def onIteration( self, iteration ):
 		"""Writes a iteration operation."""
 		it_name     = self._unique("_iterator")
@@ -1056,6 +1068,20 @@ class Writer(AbstractWriter):
 			return self._writeRangeIteration(iteration)
 		else:
 			return self._writeObjectIteration(iteration)
+
+	def onMapIteration( self, iteration ):
+		return "extend.map({0}, {1})".format(self.write(iteration.getIterator()), self.write(iteration.getClosure()))
+
+	def onFilterIteration( self, iteration ):
+		i= iteration.getIterator()
+		c = iteration.getClosure()
+		p = iteration.getPredicate()
+		if closure and predicate:
+			return "extend.filter({0}, {1}, {2})".format(self.write(i), self.write(p), self.write(c))
+		elif closure:
+			return "extend.map({0}, {1}, {2})".format(self.write(i), self.write(c))
+		else:
+			return "extend.filter({0}, {1})".format(self.write(i), self.write(p))
 
 	def _writeRangeIteration( self, iteration ):
 		iterator = iteration.getIterator()
@@ -1168,7 +1194,15 @@ class Writer(AbstractWriter):
 
 	def onTermination( self, termination ):
 		"""Writes a termination operation."""
-		return "return %s" % ( self.write(termination.getReturnedEvaluable()) )
+		closure = self.context[self.lastIndexInContext(interfaces.IClosure)]
+		prefix  = "&&".join(
+			self.write(_.content) for _ in closure.getAnnotations("post")
+		)
+		result = self.write(termination.getReturnedEvaluable())
+		if prefix:
+			return "return ({0} || true) ? {1} : undefined;".format(prefix, result)
+		else:
+			return "return {0};".format(result)
 
 	def onBreaking( self, breaking ):
 		"""Writes a break operation."""

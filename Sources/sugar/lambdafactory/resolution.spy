@@ -1,6 +1,7 @@
 @module lambdafactory.resolution
 @import lambdafactory.interfaces as interfaces
 @import Pass from lambdafactory.passes
+@import re
 
 # ============================================================================
 #
@@ -34,6 +35,7 @@
 | 3) Attaches operations that reference a value to the original slot (this
 |    prepares the path for the typing pass)
 
+	@shared RE_IMPLICIT = re compile ("^_[0-9]?$")
 	@shared HANDLES = [
 		interfaces IProgram
 		interfaces IModule
@@ -134,12 +136,12 @@
 	@end
 
 	@method onProcess element
-		# Processes have thir own dataflows
+		# Processes have their own dataflows
 		var dataflow = ensureDataFlow (element)
 	@end
 
 	@method onContext element
-		# Contexts have thir own dataflows
+		# Contexts have their own dataflows
 		var dataflow = ensureDataFlow (element)
 		for name_and_value in element getSlots()
 			dataflow declareVariable (name_and_value[0], name_and_value[1], element)
@@ -175,11 +177,35 @@
 		var i  = lastIndexInContext (interfaces IClosure)
 		var j  = lastIndexInContext (interfaces IIteration)
 		var jj = lastIndexInContext (interfaces IRepetition)
+		var name  = element getName ()
+		# We handle implicit references to a closure argument
+		if i>=0 and RE_IMPLICIT match (name)
+			var slot   = resolve (element)
+			if not slot[0]
+				var n        = 0
+				if len(name) > 1 -> n = int(name[1:])
+				var closure  = context[i]
+				var dataflow = closure dataflow
+				var parameters = closure parameters
+				# We ensure that the closure has N parameters
+				while len(parameters) <= n
+					var l = len(parameters)
+					var p = environment factory _param ("_" + str(n))
+					parameters append (p)
+					if dataflow
+						dataflow declareArgument (p getName (), p)
+					end
+				end
+				# We rewrite the reference to match the parameter name
+				var p = parameters[n]
+				name  = p getName ()
+				element setReferenceName (name)
+			end
+		end
 		if i and ((i > jj and jj >= 0) or (i > (j + 1) and j >= 0))
 			# We have a reference within a closure that references a scope
 			# nested in a loop. Because JS has no nested scope, we'll flag
 			# it explicitely using the `encloses` annotation.
-			var name  = element getName ()
 			var slots = resolve (name)
 			if j == -1
 				j = jj

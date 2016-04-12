@@ -613,7 +613,6 @@
 	| Gets the factory that was used to create this program. It can be
 	| used to create more elements in the program.
 
-
 @end
 
 # TODO: Maybe processed are contexts as well ?
@@ -639,6 +638,13 @@
 
 @protocol IBlock: IGroup, IAssignable
 |	A block is a specific type of (sub) process.
+@end
+
+@class IWithBlock: IBlock
+
+	@abstract @method getContext
+	@abstract @method setContext context
+
 @end
 
 @protocol IClosure: IProcess, IContext
@@ -826,6 +832,22 @@
 	|	Returns the expression that assigns the @methodault value.
 
 @end
+
+# @class IMultipleAllocation: IOperation, IEvaluable
+#
+# 	@shared ARGS = [ [IAllocation] ]
+#
+# 	@abstract @method addAllocation
+#
+# @end
+#
+# @class IDecomposingAllocation: IOperation, IEvaluable
+#
+# 	@shared ARGS = [ [IAllocation] ]
+#
+# 	@abstract @method addAllocation
+#
+# @end
 
 @protocol IResolution: IOperation, IEvaluable, IReferencable
 |	A resolution resolves a reference into a value.
@@ -1032,6 +1054,25 @@
 	@method getClosure
 	|	Returns the closure that will be applied to the iterator.
 		return getOpArgument(1)
+	@end
+@end
+
+@class IMapIteration: IIteration, IEvaluable
+| An iteration that is evaluable and that will produce a map of the iterator
+
+@end
+
+@class IFilterIteration: IIteration, IEvaluable
+| An iteration that is evaluable and that will produce a filtered map of the iterator
+
+	@shared ARGS = [IEvaluable, IEvaluable, IEvaluable ]
+
+	@method getPredicate
+		return getOpArgument (1)
+	@end
+
+	@method getClosure
+		return getOpArgument (2)
 	@end
 
 @end

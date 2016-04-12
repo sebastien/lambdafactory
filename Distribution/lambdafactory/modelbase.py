@@ -87,6 +87,10 @@ class Factory:
 		if operations: map(r.addOperation, operations)
 		return r
 
+	def withBlock( self, context, *operations ):
+		r = self._getImplementation("WithBlock")(context)
+		if operations: map(r.addOperation, operations)
+
 	def createClosure( self, parameters, *operations ):
 		r = self._getImplementation("Closure")(parameters)
 		if operations: map(r.addOperation, operations)
@@ -194,6 +198,12 @@ class Factory:
 
 	def iterate( self, evaluable, process ):
 		return self._getImplementation("Iteration")(evaluable, process)
+
+	def map( self, evaluable, process ):
+		return self._getImplementation("MapIteration")(evaluable, process)
+
+	def filter( self, evaluable, condition, process ):
+		r = self._getImplementation("FilterIteration")(evaluable, process, condition)
 
 	def repeat( self, condition, process ):
 		return self._getImplementation("Repetition")(condition, process)

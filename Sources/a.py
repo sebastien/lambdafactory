@@ -1,3 +1,4 @@
+#8< ---[lambdafactory/model.py]---
 #!/usr/bin/env python
 """This module is the default implementation of the LambdaFactory interfaces.
 It defines objects that allow you to build a complete OO program model on
@@ -26,6 +27,7 @@ class DataFlowSlot(IDataFlowSlot):
 	
 	def setDataFlow(self, dataflow):
 		self.dataflow = dataflow
+		return self.dataflow
 	
 	def getDataFlow(self):
 		return self.dataflow
@@ -44,7 +46,7 @@ class DataFlowSlot(IDataFlowSlot):
 	
 	def addOperation(self, operation):
 		"""Adds an operation made to this dataflow slot."""
-		self.operations.append(operation)
+		return self.operations.append(operation)
 	
 	def isImported(self):
 		return (self.slotType == DataFlow.IMPORTED)
@@ -96,16 +98,16 @@ class DataFlow(IDataFlow):
 		element.setDataFlow(self)
 	
 	def declareArgument(self, name, value):
-		self._declare(name, value, None, self.__class__.ARGUMENT)
+		return self._declare(name, value, None, self.__class__.ARGUMENT)
 	
 	def declareEnvironment(self, name, value):
-		self._declare(name, value, None, self.__class__.ENVIRONMENT)
+		return self._declare(name, value, None, self.__class__.ENVIRONMENT)
 	
 	def declareVariable(self, name, value, origin):
-		self._declare(name, value, origin, self.__class__.LOCAL)
+		return self._declare(name, value, origin, self.__class__.LOCAL)
 	
 	def declareImported(self, name, value, origin):
-		self._declare(name, value, origin, self.__class__.IMPORTED)
+		return self._declare(name, value, origin, self.__class__.IMPORTED)
 	
 	def _declare(self, name, value, origin, slotType):
 		"""Declares the given slot with the given name, value, origin
@@ -113,14 +115,14 @@ class DataFlow(IDataFlow):
 		previous_slot=self.getSlot(name)
 		if previous_slot:
 			self.slots.remove(previous_slot)
-		self.addSlot(DataFlowSlot(name, value, [origin], slotType))
+		return self.addSlot(DataFlowSlot(name, value, [origin], slotType))
 	
 	def addSource(self, dataflow):
 		assert dataflow != self, "DataFlow added as its own source"
 		
 		if ((dataflow != self) and (not (dataflow in self.sources))):
 			self.sources.append(dataflow)
-			dataflow.addDestination(self)
+			return dataflow.addDestination(self)
 	
 	def getSources(self):
 		return self.sources
@@ -128,14 +130,14 @@ class DataFlow(IDataFlow):
 	def addDestination(self, dataflow):
 		if (not (dataflow in self.destinations)):
 			self.destinations.append(dataflow)
-			dataflow.addSource(self)
+			return dataflow.addSource(self)
 	
 	def getDestinations(self):
 		return self.destinations
 	
 	def addSlot(self, slot):
 		self.slots.append(slot)
-		slot.setDataFlow(self)
+		return slot.setDataFlow(self)
 	
 	def getSlots(self):
 		"""Returns the slots defiend for this dataflow."""
@@ -198,16 +200,17 @@ class DataFlow(IDataFlow):
 		if self.parent:
 			self.parent.removeChild(self)
 			self.parent = None
+			return self.parent
 	
 	def setParent(self, parent):
 		assert(((self.parent is None) or (parent == self.parent)))
 		if parent:
 			self.parent = parent
-			self.parent.addChild(self)
+			return self.parent.addChild(self)
 	
 	def addChild(self, child):
 		assert((not (child in self.children)))
-		self.children.append(child)
+		return self.children.append(child)
 	
 	def getChildren(self):
 		return self.children
@@ -298,6 +301,7 @@ class Element:
 	
 	def setName(self, name):
 		self.name = name
+		return self.name
 	
 	def getName(self):
 		assert((isinstance(self, IReferencable) or isinstance(self, IAnnotation)))
@@ -329,6 +333,7 @@ class Element:
 	
 	def setParent(self, parent):
 		self.parent = parent
+		return self.parent
 	
 	def unsetParent(self):
 		self.parent = None
@@ -365,6 +370,7 @@ class Element:
 	
 	def setSource(self, source):
 		self.source = source
+		return self.source
 	
 	def getSource(self):
 		return self.source
@@ -374,12 +380,12 @@ class Element:
 		if (not annotation):
 			return None
 		if (type(annotation) in [tuple, list]):
-			map(self.addAnnotation , annotation)
+			return map(self.addAnnotation , annotation)
 		elif (type(annotation) in [str, unicode]):
-			self.addAnnotation(Annotation(annotation, value))
+			return self.addAnnotation(Annotation(annotation, value))
 		elif True:
 			assert(isinstance(annotation, IAnnotation))
-			self.annotations.append(annotation)
+			return self.annotations.append(annotation)
 	
 	def getAnnotations(self, withName=None):
 		if withName is None: withName = None
@@ -397,6 +403,7 @@ class Element:
 			if (annotation.getName() != withName):
 				new_annotations.append(annotation)
 		self.annotations = new_annotations
+		return self.annotations
 	
 	def setAnnotation(self, name, content):
 		annotation=self.getAnnotation(withName)
@@ -415,7 +422,7 @@ class Element:
 			return None
 	
 	def setDocumentation(self, documentation):
-		self.addAnnotation(documentation)
+		return self.addAnnotation(documentation)
 	
 	def getDocumentation(self):
 		return self.getAnnotation('documentation')
@@ -425,6 +432,7 @@ class Element:
 	
 	def setDataFlow(self, f):
 		self.dataflow = f
+		return self.dataflow
 	
 	def hasDataFlow(self):
 		return self.dataflow
@@ -439,12 +447,14 @@ class Element:
 	
 	def setAbstractType(self, abstractType):
 		self.abstractType = abstractType
+		return self.abstractType
 	
 	def getResultAbstractType(self):
 		return self.resultAbtractType
 	
 	def setResultAbstractType(self, abstractType):
 		self.resultAbtractType = abstractType
+		return self.resultAbtractType
 	
 	def prettyList(self):
 		return pprint.pprint(self.asList())
@@ -525,6 +535,7 @@ class Context(Element):
 	
 	def setAbstract(self, isAbstract):
 		self.abstract = isAbstract
+		return self.abstract
 	
 	def isAbstract(self):
 		return self.abstract
@@ -538,6 +549,7 @@ class Context(Element):
 		if (self.slotIndex.get(name) is None):
 			self.slots.append([name, evaluable])
 			self.slotIndex[name] = (len(self.slots) - 1)
+			return self.slotIndex[name]
 		elif True:
 			slot=self.slots[self.slotIndex[name]]
 			slot[1] = evaluable
@@ -572,6 +584,7 @@ class Context(Element):
 	
 	def setParent(self, context):
 		self.parent = context
+		return self.parent
 	
 	def getParent(self):
 		return self.parent
@@ -707,10 +720,11 @@ class Module(Context, IModule):
 	def setImported(self, value=None):
 		if value is None: value = True
 		self.imported = value
+		return self.imported
 	
 	def addImportOperation(self, operation):
 		self.importOperations.append(operation)
-		operation.setParent(self)
+		return operation.setParent(self)
 	
 	def mergeWith(self, module):
 		for op in module.getImportOperations():
@@ -720,8 +734,9 @@ class Module(Context, IModule):
 			an.detach()
 			self.addAnnotation(an)
 		for slot in module.getSlots():
-			name=slot[0]
-			value=slot[1]
+			value=slot
+			name=value[0]
+			value = value[1]
 			value.detach()
 			self.setSlot(name, value)
 	
@@ -734,6 +749,7 @@ class Module(Context, IModule):
 	
 	def setSource(self, source):
 		self.source = source
+		return self.source
 	
 	def getSource(self):
 		return self.source
@@ -755,10 +771,10 @@ class Program(Context, IProgram):
 				same_name_module = existing_module
 				break
 		if same_name_module:
-			same_name_module.mergeWith(module)
+			return same_name_module.mergeWith(module)
 		elif True:
 			self.modules.append(module)
-			module.setParent(self)
+			return module.setParent(self)
 	
 	def hasModule(self, module):
 		for existing_module in self.modules:
@@ -791,6 +807,7 @@ class Program(Context, IProgram):
 	def setFactory(self, factory):
 		"""Sets the factory that was used to create this program"""
 		self.factory = factory
+		return self.factory
 	
 	def getFactory(self):
 		"""Gets the factory that was used to create this program. It can be
@@ -810,12 +827,12 @@ class Process(Context, IContext, IProcess, IAbstractable):
 		if (not isinstance(operation, IOperation)):
 			raise ERR_NOT_AN_OPERATION
 		operation.setParent(self)
-		self.operations.append(operation)
+		return self.operations.append(operation)
 	
 	def removeOperationAt(self, index):
 		op = self.operations[index]
 		op.unsetParent()
-		self.operations.remove(op)
+		return self.operations.remove(op)
 	
 	def getOperations(self):
 		return self.operations
@@ -841,6 +858,7 @@ class WithBlock(Group, IWithBlock):
 	
 	def setContext(self, context):
 		self.context = context
+		return self.context
 	
 	def getContext(self):
 		return self.context
@@ -862,10 +880,6 @@ class Closure(Process, IAssignable, IClosure, IEvaluable):
 					raise ERR_CLOSURE_ARGUMENT_NOT_SLOT
 				self.parameters.append(param)
 	
-	def addParameter(self, parameter):
-		assert(isinstance(parameter, ISlot))
-		self.parameters.append(parameter)
-	
 	def getParameters(self):
 		return self.parameters
 	
@@ -883,6 +897,7 @@ class Closure(Process, IAssignable, IClosure, IEvaluable):
 	
 	def setReturnTypeDescription(self, description):
 		self.returnTypeDescription = description
+		return self.returnTypeDescription
 	
 
 class Function(Closure, IFunction, IReferencable):
@@ -955,18 +970,19 @@ class Operation(Element, IOperation):
 		while (len(self.opArguments) < i):
 			self.opArguments.append(None)
 		self.opArguments[i] = argument
+		return self.opArguments[i]
 	
 	def addOpArgument(self, argument):
 		self.opArguments.append(argument)
-		self._setOpArgumentParent(argument)
+		return self._setOpArgumentParent(argument)
 	
 	def _setOpArgumentParent(self, value):
 		"""Sets the value parent to this"""
 		if (type(value) in [tuple, list]):
-			map(self._setOpArgumentParent , value)
+			return map(self._setOpArgumentParent , value)
 		elif True:
 			if isinstance(value, Element):
-				value.setParent(self)
+				return value.setParent(self)
 	
 	def getOpArguments(self):
 		return self.opArguments
@@ -1038,7 +1054,7 @@ class Selection(Operation, ISelection):
 		elif True:
 			res = res[0]
 		res.append(evaluable)
-		self._setOpArgumentParent(evaluable)
+		return self._setOpArgumentParent(evaluable)
 	
 	def getRules(self):
 		if self.opArguments:
@@ -1068,7 +1084,7 @@ class Iteration(Operation, IIteration):
 class MapIteration(Operation, IMapIteration):
 	pass
 
-class FilterIteration(Operation, IFilterIteration):
+class FilterIteration(Operation, IMapIteration):
 	pass
 
 class Enumeration(Operation, IEnumeration):
@@ -1149,12 +1165,14 @@ class Embed(Operation, IEmbed):
 	
 	def setLanguage(self, language):
 		self.language = language
+		return self.language
 	
 	def getCode(self):
 		return self.code
 	
 	def setCode(self, code):
 		self.code = code
+		return self.code
 	
 
 class EmbedTemplate(Embed, IEmbedTemplate):
@@ -1192,7 +1210,7 @@ class List(Value, IList):
 	
 	def addValue(self, value):
 		self.values.append(value)
-		value.setParent(self)
+		return value.setParent(self)
 	
 	def getValues(self):
 		return self.values
@@ -1214,7 +1232,7 @@ class Dict(Value, IDict):
 		Value.__init__(self)
 	
 	def setValue(self, key, value):
-		self.items.append([key, value])
+		return self.items.append([key, value])
 	
 	def getItems(self):
 		return self.items
@@ -1231,10 +1249,6 @@ class Reference(Value, IReference):
 	
 	def getReferenceName(self):
 		return self.referenceName
-	
-	def setReferenceName(self, name):
-		self.referenceName = name
-		return self
 	
 	def asList(self):
 		return tuple([self.__class__.__name__, self.referenceName])
@@ -1263,6 +1277,7 @@ class Operator(Reference, IOperator):
 	
 	def setPriority(self, priority):
 		self.priority = priority
+		return self.priority
 	
 	def copy(self):
 		ref_copy=Reference._copy(self, self.referenceName, self.priority)
@@ -1281,6 +1296,7 @@ class Slot(Element, ISlot):
 	
 	def setDefaultValue(self, value):
 		self.defaultValue = value
+		return self.defaultValue
 	
 	def getDefaultValue(self):
 		return self.defaultValue
@@ -1299,21 +1315,23 @@ class Parameter(Slot, IParameter):
 	def setOptional(self, value):
 		self.optional = (value and value)
 		if isinstance(value, IElement):
-			self.setDefaultValue(value)
+			return self.setDefaultValue(value)
 		elif True:
-			self.setDefaultValue(None)
+			return self.setDefaultValue(None)
 	
 	def isRest(self):
 		return self.rest
 	
 	def setRest(self, value):
 		self.rest = (value and value)
+		return self.rest
 	
 	def isKeywordsRest(self):
 		return self.rest
 	
 	def setKeywordsRest(self, value):
 		self.rest = (value and value)
+		return self.rest
 	
 
 class Argument(Element, IArgument):
@@ -1336,6 +1354,7 @@ class Argument(Element, IArgument):
 	
 	def setByName(self, n):
 		self.name = n
+		return self.name
 	
 	def getValue(self):
 		return self.value
@@ -1346,6 +1365,7 @@ class Argument(Element, IArgument):
 	
 	def setValue(self, v):
 		self.value = v
+		return self.value
 	
 	def isAsList(self):
 		return self._asList
@@ -1357,11 +1377,13 @@ class Argument(Element, IArgument):
 		if v is None: v = True
 		self._asMap = False
 		self._asList = True
+		return self._asList
 	
 	def setAsMap(self, v=None):
 		if v is None: v = True
 		self._asMap = True
 		self._asList = False
+		return self._asList
 	
 	def copy(self):
 		ref_copy=Element._copy(self)
