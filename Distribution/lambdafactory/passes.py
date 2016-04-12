@@ -10,7 +10,7 @@ class PassContext:
 	to the program and various passes) but more importantly gives access
 	to _dataflow-related primitives_ which allow you to resolve symbols
 	an interrogate contexts.
-
+	
 	NOTE that a single pass context can be shared among various passes."""
 	def __init__ (self, environment=None, programPass=None):
 		self.environment = None
@@ -23,22 +23,19 @@ class PassContext:
 		self.programPass = programPass
 		if environment:
 			self.program = environment.program
-
+	
 	def setEnvironment(self, environment):
 		self.environment = environment
-		return self.environment
-
+	
 	def setPass(self, programPass):
 		self.programPass = programPass
-		return self.programPass
-
+	
 	def run(self, program):
 		assert((self.program == None))
 		self.program = program
 		self.walk(program)
 		self.program = None
-		return self.program
-
+	
 	def handle(self, element):
 		"""Handles a sungle element, without recursing through its children"""
 		handle=self.programPass.getHandler(element)
@@ -46,7 +43,7 @@ class PassContext:
 			return handle(element)
 		elif True:
 			return None
-
+	
 	def walk(self, element):
 		"""Walks the given element, recursively walking the child elements when the
 		handler does not return False"""
@@ -58,8 +55,8 @@ class PassContext:
 				continue_walking = True
 		if (continue_walking != False):
 			self.walkChildren(element)
-		return self.popContext()
-
+		self.popContext()
+	
 	def walkChildren(self, element):
 		"""Walks the children of the given element"""
 		if isinstance(element, interfaces.IProgram):
@@ -80,43 +77,43 @@ class PassContext:
 				elif True:
 					self.walk(op_arg)
 		if isinstance(element, interfaces.IArgument):
-			return self.walk(element.getValue())
-
+			self.walk(element.getValue())
+	
 	def pushContext(self, value):
-		return self.context.append(value)
-
+		self.context.append(value)
+	
 	def popContext(self):
-		return self.context.pop()
-
+		self.context.pop()
+	
 	def filterContext(self, interface):
 		return filter(lambda x:isinstance(x,interface), self.context)
-
-
+		
+	
 	def filter(self, list, interface):
 		return filter(lambda x:isinstance(x,interface), list)
-
-
+		
+	
 	def findInContext(self, interface):
 		res=self.filterContext(interface)
 		if res:
 			return res[-1]
 		elif True:
 			return None
-
+	
 	def indexInContext(self, value):
 		for i,e in enumerate(self.context):
 			if e is value:
 				return i
-
+		
 		return -1
-
+	
 	def indexLikeInContext(self, interface):
 		for i,e in enumerate(self.context):
 			if isinstance(e,interface):
 				return i
-
+		
 		return -1
-
+	
 	def lastIndexInContext(self, interface):
 		i=(len(self.context) - 1)
 		while (i >= 0):
@@ -125,34 +122,34 @@ class PassContext:
 				return i
 			i = (i - 1)
 		return -1
-
+	
 	def getParentElement(self):
 		return self.context[-2]
-
+	
 	def hasParentElement(self):
 		return (len(self.context) > 1)
-
+	
 	def getCurrentElement(self):
 		return self.context[-1]
-
+	
 	def getProgram(self):
 		return self.program
-
+	
 	def getFactory(self):
 		return self.environment.getFactory()
-
+	
 	def isIn(self, interface):
 		return (self.findInContext(interface) != None)
-
+	
 	def getCurrentClosure(self):
 		return self.findInContext(interfaces.IClosure)
-
+	
 	def getCurrentFunction(self):
 		return self.findInContext(interfaces.IFunction)
-
+	
 	def getCurrentModule(self):
 		return self.findInContext(interfaces.IModule)
-
+	
 	def getScopeName(self, limit=None):
 		if limit is None: limit = -1
 		r=[]
@@ -162,7 +159,7 @@ class PassContext:
 				if n:
 					r.append(_.getName())
 		return '.'.join(r)
-
+	
 	def getCurrentDataFlow(self):
 		i=(len(self.context) - 1)
 		while (i >= 0):
@@ -171,7 +168,7 @@ class PassContext:
 				return dataflow
 			i = (i - 1)
 		return None
-
+	
 	def getCurrentName(self, index=None):
 		if index is None: index = 0
 		i=((len(self.context) - 1) + index)
@@ -183,22 +180,22 @@ class PassContext:
 					return n
 			i = (i - 1)
 		return None
-
+	
 	def getCurrentMethod(self):
 		return self.findInContext(interfaces.IMethod)
-
+	
 	def getCurrentContext(self):
 		return self.findInContext(interfaces.IContext)
-
+	
 	def getCurrentClass(self):
 		return self.findInContext(interfaces.IClass)
-
+	
 	def getCurrentProcess(self):
 		return self.findInContext(interfaces.IProcess)
-
+	
 	def getCurrentClassParents(self):
 		return self.getClassParents(self.getCurrentClass())
-
+	
 	def getClassParents(self, theClass):
 		parents=[]
 		if (not theClass):
@@ -220,10 +217,10 @@ class PassContext:
 				parents.append(parent_class_ref)
 				self.environment.report.error('Unable to resolve parent class:', parent_class_name, 'from', current_class.getName())
 		return parents
-
+	
 	def getCurrentClassAncestors(self):
 		return self.getClassAncestors(self.getCurrentClass())
-
+	
 	def getClassAncestors(self, theClass=None):
 		if theClass is None: theClass = None
 		ancestors=[]
@@ -241,11 +238,11 @@ class PassContext:
 						ancestors.append(ancestor)
 		ancestors.extend(parents)
 		return ancestors
-
+	
 	def annotate(self, value, name, content=None):
 		if content is None: content = None
-		return value.addAnnotation(self.environment.factory.annotation(name, content))
-
+		value.addAnnotation(self.environment.factory.annotation(name, content))
+	
 	def resolve(self, referenceOrName, contextOrDataFlow=None):
 		"""Resolves the given 'IReference' or String sing the given context
 		('IContext') or dataflow ('IDataFlow'). This usually requires that
@@ -262,7 +259,7 @@ class PassContext:
 			return contextOrDataFlow.resolve(referenceOrName)
 		elif True:
 			return [None, None]
-
+	
 	def resolveAbsolute(self, referenceOrName):
 		"""Resolves the given reference or string expressed in absolute style
 		('.'-separated list of names), starting from the root dataflow (the program
@@ -294,7 +291,7 @@ class PassContext:
 			symbol_name=referenceOrName[(len(matching_module.getName()) + 1):]
 			slot_and_value = matching_module.getDataFlow().resolve(symbol_name)
 			return slot_and_value
-
+	
 	def resolveAbsoluteOrLocal(self, referenceOrName, contextOrDataFlow=None):
 		"""Tries an absolute resolution first, then will look in the local scope if
 		it fails."""
@@ -304,7 +301,7 @@ class PassContext:
 			return self.resolve(referenceOrName, contextOrDataFlow)
 		elif True:
 			return slot_and_value
-
+	
 	def resolveLocalOrAbsolute(self, referenceOrName, contextOrDataFlow=None):
 		"""Tries a local resolution first, then will look in the program scope if
 		it fails."""
@@ -314,7 +311,7 @@ class PassContext:
 			return self.resolveAbsolute(referenceOrName)
 		elif True:
 			return slot_and_value
-
+	
 
 class Pass(PassContext):
 	HANDLES = []
@@ -323,7 +320,7 @@ class Pass(PassContext):
 		self.options = {}
 		PassContext.__init__(self)
 		self.setPass(self)
-
+	
 	def getHandler(self, element):
 		"""Tells if the pass handles the given element. This basically iterates
 		on the 'handles' property values (which are interfaces), when one
@@ -338,11 +335,11 @@ class Pass(PassContext):
 					raise ERR_PASS_HANDLER_NOT_DEFINED(handler_name)
 				return getattr(self, handler_name)
 		return None
-
+	
 	def getName(self):
 		"""Returns the name of this pass"""
 		return self.__class__.NAME
-
+	
 
 class ExtendJSRuntime(Pass):
 	"""This pass is like an importation and will simply bind the symbols"""
@@ -352,7 +349,7 @@ class ExtendJSRuntime(Pass):
 	def __init__ (self):
 		self.runtime = None
 		Pass.__init__(self)
-
+	
 	def onProgram(self, program):
 		self.runtime = self.environment.factory.createModule('extend')
 		self.runtime.addAnnotation(self.environment.factory.annotation('shadow'))
@@ -360,15 +357,15 @@ class ExtendJSRuntime(Pass):
 			fun=self.environment.factory.createFunction(f)
 			fun.addAnnotation(self.environment.factory.annotation('shadow'))
 			self.runtime.setSlot(f, fun)
-		return program.addModule(self.runtime)
-
+		program.addModule(self.runtime)
+	
 	def onModule(self, module):
 		imports=module.getImportOperations()
 		assert self.runtime, "No runtime defined in ExtendJSRuntime pass"
-
+		
 		module.addImportOperation(self.environment.factory.importSymbols(self.runtime.getSlotNames(), self.runtime.getAbsoluteName()))
 		return False
-
+	
 
 class Importation(Pass):
 	"""The importation pass will look for importation operations ('IImportation'),
@@ -379,7 +376,7 @@ class Importation(Pass):
 	NAME = 'Importation'
 	def __init__ (self):
 		Pass.__init__(self)
-
+	
 	def onModule(self, module):
 		imports=module.getImportOperations()
 		for i in imports:
@@ -407,7 +404,7 @@ class Importation(Pass):
 				if (m and (not self.program.hasModule(m))):
 					self.program.addModule(m)
 		return False
-
+	
 
 class DocumentationPass(Pass):
 	"""The documentation pass will run SDoc on all the modules declared in this
@@ -422,16 +419,16 @@ class DocumentationPass(Pass):
 		self.sdocArguments = args
 		import sdoc.main
 		self.sdocDocumenter = sdoc.main.LambdaFactoryDocumenter()
-
-
+		
+	
 	def onModule(self, module):
-		return self.sdocDocumenter.documentModule(module)
-
+		self.sdocDocumenter.documentModule(module)
+	
 	def asHTML(self, title=None):
 		"""Returns the HTML document generated by this pass"""
 		if title is None: title = None
 		return self.sdocDocumenter.toHTML(title)
-
+	
 
 class TransformAsynchronousInvocations(Pass):
 	HANDLES = [interfaces.IClosure]
@@ -440,7 +437,7 @@ class TransformAsynchronousInvocations(Pass):
 class CountReferences(Pass):
 	"""This pass adds "refcount" and "referers" annotations to all the referenced
 	elements by handling every 'IReference' element.
-
+	
 	This is the first pass to be applied before actually removing the dead
 	code."""
 	HANDLES = [interfaces.IReference, interfaces.IFunction, interfaces.IElement]
@@ -451,25 +448,25 @@ class CountReferences(Pass):
 		referers=element.getAnnotation('referers')
 		if refcount:
 			refcount.setContent((refcount.getContent() + 1))
-			return referers.getContent().append(context)
+			referers.getContent().append(context)
 		elif True:
 			self.annotate(element, 'refcount', 1)
-			return self.annotate(element, 'referers', [context])
-
+			self.annotate(element, 'referers', [context])
+	
 	def onFunction(self, element):
 		if (element.getName() == interfaces.Constants.ModuleInit):
-			return self.addReferer(element, element)
-
+			self.addReferer(element, element)
+	
 	def onReference(self, reference):
 		if self.isIn(interfaces.IOperation):
 			slot_and_value=self.resolve(reference)
 			value=slot_and_value[1]
 			if value:
-				return self.addReferer(value)
-
+				self.addReferer(value)
+	
 	def onElement(self, element):
 		pass
-
+	
 
 class RemoveDeadCode(Pass):
 	HANDLES = [interfaces.IConstruct, interfaces.IElement]
@@ -489,14 +486,14 @@ class RemoveDeadCode(Pass):
 					actual_count = (actual_count + 1)
 			if (actual_count == 0):
 				self.annotate(value, 'shadow')
-				return refcount.setContent(0)
+				refcount.setContent(0)
 			elif True:
 				for element in self.context:
 					element.removeAnnotation('shadow')
 		elif True:
-			return self.annotate(value, 'shadow')
-
+			self.annotate(value, 'shadow')
+	
 	def onElement(self, element):
 		pass
-
+	
 

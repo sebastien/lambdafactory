@@ -527,9 +527,6 @@ class Writer(AbstractWriter):
 		o = self.OPERATORS.get(o) or o
 		return "%s" % (o)
 
-	def onNOP( self, number ):
-		return "pass"
-
 	def onNumber( self, number ):
 		"""Writes a number element."""
 		return "%s" % (number.getActualValue())

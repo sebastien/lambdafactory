@@ -17,35 +17,32 @@ class FileSplitter:
 		self.currentFilePath = None
 		self.currentFile = None
 		self.outputDir = outputPath
-
+	
 	def start(self):
 		"""Callback invoked when a 'fromXXX' method is invoked."""
 		self.currentFilePath = None
 		self.currentFile = None
-		return self.currentFile
-
+	
 	def end(self):
 		"""Callback invoked after a 'fromXXX' method was invoked"""
 		self.currentFile.close()
 		self.currentFilePath = None
 		self.currentFile = None
-		return self.currentFile
-
+	
 	def newFile(self, path):
 		path = os.path.join(self.outputDir, path)
 		parents=os.path.dirname(path)
 		if (not os.path.exists(parents)):
 			os.makedirs(parents)
 		self.currentFile = file(path, 'w')
-		return self.currentFile
-
+	
 	def writeLine(self, line):
 		"""Writes the given line to the current file"""
 		if (self.currentFile is None):
 			raise ERR_MUST_START_WITH_SNIP
 		elif True:
-			return self.currentFile.write(line)
-
+			self.currentFile.write(line)
+	
 	def fromStream(self, stream, addEOL=None):
 		if addEOL is None: addEOL = False
 		self.start()
@@ -57,13 +54,13 @@ class FileSplitter:
 				self.newFile(path)
 			elif True:
 				self.writeLine((line + ((addEOL and '\n') or '')))
-		return self.end()
-
+		self.end()
+	
 	def fromLines(self, lines, addEOL=None):
 		if addEOL is None: addEOL = False
 		return self.fromStream(lines, addEOL)
-
+	
 	def fromString(self, text):
 		return self.fromLines(text.split('\n'), addEOL=(True))
-
+	
 

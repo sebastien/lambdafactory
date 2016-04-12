@@ -9,12 +9,12 @@ from lambdafactory.resolution import ClearDataFlow
 __module_name__ = 'lambdafactory.environment'
 def error (message):
 	self=__module__
-	return sys.stderr.write('[!] {0}\n'.format(message))
+	sys.stderr.write('[!] {0}\n'.format(message))
 
 
 def info (message):
 	self=__module__
-	return sys.stderr.write('--- {0}\n'.format(message))
+	sys.stderr.write('--- {0}\n'.format(message))
 
 
 class Importer:
@@ -25,7 +25,7 @@ class Importer:
 	def __init__ (self, environment):
 		self.environment = None
 		self.environment = environment
-
+	
 	def findSugarModule(self, moduleName):
 		paths=[]
 		for path in self.environment.libraryPaths:
@@ -40,15 +40,15 @@ class Importer:
 				if os.path.exists(file_path):
 					return file_path
 		return None
-
+	
 	def importModule(self, moduleName):
 		module_path=self.findSugarModule(moduleName)
 		if module_path:
 			self.environment.report.trace('Importing module', moduleName, 'from', module_path)
 			return self.importModuleFromFile(module_path, moduleName)
 		elif True:
-			return self.environment.report.error('Module not found:', moduleName)
-
+			self.environment.report.error('Module not found:', moduleName)
+	
 	def importModuleFromFile(self, modulePath, moduleName=None):
 		if moduleName is None: moduleName = None
 		self.environment.report.indent()
@@ -58,7 +58,7 @@ class Importer:
 		module.setImported(True)
 		self.environment.report.dedent()
 		return module
-
+	
 
 class Language:
 	def __init__ (self, name, environment):
@@ -74,21 +74,21 @@ class Language:
 		self.environment = environment
 		self.name = name
 		assert name, "No language specified"
-
+		
 		self.basePath = self.basePath
 		self.runtime = self.loadModule('runtime')
 		self.importer = self.loadModule('importer')
 		self.writer = self.loadModule('writer')
 		self.reader = self.loadModule('reader')
 		self.runner = self.loadModule('runner')
-
+	
 	def addRecognizedExtension(self, extension):
-		return self.readExtensions.append(extension.lower())
-
+		self.readExtensions.append(extension.lower())
+	
 	def recognizes(self, path):
 		extension=os.path.splitext(path)[-1][1:].lower()
 		return (extension in self.readExtensions)
-
+	
 	def loadModule(self, moduleName):
 		"""Dynamically loads the language (sub) module"""
 		try:
@@ -96,19 +96,19 @@ class Language:
 			module_name   = "lambdafactory.languages." + self.name + "." + moduleName
 			root_module   = __import__(module_name)
 			module        = getattr(getattr(getattr(root_module, "languages"), self.name), moduleName)
-
+			
 			return getattr(module, 'MAIN_CLASS')
 		except Exception as e:
 			error=str(e)
 			if (not error.startswith('No module')):
 				self.environment.report.error(((((('Language ' + str(self.name)) + ', cannot import module ') + str(moduleName)) + ': ') + str(e)))
 			return None
-
+	
 
 class Cache:
 	"""A cache that allows to store pre-compiled AST and modules.
 	Each compiled module is saved in two different locations:
-
+	
 	modules/<modulename>.model
 	content/<sig>.model"""
 	def __init__ (self):
@@ -116,22 +116,22 @@ class Cache:
 		for d in [self.root]:
 			if (not os.path.exists(d)):
 				os.makedirs(d)
-
+	
 	def getKeyForContent(self, content):
 		return hashlib.sha256(content).hexdigest()
-
+	
 	def hasContent(self, content):
 		return self.hasSignature(self.getKeyForContent(content))
-
+	
 	def hasModule(self, name):
 		return os.path.exist(self._getPathForModuleName(name))
-
+	
 	def hasSignature(self, sig):
 		return os.path.exist(self._getPathForSignature(name))
-
+	
 	def getFromContent(self, content):
 		return self.getFromSignature(self.getKeyForContent(content))
-
+	
 	def getFromSignature(self, sig):
 		p=self._getPathForSignature(sig)
 		if os.path.exists(p):
@@ -145,7 +145,7 @@ class Cache:
 			return res
 		elif True:
 			return None
-
+	
 	def getFromModuleName(self, name):
 		p=self._getPathForModuleName(name)
 		if os.path.exists(p):
@@ -159,7 +159,7 @@ class Cache:
 			return res
 		elif True:
 			return None
-
+	
 	def set(self, sourceAndModule):
 		content=sourceAndModule[0]
 		k=self.getKeyForContent(content)
@@ -178,22 +178,22 @@ class Cache:
 			os.unlink(pm)
 		os.symlink(p, pm)
 		return p
-
+	
 	def clean(self):
 		pass
-
+	
 	def _getPathForSignature(self, sig):
 		return (((self.root + '/content-') + sig) + '.cache')
-
+	
 	def _getPathForModuleName(self, name):
 		return (((self.root + '/module-') + name) + '.cache')
-
+	
 
 class Environment:
 	"""
 	Passes
 	======
-
+	
 	Passes are lists of passes (see 'lambdafactory.passes') that transform the
 	program. The order of passe is important, as some passes depend on each other.
 	It is up to the 'lambdafactory.main.Command' subclass to set up the passes
@@ -216,38 +216,38 @@ class Environment:
 		self.factory = Factory()
 		self.cache = Cache()
 		self.program = self.factory.createProgram()
-
+	
 	def addLibraryPath(self, path):
-		return self.libraryPaths.append(path)
-
+		self.libraryPaths.append(path)
+	
 	def addParser(self, parser, extensions):
 		for ext in extensions:
 			self.parsers[ext.lower()] = parser
-
+	
 	def addImporter(self, importer):
 		pass
-
+	
 	def addPass(self, programPass):
 		self.passes.append(programPass)
-		return programPass.setEnvironment(self)
-
+		programPass.setEnvironment(self)
+	
 	def getPass(self, name):
 		name = name.lower()
 		for p in self.passes:
 			if (p.getName().lower() == name):
 				return p
-
+	
 	def getPasses(self):
 		return self.passes
-
+	
 	def runPasses(self, program):
 		for p in self.passes:
 			self.report.trace('Running pass {0}'.format(p.__class__.__name__))
 			p.run(program)
-
+	
 	def getFactory(self):
 		return self.factory
-
+	
 	def importModule(self, moduleName, importModule=None):
 		if importModule is None: importModule = True
 		assert(self.program)
@@ -258,14 +258,14 @@ class Environment:
 			return module
 		elif True:
 			return self.program.getModule(moduleName)
-
+	
 	def parseFile(self, path, moduleName=None):
 		if moduleName is None: moduleName = None
 		f=open(path, 'rb')
 		text=f.read()
 		f.close()
 		return self.parseString(text, path, moduleName)
-
+	
 	def parseString(self, text, path, moduleName=None):
 		if moduleName is None: moduleName = None
 		source_and_module=self.cache.getFromContent(text)
@@ -288,7 +288,7 @@ class Environment:
 			clear_dataflow=ClearDataFlow()
 			clear_dataflow.run(source_and_module[1])
 		return source_and_module[1]
-
+	
 	def listAvailableLanguages(self):
 		"""Returns a list of available languages by introspecting the modules"""
 		base_dir=os.path.join(os.path.dirname(os.path.abspath(__file__)), 'languages')
@@ -297,11 +297,11 @@ class Environment:
 			if (((not name.startswith('.')) and os.path.isdir(os.path.join(base_dir, name))) and (not name.startswith('_'))):
 				languages.append(name)
 		return languages
-
+	
 	def loadLanguages(self):
 		for language in self.listAvailableLanguages():
 			self.loadLanguage(language)
-
+	
 	def normalizeLanguage(self, name):
 		for key_values in self.__class__.ALIASES.items():
 			key=key_values[0]
@@ -313,7 +313,7 @@ class Environment:
 					if (v == name):
 						return key
 		return None
-
+	
 	def loadLanguage(self, name):
 		"""Loads the given language plug-in and returns a dictionary containing
 		its features."""
@@ -322,5 +322,5 @@ class Environment:
 			language=Language(name, self)
 			self.languages[name] = language
 		return self.languages[name]
-
+	
 

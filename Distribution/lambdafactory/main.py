@@ -190,7 +190,7 @@ class Command:
 		return self.environment.parseString(text, extension, moduleName)
 	
 	def transformProgram(self, program):
-		return self.environment.runPasses(program)
+		self.environment.runPasses(program)
 	
 	def guessLanguage(self, sourcePath):
 		for name_and_value in self.environment.languages.items():
@@ -213,7 +213,6 @@ class Command:
 	
 	def createEnvironment(self):
 		self.environment = Environment()
-		return self.environment
 	
 	def setupEnvironment(self):
 		pass
@@ -227,7 +226,7 @@ class Command:
 				self.environment.addPass(passes.ExtendJSRuntime())
 			self.environment.addPass(passes.Importation())
 			self.environment.addPass(resolution.BasicDataFlow())
-			return self.environment.addPass(resolution.DataFlowBinding())
+			self.environment.addPass(resolution.DataFlowBinding())
 		elif True:
 			for the_pass in withPasses:
 				if (the_pass.find('.') == -1):
