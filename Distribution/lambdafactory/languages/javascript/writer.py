@@ -930,7 +930,7 @@ class Writer(AbstractWriter):
 				predicate = self.write(args[0])
 				rest      = args[1:]
 				# TODO: We should include the offsets
-				return "!({0}) && extend.assert(false, {1}, 'in', {2});".format(
+				return "!({0}) && extend.assert(false, {1}, 'in', {2})".format(
 					predicate,
 					", ".join(self.write(_) for _ in rest) or '""',
 					json.dumps(predicate)
@@ -1119,10 +1119,10 @@ class Writer(AbstractWriter):
 
 	def _writeObjectIteration( self, iteration ):
 		# NOTE: This would return the "regular" iteration
-		return self.write("extend.iterate({0}, {1})".format(
-			self.write(iteration.getIterator()),
-			self.write(iteration.getClosure())
-		))
+		# return self.write("extend.iterate({0}, {1})".format(
+		# 	self.write(iteration.getIterator()),
+		# 	self.write(iteration.getClosure())
+		# ))
 		# Now, this requires some explanation. If the iteration is annotated
 		# as `force-scope`, this means that there is a nested closure that references
 		# some variable that is going to be re-assigned here
@@ -1218,12 +1218,12 @@ class Writer(AbstractWriter):
 
 	def onBreaking( self, breaking ):
 		"""Writes a break operation."""
-		return "throw extend.FLOW_BREAK;"
+		#return "throw extend.FLOW_BREAK;"
 		return "break"
 
 	def onContinue( self, breaking ):
 		"""Writes a continue operation."""
-		return "throw extend.FLOW_CONTINUE"
+		#return "throw extend.FLOW_CONTINUE"
 		return "continue"
 
 	def onExcept( self, exception ):
