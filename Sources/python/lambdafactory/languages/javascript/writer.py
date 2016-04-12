@@ -1118,10 +1118,11 @@ class Writer(AbstractWriter):
 		)
 
 	def _writeObjectIteration( self, iteration ):
-		return self.write("extend.iterate({0}, {1})".format(
-			self.write(iteration.getIterator()),
-			self.write(iteration.getClosure())
-		))
+		# NOTE: This would return the "regular" iteration
+		# return self.write("extend.iterate({0}, {1})".format(
+		# 	self.write(iteration.getIterator()),
+		# 	self.write(iteration.getClosure())
+		# ))
 		# Now, this requires some explanation. If the iteration is annotated
 		# as `force-scope`, this means that there is a nested closure that references
 		# some variable that is going to be re-assigned here
@@ -1134,6 +1135,7 @@ class Writer(AbstractWriter):
 		l  = self._getRandomVariable()
 		k  = self._getRandomVariable()
 		ki = self._getRandomVariable()
+		kl = self._getRandomVariable()
 		iterator = self.write(iteration.getIterator())
 		prefix     = None
 		if isinstance(closure, interfaces.IClosure):
@@ -1148,14 +1150,15 @@ class Writer(AbstractWriter):
 			# to the iterated expression
 			"var {l}={iterator};"
 			"var {k}={l} instanceof Array ? {l} : Object.getOwnPropertyNames({l}||{{}});"
+			"var {kl}={k}.length;"
 			# Now if the iterated expression is not an array, we get its keys
-			"for (var {ki}=0;{ki}<{k}.length;{ki}++){{"
+			"for (var {ki}=0;{ki}<{kl};{ki}++){{"
 			# If `k` is not the array, then it means we're iterating over an
 			# object
-			"var {i}={k}==={l}?{ki}:{k}[{ki}];"
+			"var {i}=({k}==={l})?{ki}:{k}[{ki}];"
 			"var {v}={l}[{i}];"
-			"{closure}}};".format(
-			l=l, i=i, v=v, k=k, ki=ki, iterator=iterator, closure=closure
+			"{closure}}}".format(
+			l=l, i=i, v=v, k=k, ki=ki, kl=kl, iterator=iterator, closure=closure
 			)
 		)
 
@@ -1215,13 +1218,13 @@ class Writer(AbstractWriter):
 
 	def onBreaking( self, breaking ):
 		"""Writes a break operation."""
-		#return "break"
-		return "throw extend.FLOW_BREAK;"
+		#return "throw extend.FLOW_BREAK;"
+		return "break"
 
 	def onContinue( self, breaking ):
 		"""Writes a continue operation."""
-		return "throw extend.FLOW_CONTINUE"
-		#return "continue"
+		#return "throw extend.FLOW_CONTINUE"
+		return "continue"
 
 	def onExcept( self, exception ):
 		"""Writes a except operation."""
