@@ -747,6 +747,9 @@ class IOperation(IElement):
 		raise Exception("Abstract method IOperation.getOpArgumentsInternalTypes not implemented in: " + str(self))
 	
 
+class INOP(IOperation):
+	pass
+
 class IImportOperation(IOperation):
 	pass
 
@@ -805,16 +808,16 @@ class IEvaluation(IOperation):
 		return self.getOpArgument(0)
 	
 
-class IAssignation(IOperation, IEvaluable):
+class IAssignment(IOperation, IEvaluable):
 	ARGS = [IEvaluable, IEvaluable]
 	def getTarget(self):
 		"""Returns this assignation target reference, which can be an evaluable
 		(in case you assign to self.something, or a reference)"""
-		raise Exception("Abstract method IAssignation.getTarget not implemented in: " + str(self))
+		raise Exception("Abstract method IAssignment.getTarget not implemented in: " + str(self))
 	
 	def getAssignedValue(self):
 		"""Returns this assigned evaluable."""
-		raise Exception("Abstract method IAssignation.getAssignedValue not implemented in: " + str(self))
+		raise Exception("Abstract method IAssignment.getAssignedValue not implemented in: " + str(self))
 	
 
 class IAllocation(IOperation, IEvaluable):
@@ -822,6 +825,9 @@ class IAllocation(IOperation, IEvaluable):
 	def getSlotToAllocate(self):
 		"""Returns slot to be allocated by this operation."""
 		raise Exception("Abstract method IAllocation.getSlotToAllocate not implemented in: " + str(self))
+	
+	def getSlotName(self):
+		raise Exception("Abstract method IAllocation.getSlotName not implemented in: " + str(self))
 	
 	def getDefaultValue(self):
 		"""Returns the expression that assigns the @methodault value."""

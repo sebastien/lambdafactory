@@ -484,7 +484,7 @@ class Writer(AbstractWriter):
 		else:
 			return "%s" % (s.getName())
 
-	def onAssignation( self, assignation ):
+	def onAssignment( self, assignation ):
 		"""Writes an assignation operation."""
 		return "%s = %s" % (
 			self.write(assignation.getTarget()),
@@ -594,7 +594,7 @@ class Writer(AbstractWriter):
 	def onSelection( self, selection ):
 		# If we are in an assignataion and allocation which is contained in a
 		# closure (because we can have a closure being assigned to something.)
-		if self.isIn(interfaces.IAssignation) > self.isIn(interfaces.IClosure) \
+		if self.isIn(interfaces.IAssignment) > self.isIn(interfaces.IClosure) \
 		or self.isIn(interfaces.IAllocation) > self.isIn(interfaces.IClosure):
 			return self._writeSelectionInExpression(selection)
 		rules = selection.getRules()

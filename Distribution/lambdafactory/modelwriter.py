@@ -20,7 +20,7 @@ def _format (value, level=None):
 		if value is None: return ""
 		assert type(value) in (str, unicode), "Type not suitable for formatting: %s" % (value)
 		return ["\n".join((level*PREFIX)+v for v in value.split("\n"))]
-	
+
 
 
 def format (*values):
@@ -37,7 +37,7 @@ def _flatten (value, res):
 		for v in value:
 			_flatten(v, res)
 	elif True:
-		res.append(value)
+		return res.append(value)
 
 
 def flatten (*lists):
@@ -55,15 +55,15 @@ def notEmpty (p):
 
 
 class AbstractWriter(Pass):
-	HANDLES = [interfaces.IProgram, interfaces.IClass, interfaces.IModule, interfaces.IAccessor, interfaces.IMutator, interfaces.IDestructor, interfaces.IConstructor, interfaces.IClassMethod, interfaces.IMethod, interfaces.IFunction, interfaces.IClosure, interfaces.IWithBlock, interfaces.IBlock, interfaces.IModuleAttribute, interfaces.IClassAttribute, interfaces.IAttribute, interfaces.IArgument, interfaces.IParameter, interfaces.IOperator, interfaces.IReference, interfaces.INumber, interfaces.IString, interfaces.IList, interfaces.IDict, interfaces.IEnumeration, interfaces.IAllocation, interfaces.IAssignation, interfaces.IComputation, interfaces.IInvocation, interfaces.IInstanciation, interfaces.IResolution, interfaces.ISelection, interfaces.IRepetition, interfaces.IFilterIteration, interfaces.IMapIteration, interfaces.IIteration, interfaces.IAccessOperation, interfaces.ISliceOperation, interfaces.IEvaluation, interfaces.ITermination, interfaces.IBreaking, interfaces.IContinue, interfaces.IExcept, interfaces.IInterception, interfaces.IImportSymbolOperation, interfaces.IImportSymbolsOperation, interfaces.IImportModuleOperation, interfaces.IImportModulesOperation, interfaces.IEmbed]
+	HANDLES = [interfaces.IProgram, interfaces.IClass, interfaces.IModule, interfaces.IAccessor, interfaces.IMutator, interfaces.IDestructor, interfaces.IConstructor, interfaces.IClassMethod, interfaces.IMethod, interfaces.IFunction, interfaces.IClosure, interfaces.IWithBlock, interfaces.IBlock, interfaces.IModuleAttribute, interfaces.IClassAttribute, interfaces.IAttribute, interfaces.IArgument, interfaces.IParameter, interfaces.IOperator, interfaces.IReference, interfaces.INumber, interfaces.IString, interfaces.IList, interfaces.IDict, interfaces.IEnumeration, interfaces.IAllocation, interfaces.IAssignment, interfaces.IComputation, interfaces.IInvocation, interfaces.IInstanciation, interfaces.IResolution, interfaces.ISelection, interfaces.IRepetition, interfaces.IFilterIteration, interfaces.IMapIteration, interfaces.IIteration, interfaces.IAccessOperation, interfaces.ISliceOperation, interfaces.IEvaluation, interfaces.ITermination, interfaces.INOP, interfaces.IBreaking, interfaces.IContinue, interfaces.IExcept, interfaces.IInterception, interfaces.IImportSymbolOperation, interfaces.IImportSymbolsOperation, interfaces.IImportModuleOperation, interfaces.IImportModulesOperation, interfaces.IEmbed]
 	def __init__ (self):
 		self._generatedSymbols = {}
 		Pass.__init__(self)
-	
+
 	def setOption(self, name, value):
 		self.options[name] = value
 		return self
-	
+
 	def write(self, element):
 		res=None
 		if (element is None):
@@ -86,12 +86,12 @@ class AbstractWriter(Pass):
 							self.context.pop()
 							return result
 				raise Exception("Element implements unsupported interface: " + str(element))
-				
-	
+
+
 	def run(self, program):
 		self.program = program
 		return self.write(program)
-	
+
 	def onProgram(self, element):
 		"""Writes a Program element"""
 		lines=[]
@@ -99,11 +99,11 @@ class AbstractWriter(Pass):
 			if (not module.isImported()):
 				lines.append(self.write(module))
 		return '\n'.join(lines)
-	
+
 	def _format(self, *values):
 		return format(*values)
-		
-	
+
+
 	def _unique(self, name):
 		i=0
 		while True:
@@ -112,5 +112,5 @@ class AbstractWriter(Pass):
 				self._generatedSymbols[new_name] = True
 				return new_name
 			i = (i + 1)
-	
+
 

@@ -1215,11 +1215,13 @@ class Writer(AbstractWriter):
 
 	def onBreaking( self, breaking ):
 		"""Writes a break operation."""
-		return "break"
+		#return "break"
+		return "throw extend.FLOW_BREAK;"
 
 	def onContinue( self, breaking ):
 		"""Writes a continue operation."""
-		return "continue"
+		return "throw extend.FLOW_CONTINUE"
+		#return "continue"
 
 	def onExcept( self, exception ):
 		"""Writes a except operation."""

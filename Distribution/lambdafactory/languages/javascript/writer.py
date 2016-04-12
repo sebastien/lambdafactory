@@ -467,7 +467,7 @@ class Writer(AbstractWriter):
 				)
 			]
 		# We format the result as a string
-		result = self._format(result)
+		result = self._format(*result)
 		# If the closure has `encloses` annotation, it means that we need
 		# to capture its environment, because JS only has function-level
 		# scoping.
@@ -789,13 +789,15 @@ class Writer(AbstractWriter):
 		else:
 			return "var %s;" % (self._rewriteSymbol(s.getName()))
 
-	def onAssignation( self, assignation ):
+	def onAssignment( self, assignation ):
 		"""Writes an assignation operation."""
-		# TODO: If assignation target is an  access, we should rewrite it with
+		# TODO: If assignment target is an  access, we should rewrite it with
 		# explicit length
-		return "%s = %s;" % (
+		suffix = ";" if isinstance(self.context[-2], interfaces.IBlock) else ""
+		return "%s = %s%s" % (
 			self._writeLValue(assignation.getTarget()),
-			self.write(assignation.getAssignedValue())
+			self.write(assignation.getAssignedValue()),
+			suffix
 		)
 
 	def onEnumeration( self, operation ):
@@ -930,7 +932,7 @@ class Writer(AbstractWriter):
 				# TODO: We should include the offsets
 				return "!({0}) && extend.assert(false, {1}, 'in', {2});".format(
 					predicate,
-					", ".join(self.write(_) for _ in rest),
+					", ".join(self.write(_) for _ in rest) or '""',
 					json.dumps(predicate)
 				)
 			elif invocation.isByPositionOnly():
@@ -983,11 +985,11 @@ class Writer(AbstractWriter):
 			", ".join(map(self.write, operation.getArguments()))
 		)
 
-
-
 	def onSelection( self, selection ):
-		if selection.hasAnnotation("if-expression"):
-			return self.writeSelectionInExpression(selection)
+		# If-expressions are not going to be with a process or block as parent.
+		in_process = isinstance(self.context[-2], interfaces.IProcess) or isinstance(self.context[-2], interfaces.IBlock)
+		if not in_process and selection.hasAnnotation("if-expression"):
+			return self._writeSelectionInExpression(selection)
 		rules = selection.getRules()
 		result = []
 		for i in range(0,len(rules)):
@@ -1028,7 +1030,7 @@ class Writer(AbstractWriter):
 			result.extend(rule_code)
 		return self._format(*result)
 
-	def writeSelectionInExpression( self, selection ):
+	def _writeSelectionInExpression( self, selection ):
 		"""Writes an embedded if expression"""
 		rules  = selection.getRules()
 		result = []
@@ -1053,6 +1055,9 @@ class Writer(AbstractWriter):
 		for r in rules:
 			text += ")"
 		return text
+
+	def onNOP( self, nop ):
+		return "/* pass */"
 
 	def onIteration( self, iteration ):
 		"""Writes a iteration operation."""
@@ -1113,6 +1118,10 @@ class Writer(AbstractWriter):
 		)
 
 	def _writeObjectIteration( self, iteration ):
+		return self.write("extend.iterate({0}, {1})".format(
+			self.write(iteration.getIterator()),
+			self.write(iteration.getClosure())
+		))
 		# Now, this requires some explanation. If the iteration is annotated
 		# as `force-scope`, this means that there is a nested closure that references
 		# some variable that is going to be re-assigned here
@@ -1206,11 +1215,13 @@ class Writer(AbstractWriter):
 
 	def onBreaking( self, breaking ):
 		"""Writes a break operation."""
-		return "break"
+		#return "break"
+		return "throw extend.FLOW_BREAK;"
 
 	def onContinue( self, breaking ):
 		"""Writes a continue operation."""
-		return "continue"
+		return "throw extend.FLOW_CONTINUE"
+		#return "continue"
 
 	def onExcept( self, exception ):
 		"""Writes a except operation."""

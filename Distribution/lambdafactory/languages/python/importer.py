@@ -91,7 +91,7 @@ class Importer:
 		elif (value_type == types.DictType):
 			return self.importDict(value)
 		elif True:
-			v=None
+			return v=None
 	
 
 MAIN_CLASS = Importer

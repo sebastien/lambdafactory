@@ -52,7 +52,7 @@ class Typer(object):
 		"Repetition",
 		"Resolution",
 		"Allocation",
-		"Assignation",
+		"Assignment",
 		"Invocation",
 		"Selection",
 		"Operation",
@@ -138,7 +138,7 @@ class Typer(object):
 		for slot, slot_value in element.getSlots():
 			self._type(slot_value)
 
-	def typeAssignation(self, element):
+	def typeAssignment(self, element):
 		target = element.getTarget()
 		value  = element.getAssignedValue()
 		self._type(target)

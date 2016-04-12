@@ -156,7 +156,7 @@ class Factory:
 
 	def assign( self, name, evaluable ):
 		if type(name) in (str, unicode): name = self._ref(name)
-		return self._getImplementation("Assignation")(name, evaluable)
+		return self._getImplementation("Assignment")(name, evaluable)
 
 	def compute( self, operatorName, leftOperand, rightOperand=None ):
 		return self._getImplementation("Computation")(operatorName, leftOperand, rightOperand)
@@ -225,6 +225,9 @@ class Factory:
 
 	def continues( self ):
 		return self._getImplementation("Continue")()
+
+	def nop( self ):
+		return self._getImplementation("NOP")()
 
 	def exception( self, exception ):
 		return self._getImplementation("Except")(exception)
