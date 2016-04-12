@@ -1118,6 +1118,10 @@ class Writer(AbstractWriter):
 		)
 
 	def _writeObjectIteration( self, iteration ):
+		return self.write("extend.iterate({0}, {1})".format(
+			self.write(iteration.getIterator()),
+			self.write(iteration.getClosure())
+		))
 		# Now, this requires some explanation. If the iteration is annotated
 		# as `force-scope`, this means that there is a nested closure that references
 		# some variable that is going to be re-assigned here
