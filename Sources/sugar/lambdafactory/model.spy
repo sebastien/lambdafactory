@@ -1391,7 +1391,10 @@
 	@end
 @end
 
-@class Assignation: Operation, IAssignation
+@class NOP: Operation, INOP
+@end
+
+@class Assignment: Operation, IAssignment
 
 	@method getTarget
 		return self getOpArgument(0)
@@ -1407,6 +1410,15 @@
 
 	@method getSlotToAllocate
 		return self getOpArgument(0)
+	@end
+
+	@method getSlotName
+		var slot = getSlotToAllocate ()
+		if slot
+			return slot getName ()
+		else
+			return None
+		end
 	@end
 
 	@method getDefaultValue

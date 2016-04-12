@@ -1003,7 +1003,7 @@ class Operation(Element, IOperation):
 		return tuple([self.__class__.__name__, tuple(args)])
 	
 
-class Assignation(Operation, IAssignation):
+class Assignment(Operation, IAssignment):
 	def getTarget(self):
 		return self.getOpArgument(0)
 	

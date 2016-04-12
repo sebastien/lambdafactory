@@ -730,6 +730,9 @@
 
 @end
 
+@class INOP:IOperation
+@end
+
 @class IImportOperation: IOperation
 @end
 
@@ -810,7 +813,7 @@
 @end
 
 # FIXME: Rename Assignment
-@class IAssignation: IOperation, IEvaluable
+@class IAssignment: IOperation, IEvaluable
 	@shared ARGS = [ IEvaluable, IEvaluable ]
 
 	@abstract @method getTarget
@@ -827,6 +830,9 @@
 
 	@abstract @method getSlotToAllocate
 	|	Returns slot to be allocated by this operation.
+
+	@abstract @method getSlotName
+
 
 	@abstract @method getDefaultValue
 	|	Returns the expression that assigns the @methodault value.

@@ -517,7 +517,7 @@ class Writer(AbstractWriter):
 				s.getReferenceName()
 			)
 
-	def writeAssignation( self, assignation ):
+	def writeAssignment( self, assignation ):
 		"""Writes an assignation operation."""
 		return "%s = %s(%s)" % (
 			self.write(assignation.getTarget()),

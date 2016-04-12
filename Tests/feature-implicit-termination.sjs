@@ -41,6 +41,18 @@
 	{return 10}()
 @end
 
+@function a8
+	var r = 1
+@end
 
+@function a8
+	pass
+@end
 
-
+@function a8
+	try
+		f()
+	catch e
+		False
+	end
+@end

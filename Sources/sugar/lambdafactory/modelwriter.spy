@@ -85,7 +85,7 @@
 		interfaces IDict
 		interfaces IEnumeration
 		interfaces IAllocation
-		interfaces IAssignation
+		interfaces IAssignment
 		interfaces IComputation
 		interfaces IInvocation
 		interfaces IInstanciation
@@ -99,6 +99,7 @@
 		interfaces ISliceOperation
 		interfaces IEvaluation
 		interfaces ITermination
+		interfaces INOP
 		interfaces IBreaking
 		interfaces IContinue
 		interfaces IExcept

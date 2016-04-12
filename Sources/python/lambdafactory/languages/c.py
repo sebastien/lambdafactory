@@ -425,7 +425,7 @@ class Writer(AbstractWriter):
 		else:
 			return "var %s;" % (s.getReferenceName())
 
-	def writeAssignation( self, assignation ):
+	def writeAssignment( self, assignation ):
 		"""Writes an assignation operation."""
 		return "%s = %s;" % (
 			self.write(assignation.getTarget()),

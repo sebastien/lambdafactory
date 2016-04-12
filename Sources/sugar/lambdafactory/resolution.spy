@@ -219,9 +219,6 @@
 					# need to wrap the creation of the closure
 					var c = context[i]
 					var a = c getAnnotation "encloses"
-					@embed Python
-					|sys.stderr.write("Reference {0} resolves in {1} {2} {3} {4}: {5}\n".format(element.getName(), k, i, k < i, j < k, a))
-					@end
 					if not a
 						context[i] addAnnotation ("encloses", {(name):slot})
 					else

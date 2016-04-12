@@ -565,7 +565,7 @@ class Writer(AbstractWriter):
 		else:
 			return "%s" % (s.getName())
 
-	def onAssignation( self, assignation ):
+	def onAssignment( self, assignation ):
 		"""Writes an assignation operation."""
 		return "%s = %s" % (
 			self.write(assignation.getTarget()),
@@ -745,7 +745,7 @@ class Writer(AbstractWriter):
 	def onSelection( self, selection ):
 		# If we are in an assignataion and allocation which is contained in a
 		# closure (because we can have a closure being assigned to something.)
-		if self.isIn(interfaces.IAssignation) > self.isIn(interfaces.IClosure) \
+		if self.isIn(interfaces.IAssignment) > self.isIn(interfaces.IClosure) \
 		or self.isIn(interfaces.IAllocation) > self.isIn(interfaces.IClosure):
 			return self._writeSelectionInExpression(selection)
 		rules = selection.getRules()
@@ -828,7 +828,13 @@ class Writer(AbstractWriter):
 
 	def onTermination( self, termination ):
 		"""Writes a termination operation."""
-		return "return %s" % ( self.write(termination.getReturnedEvaluable()) )
+		evaluable = termination.getReturnedEvaluable()
+		if isinstance(evaluable, interfaces.IInvocation):
+			t = evaluable.getTarget()
+			# Assert in Python is not a function
+			if isinstance(t, interfaces.IReference) and t.getName() == "assert":
+				return "%s" % ( self.write(evaluable))
+		return "return %s" % ( self.write(evaluable))
 
 	def onBreaking( self, breking ):
 		"""Writes a break operation."""
