@@ -503,11 +503,9 @@ class Writer(AbstractWriter):
 					i
 				))
 			if not (param.getDefaultValue() is None):
-				result.append("%s = %s === undefined ? %s : %s" % (
-					arg_name,
+				result.append("if ({0} === undefined) {{{0}={1}}}".format(
 					arg_name,
 					self.write(param.getDefaultValue()),
-					arg_name
 				))
 			i += 1
 		return result
@@ -934,10 +932,11 @@ class Writer(AbstractWriter):
 				predicate = self.write(args[0])
 				rest      = args[1:]
 				# TODO: We should include the offsets
-				return "!({0}) && extend.assert(false, {1}, {2}){3}".format(
+				return "!({0}) && extend.assert(false, {1}, {2}, {3}){4}".format(
 					predicate,
-					json.dumps(self.getScopeName() + "." + predicate + ":"),
+					json.dumps(self.getScopeName() + ":"),
 					", ".join(self.write(_) for _ in rest) or '""',
+					json.dumps("(failed `" + predicate + "`)"),
 					suffix
 				)
 			elif invocation.isByPositionOnly():
@@ -1057,10 +1056,8 @@ class Writer(AbstractWriter):
 					self.write(rule.getPredicate()),
 					self.write(expression)
 				)
-		if not has_else:
-			text += "undefined"
-		for r in rules:
-			text += ")"
+		if not has_else: text += "undefined)"
+		text += (len(rules) - 1) * ")"
 		return text
 
 	def onNOP( self, nop ):

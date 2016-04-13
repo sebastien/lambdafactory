@@ -503,11 +503,9 @@ class Writer(AbstractWriter):
 					i
 				))
 			if not (param.getDefaultValue() is None):
-				result.append("%s = %s === undefined ? %s : %s" % (
-					arg_name,
+				result.append("if ({0} === undefined) {{{0}={1}}}".format(
 					arg_name,
 					self.write(param.getDefaultValue()),
-					arg_name
 				))
 			i += 1
 		return result
@@ -793,7 +791,8 @@ class Writer(AbstractWriter):
 		"""Writes an assignation operation."""
 		# TODO: If assignment target is an  access, we should rewrite it with
 		# explicit length
-		suffix = ";" if isinstance(self.context[-2], interfaces.IBlock) else ""
+		parent = self.context[-2]
+		suffix = ";" if isinstance(parent, interfaces.IBlock) or isinstance(parent, interfaces.IProcess) else ""
 		return "%s = %s%s" % (
 			self._writeLValue(assignation.getTarget()),
 			self.write(assignation.getAssignedValue()),
@@ -921,6 +920,9 @@ class Writer(AbstractWriter):
 			rewrite        = self._closureIsRewrite(concrete_type)
 		else:
 			rewrite = ""
+		parent = self.context[-2]
+		suffix = ";" if isinstance(parent, interfaces.IBlock) or isinstance(parent, interfaces.IProcess) else ""
+		res = None
 		if rewrite:
 			return self._rewriteInvocation(invocation, concrete_type, "\n".join([r.getCode() for r in rewrite]))
 		else:
@@ -930,15 +932,18 @@ class Writer(AbstractWriter):
 				predicate = self.write(args[0])
 				rest      = args[1:]
 				# TODO: We should include the offsets
-				return "!({0}) && extend.assert(false, {1}, 'in', {2})".format(
+				return "!({0}) && extend.assert(false, {1}, {2}, {3}){4}".format(
 					predicate,
+					json.dumps(self.getScopeName() + ":"),
 					", ".join(self.write(_) for _ in rest) or '""',
-					json.dumps(predicate)
+					json.dumps("(failed `" + predicate + "`)"),
+					suffix
 				)
 			elif invocation.isByPositionOnly():
-				return "%s(%s)" % (
+				return "%s(%s)%s" % (
 					t,
-					", ".join(map(self.write, invocation.getArguments()))
+					", ".join(map(self.write, invocation.getArguments())),
+					suffix
 					)
 			else:
 				normal_arguments = []
@@ -959,11 +964,12 @@ class Writer(AbstractWriter):
 						current.append(self.write(param.getValue()))
 				normal_str = "[%s]" % (",".join(normal_arguments))
 				extra_str  = "{%s}" % (",".join("%s:%s" % (k,v) for k,v in extra_arguments.items()))
-				return "extend.invoke(%s,%s,%s,%s)" % (
+				return "extend.invoke(%s,%s,%s,%s)%s" % (
 					self.jsSelf,
 					t,
 					normal_str,
-					extra_str
+					extra_str,
+					suffix
 				)
 
 	def onArgument( self, argument ):
@@ -1050,10 +1056,8 @@ class Writer(AbstractWriter):
 					self.write(rule.getPredicate()),
 					self.write(expression)
 				)
-		if not has_else:
-			text += "undefined"
-		for r in rules:
-			text += ")"
+		if not has_else: text += "undefined)"
+		text += (len(rules) - 1) * ")"
 		return text
 
 	def onNOP( self, nop ):

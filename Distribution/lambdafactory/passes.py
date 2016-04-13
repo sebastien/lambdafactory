@@ -76,6 +76,13 @@ class PassContext:
 						self.walk(arg)
 				elif True:
 					self.walk(op_arg)
+		if isinstance(element, interfaces.IList):
+			for v in element.getValues():
+				self.walk(v)
+		if isinstance(element, interfaces.IDict):
+			for v in element.getItems():
+				self.walk(v[0])
+				self.walk(v[1])
 		if isinstance(element, interfaces.IArgument):
 			self.walk(element.getValue())
 	
