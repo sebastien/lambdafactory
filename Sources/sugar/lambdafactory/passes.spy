@@ -114,6 +114,19 @@
 				end
 			end
 		end
+		# Is the element a List? -> walk values
+		if isinstance(element, interfaces IList)
+			for v in element getValues ()
+				walk (v)
+			end
+		end
+		# Is the element a Dict? -> walk key & values
+		if isinstance(element, interfaces IDict)
+			for v in element getItems ()
+				walk (v[0])
+				walk (v[1])
+			end
+		end
 		# NOTE: Added 2016-03-08
 		# Is the element an Argument ? -> walk value
 		if isinstance(element, interfaces IArgument)

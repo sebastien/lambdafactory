@@ -836,7 +836,10 @@ class Writer(AbstractWriter):
 				return "%s" % ( self.write(evaluable))
 		return "return %s" % ( self.write(evaluable))
 
-	def onBreaking( self, breking ):
+	def onNOP( self, nop ):
+		return "pass"
+
+	def onBreaking( self, breaking ):
 		"""Writes a break operation."""
 		return "break"
 

@@ -930,10 +930,10 @@ class Writer(AbstractWriter):
 				predicate = self.write(args[0])
 				rest      = args[1:]
 				# TODO: We should include the offsets
-				return "!({0}) && extend.assert(false, {1}, 'in', {2})".format(
+				return "!({0}) && extend.assert(false, {1}, {2})".format(
 					predicate,
+					json.dumps(self.getScopeName() + "." + predicate + ":"),
 					", ".join(self.write(_) for _ in rest) or '""',
-					json.dumps(predicate)
 				)
 			elif invocation.isByPositionOnly():
 				return "%s(%s)" % (
