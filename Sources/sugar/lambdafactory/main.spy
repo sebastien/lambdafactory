@@ -186,15 +186,17 @@
 		end
 		# We compile, run or simply test
 		if options api
-			html_documentation =  environment getPass "Documentation" asHTML()
+			var doc_pass       = environment getPass "Documentation"
+			doc_pass setWriter (getWriter "js")
+			json_documentation = doc_pass  asJSON()
 			if options api == "-"
-				output write ( html_documentation )
+				output write ( json_documentation )
 			else
 				var f = file(options api, mode = "w")
-				f write (html_documentation)
+				f write (json_documentation)
 				f close ()
 			end
-		if options compile
+		elif options compile
 			var program_source = writeProgram (program, language, options runtime, options includeSource)
 			if not options output
 				output write( program_source + "\n" )
@@ -205,7 +207,7 @@
 				var f = file(options output, mode = "a")
 				f write (program_source)
 			end
-		if options run
+		elif options run
 			var program_source = writeProgram (program, language, True, options includeSource)
 			var file_and_path = tempfile mkstemp ()
 			os write(file_and_path[0],program_source )
@@ -254,13 +256,18 @@
 		return None
 	@end
 
-	@method writeProgram program, inLanguage, includeRuntime=False, includeSource=False
-		var language = environment loadLanguage (inLanguage)
+	@method getWriter language
+		language     = environment loadLanguage (language)
 		# FIXME: The language should be initialized for the environment
 		var writer   = language writer ()
 		# FIXME: Writer should take environ
 		writer report = environment report
 		writer setEnvironment (environment)
+		return writer
+	@end
+
+	@method writeProgram program, inLanguage, includeRuntime=False, includeSource=False
+		var writer = getWriter (inLanguage)
 		writer setOption ("INCLUDE_SOURCE", includeSource)
 		var program_source = writer run (program)
 		if includeRuntime

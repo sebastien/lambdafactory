@@ -474,6 +474,10 @@
 		return self
 	@end
 
+	@method getOffsets
+		return sourceLocation
+	@end
+
 	@method getStartOffset
 		return sourceLocation[0]
 	@end
