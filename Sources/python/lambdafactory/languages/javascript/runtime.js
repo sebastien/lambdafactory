@@ -16,11 +16,11 @@ extend.module=	function(name){
 	}
 extend._wrapMethod=	function(o, n){
 		var self=extend;
-		return 	function(){
-				var m = o[n];
-				return m.apply(o,arguments);
-				
-			};
+		return function(){
+			var m = o[n];
+			return m.apply(o,arguments);
+			
+		};
 	}
 extend.Class=	function(declaration){
 		// Classes are created using extend by giving a dictionary that contains the
@@ -78,202 +78,202 @@ extend.Class=	function(declaration){
 		// >   var my_instance = new MyClass()
 		var self=extend;
 		var full_name=declaration.name;
-		var class_object=	function(){
-				if ( (! ((arguments.length == 1) && (arguments[0] == "__Extend_SubClass__"))) )
+		var class_object=function(){
+			if ( (! ((arguments.length == 1) && (arguments[0] == "__Extend_SubClass__"))) )
+			{
+				 var properties = class_object.listProperties()
+				 for ( var prop in properties ) {
+				   this[prop] = properties[prop];
+				 }
+				
+				if ( this.initialize )
 				{
-					 var properties = class_object.listProperties()
-					 for ( var prop in properties ) {
-					   this[prop] = properties[prop];
-					 }
-					
-					if ( this.initialize )
-					{
-						return this.initialize.apply(this, arguments);
-					}
+					return this.initialize.apply(this, arguments);
 				}
-			};
-		class_object.isClass = 	function(){
-				return true;
-			};
+			}
+		};
+		class_object.isClass = function(){
+			return true;
+		};
 		class_object._parent = declaration.parent;
 		class_object._name = declaration.name;
 		class_object._properties = {"all":{}, "inherited":{}, "own":{}};
 		class_object._shared = {"all":{}, "inherited":{}, "own":{}};
 		class_object._operations = {"all":{}, "inherited":{}, "own":{}, "fullname":{}};
 		class_object._methods = {"all":{}, "inherited":{}, "own":{}, "fullname":{}};
-		class_object.getName = 	function(){
-				return class_object._name;
-			};
-		class_object.getParent = 	function(){
-				return class_object._parent;
-			};
+		class_object.getName = function(){
+			return class_object._name;
+		};
+		class_object.getParent = function(){
+			return class_object._parent;
+		};
 		class_object.id = extend.Counters.Classes;
 		class_object._wrapMethod = extend._wrapMethod;
 		extend.Counters.Classes = (extend.Counters.Classes + 1);
-		class_object.isSubclassOf = 	function(c){
-				var parent=this;
-				while (parent) 
+		class_object.isSubclassOf = function(c){
+			var parent=this;
+			while (parent) 
+			{
+				if ( (parent == c) )
 				{
-					if ( (parent == c) )
-					{
-						return true;
-					}
-					parent = parent.getParent();
+					return true;
 				}
-				return false;
+				parent = parent.getParent();
+			}
+			return false;
+		};
+		class_object.hasInstance = function(o){
+			return ((o && extend.isDefined(o.getClass)) && o.getClass().isSubclassOf(class_object));
+		};
+		class_object.getOperation = function(name){
+			var this_operation=class_object[name];
+			if ( (! this_operation) )
+			{
+				return null;
+			}
+			if ( (! class_object.__operationCache) )
+			{
+				class_object.__operationCache = {};
+			}
+			var o=class_object.__operationCache[name];
+			if ( (! o) )
+			{
+				o = function(){
+					return this_operation.apply(class_object, arguments);
+				};
+				class_object.__operationCache[name] = o;
+			}
+			return o;
+		};
+		class_object.listMethods = function(o, i){
+			if ( (o === undefined) )
+			{
+				o = true;
+			}
+			if ( (i === undefined) )
+			{
+				i = true;
+			}
+			if ( (o && i) )
+			{
+				return class_object._methods.all;
+			}
+			else if ( ((! o) && i) )
+			{
+				return class_object._methods.inherited;
+			}
+			else if ( (o && (! i)) )
+			{
+				return class_object._methods.own;
+			}
+			else
+			{
+				return {};
+			}
+		};
+		class_object.listOperations = function(o, i){
+			if ( (o === undefined) )
+			{
+				o = true;
+			}
+			if ( (i === undefined) )
+			{
+				i = true;
+			}
+			if ( (o && i) )
+			{
+				return class_object._operations.all;
+			}
+			else if ( ((! o) && i) )
+			{
+				return class_object._operations.inherited;
+			}
+			else if ( (o && (! i)) )
+			{
+				return class_object._operations.own;
+			}
+			else
+			{
+				return {};
+			}
+		};
+		class_object.listShared = function(o, i){
+			if ( (o === undefined) )
+			{
+				o = true;
+			}
+			if ( (i === undefined) )
+			{
+				i = true;
+			}
+			if ( (o && i) )
+			{
+				return class_object._shared.all;
+			}
+			else if ( ((! o) && i) )
+			{
+				return class_object._shared.inherited;
+			}
+			else if ( (o && (! i)) )
+			{
+				return class_object._shared.own;
+			}
+			else
+			{
+				return {};
+			}
+		};
+		class_object.listProperties = function(o, i){
+			if ( (o === undefined) )
+			{
+				o = true;
+			}
+			if ( (i === undefined) )
+			{
+				i = true;
+			}
+			if ( (o && i) )
+			{
+				return class_object._properties.all;
+			}
+			else if ( ((! o) && i) )
+			{
+				return class_object._properties.inherited;
+			}
+			else if ( (o && (! i)) )
+			{
+				return class_object._properties.own;
+			}
+			else
+			{
+				return {};
+			}
+		};
+		class_object.proxyWithState = function(o){
+			var proxy={};
+			var constr=undefined;
+			var wrapper=function(f){
+				return function(){
+					return f.apply(o, arguments);
+				};
 			};
-		class_object.hasInstance = 	function(o){
-				return ((o && extend.isDefined(o.getClass)) && o.getClass().isSubclassOf(class_object));
+			var proxy_object=function(){
+				return class_object.prototype.initialize.apply(o, arguments);
 			};
-		class_object.getOperation = 	function(name){
-				var this_operation=class_object[name];
-				if ( (! this_operation) )
-				{
-					return null;
-				}
-				if ( (! class_object.__operationCache) )
-				{
-					class_object.__operationCache = {};
-				}
-				var o=class_object.__operationCache[name];
-				if ( (! o) )
-				{
-					o = 	function(){
-							return this_operation.apply(class_object, arguments);
-						};
-					class_object.__operationCache[name] = o;
-				}
-				return o;
+			proxy_object.prototype = proxy;
+			 for (var key in class_object.prototype) {
+			  var w = wrapper(class_object.prototype[key])
+			  if (key == "initialize") { constr=w }
+			  proxy[key] = w
+			  // This should not be necessary, but it actually is! -- should investigae at some point
+			  proxy_object[key] = w
+			 }
+			
+			proxy_object.getSuper = function(){
+				return class_object.getParent().proxyWithState(o);
 			};
-		class_object.listMethods = 	function(o, i){
-				if ( (o === undefined) )
-				{
-					o = true;
-				}
-				if ( (i === undefined) )
-				{
-					i = true;
-				}
-				if ( (o && i) )
-				{
-					return class_object._methods.all;
-				}
-				else if ( ((! o) && i) )
-				{
-					return class_object._methods.inherited;
-				}
-				else if ( (o && (! i)) )
-				{
-					return class_object._methods.own;
-				}
-				else
-				{
-					return {};
-				}
-			};
-		class_object.listOperations = 	function(o, i){
-				if ( (o === undefined) )
-				{
-					o = true;
-				}
-				if ( (i === undefined) )
-				{
-					i = true;
-				}
-				if ( (o && i) )
-				{
-					return class_object._operations.all;
-				}
-				else if ( ((! o) && i) )
-				{
-					return class_object._operations.inherited;
-				}
-				else if ( (o && (! i)) )
-				{
-					return class_object._operations.own;
-				}
-				else
-				{
-					return {};
-				}
-			};
-		class_object.listShared = 	function(o, i){
-				if ( (o === undefined) )
-				{
-					o = true;
-				}
-				if ( (i === undefined) )
-				{
-					i = true;
-				}
-				if ( (o && i) )
-				{
-					return class_object._shared.all;
-				}
-				else if ( ((! o) && i) )
-				{
-					return class_object._shared.inherited;
-				}
-				else if ( (o && (! i)) )
-				{
-					return class_object._shared.own;
-				}
-				else
-				{
-					return {};
-				}
-			};
-		class_object.listProperties = 	function(o, i){
-				if ( (o === undefined) )
-				{
-					o = true;
-				}
-				if ( (i === undefined) )
-				{
-					i = true;
-				}
-				if ( (o && i) )
-				{
-					return class_object._properties.all;
-				}
-				else if ( ((! o) && i) )
-				{
-					return class_object._properties.inherited;
-				}
-				else if ( (o && (! i)) )
-				{
-					return class_object._properties.own;
-				}
-				else
-				{
-					return {};
-				}
-			};
-		class_object.proxyWithState = 	function(o){
-				var proxy={};
-				var constr=undefined;
-				var wrapper=	function(f){
-						return 	function(){
-								return f.apply(o, arguments);
-							};
-					};
-				var proxy_object=	function(){
-						return class_object.prototype.initialize.apply(o, arguments);
-					};
-				proxy_object.prototype = proxy;
-				 for (var key in class_object.prototype) {
-				  var w = wrapper(class_object.prototype[key])
-				  if (key == "initialize") { constr=w }
-				  proxy[key] = w
-				  // This should not be necessary, but it actually is! -- should investigae at some point
-				  proxy_object[key] = w
-				 }
-				
-				proxy_object.getSuper = 	function(){
-						return class_object.getParent().proxyWithState(o);
-					};
-				return proxy_object;
-			};
+			return proxy_object;
+		};
 		if ( declaration.parent != undefined ) {
 			// We proxy parent operations
 			for ( var name in declaration.parent._operations.fullname ) {
@@ -346,49 +346,49 @@ extend.Class=	function(declaration){
 			instance_proto.constructor = class_object;
 		}
 		instance_proto.isInstance = undefined;
-		instance_proto.getClass = 	function(){
-				return class_object;
-			};
-		instance_proto.isClass = 	function(){
-				return false;
-			};
+		instance_proto.getClass = function(){
+			return class_object;
+		};
+		instance_proto.isClass = function(){
+			return false;
+		};
 		instance_proto._methodCache = undefined;
-		instance_proto.getMethod = 	function(methodName){
-				var this_object=this;
-				if ( (! this_object.__methodCache) )
-				{
-					this_object.__methodCache = {};
-				}
-				var m=this_object.__methodCache[methodName];
-				if ( (! m) )
-				{
-					m = class_object._wrapMethod(this_object, methodName);
-					this_object.__methodCache[methodName] = m;
-				}
+		instance_proto.getMethod = function(methodName){
+			var this_object=this;
+			if ( (! this_object.__methodCache) )
+			{
+				this_object.__methodCache = {};
+			}
+			var m=this_object.__methodCache[methodName];
+			if ( (! m) )
+			{
+				m = class_object._wrapMethod(this_object, methodName);
+				this_object.__methodCache[methodName] = m;
+			}
+			return m;
+		};
+		instance_proto.getCallback = function(methodName){
+			var this_object=this;
+			if ( (! this_object.__methodCache) )
+			{
+				this_object.__methodCache = {};
+			}
+			var callback_name=(methodName + "_k");
+			var m=this_object.__methodCache[methodName];
+			if ( m )
+			{
+				m
+			}
+			else
+			{
+				m = class_object._wrapMethod(this_object, methodName);
+				this_object.__methodCache[callback_name] = m;
 				return m;
-			};
-		instance_proto.getCallback = 	function(methodName){
-				var this_object=this;
-				if ( (! this_object.__methodCache) )
-				{
-					this_object.__methodCache = {};
-				}
-				var callback_name=(methodName + "_k");
-				var m=this_object.__methodCache[methodName];
-				if ( m )
-				{
-					return m;
-				}
-				else
-				{
-					m = class_object._wrapMethod(this_object, methodName);
-					this_object.__methodCache[callback_name] = m;
-					return m;
-				}
-			};
-		instance_proto.isInstance = 	function(c){
-				return c.hasInstance(this);
-			};
+			}
+		};
+		instance_proto.isInstance = function(c){
+			return c.hasInstance(this);
+		};
 		if ( declaration.initialize )
 		{
 			instance_proto.initialize = declaration.initialize;
@@ -397,17 +397,17 @@ extend.Class=	function(declaration){
 		{
 			instance_proto.instance_proto = {};
 		}
-		instance_proto.getSuper = 	function(c){
-				if ( (typeof(this._extendProxyWithState) == "undefined") )
-				{
-					this._extendProxyWithState = extend.createMapFromItems([c.id,c.proxyWithState(this)]);
-				}
-				else if ( (typeof(this._extendProxyWithState[c.id]) == "undefined") )
-				{
-					this._extendProxyWithState[c.id] = c.proxyWithState(this);
-				}
-				return this._extendProxyWithState[c.id];
-			};
+		instance_proto.getSuper = function(c){
+			if ( (typeof(this._extendProxyWithState) == "undefined") )
+			{
+				this._extendProxyWithState = extend.createMapFromItems([c.id,c.proxyWithState(this)]);
+			}
+			else if ( (typeof(this._extendProxyWithState[c.id]) == "undefined") )
+			{
+				this._extendProxyWithState[c.id] = c.proxyWithState(this);
+			}
+			return this._extendProxyWithState[c.id];
+		};
 		if ( declaration.operations != undefined ) {
 			for ( var name in declaration.operations ) {
 				instance_proto[name] = instance_proto[full_name + "_" + name] = class_object.getOperation(name)
@@ -441,6 +441,9 @@ extend.ErrorCallback=undefined
 extend.WarningCallback=undefined
 extend.DebugCallback=undefined
 extend.PrintCallback=undefined
+extend.FLOW_BREAK=1
+extend.FLOW_CONTINUE=2
+extend.FLOW_RETURN=3
 extend.Nothing=new Object()
 extend.Timeout=new Object()
 extend.Error=new Object()
@@ -453,8 +456,8 @@ extend.require=	function(module, callback){
 			extend.modules[module] = extend.Nothing;
 			var head=document.getElementByTagName("head")[0];
 			var script=document.createElement("script");
-			script.setAttribute("src", ((extend.OPTIONS.modulePrefix + module) + extend.OPTIONS.moduleSuffix))
-			return head.appendChild(script);
+			script.setAttribute("src", ((extend.OPTIONS.modulePrefix + module) + extend.OPTIONS.moduleSuffix));
+			head.appendChild(script);
 		}
 		else
 		{
@@ -480,15 +483,14 @@ extend.invoke=	function(t, f, args, extra){
 		var self=extend;
 		var meta=f["__meta__"];
 		var actual_args=[];
-		var __b=extra["*"];var __c=__b instanceof Array ? __b : Object.getOwnPropertyNames(__b||{});for (var __d=0;__d<__c.length;__d++){var __a=__c===__b?__d:__c[__d];var v=__b[__a];		return args.push(v);};
-		var __e=extra["**"];var __f=__e instanceof Array ? __e : Object.getOwnPropertyNames(__e||{});for (var __g=0;__g<__f.length;__g++){var k=__f===__e?__g:__f[__g];var v=__e[k];		extra[k] = v;
-				return extra[k];};
-		var __i=args;var __j=__i instanceof Array ? __i : Object.getOwnPropertyNames(__i||{});for (var __k=0;__k<__j.length;__k++){var __h=__j===__i?__k:__j[__k];var v=__i[__h];		return actual_args.push(args);};
+		var __b=extra["*"];var __c=__b instanceof Array ? __b : Object.getOwnPropertyNames(__b||{});var __e=__c.length;for (var __d=0;__d<__e;__d++){var __a=(__c===__b)?__d:__c[__d];var v=__b[__a];	args.push(v)}
+		var __f=extra["**"];var __g=__f instanceof Array ? __f : Object.getOwnPropertyNames(__f||{});var __i=__g.length;for (var __h=0;__h<__i;__h++){var k=(__g===__f)?__h:__g[__h];var v=__f[k];	extra[k] = v}
+		var __k=args;var __l=__k instanceof Array ? __k : Object.getOwnPropertyNames(__k||{});var __n=__l.length;for (var __m=0;__m<__n;__m++){var __j=(__l===__k)?__m:__l[__m];var v=__k[__j];	actual_args.push(args)}
 		var start=args.length;
 		while ((start < meta.arity)) 
 		{
 			var arg=meta.arguments[start];
-			actual_args.push(extra[arg.name])
+			actual_args.push(extra[arg.name]);
 			start = (start + 1);
 		}
 		return f.apply(t, actual_args);
@@ -510,7 +512,7 @@ extend.range=	function(start, end, step){
 		// find the proper step (wether '+1' or '-1') depending on the bounds you
 		// specify.
 		var self=extend;
-		step = step === undefined ? 1 : step
+		if (step === undefined) {step=1}
 		var result=[];
 		 if (!extend.isDefined(end)) {
 		   if (extend.isList(start)) {end=start[1];start=start[0];}
@@ -575,6 +577,64 @@ extend.offset=	function(value, index){
 			return (extend.len(value) + index);
 		}
 	}
+extend.iterate=	function(value, callback, context){
+		// Iterates on the given values. If 'value' is an array, the _callback_ will be
+		// invoked on each item (giving the 'value[i], i' as argument) until the callback
+		// returns 'false'. If 'value' is a dictionary, the callback will be applied
+		// on the values (giving 'value[k], k' as argument). Otherwise the object is
+		// expected to define both '__len__' and '__item__' to
+		// enable the iteration.
+		var self=extend;
+		  if ( !value ) { return }
+		  // We use foreach if it's available
+		  var result      = undefined;
+		  if ( value.forEach ) {
+		       try {result=value.forEach(callback)} catch (e) {
+		           if      ( e === extend.FLOW_CONTINUE ) {}
+		           else if ( e === extend.FLOW_BREAK    ) {return e}
+		           else if ( e === extend.FLOW_RETURN   ) {return e}
+		           else    { extend.exception(e) ; throw e}
+		       }
+		  } else if ( value.length != undefined ) {
+		    var length = undefined;
+		    // Is it an object with the length() and get() protocol ?
+		    if ( typeof(value.__len__) == "function" && typeof(value.__getitem__) == "function" ) {
+		      length = value.__len__()
+		      for ( var i=0 ; i<length ; i++ ) {
+		          try {result=callback.call(context, value.__getitem__(i), i);} catch (e) {
+		              if      ( e === extend.FLOW_CONTINUE ) {}
+		              else if ( e === extend.FLOW_BREAK    ) {return e}
+		              else if ( e === extend.FLOW_RETURN   ) {return e}
+		              else    { extend.exception(e) ; throw e}
+		          }
+		      }
+		    // Or a plain array ?
+		    } else {
+		      length = value.length;
+		      for ( var i=0 ; i<length ; i++ ) {
+		          var result = undefined;
+		          try {result=callback.call(context, value[i], i);} catch (e) {
+		              if      ( e === extend.FLOW_CONTINUE ) {}
+		              else if ( e === extend.FLOW_BREAK    ) {return e}
+		              else if ( e === extend.FLOW_RETURN   ) {return e}
+		              else    { extend.exception(e) ; throw e}
+		          }
+		      }
+		    }
+		  } else {
+		    for ( var k in value ) {
+		       var result = undefined;
+		       try {result=callback.call(context, value[k], k);} catch (e) {
+		          if      ( e === extend.FLOW_CONTINUE ) {}
+		          else if ( e === extend.FLOW_BREAK    ) {return e}
+		          else if ( e === extend.FLOW_RETURN   ) {return e}
+		          else    { extend.exception(e) ; throw e}
+		       }
+		    }
+		  }
+		  if (!(result===undefined)) {return result}
+		
+	}
 extend.keys=	function(value){
 		var self=extend;
 		if ( (((((value === null) || (value === undefined)) || (value === true)) || ((value === false) || extend.isString(value))) || extend.isNumber(value)) )
@@ -624,9 +684,9 @@ extend.items=	function(value){
 		}
 		else if ( extend.isList(value) )
 		{
-			return extend.map(value, 	function(v, i){
-					return {"key":i, "value":v};
-				});
+			return extend.map(value, function(v, i){
+				return {"key":i, "value":v};
+			});
 		}
 		else
 		{
@@ -645,14 +705,14 @@ extend.pairs=	function(value){
 		}
 		else if ( extend.isList(value) )
 		{
-			return extend.map(value, 	function(v, i){
-					return [i, v];
-				});
+			return extend.map(value, function(v, i){
+				return [i, v];
+			});
 		}
 		else
 		{
 			var res=[];
-			var __l=value;var __m=__l instanceof Array ? __l : Object.getOwnPropertyNames(__l||{});for (var __n=0;__n<__m.length;__n++){var i=__m===__l?__n:__m[__n];var v=__l[i];		return res.push([i, v]);};
+			var __o=value;var __p=__o instanceof Array ? __o : Object.getOwnPropertyNames(__o||{});var __r=__p.length;for (var __q=0;__q<__r;__q++){var i=(__p===__o)?__q:__p[__q];var v=__o[i];	res.push([i, v])}
 			return res;
 		}
 	}
@@ -702,7 +762,26 @@ extend.cmp=	function(a, b){
 			if ( extend.isMap(b) )
 			{
 				var res=0;
-				var __o=a;var __p=__o instanceof Array ? __o : Object.getOwnPropertyNames(__o||{});for (var __q=0;__q<__p.length;__q++){var k=__p===__o?__q:__p[__q];var va=__o[k];		var vb=b[k];
+				var __s=a;var __t=__s instanceof Array ? __s : Object.getOwnPropertyNames(__s||{});var __v=__t.length;for (var __u=0;__u<__v;__u++){var k=(__t===__s)?__u:__t[__u];var va=__s[k];	var vb=b[k];
+					if ( (! extend.isDefined(va)) )
+					{
+						res = -1;
+					}
+					else if ( (! extend.isDefined(vb)) )
+					{
+						res = 1;
+					}
+					else
+					{
+						res = extend.cmp(va, vb);
+					}
+					if ( (res != 0) )
+					{
+						break
+					}}
+				if ( (res == 0) )
+				{
+					var __w=b;var __x=__w instanceof Array ? __w : Object.getOwnPropertyNames(__w||{});var __z=__x.length;for (var __y=0;__y<__z;__y++){var k=(__x===__w)?__y:__x[__y];var vb=__w[k];	var va=a[k];
 						if ( (! extend.isDefined(va)) )
 						{
 							res = -1;
@@ -718,26 +797,7 @@ extend.cmp=	function(a, b){
 						if ( (res != 0) )
 						{
 							break
-						}};
-				if ( (res == 0) )
-				{
-					var __r=b;var __s=__r instanceof Array ? __r : Object.getOwnPropertyNames(__r||{});for (var __t=0;__t<__s.length;__t++){var k=__s===__r?__t:__s[__t];var vb=__r[k];		var va=a[k];
-							if ( (! extend.isDefined(va)) )
-							{
-								res = -1;
-							}
-							else if ( (! extend.isDefined(vb)) )
-							{
-								res = 1;
-							}
-							else
-							{
-								res = extend.cmp(va, vb);
-							}
-							if ( (res != 0) )
-							{
-								break
-							}};
+						}}
 				}
 				return res;
 			}
@@ -824,24 +884,24 @@ extend.reverse=	function(value){
 		var self=extend;
 		var l=value.length;
 		var r=new Array();
-		var __u=value;var __v=__u instanceof Array ? __u : Object.getOwnPropertyNames(__u||{});for (var __w=0;__w<__v.length;__w++){var i=__v===__u?__w:__v[__w];var v=__u[i];		r[(l - i)] = v;};
+		var __A=value;var __B=__A instanceof Array ? __A : Object.getOwnPropertyNames(__A||{});var __D=__B.length;for (var __C=0;__C<__D;__C++){var i=(__B===__A)?__C:__B[__C];var v=__A[i];	r[(l - i)] = v}
 		return r;
 	}
 extend.sorted=	function(value, comparison, reverse){
 		var self=extend;
-		comparison = comparison === undefined ? extend.cmp : comparison
-		reverse = reverse === undefined ? false : reverse
+		if (comparison === undefined) {comparison=extend.cmp}
+		if (reverse === undefined) {reverse=false}
 		if ( extend.isList(comparison) )
 		{
 			var l=(extend.len(comparison) - 1);
-			var c=	function(a, b){
-					var total=0;
-					var __x=comparison;var __y=__x instanceof Array ? __x : Object.getOwnPropertyNames(__x||{});for (var __z=0;__z<__y.length;__z++){var i=__y===__x?__z:__y[__z];var extractor=__x[i];		var va=extractor(a);
-							var vb=extractor(b);
-							var v=(extend.cmp(va, vb) * Math.pow(10, (l - i)));
-							total = (total + v);};
-					return total;
-				};
+			var c=function(a, b){
+				var total=0;
+				var __E=comparison;var __F=__E instanceof Array ? __E : Object.getOwnPropertyNames(__E||{});var __H=__F.length;for (var __G=0;__G<__H;__G++){var i=(__F===__E)?__G:__F[__G];var extractor=__E[i];	var va=extractor(a);
+					var vb=extractor(b);
+					var v=(extend.cmp(va, vb) * Math.pow(10, (l - i)));
+					total = (total + v)}
+				return total;
+			};
 			return extend.sorted(value, c, reverse);
 		}
 		else
@@ -849,10 +909,10 @@ extend.sorted=	function(value, comparison, reverse){
 			if ( extend.isList(value) )
 			{
 				value = extend.copy(value);
-				value.sort(comparison)
+				value.sort(comparison);
 				if ( reverse )
 				{
-					value.reverse()
+					value.reverse();
 				}
 				return value;
 			}
@@ -876,7 +936,7 @@ extend.sorted=	function(value, comparison, reverse){
 	}
 extend.copy=	function(value, depth){
 		var self=extend;
-		depth = depth === undefined ? 1 : depth
+		if (depth === undefined) {depth=1}
 		if ( ((((! extend.isDefined(value)) || (value === false)) || (value === true)) || (value === null)) )
 		{
 			return value;
@@ -895,16 +955,16 @@ extend.copy=	function(value, depth){
 				}
 				else
 				{
-					return extend.map(value, 	function(_){
-							return _;
-						});
+					return extend.map(value, function(_){
+						return _;
+					});
 				}
 			}
 			else
 			{
-				return extend.map(value, 	function(_){
-						return extend.copy(_, (depth - 1));
-					});
+				return extend.map(value, function(_){
+					return extend.copy(_, (depth - 1));
+				});
 			}
 		}
 		else if ( extend.isObject(value) )
@@ -924,26 +984,26 @@ extend.copy=	function(value, depth){
 	}
 extend.merge=	function(value, otherValue, replace){
 		var self=extend;
-		replace = replace === undefined ? false : replace
+		if (replace === undefined) {replace=false}
 		if ( extend.isList(value) )
 		{
-			!(extend.isList(otherValue)) && extend.assert(false, "extend.merge(a,b) b expected to be a list", 'in', "extend.isList(otherValue)");
-			var __B=otherValue;var __C=__B instanceof Array ? __B : Object.getOwnPropertyNames(__B||{});for (var __D=0;__D<__C.length;__D++){var __A=__C===__B?__D:__C[__D];var v=__B[__A];		if ( (extend.find(value, v) == -1) )
-					{
-						value.push(v)
-					}};
+			!(extend.isList(otherValue)) && extend.assert(false, "extend.merge:", "extend.merge(a,b) b expected to be a list", "(failed `extend.isList(otherValue)`)");
+			var __J=otherValue;var __K=__J instanceof Array ? __J : Object.getOwnPropertyNames(__J||{});var __M=__K.length;for (var __L=0;__L<__M;__L++){var __I=(__K===__J)?__L:__K[__L];var v=__J[__I];	if ( (extend.find(value, v) == -1) )
+				{
+					value.push(v);
+				}}
 		}
 		else if ( extend.isMap(value) )
 		{
-			!(extend.isMap(otherValue)) && extend.assert(false, "extend.merge(a,b) b expected to be a map", 'in', "extend.isMap(otherValue)");
-			var __E=otherValue;var __F=__E instanceof Array ? __E : Object.getOwnPropertyNames(__E||{});for (var __G=0;__G<__F.length;__G++){var k=__F===__E?__G:__F[__G];var v=__E[k];		if ( ((! extend.isDefined(value[k])) || replace) )
-					{
-						value[k] = v;
-					}};
+			!(extend.isMap(otherValue)) && extend.assert(false, "extend.merge:", "extend.merge(a,b) b expected to be a map", "(failed `extend.isMap(otherValue)`)");
+			var __N=otherValue;var __O=__N instanceof Array ? __N : Object.getOwnPropertyNames(__N||{});var __Q=__O.length;for (var __P=0;__P<__Q;__P++){var k=(__O===__N)?__P:__O[__P];var v=__N[k];	if ( ((! extend.isDefined(value[k])) || replace) )
+				{
+					value[k] = v;
+				}}
 		}
 		else if ( value )
 		{
-			extend.error("extend.merge(a,_) expects a to be a list or a map")
+			extend.error("extend.merge(a,_) expects a to be a list or a map");
 		}
 		return value;
 	}
@@ -952,12 +1012,12 @@ extend.couplesAsMap=	function(value){
 		if ( extend.isList(value) )
 		{
 			var r={};
-			var __H=value;var __I=__H instanceof Array ? __H : Object.getOwnPropertyNames(__H||{});for (var __J=0;__J<__I.length;__J++){var k=__I===__H?__J:__I[__J];var v=__H[k];		r[v[0]] = v[1];};
+			var __R=value;var __S=__R instanceof Array ? __R : Object.getOwnPropertyNames(__R||{});var __U=__S.length;for (var __T=0;__T<__U;__T++){var k=(__S===__R)?__T:__S[__T];var v=__R[k];	r[v[0]] = v[1]}
 			return r;
 		}
 		else
 		{
-			extend.error("couplesAsMap: expects [[<key>, <value>]] as input, got", value)
+			extend.error("couplesAsMap: expects [[<key>, <value>]] as input, got", value);
 			return null;
 		}
 	}
@@ -966,12 +1026,12 @@ extend.itemsAsMap=	function(value){
 		if ( extend.isList(value) )
 		{
 			var r={};
-			var __K=value;var __L=__K instanceof Array ? __K : Object.getOwnPropertyNames(__K||{});for (var __M=0;__M<__L.length;__M++){var k=__L===__K?__M:__L[__M];var v=__K[k];		r[v.key] = v.value;};
+			var __V=value;var __W=__V instanceof Array ? __V : Object.getOwnPropertyNames(__V||{});var __Y=__W.length;for (var __X=0;__X<__Y;__X++){var k=(__W===__V)?__X:__W[__X];var v=__V[k];	r[v.key] = v.value}
 			return r;
 		}
 		else
 		{
-			extend.error("itemsAsMap: expects [[{key:<key>, value:<value>}] as input, got", value)
+			extend.error("itemsAsMap: expects [[{key:<key>, value:<value>}] as input, got", value);
 			return null;
 		}
 	}
@@ -980,23 +1040,23 @@ extend.find=	function(enumerable, value){
 		// Returns -1 if not found.
 		var self=extend;
 		var found=-1;
-		var __N=enumerable;var __O=__N instanceof Array ? __N : Object.getOwnPropertyNames(__N||{});for (var __P=0;__P<__O.length;__P++){var k=__O===__N?__P:__O[__P];var v=__N[k];		if ( ((v == value) && (found == -1)) )
-				{
-					found = k;
-					break
-				}};
+		var __Z=enumerable;var __0=__Z instanceof Array ? __Z : Object.getOwnPropertyNames(__Z||{});var __2=__0.length;for (var __1=0;__1<__2;__1++){var k=(__0===__Z)?__1:__0[__1];var v=__Z[k];	if ( ((v == value) && (found == -1)) )
+			{
+				found = k;
+				break
+			}}
 		return found;
 	}
 extend.insert=	function(enumerable, position, value){
 		var self=extend;
 		if ( extend.isList(enumerable) )
 		{
-			enumerable.splice(position, 0, value)
+			enumerable.splice(position, 0, value);
 			return enumerable;
 		}
 		else
 		{
-			extend.error("extend.add: Type not supported", enumerable)
+			extend.error("extend.add: Type not supported", enumerable);
 			return null;
 		}
 	}
@@ -1004,12 +1064,12 @@ extend.add=	function(enumerable, value){
 		var self=extend;
 		if ( extend.isList(enumerable) )
 		{
-			enumerable.push(value)
+			enumerable.push(value);
 			return enumerable;
 		}
 		else
 		{
-			extend.error("extend.add: Type not supported", enumerable)
+			extend.error("extend.add: Type not supported", enumerable);
 			return null;
 		}
 	}
@@ -1021,18 +1081,18 @@ extend.remove=	function(enumerable, value){
 			var index=extend.find(enumerable, value);
 			if ( (index >= 0) )
 			{
-				enumerable.splice(index, 1)
+				enumerable.splice(index, 1);
 			}
 			return enumerable;
 		}
 		else if ( extend.isMap(enumerable) )
 		{
 			var k=extend.keys(enumerable);
-			var __R=k;var __S=__R instanceof Array ? __R : Object.getOwnPropertyNames(__R||{});for (var __T=0;__T<__S.length;__T++){var __Q=__S===__R?__T:__S[__T];var _=__R[__Q];		if ( (_ == value) )
-					{
-						delete enumerable[_];
-						
-					}};
+			var __4=k;var __5=__4 instanceof Array ? __4 : Object.getOwnPropertyNames(__4||{});var __7=__5.length;for (var __6=0;__6<__7;__6++){var __3=(__5===__4)?__6:__5[__6];var _=__4[__3];	if ( (_ == value) )
+				{
+					delete enumerable[_];
+					
+				}}
 			return enumerable;
 		}
 		else
@@ -1047,7 +1107,7 @@ extend.removeAt=	function(enumerable, index){
 		{
 			if ( ((index >= 0) && (index < extend.len(enumerable))) )
 			{
-				enumerable.splice(index, 1)
+				enumerable.splice(index, 1);
 			}
 			return enumerable;
 		}
@@ -1067,11 +1127,11 @@ extend.findLike=	function(enumerable, predicate){
 		// Returns -1 if not found.
 		var self=extend;
 		var found=-1;
-		var __U=enumerable;var __V=__U instanceof Array ? __U : Object.getOwnPropertyNames(__U||{});for (var __W=0;__W<__V.length;__W++){var k=__V===__U?__W:__V[__W];var v=__U[k];		if ( (predicate(v) && (found == -1)) )
-				{
-					found = k;
-					break
-				}};
+		var __8=enumerable;var __9=__8 instanceof Array ? __8 : Object.getOwnPropertyNames(__8||{});var __ab=__9.length;for (var __0=0;__0<__ab;__0++){var k=(__9===__8)?__0:__9[__0];var v=__8[k];	if ( (predicate(v) && (found == -1)) )
+			{
+				found = k;
+				break
+			}}
 		return found;
 	}
 extend.findOneOf=	function(enumerable, values){
@@ -1079,11 +1139,11 @@ extend.findOneOf=	function(enumerable, values){
 		// the matching index.
 		var self=extend;
 		var r=-1;
-		var __X=enumerable;var __Y=__X instanceof Array ? __X : Object.getOwnPropertyNames(__X||{});for (var __Z=0;__Z<__Y.length;__Z++){var i=__Y===__X?__Z:__Y[__Z];var v=__X[i];		if ( ((extend.isIn(v,values))) )
-				{
-					r = i;
-					break
-				}};
+		var __bb=enumerable;var __cb=__bb instanceof Array ? __bb : Object.getOwnPropertyNames(__bb||{});var __eb=__cb.length;for (var __db=0;__db<__eb;__db++){var i=(__cb===__bb)?__db:__cb[__db];var v=__bb[i];	if ( ((extend.isIn(v,values))) )
+			{
+				r = i;
+				break
+			}}
 		return r;
 	}
 extend.first=	function(enumerable, predicate){
@@ -1103,10 +1163,10 @@ extend.last=	function(enumerable, predicate){
 		// Returns the last value that matches the given predicate
 		var self=extend;
 		var res=null;
-		var __0=enumerable;var __1=__0 instanceof Array ? __0 : Object.getOwnPropertyNames(__0||{});for (var __2=0;__2<__1.length;__2++){var k=__1===__0?__2:__1[__2];var v=__0[k];		if ( predicate(v) )
-				{
-					res = v;
-				}};
+		var __fb=enumerable;var __gb=__fb instanceof Array ? __fb : Object.getOwnPropertyNames(__fb||{});var __ib=__gb.length;for (var __hb=0;__hb<__ib;__hb++){var k=(__gb===__fb)?__hb:__gb[__hb];var v=__fb[k];	if ( predicate(v) )
+			{
+				res = v;
+			}}
 		return res;
 	}
 extend.replace=	function(container, original, replacement){
@@ -1120,22 +1180,24 @@ extend.replace=	function(container, original, replacement){
 		}
 		else
 		{
-			extend.error("extend.replace only supports string for now")
+			extend.error("extend.replace only supports string for now");
 		}
 		return container;
 	}
 extend.slice=	function(value, start, end){
 		var self=extend;
-		start = start === undefined ? 0 : start
-		end = end === undefined ? undefined : end
+		if (start === undefined) {start=0}
+		if (end === undefined) {end=undefined}
 		if ( extend.isString(value) )
 		{
 			if ( (end === undefined) )
 			{
 				end = value.length;
 			}
-			((start < 0) ? start = (value.length + start); : undefined)
-			((end < 0) ? end = (value.length + end); : undefined)
+			if ( (start < 0) )
+			{start = (value.length + start)}
+			if ( (end < 0) )
+			{end = (value.length + end)}
 			return value.substring(start, end);
 		}
 		else if ( extend.isList(value) )
@@ -1144,8 +1206,10 @@ extend.slice=	function(value, start, end){
 			{
 				end = value.length;
 			}
-			((start < 0) ? start = (value.length + start); : undefined)
-			((end < 0) ? end = (value.length + end); : undefined)
+			if ( (start < 0) )
+			{start = (value.length + start)}
+			if ( (end < 0) )
+			{end = (value.length + end)}
 			return value.slice(start, end);
 		}
 		else if ( (extend.isObject(value) && extend.isDefined(value.length)) )
@@ -1155,12 +1219,14 @@ extend.slice=	function(value, start, end){
 			{
 				end = value.length;
 			}
-			((start < 0) ? start = (value.length + start); : undefined)
-			((end < 0) ? end = (value.length + end); : undefined)
+			if ( (start < 0) )
+			{start = (value.length + start)}
+			if ( (end < 0) )
+			{end = (value.length + end)}
 			var i=start;
 			while ((i < end)) 
 			{
-				res.push(value[i])
+				res.push(value[i]);
 			}
 			return res;
 		}
@@ -1176,7 +1242,7 @@ extend.equals=	function(a, b){
 extend.isIn=	function(value, list, predicate){
 		// Returns true if the given value is in the given list
 		var self=extend;
-		predicate = predicate === undefined ? extend.equals : predicate
+		if (predicate === undefined) {predicate=extend.equals}
 		if ( extend.isList(list) )
 		{
 			 if (list.some) {
@@ -1221,13 +1287,13 @@ extend.difference=	function(a, b){
 			}
 			if ( extend.isList(b) )
 			{
-				return extend.filter(a, 	function(_){
-						return (! ((extend.isIn(_,b))));
-					});
+				return extend.filter(a, function(_){
+					return (! ((extend.isIn(_,b))));
+				});
 			}
 			else
 			{
-				extend.error(("extend.difference: Unsupported type for b, " + extend.type(b)))
+				extend.error(("extend.difference: Unsupported type for b, " + extend.type(b)));
 				return null;
 			}
 		}
@@ -1236,25 +1302,25 @@ extend.difference=	function(a, b){
 			if ( extend.isMap(b) )
 			{
 				var b_keys=extend.keys(b);
-				return extend.filter(a, 	function(_, k){
-						return (! ((extend.isIn(k,b_keys))));
-					});
+				return extend.filter(a, function(_, k){
+					return (! ((extend.isIn(k,b_keys))));
+				});
 			}
 			else if ( extend.isList(b) )
 			{
-				return extend.filter(a, 	function(v){
-						return (! ((extend.isIn(v,b))));
-					});
+				return extend.filter(a, function(v){
+					return (! ((extend.isIn(v,b))));
+				});
 			}
 			else
 			{
-				extend.error(("extend.difference: Unsupported type for b, " + extend.type(b)))
+				extend.error(("extend.difference: Unsupported type for b, " + extend.type(b)));
 				return null;
 			}
 		}
 		else
 		{
-			extend.error(("extend.difference: Unsupported type for a, " + extend.type(a)))
+			extend.error(("extend.difference: Unsupported type for a, " + extend.type(a)));
 			return null;
 		}
 	}
@@ -1278,15 +1344,15 @@ extend.union=	function(a, b){
 			if ( extend.isList(b) )
 			{
 				var r=[].concat(a);
-				var __4=b;var __5=__4 instanceof Array ? __4 : Object.getOwnPropertyNames(__4||{});for (var __6=0;__6<__5.length;__6++){var __3=__5===__4?__6:__5[__6];var e=__4[__3];		if ( (! ((extend.isIn(e,a)))) )
-						{
-							r.push(e)
-						}};
+				var __kb=b;var __lb=__kb instanceof Array ? __kb : Object.getOwnPropertyNames(__kb||{});var __nb=__lb.length;for (var __mb=0;__mb<__nb;__mb++){var __jb=(__lb===__kb)?__mb:__lb[__mb];var e=__kb[__jb];	if ( (! ((extend.isIn(e,a)))) )
+					{
+						r.push(e);
+					}}
 				return r;
 			}
 			else
 			{
-				return extend.error(("extend.union: Unsupported type for b, " + extend.type(b)));
+				extend.error(("extend.union: Unsupported type for b, " + extend.type(b)));
 			}
 		}
 		else if ( extend.isMap(a) )
@@ -1298,22 +1364,21 @@ extend.union=	function(a, b){
 			}
 			else if ( extend.isList(b) )
 			{
-				var __7=b;var __8=__7 instanceof Array ? __7 : Object.getOwnPropertyNames(__7||{});for (var __9=0;__9<__8.length;__9++){var i=__8===__7?__9:__8[__9];var v=__7[i];		if ( (! extend.isDefined(a[i])) )
-						{
-							a[i] = v;
-							return a[i];
-						}};
+				var __ob=b;var __pb=__ob instanceof Array ? __ob : Object.getOwnPropertyNames(__ob||{});var __rb=__pb.length;for (var __qb=0;__qb<__rb;__qb++){var i=(__pb===__ob)?__qb:__pb[__qb];var v=__ob[i];	if ( (! extend.isDefined(a[i])) )
+					{
+						a[i] = v;
+					}}
 				return a;
 			}
 			else
 			{
-				extend.error(("extend.union: Unsupported type for b, " + extend.type(b)))
+				extend.error(("extend.union: Unsupported type for b, " + extend.type(b)));
 				return null;
 			}
 		}
 		else
 		{
-			extend.error(("extend.union: Unsupported type for a, " + extend.type(a)))
+			extend.error(("extend.union: Unsupported type for a, " + extend.type(a)));
 			return null;
 		}
 	}
@@ -1328,35 +1393,37 @@ extend.intersection=	function(a, b){
 		{
 			if ( extend.isMap(b) )
 			{
-				return extend.filter(a, 	function(_, i){
-						return extend.isDefined(b[k]);
-					});
+				return extend.filter(a, function(_, i){
+					return extend.isDefined(b[k]);
+				});
 			}
 			else
 			{
-				return extend.filter(a, 	function(_, i){
-						return ((extend.isIn(_,b)));
-					});
+				return extend.filter(a, function(_, i){
+					return ((extend.isIn(_,b)));
+				});
 			}
 		}
 		else if ( extend.isMap(a) )
 		{
 			if ( extend.isMap(b) )
 			{
-				return extend.reduce(b, 	function(r, v, k){
-						return (extend.isDefined(a[k]) ? r[k] = v; : undefined);
-					}, {});
+				return extend.reduce(b, function(r, v, k){
+					if ( extend.isDefined(a[k]) )
+					{r[k] = v}
+				}, {});
 			}
 			else if ( extend.isList(b) )
 			{
-				return extend.reduce(b, 	function(r, k){
-						var v=a[k];
-						return (extend.isDefined(v) ? r[k] = v; : undefined);
-					}, {});
+				return extend.reduce(b, function(r, k){
+					var v=a[k];
+					if ( extend.isDefined(v) )
+					{r[k] = v}
+				}, {});
 			}
 			else
 			{
-				return extend.error("extend.intersection: Type for b not supported", extend.type(b));
+				extend.error("extend.intersection: Type for b not supported", extend.type(b));
 			}
 		}
 		else
@@ -1436,17 +1503,17 @@ extend.isInstance=	function(value, ofClass){
 		// given 'ofClass'. If there is no given class, then it will just return
 		// true if the value is an instance of any class.
 		var self=extend;
-		ofClass = ofClass === undefined ? undefined : ofClass
+		if (ofClass === undefined) {ofClass=undefined}
 		if ( ofClass )
 		{
 			var is_instance=false;
 			is_instance = value instanceof ofClass;
 			
-			return ((extend.isDefined(value.getClass) && value.isInstance(ofClass)) || is_instance);
+			return (((value && extend.isDefined(value.getClass)) && value.isInstance(ofClass)) || is_instance);
 		}
 		else
 		{
-			return extend.isDefined(value.getClass);
+			return (value && extend.isDefined(value.getClass));
 		}
 	}
 extend.getType=	function(value){
@@ -1545,21 +1612,21 @@ extend.print=	function(args){
 			{
 				if ( extend.isDefined(console.log.apply) )
 				{
-					console.log.apply(console, args)
+					console.log.apply(console, args);
 				}
 				else
 				{
-					console.log(args[0], args[1], args[2], args[3], args[4], args[5], args[6], args[7])
+					console.log(args[0], args[1], args[2], args[3], args[4], args[5], args[6], args[7]);
 				}
 			}
 			else if ( ((typeof(document) == "undefined") && (typeof(pr_func) != "undefined")) )
 			{
-				pr_func(res)
+				pr_func(res);
 			}
 		}
 		else
 		{
-			extend.PrintCallback(res)
+			extend.PrintCallback(res);
 		}
 		return args;
 	}
@@ -1568,22 +1635,22 @@ extend.warning=	function(message){
 		message = extend.sliceArguments(arguments,0)
 		if ( extend.WarningCallback )
 		{
-			extend.WarningCallback.apply(extend, message)
+			extend.WarningCallback.apply(extend, message);
 		}
 		else if ( extend.isDefined(console) )
 		{
 			if ( extend.isDefined(console.warn.apply) )
 			{
-				console.warn.apply(console, message)
+				console.warn.apply(console, message);
 			}
 			else
 			{
-				console.warn(message[0], message[1], message[2], message[3], message[4], message[5], message[6], message[7])
+				console.warn(message[0], message[1], message[2], message[3], message[4], message[5], message[6], message[7]);
 			}
 		}
 		else
 		{
-			extend.print.apply(extend, ["[!] "].concat(message))
+			extend.print.apply(extend, ["[!] "].concat(message));
 		}
 		return message;
 	}
@@ -1592,22 +1659,22 @@ extend.error=	function(message){
 		message = extend.sliceArguments(arguments,0)
 		if ( extend.ErrorCallback )
 		{
-			extend.ErrorCallback.apply(extend, message)
+			extend.ErrorCallback.apply(extend, message);
 		}
 		else if ( extend.isDefined(console) )
 		{
 			if ( extend.isDefined(console.error.apply) )
 			{
-				console.error.apply(console, message)
+				console.error.apply(console, message);
 			}
 			else
 			{
-				console.error(message[0], message[1], message[2], message[3], message[4], message[5], message[6], message[7])
+				console.error(message[0], message[1], message[2], message[3], message[4], message[5], message[6], message[7]);
 			}
 		}
 		else
 		{
-			extend.print.apply(extend, ["[!] "].concat(message))
+			extend.print.apply(extend, ["[!] "].concat(message));
 		}
 		return message;
 	}
@@ -1616,15 +1683,15 @@ extend.debug=	function(message){
 		message = extend.sliceArguments(arguments,0)
 		if ( extend.DebugCallback )
 		{
-			extend.DebugCallback.apply(extend, message)
+			extend.DebugCallback.apply(extend, message);
 		}
 		else if ( extend.isDefined(console) )
 		{
-			console.debug.apply(console, message)
+			console.debug.apply(console, message);
 		}
 		else
 		{
-			extend.print.apply(extend, ["[!] "].concat(message))
+			extend.print.apply(extend, ["[!] "].concat(message));
 		}
 		return message;
 	}
@@ -1632,30 +1699,30 @@ extend.exception=	function(e, message){
 		var self=extend;
 		message = extend.sliceArguments(arguments,1)
 		var m=[];
-		var __ab=message;var __bb=__ab instanceof Array ? __ab : Object.getOwnPropertyNames(__ab||{});for (var __cb=0;__cb<__bb.length;__cb++){var __0=__bb===__ab?__cb:__bb[__cb];var _=__ab[__0];		return m.push(_);};
+		var __tb=message;var __ub=__tb instanceof Array ? __tb : Object.getOwnPropertyNames(__tb||{});var __wb=__ub.length;for (var __vb=0;__vb<__wb;__vb++){var __sb=(__ub===__tb)?__vb:__ub[__vb];var _=__tb[__sb];	m.push(_)}
 		if ( (extend.len(m) == 0) )
 		{
-			m.push("Extend: exception intercepted")
+			m.push("Extend: exception intercepted");
 		}
-		m.push(e)
+		m.push(e);
 		if ( extend.ExceptionCallback )
 		{
-			extend.ExceptionCallback.apply(extend, m)
+			extend.ExceptionCallback.apply(extend, m);
 		}
 		else if ( extend.isDefined(console) )
 		{
 			if ( extend.isDefined(console.error.apply) )
 			{
-				console.error.apply(console, m)
+				console.error.apply(console, m);
 			}
 			else
 			{
-				console.error(m[0], m[1], m[2], m[3], m[4], m[5], m[6], m[7])
+				console.error(m[0], m[1], m[2], m[3], m[4], m[5], m[6], m[7]);
 			}
 		}
 		else
 		{
-			extend.print.apply(extend, m)
+			extend.print.apply(extend, m);
 		}
 		return e;
 	}
@@ -1664,14 +1731,14 @@ extend.assert=	function(predicate, message){
 		message = extend.sliceArguments(arguments,1)
 		if ( (! predicate) )
 		{
-			extend.error.apply(extend, message)
+			extend.error.apply(extend, message);
 		}
 		return message;
 	}
 extend.fail=	function(message){
 		var self=extend;
 		message = extend.sliceArguments(arguments,0)
-		extend.error.apply(extend, message)
+		extend.error.apply(extend, message);
 		return false;
 	}
 extend.sprintf=	function(){
@@ -1775,17 +1842,17 @@ extend.asMap=	function(iterable, extractor, replacer){
 		// `extractor`. If `replacer` is defined and there is already an element
 		// with the given key, then `replacer` will be called.
 		var self=extend;
-		replacer = replacer === undefined ? undefined : replacer
+		if (replacer === undefined) {replacer=undefined}
 		var res={};
-		var __db=iterable;var __eb=__db instanceof Array ? __db : Object.getOwnPropertyNames(__db||{});for (var __fb=0;__fb<__eb.length;__fb++){var key=__eb===__db?__fb:__eb[__fb];var value=__db[key];		key = extractor(value, key);
-				if ( (extend.isDefined(res[key]) && extend.isDefined(replacer)) )
-				{
-					res[key] = replacer(value, res[key], key);
-				}
-				else
-				{
-					res[key] = value;
-				}};
+		var __xb=iterable;var __yb=__xb instanceof Array ? __xb : Object.getOwnPropertyNames(__xb||{});var __Ab=__yb.length;for (var __zb=0;__zb<__Ab;__zb++){var key=(__yb===__xb)?__zb:__yb[__zb];var value=__xb[key];	key = extractor(value, key)
+			if ( (extend.isDefined(res[key]) && extend.isDefined(replacer)) )
+			{
+				res[key] = replacer(value, res[key], key);
+			}
+			else
+			{
+				res[key] = value;
+			}}
 		return res;
 	}
 extend.map=	function(iterable, callback){
@@ -1794,32 +1861,38 @@ extend.map=	function(iterable, callback){
 		if ( extend.isList(iterable) )
 		{
 			result = new Array(extend.len(iterable));
-			var __gb=iterable;var __hb=__gb instanceof Array ? __gb : Object.getOwnPropertyNames(__gb||{});for (var __ib=0;__ib<__hb.length;__ib++){var i=__hb===__gb?__ib:__hb[__ib];var v=__gb[i];		result.append(callback(v, i))};
+			var __Bb=iterable;var __Cb=__Bb instanceof Array ? __Bb : Object.getOwnPropertyNames(__Bb||{});var __Eb=__Cb.length;for (var __Db=0;__Db<__Eb;__Db++){var i=(__Cb===__Bb)?__Db:__Cb[__Db];var v=__Bb[i];	result[i] = callback(v, i, iterable)}
 		}
 		else
 		{
 			result = {};
-			var __jb=iterable;var __kb=__jb instanceof Array ? __jb : Object.getOwnPropertyNames(__jb||{});for (var __lb=0;__lb<__kb.length;__lb++){var k=__kb===__jb?__lb:__kb[__lb];var v=__jb[k];		result[k] = callback(v, k);};
+			var __Fb=iterable;var __Gb=__Fb instanceof Array ? __Fb : Object.getOwnPropertyNames(__Fb||{});var __Ib=__Gb.length;for (var __Hb=0;__Hb<__Ib;__Hb++){var k=(__Gb===__Fb)?__Hb:__Gb[__Hb];var v=__Fb[k];	result[k] = callback(v, k, iterable)}
 		}
 		return result;
 	}
 extend.map0=	function(iterable, callback){
 		var self=extend;
-		return extend.map(iterable, 	function(){
-				return callback();
-			});
+		return extend.map(iterable, function(){
+			return callback();
+		});
 	}
 extend.map1=	function(iterable, callback){
 		var self=extend;
-		return extend.map(iterable, 	function(_){
-				return callback(_);
-			});
+		return extend.map(iterable, function(_){
+			return callback(_);
+		});
 	}
 extend.map2=	function(iterable, callback){
 		var self=extend;
-		return extend.map(iterable, 	function(a, b){
-				return callback(a, b);
-			});
+		return extend.map(iterable, function(a, b){
+			return callback(a, b);
+		});
+	}
+extend.map3=	function(iterable, callback){
+		var self=extend;
+		return extend.map(iterable, function(a, b){
+			return callback(a, b, iterable);
+		});
 	}
 extend.filter=	function(iterable, callback, processor){
 		var self=extend;
@@ -1833,65 +1906,67 @@ extend.filter=	function(iterable, callback, processor){
 			else
 			{
 				result = [];
-				var __mb=iterable;var __nb=__mb instanceof Array ? __mb : Object.getOwnPropertyNames(__mb||{});for (var __ob=0;__ob<__nb.length;__ob++){var k=__nb===__mb?__ob:__nb[__ob];var e=__mb[k];		if ( callback(e, k) )
+				var __Jb=iterable;var __Kb=__Jb instanceof Array ? __Jb : Object.getOwnPropertyNames(__Jb||{});var __Mb=__Kb.length;for (var __Lb=0;__Lb<__Mb;__Lb++){var k=(__Kb===__Jb)?__Lb:__Kb[__Lb];var e=__Jb[k];	if ( callback(e, k) )
+					{
+						if ( processor )
 						{
-							if ( processor )
-							{
-								e = processor(e, k);
-							}
-							result.push(e)
-						}};
+							e = processor(e, k);
+						}
+						result.push(e);
+					}}
 			}
 		}
 		else if ( extend.isMap(iterable) )
 		{
 			result = {};
-			var __pb=iterable;var __qb=__pb instanceof Array ? __pb : Object.getOwnPropertyNames(__pb||{});for (var __rb=0;__rb<__qb.length;__rb++){var k=__qb===__pb?__rb:__qb[__rb];var e=__pb[k];		if ( callback(e, k) )
-					{
-						(processor ? e = processor(e, k); : undefined)
-						result[k] = e;
-					}};
+			var __Nb=iterable;var __Ob=__Nb instanceof Array ? __Nb : Object.getOwnPropertyNames(__Nb||{});var __Qb=__Ob.length;for (var __Pb=0;__Pb<__Qb;__Pb++){var k=(__Ob===__Nb)?__Pb:__Ob[__Pb];var e=__Nb[k];	if ( callback(e, k) )
+				{
+					if ( processor )
+					{e = processor(e, k)}
+					result[k] = e;
+				}}
 		}
 		else if ( extend.isIterable(iterable) )
 		{
 			result = [];
-			var __sb=iterable;var __tb=__sb instanceof Array ? __sb : Object.getOwnPropertyNames(__sb||{});for (var __ub=0;__ub<__tb.length;__ub++){var k=__tb===__sb?__ub:__tb[__ub];var e=__sb[k];		if ( callback(e, k) )
-					{
-						(processor ? e = processor(e, k); : undefined)
-						result.push(e)
-					}};
+			var __Rb=iterable;var __Sb=__Rb instanceof Array ? __Rb : Object.getOwnPropertyNames(__Rb||{});var __Ub=__Sb.length;for (var __Tb=0;__Tb<__Ub;__Tb++){var k=(__Sb===__Rb)?__Tb:__Sb[__Tb];var e=__Rb[k];	if ( callback(e, k) )
+				{
+					if ( processor )
+					{e = processor(e, k)}
+					result.push(e);
+				}}
 		}
 		else
 		{
 			result = {};
-			var __vb=iterable;var __wb=__vb instanceof Array ? __vb : Object.getOwnPropertyNames(__vb||{});for (var __xb=0;__xb<__wb.length;__xb++){var k=__wb===__vb?__xb:__wb[__xb];var e=__vb[k];		if ( callback(e, k) )
-					{
-						(processor ? e = processor(e, k); : undefined)
-						result[k] = e;
-					}};
+			var __Vb=iterable;var __Wb=__Vb instanceof Array ? __Vb : Object.getOwnPropertyNames(__Vb||{});var __Yb=__Wb.length;for (var __Xb=0;__Xb<__Yb;__Xb++){var k=(__Wb===__Vb)?__Xb:__Wb[__Xb];var e=__Vb[k];	if ( callback(e, k) )
+				{
+					if ( processor )
+					{e = processor(e, k)}
+					result[k] = e;
+				}}
 		}
 		return result;
 	}
 extend.reduce=	function(iterable, callback, initial){
 		var self=extend;
-		initial = initial === undefined ? undefined : initial
+		if (initial === undefined) {initial=undefined}
 		var res=initial;
 		var i=0;
-		var __yb=iterable;var __zb=__yb instanceof Array ? __yb : Object.getOwnPropertyNames(__yb||{});for (var __Ab=0;__Ab<__zb.length;__Ab++){var k=__zb===__yb?__Ab:__zb[__Ab];var e=__yb[k];		var r=undefined;
-				if ( ((i == 0) && (! extend.isDefined(res))) )
-				{
-					r = e;
-				}
-				else
-				{
-					r = callback(res, e, k, i);
-				}
-				if ( extend.isDefined(r) )
-				{
-					res = r;
-				}
-				i = (i + 1);
-				return i;};
+		var __Zb=iterable;var __0b=__Zb instanceof Array ? __Zb : Object.getOwnPropertyNames(__Zb||{});var __2b=__0b.length;for (var __1b=0;__1b<__2b;__1b++){var k=(__0b===__Zb)?__1b:__0b[__1b];var e=__Zb[k];	var r=undefined;
+			if ( ((i == 0) && (! extend.isDefined(res))) )
+			{
+				r = e;
+			}
+			else
+			{
+				r = callback(res, e, k, i);
+			}
+			if ( extend.isDefined(r) )
+			{
+				res = r;
+			}
+			i = (i + 1)}
 		return res;
 	}
 extend.foldl=	function(iterable, seed, callback){
@@ -1902,71 +1977,70 @@ extend.foldl=	function(iterable, seed, callback){
 	}
 extend.extendPrimitiveTypes=	function(){
 		var self=extend;
-		String.prototype.__len__ = 	function(){
-				return this.length;
-			};
-		Array.prototype.extend = 	function(array){
-				var __Cb=array;var __Db=__Cb instanceof Array ? __Cb : Object.getOwnPropertyNames(__Cb||{});for (var __Eb=0;__Eb<__Db.length;__Eb++){var __Bb=__Db===__Cb?__Eb:__Db[__Eb];var e=__Cb[__Bb];		return this.append(e);};
-			};
-		Array.prototype.append = 	function(e){
-				return this.push(e);
-			};
-		Array.prototype.insert = 	function(e, i){
-				return this.splice(i, e);
-			};
-		Array.prototype.slice = 	function(){
-			};
-		Array.prototype.__iter__ = 	function(){
-				return this.length;
-			};
-		Array.prototype.__len__ = 	function(){
-				return this.length;
-			};
-		Object.prototype.keys = 	function(){
-				var result=[];
-				for (var k in this) { var key=k ; result.push(key) }
-				
-				return result;
-			};
-		Object.prototype.items = 	function(){
-				var result=[];
-				for (var k in this) { var key=k ; result.push([key,this[key]]) }
-				
-				return result;
-			};
-		Object.prototype.values = 	function(){
-				var result=[];
-				for (var k in this) { var key=k ; result.push([key,this[key]]) }
-				
-				return result;
-			};
-		Object.prototype.hasKey = 	function(key){
-				return (typeof(this[key]) != "undefined");
-			};
-		Object.prototype.get = 	function(key){
+		String.prototype.__len__ = function(){
+			return this.length;
+		};
+		Array.prototype.extend = function(array){
+			var __4b=array;var __5b=__4b instanceof Array ? __4b : Object.getOwnPropertyNames(__4b||{});var __7b=__5b.length;for (var __6b=0;__6b<__7b;__6b++){var __3b=(__5b===__4b)?__6b:__5b[__6b];var e=__4b[__3b];	this.append(e)}
+		};
+		Array.prototype.append = function(e){
+			return this.push(e);
+		};
+		Array.prototype.insert = function(e, i){
+			return this.splice(i, e);
+		};
+		Array.prototype.slice = function(){
+		};
+		Array.prototype.__iter__ = function(){
+			return this.length;
+		};
+		Array.prototype.__len__ = function(){
+			return this.length;
+		};
+		Object.prototype.keys = function(){
+			var result=[];
+			for (var k in this) { var key=k ; result.push(key) }
+			
+			return result;
+		};
+		Object.prototype.items = function(){
+			var result=[];
+			for (var k in this) { var key=k ; result.push([key,this[key]]) }
+			
+			return result;
+		};
+		Object.prototype.values = function(){
+			var result=[];
+			for (var k in this) { var key=k ; result.push([key,this[key]]) }
+			
+			return result;
+		};
+		Object.prototype.hasKey = function(key){
+			return (typeof(this[key]) != "undefined");
+		};
+		Object.prototype.get = function(key){
+			return this[key];
+		};
+		Object.prototype.set = function(key, value){
+			this[key] = value;
+			return this;
+		};
+		Object.prototype.setDefault = function(key, value){
+			if ( (typeof(this[key]) != "undefined") )
+			{
 				return this[key];
-			};
-		Object.prototype.set = 	function(key, value){
+			}
+			else
+			{
 				this[key] = value;
-				return this;
-			};
-		Object.prototype.setDefault = 	function(key, value){
-				if ( (typeof(this[key]) != "undefined") )
-				{
-					return this[key];
-				}
-				else
-				{
-					this[key] = value;
-					return value;
-				}
-			};
-		Object.prototype.__iter__ = 	function(){
-			};
-		Object.prototype.__len__ = 	function(){
-				return this.keys().length;
-			};
-		return Object.prototype.__len__;
+				return value;
+			}
+		};
+		Object.prototype.__iter__ = function(){
+		};
+		Object.prototype.__len__ = function(){
+			return this.keys().length;
+		};
 	}
 extend.init=	function(){
 		var self=extend;
