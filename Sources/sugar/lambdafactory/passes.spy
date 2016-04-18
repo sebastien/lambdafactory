@@ -726,7 +726,7 @@
 		Pass __init__ (self)
 		@embed Python
 		|import texto.main
-		|self.texto = lambda _:texto.main.text2htmlbody(unicode(_))
+		|self.texto = lambda _:texto.main.text2htmlbody(_.decode("utf-8"))
 		@end
 	@end
 
@@ -843,7 +843,7 @@
 
 	@method getDocumentation element
 		var doc = element getDocumentation ()
-		if doc
+		if doc and doc content
 			return texto (doc content)
 		else
 			return None
