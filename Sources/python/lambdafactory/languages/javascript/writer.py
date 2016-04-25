@@ -478,14 +478,18 @@ class Writer(AbstractWriter):
 		if encloses:
 			# The scope will be a map containing the current enclosed values. We
 			# get the list of names of enclosed variables.
+			transpose = transpose or {}
 			enclosed = list(encloses.content.keys())
 			# There might be a `transpose` parameter to rename the variables
-			if transpose: enclosed = [transpose.get(_) or _ for _ in enclosed]
+			transposed = [transpose.get(_) or _ for _ in enclosed]
 			# We create a scope in which we're going to copy the value of the variables
 			# This is *fairly ugly*, but it's easier for now as otherwise we
 			# would need to do rewriting of variables/arguments
-			result = "(function({0}){{return ({1})}}({0}))".format(
+			# NOTE: We do not return the result, it should be managed in the
+			# code itself.
+			result = "(function({0}){{({1})}}({2}))".format(
 				", ".join(enclosed),
+				", ".join(transposed),
 				result
 			)
 		return result
