@@ -453,8 +453,9 @@ class Writer(AbstractWriter):
 		to rename parameters when there is an `encloses` annotation in
 		an iteration loop.
 		"""
+		operations = closure.getOperations ()
 		if bodyOnly:
-			result = map(self.write, closure.getOperations()),
+			result = map(self.write, operations),
 		else:
 			result   = [
 				self._document(closure),
@@ -463,7 +464,7 @@ class Writer(AbstractWriter):
 					or "function(%s){"
 				) % ( ", ".join(map(self.write, closure.getArguments()))),
 				self._writeClosureArguments(closure),
-				map(self.write, closure.getOperations()),
+				map(self.write, operations),
 				(
 					(not self.options["ENABLE_METADATA"] and "}") or \
 					"},%s)" % ( self._writeFunctionMeta(closure))
@@ -487,7 +488,10 @@ class Writer(AbstractWriter):
 			# would need to do rewriting of variables/arguments
 			# NOTE: We do not return the result, it should be managed in the
 			# code itself.
-			result = "(function({0}){{({1})}}({2}))".format(
+			# If the closure body terminates, we return the value as well
+			if operations and isinstance(operations[-1], interfaces.ITermination):
+				result = "return "+result+";"
+			result = "(function({0}){{{2}}}({1}))".format(
 				", ".join(enclosed),
 				", ".join(transposed),
 				result
@@ -1169,18 +1173,21 @@ class Writer(AbstractWriter):
 		return self._format(
 			# OK, so it is a bit complicated here. We start by storing a reference
 			# to the iterated expression
-			"var {l}={iterator};"
-			"var {k}={l} instanceof Array ? {l} : Object.getOwnPropertyNames({l}||{{}});"
-			"var {kl}={k}.length;"
+			"// {0} = items of {1}".format(l, iterator),
+			"var {l}={iterator};".format(l=l, iterator=iterator),
+			"var {k}={l} instanceof Array ? {l} : Object.getOwnPropertyNames({l}||{{}});".format(k=k, l=l),
+			"var {kl}={k}.length;".format(k=k, kl=kl),
 			# Now if the iterated expression is not an array, we get its keys
-			"for (var {ki}=0;{ki}<{kl};{ki}++){{"
+			"for (var {ki}=0;{ki}<{kl};{ki}++){{".format(ki=ki, kl=kl),
 			# If `k` is not the array, then it means we're iterating over an
 			# object
-			"var {i}=({k}==={l})?{ki}:{k}[{ki}];"
-			"var {v}={l}[{i}];"
-			"{closure}}}".format(
-			l=l, i=i, v=v, k=k, ki=ki, kl=kl, iterator=iterator, closure=closure
-			)
+			(
+				"var {i}=({k}==={l})?{ki}:{k}[{ki}];".format(i=i,k=k,l=l,ki=ki),
+				"var {v}={l}[{i}];".format(v=v,l=l,i=i),
+				"// for {0} in items of {1}".format(v, iterator),
+				closure,
+			),
+			"}"
 		)
 
 	def onRepetition( self, repetition ):
