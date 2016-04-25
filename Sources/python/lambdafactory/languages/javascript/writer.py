@@ -448,8 +448,11 @@ class Writer(AbstractWriter):
 			)
 		)
 
-	def onClosure( self, closure, bodyOnly=False ):
-		"""Writes a closure element."""
+	def onClosure( self, closure, bodyOnly=False, transpose=None ):
+		"""Writes a closure element. The `transpose` element is used
+		to rename parameters when there is an `encloses` annotation in
+		an iteration loop.
+		"""
 		if bodyOnly:
 			result = map(self.write, closure.getOperations()),
 		else:
@@ -476,6 +479,8 @@ class Writer(AbstractWriter):
 			# The scope will be a map containing the current enclosed values. We
 			# get the list of names of enclosed variables.
 			enclosed = list(encloses.content.keys())
+			# There might be a `transpose` parameter to rename the variables
+			if transpose: enclosed = [transpose.get(_) or _ for _ in enclosed]
 			# We create a scope in which we're going to copy the value of the variables
 			# This is *fairly ugly*, but it's easier for now as otherwise we
 			# would need to do rewriting of variables/arguments
@@ -1142,8 +1147,16 @@ class Writer(AbstractWriter):
 		kl = self._getRandomVariable()
 		iterator = self.write(iteration.getIterator())
 		prefix     = None
+		encloses   = None
 		if isinstance(closure, interfaces.IClosure):
-			closure    = self.onClosure(closure, bodyOnly=True)
+			encloses = {}
+			for _ in closure.getAnnotations("encloses") or (): encloses.update(_.content)
+			if v in encloses:
+				w = self._getRandomVariable()
+				closure = self.onClosure(closure, bodyOnly=True, transpose={v:w})
+				v = w
+			else:
+				closure = self.onClosure(closure, bodyOnly=True)
 		else:
 			closure = self.handle(closure) + "({0}, {1}, {2})".format(v,i,l)
 		# If there is no scope forcing, then we can do a simple iteration

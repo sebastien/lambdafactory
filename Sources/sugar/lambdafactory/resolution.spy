@@ -45,6 +45,7 @@
 		interfaces IProcess
 		interfaces IContext
 		interfaces IAllocation
+		interfaces IIteration
 		interfaces IOperation
 		interfaces IReference
 		interfaces IValue
@@ -170,6 +171,24 @@
 			element setDataFlow(dataflow)
 		end
 	@end
+
+	@method onIteration element
+	| We make sure to add `encloses` annotation to closures in iterations
+		var closure = element getClosure ()
+		for p in closure getParameters ()
+			var name  = p getName ()
+			var slots = resolve (name)
+			if slots and slots[0]
+				var a = closure getAnnotation "encloses"
+				if not a
+					closure addAnnotation ("encloses", {(name):slots[0]})
+				else
+					a content [name] = slot
+				end
+			end
+		end
+	@end
+
 
 	@method onReference element
 		# If a reference is made withing a closure that is not the iteration's
