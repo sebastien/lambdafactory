@@ -179,9 +179,6 @@
 			for p in closure getParameters ()
 				var name  = p getName ()
 				var slots = resolve (name)
-				@embed Python
-				|sys.stderr.write("onIteration: {0} {1}\n".format(name, slots))
-				@end
 				if slots and slots[0]
 					var a = closure getAnnotation "encloses"
 					if not a

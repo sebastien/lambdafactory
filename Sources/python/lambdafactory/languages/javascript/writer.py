@@ -455,7 +455,7 @@ class Writer(AbstractWriter):
 		"""
 		operations = closure.getOperations ()
 		if bodyOnly:
-			result = map(self.write, operations),
+			result = [self.write(_) + ";" for _ in operations]
 		else:
 			result   = [
 				self._document(closure),
@@ -489,8 +489,8 @@ class Writer(AbstractWriter):
 			# NOTE: We do not return the result, it should be managed in the
 			# code itself.
 			# If the closure body terminates, we return the value as well
-			if operations and isinstance(operations[-1], interfaces.ITermination):
-				result = "return "+result+";"
+			#if operations and isinstance(operations[-1], interfaces.ITermination):
+			if not bodyOnly: result = "return ("+result+")"
 			result = "(function({0}){{{2}}}({1}))".format(
 				", ".join(enclosed),
 				", ".join(transposed),
