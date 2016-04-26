@@ -1173,7 +1173,6 @@ class Writer(AbstractWriter):
 		return self._format(
 			# OK, so it is a bit complicated here. We start by storing a reference
 			# to the iterated expression
-			"// {0} = items of {1}".format(l, iterator),
 			"var {l}={iterator};".format(l=l, iterator=iterator),
 			"var {k}={l} instanceof Array ? {l} : Object.getOwnPropertyNames({l}||{{}});".format(k=k, l=l),
 			"var {kl}={k}.length;".format(k=k, kl=kl),
@@ -1184,7 +1183,6 @@ class Writer(AbstractWriter):
 			(
 				"var {i}=({k}==={l})?{ki}:{k}[{ki}];".format(i=i,k=k,l=l,ki=ki),
 				"var {v}={l}[{i}];".format(v=v,l=l,i=i),
-				"// for {0} in items of {1}".format(v, iterator),
 				closure,
 			),
 			"}"
