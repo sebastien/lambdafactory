@@ -448,10 +448,14 @@ class Writer(AbstractWriter):
 			)
 		)
 
-	def onClosure( self, closure, bodyOnly=False ):
-		"""Writes a closure element."""
+	def onClosure( self, closure, bodyOnly=False, transpose=None ):
+		"""Writes a closure element. The `transpose` element is used
+		to rename parameters when there is an `encloses` annotation in
+		an iteration loop.
+		"""
+		operations = closure.getOperations ()
 		if bodyOnly:
-			result = map(self.write, closure.getOperations()),
+			result = [self.write(_) + ";" for _ in operations]
 		else:
 			result   = [
 				self._document(closure),
@@ -460,7 +464,7 @@ class Writer(AbstractWriter):
 					or "function(%s){"
 				) % ( ", ".join(map(self.write, closure.getArguments()))),
 				self._writeClosureArguments(closure),
-				map(self.write, closure.getOperations()),
+				map(self.write, operations),
 				(
 					(not self.options["ENABLE_METADATA"] and "}") or \
 					"},%s)" % ( self._writeFunctionMeta(closure))
@@ -475,12 +479,21 @@ class Writer(AbstractWriter):
 		if encloses:
 			# The scope will be a map containing the current enclosed values. We
 			# get the list of names of enclosed variables.
+			transpose = transpose or {}
 			enclosed = list(encloses.content.keys())
+			# There might be a `transpose` parameter to rename the variables
+			transposed = [transpose.get(_) or _ for _ in enclosed]
 			# We create a scope in which we're going to copy the value of the variables
 			# This is *fairly ugly*, but it's easier for now as otherwise we
 			# would need to do rewriting of variables/arguments
-			result = "(function({0}){{return ({1})}}({0}))".format(
+			# NOTE: We do not return the result, it should be managed in the
+			# code itself.
+			# If the closure body terminates, we return the value as well
+			#if operations and isinstance(operations[-1], interfaces.ITermination):
+			if not bodyOnly: result = "return ("+result+")"
+			result = "(function({0}){{{2}}}({1}))".format(
 				", ".join(enclosed),
+				", ".join(transposed),
 				result
 			)
 		return result
@@ -1142,8 +1155,16 @@ class Writer(AbstractWriter):
 		kl = self._getRandomVariable()
 		iterator = self.write(iteration.getIterator())
 		prefix     = None
+		encloses   = None
 		if isinstance(closure, interfaces.IClosure):
-			closure    = self.onClosure(closure, bodyOnly=True)
+			encloses = {}
+			for _ in closure.getAnnotations("encloses") or (): encloses.update(_.content)
+			if v in encloses:
+				w = self._getRandomVariable()
+				closure = self.onClosure(closure, bodyOnly=True, transpose={v:w})
+				v = w
+			else:
+				closure = self.onClosure(closure, bodyOnly=True)
 		else:
 			closure = self.handle(closure) + "({0}, {1}, {2})".format(v,i,l)
 		# If there is no scope forcing, then we can do a simple iteration
@@ -1152,18 +1173,21 @@ class Writer(AbstractWriter):
 		return self._format(
 			# OK, so it is a bit complicated here. We start by storing a reference
 			# to the iterated expression
-			"var {l}={iterator};"
-			"var {k}={l} instanceof Array ? {l} : Object.getOwnPropertyNames({l}||{{}});"
-			"var {kl}={k}.length;"
+			"// {0} = items of {1}".format(l, iterator),
+			"var {l}={iterator};".format(l=l, iterator=iterator),
+			"var {k}={l} instanceof Array ? {l} : Object.getOwnPropertyNames({l}||{{}});".format(k=k, l=l),
+			"var {kl}={k}.length;".format(k=k, kl=kl),
 			# Now if the iterated expression is not an array, we get its keys
-			"for (var {ki}=0;{ki}<{kl};{ki}++){{"
+			"for (var {ki}=0;{ki}<{kl};{ki}++){{".format(ki=ki, kl=kl),
 			# If `k` is not the array, then it means we're iterating over an
 			# object
-			"var {i}=({k}==={l})?{ki}:{k}[{ki}];"
-			"var {v}={l}[{i}];"
-			"{closure}}}".format(
-			l=l, i=i, v=v, k=k, ki=ki, kl=kl, iterator=iterator, closure=closure
-			)
+			(
+				"var {i}=({k}==={l})?{ki}:{k}[{ki}];".format(i=i,k=k,l=l,ki=ki),
+				"var {v}={l}[{i}];".format(v=v,l=l,i=i),
+				"// for {0} in items of {1}".format(v, iterator),
+				closure,
+			),
+			"}"
 		)
 
 	def onRepetition( self, repetition ):

@@ -31,7 +31,7 @@ class BasicDataFlow(Pass):
 	3) Attaches operations that reference a value to the original slot (this
 	prepares the path for the typing pass)"""
 	RE_IMPLICIT = re.compile('^_[0-9]?$')
-	HANDLES = [interfaces.IProgram, interfaces.IModule, interfaces.IClass, interfaces.IMethod, interfaces.IClosure, interfaces.IProcess, interfaces.IContext, interfaces.IAllocation, interfaces.IOperation, interfaces.IReference, interfaces.IValue]
+	HANDLES = [interfaces.IProgram, interfaces.IModule, interfaces.IClass, interfaces.IMethod, interfaces.IClosure, interfaces.IProcess, interfaces.IContext, interfaces.IAllocation, interfaces.IIteration, interfaces.IOperation, interfaces.IReference, interfaces.IValue]
 	NAME = 'Resolution'
 	def __init__ (self):
 		Pass.__init__(self)
@@ -115,6 +115,20 @@ class BasicDataFlow(Pass):
 		if (not dataflow):
 			dataflow = self.getParentDataFlow()
 			element.setDataFlow(dataflow)
+	
+	def onIteration(self, element):
+		"""We make sure to add `encloses` annotation to closures in iterations"""
+		closure=element.getClosure()
+		if isinstance(closure, interfaces.IClosure):
+			for p in closure.getParameters():
+				name=p.getName()
+				slots=self.resolve(name)
+				if (slots and slots[0]):
+					a=closure.getAnnotation('encloses')
+					if (not a):
+						closure.addAnnotation('encloses', {(name):slots[0]})
+					elif True:
+						a.content[name] = slot
 	
 	def onReference(self, element):
 		i=self.lastIndexInContext(interfaces.IClosure)

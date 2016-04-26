@@ -349,6 +349,9 @@ class Element:
 		self.sourceLocation[1] = end
 		return self
 	
+	def getOffsets(self):
+		return self.sourceLocation
+	
 	def getStartOffset(self):
 		return self.sourceLocation[0]
 	

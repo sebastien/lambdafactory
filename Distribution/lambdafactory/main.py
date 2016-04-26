@@ -140,12 +140,14 @@ class Command:
 		if program.getModules():
 			self.transformProgram(program)
 		if options.api:
-			html_documentation = self.environment.getPass('Documentation').asHTML()
+			doc_pass=self.environment.getPass('Documentation')
+			doc_pass.setWriter(self.getWriter('js'))
+			json_documentation = doc_pass.asJSON()
 			if (options.api == '-'):
-				output.write(html_documentation)
+				output.write(json_documentation)
 			elif True:
 				f=file(options.api, mode=('w'))
-				f.write(html_documentation)
+				f.write(json_documentation)
 				f.close()
 		elif options.compile:
 			program_source=self.writeProgram(program, language, options.runtime, options.includeSource)
@@ -198,13 +200,17 @@ class Command:
 				return name_and_value[0]
 		return None
 	
-	def writeProgram(self, program, inLanguage, includeRuntime=None, includeSource=None):
-		if includeRuntime is None: includeRuntime = False
-		if includeSource is None: includeSource = False
-		language=self.environment.loadLanguage(inLanguage)
+	def getWriter(self, language):
+		language = self.environment.loadLanguage(language)
 		writer=language.writer()
 		writer.report = self.environment.report
 		writer.setEnvironment(self.environment)
+		return writer
+	
+	def writeProgram(self, program, inLanguage, includeRuntime=None, includeSource=None):
+		if includeRuntime is None: includeRuntime = False
+		if includeSource is None: includeSource = False
+		writer=self.getWriter(inLanguage)
 		writer.setOption('INCLUDE_SOURCE', includeSource)
 		program_source=writer.run(program)
 		if includeRuntime:
