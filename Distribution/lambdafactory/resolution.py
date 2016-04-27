@@ -119,7 +119,9 @@ class BasicDataFlow(Pass):
 	def onIteration(self, element):
 		"""We make sure to add `encloses` annotation to closures in iterations"""
 		closure=element.getClosure()
+		self.onOperation(element)
 		if isinstance(closure, interfaces.IClosure):
+			self.onClosure(closure)
 			for p in closure.getParameters():
 				name=p.getName()
 				slots=self.resolve(name)
