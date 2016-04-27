@@ -175,7 +175,9 @@
 	@method onIteration element
 	| We make sure to add `encloses` annotation to closures in iterations
 		var closure = element getClosure ()
+		onOperation (element)
 		if isinstance(closure, interfaces IClosure)
+			onClosure (closure)
 			for p in closure getParameters ()
 				var name  = p getName ()
 				var slots = resolve (name)
