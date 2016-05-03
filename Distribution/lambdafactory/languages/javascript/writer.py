@@ -211,9 +211,10 @@ class Writer(AbstractWriter):
 		# We create a map of class methods, including inherited class methods
 		# so that we can copy the implementation of these
 		classOperations = {}
-		for name, method in classElement.getInheritedClassMethods().items():
-			# FIXME: Maybe use wrapper instead
-			classOperations[name] = self._writeClassMethodProxy(classElement, method)
+		# NOTE: This is not necessary since Extend-3.1
+		# for name, method in classElement.getInheritedClassMethods().items():
+		# 	# FIXME: Maybe use wrapper instead
+		# 	classOperations[name] = self._writeClassMethodProxy(classElement, method)
 		# Here, we've got to cheat a little bit. Each class method will
 		# generate an '_imp' suffixed method that will be invoked by the
 		for meth in classElement.getClassMethods():
