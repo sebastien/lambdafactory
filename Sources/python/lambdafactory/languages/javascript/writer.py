@@ -30,15 +30,15 @@ VALID_SYMBOL_CHARS = "_" + string.digits + string.letters
 # NOTE: This is not the complete list of keywords for JavaScript, we removed
 # some such as typeof, null, which may be used as functions/values in code.
 # NOTE: removed catch, as it clashes with the Promise
-KEYWORDS = """abstract boolean break byte
-case char class
+KEYWORDS = """abstract break
+case class let
 continue const debugger default
-delete do double else
+delete do else
 enum export extends
-final finally float for
+final finally for
 function goto if implements
-import in int
-interface long native new
+import in
+interface native new
 package private protected
 public return short static
 super switch synchronized
