@@ -1188,6 +1188,38 @@
 		setParameters(parameters)
 	@end
 
+	@method declareMutation name, slot=Undefined
+	| Adds a `mutates` annotation to this closure saying that it mutates
+	| the slot named `name` in its scope.
+		var a = getAnnotation "mutates"
+		if not a
+			addAnnotation ("mutates", {(name):slot})
+		else
+			a content [name] = slot
+		end
+	@end
+
+	@method declareEnclosure name, slot=Undefined
+	| Adds a `encloses` annotation to this closure saying that it mutates
+	| the slot named `name` in its scope.
+		var a = getAnnotation "encloses"
+		if not a
+			addAnnotation ("encloses", {(name):slot})
+		else
+			a content [name] = slot
+		end
+	@end
+
+	@method hasMutation name
+	| Tells if the closure has a `mutates` annotation of the given name
+		var a = getAnnotation "mutates"
+		if a
+			return name in (a content)
+		else
+			return False
+		end
+	@end
+
 	@method setParameters parameters
 		self parameters = []
 		if parameters

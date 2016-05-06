@@ -45,6 +45,7 @@
 		interfaces IProcess
 		interfaces IContext
 		interfaces IAllocation
+		interfaces IAssignment
 		interfaces IIteration
 		interfaces IOperation
 		interfaces IReference
@@ -156,6 +157,36 @@
 		dataflow declareVariable( name, element getDefaultValue(), element)
 	@end
 
+	@method onAssignment element
+		var dataflow = element getDataFlow()
+		if not dataflow
+			dataflow = getParentDataFlow()
+			element setDataFlow(dataflow)
+		end
+		var t = element getTarget ()
+		if isinstance(t, interfaces IReference)
+			# If we assign a reference, we try to resolve it. If it doesn't
+			# resolve, then there is a problem, but we're not going to warn
+			# users here.
+			var name  = t getReferenceName ()
+			var slots = resolve (name)
+			if slots and slots[0]
+				# We find the element which declared the element that
+				# we resolved.
+				var slot  = slots[0]
+				var scope = slot getDataFlow () getElement ()
+				# Now, if we are within a closure that is declared after
+				# the element allocating the slot, we annotate the
+				# closure saying that it "mutates" the given slot.
+				var i     = indexInContext (scope)
+				var j     = lastIndexInContext (interfaces IClosure)
+				if i < j
+					context[j] declareMutation (name, slot)
+				end
+			end
+		end
+	@end
+
 	@method onOperation element
 		var dataflow = element getDataFlow()
 		if not dataflow
@@ -182,12 +213,7 @@
 				var name  = p getName ()
 				var slots = resolve (name)
 				if slots and slots[0]
-					var a = closure getAnnotation "encloses"
-					if not a
-						closure addAnnotation ("encloses", {(name):slots[0]})
-					else
-						a content [name] = slot
-					end
+					closure declareEnclosure (name, slots[0])
 				end
 			end
 		end
@@ -236,16 +262,15 @@
 				var slot  = slots[0]
 				var scope = slot getDataFlow () getElement ()
 				var k     = indexInContext (scope)
-				if scope and (k < i) and (j < k)
+				var c     = context[i]
+				if scope and (k < i) and (j < k) and (not c hasMutation (name))
 					# If the reference resolves outside of the closure we'll
-					# need to wrap the creation of the closure
-					var c = context[i]
-					var a = c getAnnotation "encloses"
-					if not a
-						context[i] addAnnotation ("encloses", {(name):slot})
-					else
-						a content [name] = slot
-					end
+					# need to wrap the creation of the closure. However,
+					# if the closure *mutates* the slot, then we won't declare
+					# a closure over it.
+					# NOTE: We could still declare the annotation, but process
+					# it diffently in the writers.
+					c declareEnclosure (name, slots)
 				end
 			end
 		end
