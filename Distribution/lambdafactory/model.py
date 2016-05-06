@@ -858,6 +858,34 @@ class Closure(Process, IAssignable, IClosure, IEvaluable):
 		Process.__init__(self, name)
 		self.setParameters(parameters)
 	
+	def declareMutation(self, name, slot=None):
+		"""Adds a `mutates` annotation to this closure saying that it mutates
+		the slot named `name` in its scope."""
+		if slot is None: slot = None
+		a=self.getAnnotation('mutates')
+		if (not a):
+			self.addAnnotation('mutates', {(name):slot})
+		elif True:
+			a.content[name] = slot
+	
+	def declareEnclosure(self, name, slot=None):
+		"""Adds a `encloses` annotation to this closure saying that it mutates
+		the slot named `name` in its scope."""
+		if slot is None: slot = None
+		a=self.getAnnotation('encloses')
+		if (not a):
+			self.addAnnotation('encloses', {(name):slot})
+		elif True:
+			a.content[name] = slot
+	
+	def hasMutation(self, name):
+		"""Tells if the closure has a `mutates` annotation of the given name"""
+		a=self.getAnnotation('mutates')
+		if a:
+			return (name in a.content)
+		elif True:
+			return False
+	
 	def setParameters(self, parameters):
 		self.parameters = []
 		if parameters:

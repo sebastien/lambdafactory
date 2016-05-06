@@ -31,7 +31,7 @@ class BasicDataFlow(Pass):
 	3) Attaches operations that reference a value to the original slot (this
 	prepares the path for the typing pass)"""
 	RE_IMPLICIT = re.compile('^_[0-9]?$')
-	HANDLES = [interfaces.IProgram, interfaces.IModule, interfaces.IClass, interfaces.IMethod, interfaces.IClosure, interfaces.IProcess, interfaces.IContext, interfaces.IAllocation, interfaces.IIteration, interfaces.IOperation, interfaces.IReference, interfaces.IValue]
+	HANDLES = [interfaces.IProgram, interfaces.IModule, interfaces.IClass, interfaces.IMethod, interfaces.IClosure, interfaces.IProcess, interfaces.IContext, interfaces.IAllocation, interfaces.IAssignment, interfaces.IIteration, interfaces.IOperation, interfaces.IReference, interfaces.IValue]
 	NAME = 'Resolution'
 	def __init__ (self):
 		Pass.__init__(self)
@@ -104,6 +104,23 @@ class BasicDataFlow(Pass):
 		name=element.getSlotToAllocate().getName()
 		dataflow.declareVariable(name, element.getDefaultValue(), element)
 	
+	def onAssignment(self, element):
+		dataflow=element.getDataFlow()
+		if (not dataflow):
+			dataflow = self.getParentDataFlow()
+			element.setDataFlow(dataflow)
+		t=element.getTarget()
+		if isinstance(t, interfaces.IReference):
+			name=t.getReferenceName()
+			slots=self.resolve(name)
+			if (slots and slots[0]):
+				slot=slots[0]
+				scope=slot.getDataFlow().getElement()
+				i=self.indexInContext(scope)
+				j=self.lastIndexInContext(interfaces.IClosure)
+				if (i < j):
+					self.context[j].declareMutation(name, slot)
+	
 	def onOperation(self, element):
 		dataflow=element.getDataFlow()
 		if (not dataflow):
@@ -126,11 +143,7 @@ class BasicDataFlow(Pass):
 				name=p.getName()
 				slots=self.resolve(name)
 				if (slots and slots[0]):
-					a=closure.getAnnotation('encloses')
-					if (not a):
-						closure.addAnnotation('encloses', {(name):slots[0]})
-					elif True:
-						a.content[name] = slot
+					closure.declareEnclosure(name, slots[0])
 	
 	def onReference(self, element):
 		i=self.lastIndexInContext(interfaces.IClosure)
@@ -163,13 +176,9 @@ class BasicDataFlow(Pass):
 				slot=slots[0]
 				scope=slot.getDataFlow().getElement()
 				k=self.indexInContext(scope)
-				if ((scope and (k < i)) and (j < k)):
-					c=self.context[i]
-					a=c.getAnnotation('encloses')
-					if (not a):
-						self.context[i].addAnnotation('encloses', {(name):slot})
-					elif True:
-						a.content[name] = slot
+				c=self.context[i]
+				if (((scope and (k < i)) and (j < k)) and (not c.hasMutation(name))):
+					c.declareEnclosure(name, slots)
 	
 
 class ClearDataFlow(Pass):
