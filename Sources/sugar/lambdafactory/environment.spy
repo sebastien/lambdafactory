@@ -225,6 +225,8 @@
 		var f   = open (p, "wb")
 		try
 			pickle dump (sourceAndModule, f)
+			# SEE: http://stackoverflow.com/questions/2333872/atomic-writing-to-file-with-python
+			f flush () ; os fsync (f fileno ())
 			f close ()
 		catch e
 			f close ()
@@ -232,7 +234,7 @@
 			error ("Cache.set {0}: {1}" format (k, e))
 			return None
 		end
-		var pm  = _getPathForModuleName (sourceAndModule[1] getAbsoluteName ())
+		var pm = _getPathForModuleName (sourceAndModule[1] getAbsoluteName ())
 		if os path exists (pm)
 			os unlink (pm)
 		end

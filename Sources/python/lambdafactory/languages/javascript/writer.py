@@ -626,7 +626,7 @@ class Writer(AbstractWriter):
 
 	def onReference( self, element ):
 		"""Writes an argument element."""
-		symbol_name  = element.getReferenceName()
+		symbol_name = element.getReferenceName()
 		slot, value = self.resolve(symbol_name)
 		if slot:
 			scope = slot.getDataFlow().getElement()
@@ -653,12 +653,20 @@ class Writer(AbstractWriter):
 		elif symbol_name == "None":
 			return "null"
 		elif symbol_name == "super":
-			assert self.resolve("self"), "Super must be used inside method"
-			# FIXME: Should check that the element has a method in parent scope
-			return "%s.getSuper(%s.getParent())" % (
-				self.jsSelf,
-				self.getAbsoluteName(self.getCurrentClass())
-			)
+			if self.isIn(interfaces.IClassAttribute) or self.isIn(interfaces.IClassMethod):
+				c = self.getCurrentClass()
+				p = self.getClassParents(c)
+				if p:
+					return self.getAbsoluteName(p[0])
+				else:
+					return symbol_name
+			else:
+				assert self.resolve("self"), "Super must be used inside method"
+				# FIXME: Should check that the element has a method in parent scope
+				return "%s.getSuper(%s.getParent())" % (
+					self.jsSelf,
+					self.getAbsoluteName(self.getCurrentClass())
+				)
 		if not self._isSymbolValid(symbol_name):
 			# FIXME: This is temporary, we should have an AbsoluteReference
 			# operation that uses symbols as content
