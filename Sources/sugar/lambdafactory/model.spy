@@ -248,7 +248,6 @@
 		return False
 	@end
 
-
 	@method getSlot name
 		return hasSlot (name)
 	@end
