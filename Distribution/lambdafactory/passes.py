@@ -210,10 +210,17 @@ class PassContext:
 			return tuple([])
 		current_class=theClass
 		assert(isinstance(theClass, interfaces.IClass))
+		import sys;sys.stderr.write("getClassParents: {0}\n".format(theClass.getAbsoluteName()))
+		
 		for parent_class_ref in current_class.getParentClassesRefs():
 			parent_class_name=parent_class_ref.getReferenceName()
 			resolution=self.resolve(parent_class_name, current_class.getDataFlow().parent)
-			if (not resolution[1]):
+			if (resolution[1] == theClass):
+				module=theClass.getParent()
+				imported=module.getAnnotation('imported')
+				if imported:
+					resolution = [None, imported.content.get(parent_class_name)]
+			elif (not resolution[1]):
 				resolution = self.resolveAbsolute(parent_class_name)
 			parent_class=resolution
 			slot=parent_class[0]
@@ -231,6 +238,8 @@ class PassContext:
 	
 	def getClassAncestors(self, theClass=None):
 		if theClass is None: theClass = None
+		import sys;sys.stderr.write("getClassAncestors: {0}\n".format(theClass))
+		
 		ancestors=[]
 		if (not theClass):
 			return tuple([])

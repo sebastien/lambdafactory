@@ -402,7 +402,7 @@ class Element:
 		self.annotations = new_annotations
 	
 	def setAnnotation(self, name, content):
-		annotation=self.getAnnotation(withName)
+		annotation=self.getAnnotation(name)
 		if (not annotation):
 			annotation = Annotation(name, content)
 			self.annotations.append(annotation)

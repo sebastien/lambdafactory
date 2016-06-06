@@ -250,12 +250,13 @@ class DataFlowBinding(Pass):
 		symbol_name=symbolName
 		element=moduleDest
 		slot_and_value=self.resolveAbsolute(module_name)
+		result={}
 		if (slot_and_value == FAILED):
 			self.environment.report.error('Imported module not found in scope:', module_name, 'in', element.getName())
 		elif (symbol_name == '*'):
 			imported_module=slot_and_value[1]
 			for slot_name in imported_module.getSlotNames():
-				self.importSymbol(operation, slot_name, fromModuleName, moduleDest)
+				result.update(self.importSymbol(operation, slot_name, fromModuleName, moduleDest))
 		elif True:
 			symbol_slot_and_value=self.resolve(symbol_name, slot_and_value[1])
 			if (symbol_slot_and_value == FAILED):
@@ -269,12 +270,15 @@ class DataFlowBinding(Pass):
 					df.declareImported(imported_name, value, operation)
 					assert((df.resolve(imported_name)[0].getDataFlow() == df))
 					assert((df.resolve(imported_name)[0].getDataFlow().getElement() == element))
+				result[imported_name] = value
+		return result
 	
 	def onModule(self, element):
 		"""Processes the module import operations and adds them to the module
 		dataflow"""
 		imports=element.getImportOperations()
 		FAILED=tuple([None, None])
+		imported={}
 		for i in imports:
 			if isinstance(i, interfaces.IImportModuleOperation):
 				absolute_name=i.getImportedModuleName()
@@ -284,6 +288,7 @@ class DataFlowBinding(Pass):
 					self.environment.report.error('Imported module not found in scope:', absolute_name, 'in', element.getName())
 				elif alias:
 					element.getDataFlow().declareImported(alias, slot_and_value[1], i)
+					imported[alias] = slot_and_value[1]
 					assert((element.getDataFlow().getElement() == element))
 					assert((element.getDataFlow().resolve(alias)[0].getDataFlow() == element.getDataFlow()))
 					assert((element.getDataFlow().resolve(alias)[0].getDataFlow().getElement() == element))
@@ -291,23 +296,23 @@ class DataFlowBinding(Pass):
 				module_name=i.getImportOrigin()
 				symbol_name=i.getImportedElement()
 				alias=i.getAlias()
-				self.importSymbol(i, symbol_name, module_name, element, alias)
+				imported.update(self.importSymbol(i, symbol_name, module_name, element, alias))
 			elif isinstance(i, interfaces.IImportSymbolsOperation):
 				module_name=i.getImportOrigin()
 				for symbol_name in i.getOpArgument(0):
-					self.importSymbol(i, symbol_name, module_name, element, None)
+					imported.update(self.importSymbol(i, symbol_name, module_name, element, None))
 			elif True:
 				self.environment.report.error(('DataFlowBinding: operation not implemented ' + repr(i)))
+		if element.hasAnnotation('imported'):
+			element.getAnnotation('imported').value.update(imported)
+		elif True:
+			element.setAnnotation('imported', imported)
 	
 	def onClass(self, element):
-		for parent_class_ref in element.getParentClassesRefs():
-			slot_and_value=self.resolveLocalOrAbsolute(parent_class_ref)
-			if (not slot_and_value[0]):
-				self.environment.report.error('Parent class not found:', parent_class_ref.getReferenceName(), 'in', element.getName())
-			elif True:
-				parent_class=slot_and_value[1]
-				assert(isinstance(parent_class, interfaces.IClass))
-				assert(parent_class.getDataFlow())
-				element.getDataFlow().addSource(parent_class.getDataFlow())
+		for parent_class in self.getClassParents(element):
+			assert((parent_class != element))
+			assert(isinstance(parent_class, interfaces.IClass))
+			assert(parent_class.getDataFlow())
+			element.getDataFlow().addSource(parent_class.getDataFlow())
 	
 
