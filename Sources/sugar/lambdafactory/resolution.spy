@@ -471,12 +471,15 @@
 	@end
 
 	@method onClass element
-		# FIXME: This seesm redundant with getClassParents()
+		# FIXME: This seems redundant with getClassParents()
 		for parent_class in getClassParents (element)
 			assert (parent_class != element)
-			assert (isinstance(parent_class, interfaces IClass))
-			assert (parent_class getDataFlow ())
-			element getDataFlow () addSource (parent_class getDataFlow())
+			if isinstance(parent_class, interfaces IClass)
+				assert (parent_class getDataFlow ())
+				element getDataFlow () addSource (parent_class getDataFlow())
+			elif isinstance(parent_class, interfaces IReference)
+				self environment report error ("Unresolved parent class: " + parent_class getReferenceName () + " in " + element getAbsoluteName ())
+			end
 		end
 	@end
 

@@ -617,12 +617,17 @@ class Writer(AbstractWriter):
 	def onModuleAttribute( self, element ):
 		"""Writes an argument element."""
 		default_value = element.getDefaultValue()
-		if default_value: default_value = self.write(default_value)
-		else: default_value = 'undefined'
-		return self._format(
-			self._document(element),
-			"%s=%s" % (self._rewriteSymbol(element.getName()), default_value)
-		)
+		if default_value:
+			default_value = self.write(default_value)
+			return self._format(
+				self._document(element),
+				"%s=%s" % (self._rewriteSymbol(element.getName()), default_value)
+			)
+		else:
+			return self._format(
+				self._document(element),
+				"%s;" % (self._rewriteSymbol(element.getName()))
+			)
 
 	def onReference( self, element ):
 		"""Writes an argument element."""
