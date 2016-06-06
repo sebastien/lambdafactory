@@ -312,9 +312,6 @@
 			var current_class = theClass
 			# The given class can be either a class object or a reference
 			assert (isinstance(theClass, interfaces IClass))
-			@embed Python
-			|import sys;sys.stderr.write("getClassParents: {0}\n".format(theClass.getAbsoluteName()))
-			@end
 			for parent_class_ref in current_class getParentClassesRefs ()
 				var parent_class_name = parent_class_ref getReferenceName ()
 				# NOTE: We resolve in the parent dataflow to avoid resovling the parent class name
@@ -355,9 +352,6 @@
 		@end
 
 		@method getClassAncestors theClass=None
-			@embed Python
-			|import sys;sys.stderr.write("getClassAncestors: {0}\n".format(theClass))
-			@end
 			var ancestors = []
 			if not theClass
 				return tuple([])
