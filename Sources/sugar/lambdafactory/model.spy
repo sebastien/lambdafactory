@@ -542,7 +542,7 @@
 	@end
 
 	@method setAnnotation name, content
-		var annotation = getAnnotation (withName)
+		var annotation = getAnnotation (name)
 		if not annotation
 			# FIXME: Should get factory instead
 			annotation = new Annotation(name, content)

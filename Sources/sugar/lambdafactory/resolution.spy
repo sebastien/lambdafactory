@@ -396,13 +396,14 @@
 		var symbol_name = symbolName
 		var element     = moduleDest
 		var slot_and_value = self resolveAbsolute(module_name)
+		var result         = {}
 		if slot_and_value == FAILED
 			self environment report error ("Imported module not found in scope:", module_name, "in", element getName())
 		if symbol_name == "*"
 			# We import all the symbols defined in the module
 			var imported_module = slot_and_value[1]
 			for slot_name in imported_module getSlotNames ()
-				importSymbol (operation, slot_name, fromModuleName, moduleDest)
+				result update (importSymbol (operation, slot_name, fromModuleName, moduleDest))
 			end
 		else
 			var symbol_slot_and_value = self resolve ( symbol_name, slot_and_value[1] )
@@ -419,8 +420,10 @@
 					assert (df resolve (imported_name)[0] getDataFlow() == df )
 					assert (df resolve (imported_name)[0] getDataFlow() getElement() == element)
 				end
+				result[imported_name] = value
 			end
 		end
+		return result
 	@end
 
 	@method onModule element
@@ -428,6 +431,7 @@
 	| dataflow
 		var imports = element getImportOperations()
 		var FAILED =  tuple([None,None])
+		var imported = {}
 		for i in imports
 			if isinstance(i, interfaces IImportModuleOperation)
 				var absolute_name  = i getImportedModuleName()
@@ -437,6 +441,7 @@
 					self environment report error ("Imported module not found in scope:", absolute_name, "in", element getName())
 				if alias
 					element getDataFlow() declareImported ( alias, slot_and_value[1], i)
+					imported[alias] = slot_and_value[1]
 					assert (element getDataFlow() getElement() == element)
 					assert (element getDataFlow() resolve (alias)[0] getDataFlow() == element getDataFlow() )
 					assert (element getDataFlow() resolve (alias)[0] getDataFlow() getElement() == element)
@@ -446,34 +451,32 @@
 				var symbol_name = i getImportedElement()
 				var alias = i getAlias()
 				# FIXME: Arguments are messy
-				importSymbol (i, symbol_name, module_name, element, alias)
+				imported update (importSymbol (i, symbol_name, module_name, element, alias))
 			if isinstance(i, interfaces IImportSymbolsOperation)
 				var module_name = i getImportOrigin()
 				for symbol_name in i getOpArgument 0
 					# FIXME: Arguments are messy
-					importSymbol (i, symbol_name, module_name, element, None)
+					imported update (importSymbol (i, symbol_name, module_name, element, None))
 				end
 			else
 				# TEST: When resolution works well, self should not be necessary
 				self environment report error ("DataFlowBinding: operation not implemented " + repr(i))
 			end
 		end
+		if element hasAnnotation "imported"
+			element getAnnotation "imported" value update (imported)
+		else
+			element setAnnotation ("imported", imported)
+		end
 	@end
 
 	@method onClass element
-		for parent_class_ref in element getParentClassesRefs()
-			var slot_and_value = self resolveLocalOrAbsolute(parent_class_ref)
-			if not slot_and_value[0]
-				self environment report error ("Parent class not found:", parent_class_ref getReferenceName(), "in", element getName())
-			else
-				var parent_class = slot_and_value[1]
-				assert (isinstance(parent_class, interfaces IClass))
-				assert (parent_class getDataFlow ())
-				element getDataFlow () addSource (parent_class getDataFlow())
-				#for slot in parent_class getDataFlow() getSlots()
-				#	assert (element getDataFlow() resolve (slot getName())[0])
-				#end
-			end
+		# FIXME: This seesm redundant with getClassParents()
+		for parent_class in getClassParents (element)
+			assert (parent_class != element)
+			assert (isinstance(parent_class, interfaces IClass))
+			assert (parent_class getDataFlow ())
+			element getDataFlow () addSource (parent_class getDataFlow())
 		end
 	@end
 

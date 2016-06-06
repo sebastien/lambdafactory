@@ -262,15 +262,13 @@ class DataFlowBinding(Pass):
 				self.environment.report.error('Symbol not found in module scope:', symbol_name, 'in', module_name)
 			elif True:
 				value=symbol_slot_and_value[1]
-				assert((element.getDataFlow().getElement() == element))
-				if alias:
-					element.getDataFlow().declareImported(alias, value, operation)
-					assert((element.getDataFlow().resolve(alias)[0].getDataFlow() == element.getDataFlow()))
-					assert((element.getDataFlow().resolve(alias)[0].getDataFlow().getElement() == element))
-				elif True:
-					element.getDataFlow().declareImported(symbol_name, value, operation)
-					assert((element.getDataFlow().resolve(symbol_name)[0].getDataFlow() == element.getDataFlow()))
-					assert((element.getDataFlow().resolve(symbol_name)[0].getDataFlow().getElement() == element))
+				imported_name=(alias or symbol_name)
+				df=element.getDataFlow()
+				assert((df.getElement() == element))
+				if (not df.hasSlot(imported_name)):
+					df.declareImported(imported_name, value, operation)
+					assert((df.resolve(imported_name)[0].getDataFlow() == df))
+					assert((df.resolve(imported_name)[0].getDataFlow().getElement() == element))
 	
 	def onModule(self, element):
 		"""Processes the module import operations and adds them to the module

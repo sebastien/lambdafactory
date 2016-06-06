@@ -312,12 +312,25 @@
 			var current_class = theClass
 			# The given class can be either a class object or a reference
 			assert (isinstance(theClass, interfaces IClass))
+			@embed Python
+			|import sys;sys.stderr.write("getClassParents: {0}\n".format(theClass.getAbsoluteName()))
+			@end
 			for parent_class_ref in current_class getParentClassesRefs ()
 				var parent_class_name = parent_class_ref getReferenceName ()
-				# NOTE: We resolve in the parent dataflow to avoid resoling the parent class name
+				# NOTE: We resolve in the parent dataflow to avoid resovling the parent class name
 				# in case such as @class Application: Application with @import Application from app
 				var resolution = resolve ( parent_class_name, current_class getDataFlow () parent)
-				if not resolution[1]
+				if resolution[1] == theClass
+					# If it's the same class, then it means the parent is one of the
+					# imported symbol and is being imported with the same name. That's OK
+					# provided the `DataFlowBinding` phase has been run. Otherwise
+					# it will simply return a None.
+					var module   = theClass getParent ()
+					var imported = module getAnnotation "imported"
+					if imported
+						resolution = [None, imported content get (parent_class_name)]
+					end
+				elif not resolution[1]
 					resolution = resolveAbsolute (parent_class_name)
 				end
 				# We resolve the parent_class_name in the 'current_class' parent context, as resolving
@@ -342,6 +355,9 @@
 		@end
 
 		@method getClassAncestors theClass=None
+			@embed Python
+			|import sys;sys.stderr.write("getClassAncestors: {0}\n".format(theClass))
+			@end
 			var ancestors = []
 			if not theClass
 				return tuple([])
