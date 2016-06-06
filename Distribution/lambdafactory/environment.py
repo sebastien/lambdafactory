@@ -167,6 +167,8 @@ class Cache:
 		f=open(p, 'wb')
 		try:
 			pickle.dump(sourceAndModule, f)
+			f.flush()
+			os.fsync(f.fileno())
 			f.close()
 		except Exception as e:
 			f.close()
