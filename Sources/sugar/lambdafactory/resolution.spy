@@ -391,15 +391,18 @@
 
 	# FIXME: Arguments are messy
 	@method importSymbol operation, symbolName, fromModuleName, moduleDest, alias = None
-		var FAILED      =  tuple([None,None])
-		var module_name = fromModuleName
-		var symbol_name = symbolName
-		var element     = moduleDest
+		var FAILED         =  tuple([None,None])
+		var module_name    = fromModuleName
+		var symbol_name    = symbolName
+		var element        = moduleDest
 		var slot_and_value = self resolveAbsolute(module_name)
 		var result         = {}
+		var imported_name  = alias or symbol_name
+		var df             = element getDataFlow ()
+		# FIXME: This implementation is a bit messy
 		if slot_and_value == FAILED
 			self environment report error ("Imported module not found in scope:", module_name, "in", element getName())
-		if symbol_name == "*"
+		elif symbol_name == "*"
 			# We import all the symbols defined in the module
 			var imported_module = slot_and_value[1]
 			for slot_name in imported_module getSlotNames ()
@@ -408,11 +411,16 @@
 		else
 			var symbol_slot_and_value = self resolve ( symbol_name, slot_and_value[1] )
 			if symbol_slot_and_value == FAILED
-				self environment report error ("Symbol not found in module scope:", symbol_name, "in", module_name)
+				if fromModuleName != getCurrentModule () getAbsoluteName ()
+					# We report an error only if we're importing from a different name
+					self environment report error ("Symbol not found in module scope:", symbol_name, "in", module_name)
+				end
+				if not df hasSlot (imported_name)
+					df declareImported (imported_name, None, operation)
+				end
+				result[imported_name] = None
 			else
-				var value = symbol_slot_and_value[1]
-				var imported_name = alias or symbol_name
-				var df            = element getDataFlow ()
+				var value         = symbol_slot_and_value[1]
 				assert (df getElement() == element)
 				if not df hasSlot (imported_name)
 					# We only import the symbol if there is no slot defined

@@ -251,6 +251,8 @@ class DataFlowBinding(Pass):
 		element=moduleDest
 		slot_and_value=self.resolveAbsolute(module_name)
 		result={}
+		imported_name=(alias or symbol_name)
+		df=element.getDataFlow()
 		if (slot_and_value == FAILED):
 			self.environment.report.error('Imported module not found in scope:', module_name, 'in', element.getName())
 		elif (symbol_name == '*'):
@@ -260,11 +262,13 @@ class DataFlowBinding(Pass):
 		elif True:
 			symbol_slot_and_value=self.resolve(symbol_name, slot_and_value[1])
 			if (symbol_slot_and_value == FAILED):
-				self.environment.report.error('Symbol not found in module scope:', symbol_name, 'in', module_name)
+				if (fromModuleName != self.getCurrentModule().getAbsoluteName()):
+					self.environment.report.error('Symbol not found in module scope:', symbol_name, 'in', module_name)
+				if (not df.hasSlot(imported_name)):
+					df.declareImported(imported_name, None, operation)
+				result[imported_name] = None
 			elif True:
 				value=symbol_slot_and_value[1]
-				imported_name=(alias or symbol_name)
-				df=element.getDataFlow()
 				assert((df.getElement() == element))
 				if (not df.hasSlot(imported_name)):
 					df.declareImported(imported_name, value, operation)
@@ -311,8 +315,10 @@ class DataFlowBinding(Pass):
 	def onClass(self, element):
 		for parent_class in self.getClassParents(element):
 			assert((parent_class != element))
-			assert(isinstance(parent_class, interfaces.IClass))
-			assert(parent_class.getDataFlow())
-			element.getDataFlow().addSource(parent_class.getDataFlow())
+			if isinstance(parent_class, interfaces.IClass):
+				assert(parent_class.getDataFlow())
+				element.getDataFlow().addSource(parent_class.getDataFlow())
+			elif isinstance(parent_class, interfaces.IReference):
+				self.environment.report.error(((('Unresolved parent class: ' + parent_class.getReferenceName()) + ' in ') + element.getAbsoluteName()))
 	
 
