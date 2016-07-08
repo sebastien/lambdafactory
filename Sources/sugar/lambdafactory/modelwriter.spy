@@ -2,6 +2,7 @@
 @import lambdafactory.interfaces as interfaces
 @import Pass from lambdafactory.passes
 @import SNIP from lambdafactory.splitter
+@import string
 
 @shared PREFIX     = "\t"
 
@@ -172,6 +173,12 @@
 	@method _format values...
 		@embed Python
 		|return format(*values)
+		@end
+	@end
+
+	@method _expand values, kw
+		@embed Python
+		|return [string.Template(_).substitute(**kw) for _ in values]
 		@end
 	@end
 

@@ -574,7 +574,7 @@
 
 	@abstract @method setImported value=True
 
-	@abstract @method addImportOperation operation
+	@abstract @method addImportOperation operation, position:<Number>
 	| Returns the list of import operations declared in this module
 	|
 	@abstract @method getImportOperations:<[IClass]>
@@ -596,7 +596,7 @@
 |	The program is the core context and entry point for almost every
 |	operation offered by LambdaFactory.
 
-	@abstract @method addModule module:<IModule>
+	@abstract @method addModule module:<IModule>, offset:<Number>
 	| Adds a module to this program. The module will be registered in
 	| the global module catalogue.
 

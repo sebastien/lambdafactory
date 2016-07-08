@@ -981,8 +981,12 @@
 		imported = value
 	@end
 
-	@method addImportOperation operation
-		importOperations append (operation)
+	@method addImportOperation operation, position=-1
+		if position == -1
+			importOperations append (operation)
+		else
+			importOperations insert (position, operation)
+		end
 		operation setParent ( self )
 	@end
 
@@ -1033,7 +1037,7 @@
 		Context __init__ ( self,  name)
 	@end
 
-	@method addModule module
+	@method addModule module, position=-1
 		var same_name_module = Undefined
 		for existing_module in modules
 			if module  == existing_module
@@ -1046,7 +1050,11 @@
 		if same_name_module
 			same_name_module mergeWith (module)
 		else
-			modules append (module)
+			if position == -1
+				modules append (module)
+			else
+				modules insert (position, module)
+			end
 			module setParent (self)
 		end
 	@end

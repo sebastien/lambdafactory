@@ -639,7 +639,7 @@
 			fun addAnnotation (environment factory annotation ("shadow"))
 			runtime setSlot (f, fun)
 		end
-		program addModule (runtime)
+		program addModule (runtime, 0)
 	@end
 
 	@method onModule module
@@ -647,7 +647,7 @@
 		@embed Python
 		|assert self.runtime, "No runtime defined in ExtendJSRuntime pass"
 		@end
-		module addImportOperation (environment factory importSymbols (runtime getSlotNames(), runtime getAbsoluteName ()))
+		module addImportOperation (environment factory importSymbols (runtime getSlotNames(), runtime getAbsoluteName ()), 0)
 		return False
 	@end
 
