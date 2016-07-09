@@ -74,7 +74,7 @@ class Writer(AbstractWriter):
 		self.jsCore   = "extend."
 		self.jsSelf   = "self"
 		self.jsModule = "__module__"
-		self.moduleType = "umd"
+		self.moduleType = "basic"
 		self.supportedEmbedLanguages = ["ecmascript", "js", "javascript"]
 		self.inInvocation = False
 		self.options = {}
@@ -207,7 +207,7 @@ class Writer(AbstractWriter):
 		if self.moduleType == "umd":
 			code.extend(self.getModuleUMDSuffix(moduleElement))
 		else:
-			code.extend(self.getModuleBasicPrefix(moduleElement))
+			code.extend(self.getModuleBasicSuffix(moduleElement))
 		# --- RESULT ----------------------------------------------------------
 		return self._format(*code)
 
@@ -256,7 +256,7 @@ class Writer(AbstractWriter):
 			preamble.replace("MODULE", module_name).replace("IMPORT", imports)
 		] + ["var {0} = require(\"{0}\");".format(_) for _ in imported] + symbols + [
 			module_declaration,
-			"export = typeof export === 'undefined' ? {0};"
+			"exports = typeof exports === 'undefined' ? {0} : exports;".format(module_name)
 		]
 
 	def getModuleUMDSuffix( self, moduleElement ):
