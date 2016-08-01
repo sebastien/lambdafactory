@@ -48,9 +48,13 @@ throw throws transient
 try var void
 volatile while with""".replace("\n", " ").split()
 
+MODULE_UMD    = "umd"
+MODULE_BASIC  = "basic"
+
 OPTIONS = {
-	"ENABLE_METADATA":False,
-	"INCLUDE_SOURCE":False,
+	"ENABLE_METADATA" : False,
+	"INCLUDE_SOURCE"  : False,
+	"MODULE"          : MODULE_UMD,
 }
 
 JS_OPERATORS = {
@@ -70,16 +74,15 @@ class Writer(AbstractWriter):
 
 	def __init__( self ):
 		AbstractWriter.__init__(self)
-		self.jsPrefix = ""
-		self.jsCore   = "extend."
-		self.jsSelf   = "self"
-		self.jsModule = "__module__"
-		self.moduleType = "basic"
+		self.jsPrefix                = ""
+		self.jsCore                  = "extend."
+		self.jsSelf                  = "self"
+		self.jsModule                = "__module__"
+		self.moduleType              = "basic"
 		self.supportedEmbedLanguages = ["ecmascript", "js", "javascript"]
-		self.inInvocation = False
-		self.options = {}
-		self.options.update(OPTIONS)
-		self._generatedVars = [0]
+		self.inInvocation            = False
+		self.options                 = {} ; self.options.update(OPTIONS)
+		self._generatedVars          = [0]
 
 	def _getRandomVariable(self):
 		"""Generates a new random variable."""
@@ -155,6 +158,8 @@ class Writer(AbstractWriter):
 
 	def onModule( self, moduleElement ):
 		"""Writes a Module element."""
+		# Detects the module type
+		if self.environment.options.get("umd"): self.moduleType = "umd"
 		module_name = self._rewriteSymbol(moduleElement.getName())
 		code = [
 			"// " + SNIP % ("%s.js" % (self.getAbsoluteName(moduleElement).replace(".", "/"))),
@@ -253,14 +258,19 @@ class Writer(AbstractWriter):
 				if module != "extend" or alias:
 					symbols.append("var {0} = {1}.{2};".format(alias or slot, module, slot))
 		return [
-			preamble.replace("MODULE", module_name).replace("IMPORT", imports)
+			preamble.replace("MODULE", module_name).replace("IMPORT", imports),
+			"var __extend__ = extend || (require && require.s.contexts_.defined.extend);"
 		] + ["var {0} = require(\"{0}\");".format(_) for _ in imported] + symbols + [
 			module_declaration,
 			"exports = typeof exports === 'undefined' ? {0} : exports;".format(module_name)
 		]
 
 	def getModuleUMDSuffix( self, moduleElement ):
-		return ["});"]
+		module_name = self._rewriteSymbol(moduleElement.getName())
+		return [
+			"if (__extend__) {__extend__.module({0}, exports)}".format(module_name),
+			"});"
+		]
 
 	def getImportedModules( self, moduleElement ):
 		res = []
