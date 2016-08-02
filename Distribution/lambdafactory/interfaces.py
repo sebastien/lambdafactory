@@ -584,7 +584,7 @@ class IModule(IContext, IReferencable, IAssignable, IConstruct):
 		if value is None: value = True
 		raise Exception("Abstract method IModule.setImported not implemented in: " + str(self))
 	
-	def addImportOperation(self, operation):
+	def addImportOperation(self, operation, position):
 		"""Returns the list of import operations declared in this module
 		"""
 		raise Exception("Abstract method IModule.addImportOperation not implemented in: " + str(self))
@@ -610,7 +610,7 @@ class IModule(IContext, IReferencable, IAssignable, IConstruct):
 class IProgram(IContext):
 	"""The program is the core context and entry point for almost every
 	operation offered by LambdaFactory."""
-	def addModule(self, module):
+	def addModule(self, module, offset):
 		"""Adds a module to this program. The module will be registered in
 		the global module catalogue."""
 		raise Exception("Abstract method IProgram.addModule not implemented in: " + str(self))

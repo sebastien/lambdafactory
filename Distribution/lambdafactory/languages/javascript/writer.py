@@ -8,6 +8,8 @@
 # Last mod  : 2015-04-11
 # -----------------------------------------------------------------------------
 
+# TODO: Cleanup the code generation by moving the templates to the top
+#       and creating better generic functions
 # TODO: When constructor is empty, should assign default attributes anyway
 # TODO: Support optional meta-data
 # TODO: Provide a global rewrite operation
@@ -46,9 +48,13 @@ throw throws transient
 try var void
 volatile while with""".replace("\n", " ").split()
 
+MODULE_UMD    = "umd"
+MODULE_BASIC  = "basic"
+
 OPTIONS = {
-	"ENABLE_METADATA":False,
-	"INCLUDE_SOURCE":False,
+	"ENABLE_METADATA" : False,
+	"INCLUDE_SOURCE"  : False,
+	"MODULE"          : MODULE_UMD,
 }
 
 JS_OPERATORS = {
@@ -68,15 +74,15 @@ class Writer(AbstractWriter):
 
 	def __init__( self ):
 		AbstractWriter.__init__(self)
-		self.jsPrefix = ""
-		self.jsCore   = "extend."
-		self.jsSelf   = "self"
-		self.jsModule = "__module__"
+		self.jsPrefix                = ""
+		self.jsCore                  = "extend."
+		self.jsSelf                  = "self"
+		self.jsModule                = "__module__"
+		self.moduleType              = "basic"
 		self.supportedEmbedLanguages = ["ecmascript", "js", "javascript"]
-		self.inInvocation = False
-		self.options = {}
-		self.options.update(OPTIONS)
-		self._generatedVars = [0]
+		self.inInvocation            = False
+		self.options                 = {} ; self.options.update(OPTIONS)
+		self._generatedVars          = [0]
 
 	def _getRandomVariable(self):
 		"""Generates a new random variable."""
@@ -152,45 +158,188 @@ class Writer(AbstractWriter):
 
 	def onModule( self, moduleElement ):
 		"""Writes a Module element."""
+		# Detects the module type
+		if self.environment.options.get("umd"): self.moduleType = "umd"
 		module_name = self._rewriteSymbol(moduleElement.getName())
 		code = [
 			"// " + SNIP % ("%s.js" % (self.getAbsoluteName(moduleElement).replace(".", "/"))),
 			self._document(moduleElement),
 			self.options["ENABLE_METADATA"] and "function __def(v,m){var ms=v['__def__']||{};for(var k in m){ms[k]=m[k]};v['__def__']=ms;return v}" or "",
-			"var %s=(typeof('extend')!='undefined' && extend && extend.module && extend.module(\"%s\")) || %s || {};" % (module_name, self.getAbsoluteName(moduleElement) or module_name, module_name),
-			"(function(%s){" % (module_name),
-			"var {0}={2}, {1}={2}".format(self.jsSelf, self.jsModule, module_name),
 		]
+		# --- PREFIX ----------------------------------------------------------
+		if self.moduleType == "umd":
+			code.extend(self.getModuleUMDPrefix(moduleElement))
+		else:
+			code.extend(self.getModuleBasicPrefix(moduleElement))
+		# --- VERSION ---------------------------------------------------------
 		version = moduleElement.getAnnotation("version")
 		if version:
 			code.append("%s.__VERSION__='%s';" % (self._rewriteSymbol(moduleElement.getName()),version.getContent()))
+		# --- SLOTS -----------------------------------------------------------
 		for name, value in moduleElement.getSlots():
 			if isinstance(value, interfaces.IModuleAttribute):
-				code.extend(["%s.%s" % (self._rewriteSymbol(moduleElement.getName()), self.write(value))])
+				declaration = "{0}.{1}".format(module_name, self.write(value))
 			else:
 				# NOTE: Some slot values may be shadowed, in which case they
 				# won't return any value
 				value_code = self.write(value)
 				if value_code:
-					code.extend(["%s.%s=%s" %
-					(self._rewriteSymbol(moduleElement.getName()), self.renameModuleSlot(name), value_code)])
-		module_name = self._rewriteSymbol(moduleElement.getName())
+					slot_name   = self.renameModuleSlot(name)
+					declaration = "{0}.{1} = {2}".format(module_name, slot_name, value_code)
+			code.append(declaration)
+		# --- INIT ------------------------------------------------------------
 		# FIXME: Init should be only invoked once
 		code.append('if (typeof(%s.init)!="undefined") {%s.init();}' % (
 			module_name,
 			module_name
 		))
-		code.append("})(%s);" % (module_name))
-		source = moduleElement.getSource()
-		if self.options.get("INCLUDE_SOURCE") and source:
-			# NOTE: The source is prefixed with the URL scheme
-			source = source.split("://",1)[-1]
-			if os.path.exists(source):
-				with open(source) as f:
-					code.append("%s.__source__=%s;" % (module_name, json.dumps(f.read())))
-		return self._format(
-			*code
-		)
+		# --- SOURCE ----------------------------------------------------------
+		# We append the source code
+		if self.options.get("INCLUDE_SOURCE"):
+			source = moduleElement.getSource()
+			if source:
+				# NOTE: The source is prefixed with the URL scheme
+				source = source.split("://",1)[-1]
+				if os.path.exists(source):
+					with open(source) as f:
+						code.append("%s.__source__=%s;" % (module_name, json.dumps(f.read())))
+		# --- SUFFIX ----------------------------------------------------------
+		# We add the suffix
+		if self.moduleType == "umd":
+			code.extend(self.getModuleUMDSuffix(moduleElement))
+		else:
+			code.extend(self.getModuleBasicSuffix(moduleElement))
+		# --- RESULT ----------------------------------------------------------
+		return self._format(*code)
+
+	def getModuleBasicPrefix( self, moduleElement ):
+		module_name = self._rewriteSymbol(moduleElement.getName())
+		return [
+			"var %s=(typeof(extend)!='undefined' && extend && extend.module && extend.module(\"%s\")) || %s || {};" % (module_name, self.getAbsoluteName(moduleElement) or module_name, module_name),
+			"(function(%s){" % (module_name),
+			"var {0}={2}, {1}={2}".format(self.jsSelf, self.jsModule, module_name),
+		]
+
+	def getModuleBasicSuffix( self, moduleElement ):
+		module_name = self._rewriteSymbol(moduleElement.getName())
+		return ["})(%s);" % (module_name)]
+
+	def getModuleUMDPrefix( self, moduleElement):
+		# SEE: http://babeljs.io/docs/plugins/transform-es2015-modules-umd/
+		module_name = self._rewriteSymbol(moduleElement.getName())
+		imported    = self.getImportedModules(moduleElement)
+		imports     = (", " + ", ".join(['"' + _ + '"' for _ in imported])) if imported else ""
+		preamble = """// START:UMD_PREAMBLE
+		(function (global, factory) {
+			if (typeof define === "function" && define.amd) {
+				return define(["require", "exports" IMPORTS], factory);
+			} else if (typeof exports !== "undefined") {
+				return factory(require, exports);
+			} else {
+				var module  = {exports:{}};
+				var require = function(_){
+					_=_.split(".");_.reverse();
+					var c=global;
+					while (c && _.length > 0){c=c[_.pop()]}
+					return c;
+				}
+				factory(require, module.exports);
+				global.actual = module.exports;
+				return module.exports;
+			}
+		})(this, function (require, exports) {""".replace(
+			"MODULE", module_name
+		).replace(
+			"IMPORTS", imports
+		).replace("\n\t\t", "\n")
+		module_declaration = [
+			"var __extend__ = extend || window.extend || null;",
+			"{0} = exports = typeof exports === 'undefined' ? {{}} : exports;".format(module_name),
+		]
+		symbols = []
+		for alias, module, slot in self.getImportedSymbols(moduleElement):
+			if not slot:
+				# Modules are already imported
+				if alias:
+					symbols.append("var {0} = {1};".format(alias or module, module))
+			else:
+				# Extend gets a special treatment
+				if module != "extend" or alias:
+					symbols.append("var {0} = {1}.{2};".format(alias or slot, module, slot))
+		return [
+			preamble.replace("MODULE", module_name).replace("IMPORT", imports),
+		] + [
+			"var {0} = require(\"{0}\");".format(_) for _ in imported
+		] + symbols + module_declaration + ["// END:UMD_PREAMBLE"]
+
+	def getModuleUMDSuffix( self, moduleElement ):
+		module_name = self._rewriteSymbol(moduleElement.getName())
+		return [
+			"// START:UMD_POSTAMBLE",
+			"if (__extend__) {{__extend__.module(\"{0}\", {0})}}".format(module_name),
+			(
+				"if (typeof window !== 'undefined') {{var n='{0}'.split('.');"
+				"var c=window;for(var i=0;i<n.length;i++){{"
+				"if(i<n.length-1){{c[n[i]]=c[n[i]]||{{}}}}"
+				"else{{c[n[i]]={0}}}"
+				"}}}}"
+			).format(module_name),
+			"return {0}".format(module_name),
+			"});",
+			"// END:UMD_POSTAMBLE"
+		]
+
+	def getImportedModules( self, moduleElement ):
+		res = []
+		for o in moduleElement.getImportOperations():
+			if   isinstance(o, interfaces.IImportModuleOperation):
+				res.append(o.getImportedModuleName())
+			elif isinstance(o, interfaces.IImportSymbolOperation):
+				res.append(o.getImportOrigin())
+			elif isinstance(o, interfaces.IImportSymbolsOperation):
+				res.append(o.getImportOrigin())
+			elif isinstance(o, interfaces.IImportModulesOperation):
+				res += o.getImportedModuleNames()
+			else:
+				raise NotImplementedError
+		n = []
+		for _ in res:
+			if _ not in n:
+				n.append(_)
+		return n
+
+	def getImportedSymbols( self, moduleElement ):
+		res = []
+		for o in moduleElement.getImportOperations():
+			if   isinstance(o, interfaces.IImportModuleOperation):
+				res.append([
+					o.getAlias(),
+					o.getImportedModuleName(),
+					None
+				])
+			elif isinstance(o, interfaces.IImportSymbolOperation):
+				res.append([
+					o.getAlias(),
+					o.getImportOrigin(),
+					o.getImportedElement()
+				])
+			elif isinstance(o, interfaces.IImportSymbolsOperation):
+				for s in o.getImportedElements():
+					res.append([
+						None,
+						o.getImportOrigin(),
+						s
+					])
+			elif isinstance(o, interfaces.IImportModulesOperation):
+				for s in o.getImportedModuleNames():
+					res.append([
+						None,
+						s,
+						None
+					])
+			else:
+				raise NotImplementedError
+		return res
 
 	def onImportOperation( self, importElement):
 		return self._format("")

@@ -370,13 +370,13 @@ class ExtendJSRuntime(Pass):
 			fun=self.environment.factory.createFunction(f)
 			fun.addAnnotation(self.environment.factory.annotation('shadow'))
 			self.runtime.setSlot(f, fun)
-		program.addModule(self.runtime)
+		program.addModule(self.runtime, 0)
 	
 	def onModule(self, module):
 		imports=module.getImportOperations()
 		assert self.runtime, "No runtime defined in ExtendJSRuntime pass"
 		
-		module.addImportOperation(self.environment.factory.importSymbols(self.runtime.getSlotNames(), self.runtime.getAbsoluteName()))
+		module.addImportOperation(self.environment.factory.importSymbols(self.runtime.getSlotNames(), self.runtime.getAbsoluteName()), 0)
 		return False
 	
 

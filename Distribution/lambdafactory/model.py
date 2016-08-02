@@ -711,8 +711,12 @@ class Module(Context, IModule):
 		if value is None: value = True
 		self.imported = value
 	
-	def addImportOperation(self, operation):
-		self.importOperations.append(operation)
+	def addImportOperation(self, operation, position=None):
+		if position is None: position = -1
+		if (position == -1):
+			self.importOperations.append(operation)
+		elif True:
+			self.importOperations.insert(position, operation)
 		operation.setParent(self)
 	
 	def mergeWith(self, module):
@@ -750,7 +754,8 @@ class Program(Context, IProgram):
 		if name is None: name = None
 		Context.__init__(self, name)
 	
-	def addModule(self, module):
+	def addModule(self, module, position=None):
+		if position is None: position = -1
 		same_name_module=None
 		for existing_module in self.modules:
 			if (module == existing_module):
@@ -761,7 +766,10 @@ class Program(Context, IProgram):
 		if same_name_module:
 			same_name_module.mergeWith(module)
 		elif True:
-			self.modules.append(module)
+			if (position == -1):
+				self.modules.append(module)
+			elif True:
+				self.modules.insert(position, module)
 			module.setParent(self)
 	
 	def hasModule(self, module):

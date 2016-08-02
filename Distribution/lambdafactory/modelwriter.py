@@ -4,6 +4,7 @@ __module__ = sys.modules[__name__]
 import lambdafactory.interfaces as interfaces
 from lambdafactory.passes import Pass
 from lambdafactory.splitter import SNIP
+import string
 __module_name__ = 'lambdafactory.modelwriter'
 PREFIX = '\t'
 def _format (value, level=None):
@@ -102,6 +103,10 @@ class AbstractWriter(Pass):
 	
 	def _format(self, *values):
 		return format(*values)
+		
+	
+	def _expand(self, values, kw):
+		return [string.Template(_).substitute(**kw) for _ in values]
 		
 	
 	def _unique(self, name):
