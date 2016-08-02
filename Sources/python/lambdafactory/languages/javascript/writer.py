@@ -229,15 +229,22 @@ class Writer(AbstractWriter):
 		return ["})(%s);" % (module_name)]
 
 	def getModuleUMDPrefix( self, moduleElement):
+		# SEE: http://babeljs.io/docs/plugins/transform-es2015-modules-umd/
 		module_name = self._rewriteSymbol(moduleElement.getName())
 		imported    = self.getImportedModules(moduleElement)
 		imports     = (", " + ", ".join(['"' + _ + '"' for _ in imported])) if imported else ""
-		preamble = """(function (factory) {
+		preamble = """(function (factory, options) {
+			// Universal Module Loader with options to pass custom `define`, `require`
+			// and `exports` values.
+			options      = options || {};
+			var _define  = options.define  || (typeof(define)  != "undefined" ?  define  : window.define);
+			var _require = options.require || (typeof(require) != "undefined" ?  require : window.require);
+			var _export  = options.exports || (typeof(exports) != "undefined" ?  exports : window.exports);
 			if (typeof MODULE === 'object' && typeof MODULE.exports === 'object') {
-				var v = factory(require, exports); if (v !== undefined) MODULE.exports = v;
+				var v = factory(_require, _exports); if (v !== undefined) MODULE.exports = v;
 			}
-			else if (typeof define === 'function' && define.amd) {
-				define(["require", "exports" IMPORTS], factory);
+			else if (typeof _define === 'function' && _define.amd) {
+				_define(["require", "exports" IMPORTS], factory);
 			} else {
 				var require = function(name){return window[name]};
 			}
@@ -259,7 +266,7 @@ class Writer(AbstractWriter):
 					symbols.append("var {0} = {1}.{2};".format(alias or slot, module, slot))
 		return [
 			preamble.replace("MODULE", module_name).replace("IMPORT", imports),
-			"var __extend__ = extend || (require && require.s.contexts_.defined.extend);"
+			"var __extend__ = extend || window.extend || (require && require.s && require.s.contexts_ && require.s.contexts_.defined.extend);"
 		] + ["var {0} = require(\"{0}\");".format(_) for _ in imported] + symbols + [
 			module_declaration,
 			"exports = typeof exports === 'undefined' ? {0} : exports;".format(module_name)
@@ -268,7 +275,7 @@ class Writer(AbstractWriter):
 	def getModuleUMDSuffix( self, moduleElement ):
 		module_name = self._rewriteSymbol(moduleElement.getName())
 		return [
-			"if (__extend__) {__extend__.module({0}, exports)}".format(module_name),
+			"if (__extend__) {{__extend__.module({0}, exports)}}".format(module_name),
 			"});"
 		]
 
