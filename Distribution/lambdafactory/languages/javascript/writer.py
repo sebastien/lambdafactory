@@ -253,7 +253,7 @@ class Writer(AbstractWriter):
 			"IMPORTS", imports
 		).replace("\n\t\t", "\n")
 		module_declaration = [
-			"var __extend__ = extend || window.extend || null;",
+			"var __extend__ = typeof extend !== 'undefined' ? extend : window.extend || null;",
 			"{0} = exports = typeof exports === 'undefined' ? {{}} : exports;".format(module_name),
 		]
 		symbols = []
