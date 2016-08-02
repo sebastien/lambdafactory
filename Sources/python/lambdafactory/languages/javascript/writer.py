@@ -179,8 +179,6 @@ class Writer(AbstractWriter):
 		for name, value in moduleElement.getSlots():
 			if isinstance(value, interfaces.IModuleAttribute):
 				declaration = "{0}.{1}".format(module_name, self.write(value))
-				if self.moduleType == "umd":
-					declaration = "exports.{0} = {1}".format(value.getName(), declaration)
 			else:
 				# NOTE: Some slot values may be shadowed, in which case they
 				# won't return any value
@@ -188,8 +186,6 @@ class Writer(AbstractWriter):
 				if value_code:
 					slot_name   = self.renameModuleSlot(name)
 					declaration = "{0}.{1} = {2}".format(module_name, slot_name, value_code)
-				if self.moduleType == "umd":
-					declaration = "exports.{0} = {1}".format(slot_name, declaration)
 			code.append(declaration)
 		# --- INIT ------------------------------------------------------------
 		# FIXME: Init should be only invoked once
@@ -233,27 +229,33 @@ class Writer(AbstractWriter):
 		module_name = self._rewriteSymbol(moduleElement.getName())
 		imported    = self.getImportedModules(moduleElement)
 		imports     = (", " + ", ".join(['"' + _ + '"' for _ in imported])) if imported else ""
-		preamble = """(function (factory, options) {
-			// Universal Module Loader with options to pass custom `define`, `require`
-			// and `exports` values.
-			options      = options || {};
-			var _define  = options.define  || (typeof(define)  != "undefined" ?  define  : window.define);
-			var _require = options.require || (typeof(require) != "undefined" ?  require : window.require);
-			var _export  = options.exports || (typeof(exports) != "undefined" ?  exports : window.exports);
-			if (typeof MODULE === 'object' && typeof MODULE.exports === 'object') {
-				var v = factory(_require, _exports); if (v !== undefined) MODULE.exports = v;
-			}
-			else if (typeof _define === 'function' && _define.amd) {
-				_define(["require", "exports" IMPORTS], factory);
+		preamble = """// START:UMD_PREAMBLE
+		(function (global, factory) {
+			if (typeof define === "function" && define.amd) {
+				return define(["require", "exports" IMPORTS], factory);
+			} else if (typeof exports !== "undefined") {
+				return factory(require, exports);
 			} else {
-				var require = function(name){return window[name]};
+				var module  = {exports:{}};
+				var require = function(_){
+					_=_.split(".");_.reverse();
+					var c=global;
+					while (c && _.length > 0){c=c[_.pop()]}
+					return c;
+				}
+				factory(require, module.exports);
+				global.actual = module.exports;
+				return module.exports;
 			}
-		})(function (require, exports) {""".replace(
+		})(this, function (require, exports) {""".replace(
 			"MODULE", module_name
 		).replace(
 			"IMPORTS", imports
 		).replace("\n\t\t", "\n")
-		module_declaration = "var %s=(typeof(extend)!='undefined' && extend && extend.module && extend.module(\"%s\")) || %s || {};" % (module_name, self.getAbsoluteName(moduleElement) or module_name, module_name),
+		module_declaration = [
+			"var __extend__ = extend || window.extend || null;",
+			"{0} = exports = typeof exports === 'undefined' ? {{}} : exports;".format(module_name),
+		]
 		symbols = []
 		for alias, module, slot in self.getImportedSymbols(moduleElement):
 			if not slot:
@@ -266,17 +268,25 @@ class Writer(AbstractWriter):
 					symbols.append("var {0} = {1}.{2};".format(alias or slot, module, slot))
 		return [
 			preamble.replace("MODULE", module_name).replace("IMPORT", imports),
-			"var __extend__ = extend || window.extend || (require && require.s && require.s.contexts_ && require.s.contexts_.defined.extend);"
-		] + ["var {0} = require(\"{0}\");".format(_) for _ in imported] + symbols + [
-			module_declaration,
-			"exports = typeof exports === 'undefined' ? {0} : exports;".format(module_name)
-		]
+		] + [
+			"var {0} = require(\"{0}\");".format(_) for _ in imported
+		] + symbols + module_declaration + ["// END:UMD_PREAMBLE"]
 
 	def getModuleUMDSuffix( self, moduleElement ):
 		module_name = self._rewriteSymbol(moduleElement.getName())
 		return [
-			"if (__extend__) {{__extend__.module({0}, exports)}}".format(module_name),
-			"});"
+			"// START:UMD_POSTAMBLE",
+			"if (__extend__) {{__extend__.module(\"{0}\", {0})}}".format(module_name),
+			(
+				"if (typeof window !== 'undefined') {{var n='{0}'.split('.');"
+				"var c=window;for(var i=0;i<n.length;i++){{"
+				"if(i<n.length-1){{c[n[i]]=c[n[i]]||{{}}}}"
+				"else{{c[n[i]]={0}}}"
+				"}}}}"
+			).format(module_name),
+			"return {0}".format(module_name),
+			"});",
+			"// END:UMD_POSTAMBLE"
 		]
 
 	def getImportedModules( self, moduleElement ):
