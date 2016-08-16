@@ -2,10 +2,12 @@
 
 @class A
 
+	@shared IDS = 0
 	@property state
 
 	@constructor state:State
 		self state = state
+		A IDS += 1
 	@end
 
 @end
