@@ -18,6 +18,7 @@ class PassContext:
 		self.context = []
 		self.programPass = None
 		self.program = None
+		self.cache = {}
 		if environment is None: environment = None
 		if programPass is None: programPass = None
 		self.environment = environment
