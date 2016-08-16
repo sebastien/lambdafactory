@@ -35,7 +35,7 @@ VALID_SYMBOL_CHARS = "_" + string.digits + string.letters
 KEYWORDS = """abstract break
 case class let
 continue const debugger default
-delete do else
+do
 enum export extends
 final finally for
 function goto if implements
@@ -79,6 +79,7 @@ class Writer(AbstractWriter):
 		self.jsSelf                  = "self"
 		self.jsModule                = "__module__"
 		self.moduleType              = "basic"
+		self._moduleName             = None
 		self.supportedEmbedLanguages = ["ecmascript", "js", "javascript"]
 		self.inInvocation            = False
 		self.options                 = {} ; self.options.update(OPTIONS)
@@ -122,6 +123,8 @@ class Writer(AbstractWriter):
 	def _rewriteSymbol( self, string ):
 		"""Rewrites the given symbol so that it can be expressed in the target language."""
 		# FIXME: This is used by the hack in writeReference
+		if string == self._moduleName:
+			return "__module__"
 		if self._isSymbolValid(string):
 			return string
 		res = "_LF_"
@@ -161,6 +164,7 @@ class Writer(AbstractWriter):
 		# Detects the module type
 		if self.environment.options.get("umd"): self.moduleType = "umd"
 		module_name = self._rewriteSymbol(moduleElement.getName())
+		self._moduleName = module_name
 		code = [
 			"// " + SNIP % ("%s.js" % (self.getAbsoluteName(moduleElement).replace(".", "/"))),
 			self._document(moduleElement),

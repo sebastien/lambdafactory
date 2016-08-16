@@ -22,6 +22,7 @@
 	@property context     = []
 	@property programPass = None
 	@property program     = None
+	@property cache       = {}
 
     # REWRITE: @constructor reporter=reporter.DefaultReporter
 	@constructor environment=None, programPass=None
