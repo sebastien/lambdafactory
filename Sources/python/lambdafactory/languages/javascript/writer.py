@@ -35,7 +35,6 @@ VALID_SYMBOL_CHARS = "_" + string.digits + string.letters
 KEYWORDS = """abstract break
 case class let
 continue const debugger default
-do
 enum export extends
 final finally for
 function goto if implements

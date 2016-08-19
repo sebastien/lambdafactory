@@ -591,6 +591,7 @@
 		"json"
 		"keys"
 		"last"
+		"list"
 		"len"
 		"lower"
 		"map"

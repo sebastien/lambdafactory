@@ -35,7 +35,6 @@ VALID_SYMBOL_CHARS = "_" + string.digits + string.letters
 KEYWORDS = """abstract break
 case class let
 continue const debugger default
-do
 enum export extends
 final finally for
 function goto if implements
@@ -178,7 +177,7 @@ class Writer(AbstractWriter):
 		# --- VERSION ---------------------------------------------------------
 		version = moduleElement.getAnnotation("version")
 		if version:
-			code.append("%s.__VERSION__='%s';" % (self._rewriteSymbol(moduleElement.getName()),version.getContent()))
+			code.append("__module__.__VERSION__='%s';" % (version.getContent()))
 		# --- SLOTS -----------------------------------------------------------
 		for name, value in moduleElement.getSlots():
 			if isinstance(value, interfaces.IModuleAttribute):
@@ -258,7 +257,8 @@ class Writer(AbstractWriter):
 		).replace("\n\t\t", "\n")
 		module_declaration = [
 			"var __extend__ = typeof extend !== 'undefined' ? extend : window.extend || null;",
-			"{0} = exports = typeof exports === 'undefined' ? {{}} : exports;".format(module_name),
+			"var __module__;"
+			"{0} = __module__ = exports = typeof exports === 'undefined' ? {{}} : exports;".format(module_name),
 		]
 		symbols = []
 		for alias, module, slot in self.getImportedSymbols(moduleElement):
@@ -797,7 +797,7 @@ class Writer(AbstractWriter):
 		elif symbol_name == "__class__":
 			return self._rewriteSymbol(self.getCurrentClass().getName())
 		elif symbol_name == "__module__":
-			return self._rewriteSymbol(self.getCurrentModule().getName())
+			return "__module__"
 		elif symbol_name == "__scope__":
 			return json.dumps(self.getScopeName())
 		elif symbol_name == "__name__":
@@ -825,6 +825,9 @@ class Writer(AbstractWriter):
 					self.jsSelf,
 					self.getAbsoluteName(self.getCurrentClass())
 				)
+		elif value == self.getCurrentModule():
+			return "__module__"
+
 		if not self._isSymbolValid(symbol_name):
 			# FIXME: This is temporary, we should have an AbsoluteReference
 			# operation that uses symbols as content
@@ -862,6 +865,9 @@ class Writer(AbstractWriter):
 		# It is a local variable
 		elif self.getCurrentFunction() == scope:
 			return symbol_name
+		# It within the current module
+		elif self.getCurrentModule() == scope:
+			return "__module__." + symbol_name
 		# It is a property of a module
 		elif isinstance(scope, interfaces.IModule):
 			names = [self._rewriteSymbol(scope.getName()), symbol_name]
