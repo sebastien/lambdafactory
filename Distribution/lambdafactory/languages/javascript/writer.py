@@ -205,7 +205,7 @@ class Writer(AbstractWriter):
 				source = source.split("://",1)[-1]
 				if os.path.exists(source):
 					with open(source) as f:
-						code.append("%s.__source__=%s;" % (__module__, json.dumps(f.read())))
+						code.append("%s.__source__=%s;" % ("__module__", json.dumps(f.read())))
 		# --- SUFFIX ----------------------------------------------------------
 		# We add the suffix
 		if self.moduleType == "umd":
