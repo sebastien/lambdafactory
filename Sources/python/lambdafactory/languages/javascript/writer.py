@@ -140,7 +140,7 @@ class Writer(AbstractWriter):
 		f = file(js_runtime, 'r') ; text = f.read() ; f.close()
 		return text
 
-	def getAbsoluteName( self, element ):
+	def getAbsoluteName( self, element, relativeModule=True ):
 		"""Returns the absolute name for the given element. This is the '.'
 		concatenation of the individual names of the parents."""
 		names = [self._rewriteSymbol(element.getName())]
@@ -149,7 +149,7 @@ class Writer(AbstractWriter):
 			# FIXME: Some elements may not have a name
 			if not isinstance(element, interfaces.IProgram):
 				names.insert(0, self._rewriteSymbol(element.getName()))
-		if len(names) > 1 and names[0] == self._moduleName:
+		if relativeModule and len(names) > 1 and names[0] == self._moduleName:
 			names = ["__module__"] + names[1:]
 		return ".".join(names)
 
@@ -379,7 +379,7 @@ class Writer(AbstractWriter):
 		classAttributes = classAttributes.values()
 		result = []
 		result.append(self._document(classElement))
-		result.append("name:'%s', parent:%s," % (self.getAbsoluteName(classElement), parent))
+		result.append("name:'%s', parent:%s," % (self.getAbsoluteName(classElement, relativeModule=False), parent))
 		# We collect class attributes
 		attributes   = classElement.getAttributes()
 		constructors = classElement.getConstructors()
