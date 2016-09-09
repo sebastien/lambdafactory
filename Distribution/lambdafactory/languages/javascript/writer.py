@@ -181,14 +181,14 @@ class Writer(AbstractWriter):
 		# --- SLOTS -----------------------------------------------------------
 		for name, value in moduleElement.getSlots():
 			if isinstance(value, interfaces.IModuleAttribute):
-				declaration = "{0}.{1}".format("__module__", self.write(value))
+				declaration = "{0}.{1}".format(module_name, self.write(value))
 			else:
 				# NOTE: Some slot values may be shadowed, in which case they
 				# won't return any value
 				value_code = self.write(value)
 				if value_code:
 					slot_name   = self.renameModuleSlot(name)
-					declaration = "{0}.{1} = {2}".format("__module__", slot_name, value_code)
+					declaration = "{0}.{1} = {2}".format(module_name, slot_name, value_code)
 			code.append(declaration)
 		# --- INIT ------------------------------------------------------------
 		# FIXME: Init should be only invoked once
@@ -205,7 +205,7 @@ class Writer(AbstractWriter):
 				source = source.split("://",1)[-1]
 				if os.path.exists(source):
 					with open(source) as f:
-						code.append("%s.__source__=%s;" % ("__module__", json.dumps(f.read())))
+						code.append("%s.__source__=%s;" % (module_name, json.dumps(f.read())))
 		# --- SUFFIX ----------------------------------------------------------
 		# We add the suffix
 		if self.moduleType == "umd":
