@@ -202,8 +202,8 @@ class Factory:
 	def map( self, evaluable, process ):
 		return self._getImplementation("MapIteration")(evaluable, process)
 
-	def filter( self, evaluable, condition, process ):
-		r = self._getImplementation("FilterIteration")(evaluable, process, condition)
+	def filter( self, evaluable, condition, process=None ):
+		return self._getImplementation("FilterIteration")(evaluable, condition, process)
 
 	def repeat( self, condition, process ):
 		return self._getImplementation("Repetition")(condition, process)
