@@ -258,6 +258,7 @@ class Writer(AbstractWriter):
 		module_declaration = [
 			"var __extend__ = typeof extend !== 'undefined' ? extend : window.extend || null;",
 			"var __module__;"
+			# NOTE: Here we don't prefix with var, so it creates a global
 			"{0} = __module__ = exports = typeof exports === 'undefined' ? {{}} : exports;".format(module_name),
 		]
 		symbols = []
@@ -1271,10 +1272,10 @@ class Writer(AbstractWriter):
 		i= iteration.getIterator()
 		c = iteration.getClosure()
 		p = iteration.getPredicate()
-		if closure and predicate:
-			return "extend.filter({0}, {1}, {2})".format(self.write(i), self.write(p), self.write(c))
-		elif closure:
-			return "extend.map({0}, {1}, {2})".format(self.write(i), self.write(c))
+		if c and p:
+			return "extend.map(extend.filter({0}, {1}), {2})".format(self.write(i), self.write(p), self.write(c))
+		elif c:
+			return "extend.map({0}, {1})".format(self.write(i), self.write(c))
 		else:
 			return "extend.filter({0}, {1})".format(self.write(i), self.write(p))
 
