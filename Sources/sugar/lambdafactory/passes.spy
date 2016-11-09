@@ -108,7 +108,7 @@
 				# TODO: Rewrite me
 				if type(op_arg) in [tuple, list]
 					for arg in op_arg
-						assert (isinstance(arg, interfaces IElement))
+						assert (isinstance(arg, interfaces IElement), "Element expected, got {0}" format (arg))
 						walk(arg)
 					end
 				else

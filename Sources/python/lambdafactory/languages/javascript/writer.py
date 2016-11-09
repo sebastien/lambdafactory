@@ -5,7 +5,7 @@
 # License   : Revised BSD License
 # -----------------------------------------------------------------------------
 # Creation  : 2006-11-02
-# Last mod  : 2015-04-11
+# Last mod  : 2016-09-11
 # -----------------------------------------------------------------------------
 
 # TODO: Cleanup the code generation by moving the templates to the top
@@ -14,21 +14,22 @@
 # TODO: Support optional meta-data
 # TODO: Provide a global rewrite operation
 
-from lambdafactory.modelwriter import AbstractWriter, flatten
+from   lambdafactory.modelwriter import AbstractWriter, flatten
 import lambdafactory.interfaces as interfaces
-import lambdafactory.reporter as reporter
-from lambdafactory.splitter import SNIP
+import lambdafactory.reporter   as reporter
+from   lambdafactory.splitter import SNIP
 import os.path, re, time, string, random, json
 
 #------------------------------------------------------------------------------
 #
-#  JAVASCRIPT WRITER
+#  GLOBALS
 #
 #------------------------------------------------------------------------------
 
-RE_TEMPLATE = re.compile("\$\{[^\}]+\}")
-VALID_SYMBOL = re.compile("^[\$_A-Za-z][\$_A-Za-z0-9]*$")
+RE_TEMPLATE        = re.compile("\$\{[^\}]+\}")
+VALID_SYMBOL       = re.compile("^[\$_A-Za-z][\$_A-Za-z0-9]*$")
 VALID_SYMBOL_CHARS = "_" + string.digits + string.letters
+
 # NOTE: This is not the complete list of keywords for JavaScript, we removed
 # some such as typeof, null, which may be used as functions/values in code.
 # NOTE: removed catch, as it clashes with the Promise
@@ -47,13 +48,13 @@ throw throws transient
 try var void
 volatile while with""".replace("\n", " ").split()
 
-MODULE_UMD    = "umd"
-MODULE_BASIC  = "basic"
+MODULE_VANILLA = "vanilla"
+MODULE_UMD     = "umd"
+MODULE_GOOGLE  = "google"
 
 OPTIONS = {
 	"ENABLE_METADATA" : False,
 	"INCLUDE_SOURCE"  : False,
-	"MODULE"          : MODULE_UMD,
 }
 
 JS_OPERATORS = {
@@ -77,8 +78,8 @@ class Writer(AbstractWriter):
 		self.jsCore                  = "extend."
 		self.jsSelf                  = "self"
 		self.jsModule                = "__module__"
-		self.moduleType              = "basic"
 		self._moduleName             = None
+		self._moduleType             = None
 		self.supportedEmbedLanguages = ["ecmascript", "js", "javascript"]
 		self.inInvocation            = False
 		self.options                 = {} ; self.options.update(OPTIONS)
@@ -158,10 +159,19 @@ class Writer(AbstractWriter):
 		if name == interfaces.Constants.MainFunction: name = "main"
 		return name
 
+	# =========================================================================
+	# MODULES
+	# =========================================================================
+
 	def onModule( self, moduleElement ):
 		"""Writes a Module element."""
 		# Detects the module type
-		if self.environment.options.get("umd"): self.moduleType = "umd"
+		if self.environment.options.get(MODULE_UMD):
+			self._moduleType = MODULE_UMD
+		elif self.environment.options.get("google"):
+			self._moduleType = MODULE_GOOGLE
+		else:
+			self._moduleType = MODULE_VANILLA
 		module_name = self._rewriteSymbol(moduleElement.getName())
 		self._moduleName = module_name
 		code = [
@@ -170,10 +180,12 @@ class Writer(AbstractWriter):
 			self.options["ENABLE_METADATA"] and "function __def(v,m){var ms=v['__def__']||{};for(var k in m){ms[k]=m[k]};v['__def__']=ms;return v}" or "",
 		]
 		# --- PREFIX ----------------------------------------------------------
-		if self.moduleType == "umd":
+		if self._moduleType == MODULE_UMD:
 			code.extend(self.getModuleUMDPrefix(moduleElement))
+		elif self._moduleType == MODULE_GOOGLE:
+			code.extend(self.getModuleGooglePrefix(moduleElement))
 		else:
-			code.extend(self.getModuleBasicPrefix(moduleElement))
+			code.extend(self.getModuleVanillaPrefix(moduleElement))
 		# --- VERSION ---------------------------------------------------------
 		version = moduleElement.getAnnotation("version")
 		if version:
@@ -208,14 +220,18 @@ class Writer(AbstractWriter):
 						code.append("%s.__source__=%s;" % (module_name, json.dumps(f.read())))
 		# --- SUFFIX ----------------------------------------------------------
 		# We add the suffix
-		if self.moduleType == "umd":
+		if self._moduleType == MODULE_UMD:
 			code.extend(self.getModuleUMDSuffix(moduleElement))
+		elif self._moduleType == MODULE_GOOGLE:
+			code.extend(self.getModuleGoogleSuffix(moduleElement))
 		else:
-			code.extend(self.getModuleBasicSuffix(moduleElement))
+			code.extend(self.getModuleVanillaSuffix(moduleElement))
 		# --- RESULT ----------------------------------------------------------
 		return self._format(*code)
 
-	def getModuleBasicPrefix( self, moduleElement ):
+	# === VANILLA MODULES =====================================================
+
+	def getModuleVanillaPrefix( self, moduleElement ):
 		module_name = self._rewriteSymbol(moduleElement.getName())
 		return [
 			"var %s=(typeof(extend)!='undefined' && extend && extend.module && extend.module(\"%s\")) || %s || {};" % (module_name, self.getAbsoluteName(moduleElement) or module_name, module_name),
@@ -223,9 +239,11 @@ class Writer(AbstractWriter):
 			"var {0}={2}, {1}={2}".format(self.jsSelf, self.jsModule, module_name),
 		]
 
-	def getModuleBasicSuffix( self, moduleElement ):
+	def getModuleVanillaSuffix( self, moduleElement ):
 		module_name = self._rewriteSymbol(moduleElement.getName())
 		return ["})(%s);" % (module_name)]
+
+	# === UMD MODULES =========================================================
 
 	def getModuleUMDPrefix( self, moduleElement):
 		# SEE: http://babeljs.io/docs/plugins/transform-es2015-modules-umd/
@@ -294,6 +312,41 @@ class Writer(AbstractWriter):
 			"// END:UMD_POSTAMBLE"
 		]
 
+	# === GOOGLE MODULES ======================================================
+	# https://github.com/google/closure-library/wiki/goog.module:-an-ES6-module-like-alternative-to-goog.provide
+
+	def getModuleGooglePrefix( self, moduleElement):
+		module_name = self._rewriteSymbol(moduleElement.getName())
+		modules     = ["var {0} = goog.require('{0}');".format(_) for _ in self.getImportedModules(moduleElement)]
+		symbols     = []
+		for alias, module, slot in self.getImportedSymbols(moduleElement):
+			if not slot:
+				# Modules are already imported
+				if alias:
+					symbols.append("var {0} = goog.require('{1}');".format(alias or module, module))
+			else:
+				# Extend gets a special treatment
+				if module != "extend" or alias:
+					symbols.append("var {0} = goog.require('{1}.{2}');".format(alias or slot, module, slot))
+		return [
+			"// START:GOOGLE_PREAMBLE",
+			"goog.module('{0}');".format(module_name)
+		] + modules + symbols + [
+			"var __module__ = exports;",
+			"var {0} = exports;".format(module_name),
+			"// END:GOOGLE_PREAMBLE"
+		]
+
+	def getModuleGoogleSuffix( self, moduleElement ):
+		return [
+			"// START:GOOGLE_POSTAMBLE",
+			"// END:GOOGLE_POSTAMBLE"
+		]
+
+	# =========================================================================
+	# IMPORTS
+	# =========================================================================
+
 	def getImportedModules( self, moduleElement ):
 		res = []
 		for o in moduleElement.getImportOperations():
@@ -348,6 +401,10 @@ class Writer(AbstractWriter):
 
 	def onImportOperation( self, importElement):
 		return self._format("")
+
+	# =========================================================================
+	# CLASS
+	# =========================================================================
 
 	def onClass( self, classElement ):
 		"""Writes a class element."""
@@ -465,6 +522,39 @@ class Writer(AbstractWriter):
 			result,
 			"})"
 		)
+
+	def onAttribute( self, element ):
+		default_value = element.getDefaultValue()
+		if default_value: default_value = self.write(default_value)
+		else: default_value="undefined"
+		return self._format(
+			self._document(element),
+			"%s:%s" % (self._rewriteSymbol(element.getName()), default_value)
+		)
+
+	def onClassAttribute( self, element ):
+		"""Writes an argument element."""
+		default_value = element.getDefaultValue()
+		if default_value:
+			res = "%s:%s" % (self._rewriteSymbol(element.getName()), self.write(default_value))
+		else:
+			res = "%s:undefined" % (self._rewriteSymbol(element.getName()))
+		return self._format(self._document(element), res)
+
+	def onModuleAttribute( self, element ):
+		"""Writes an argument element."""
+		default_value = element.getDefaultValue()
+		if default_value:
+			default_value = self.write(default_value)
+			return self._format(
+				self._document(element),
+				"%s=%s" % (self._rewriteSymbol(element.getName()), default_value)
+			)
+		else:
+			return self._format(
+				self._document(element),
+				"%s;" % (self._rewriteSymbol(element.getName()))
+			)
 
 	def onMethod( self, methodElement ):
 		"""Writes a method element."""
@@ -603,6 +693,75 @@ class Writer(AbstractWriter):
 			)
 		)
 
+	# =========================================================================
+	# FUNCTIONS
+	# =========================================================================
+
+	def onFunctionWhen(self, function ):
+		res = []
+		for a in function.getAnnotations(withName="when"):
+			res.append("if (!(%s)) {return}" % (self.write(a.getContent())))
+		return self._format(res) or None
+
+	def onFunctionPost(self, function ):
+		res = []
+		for a in function.getAnnotations(withName="post"):
+			res.append("if (!(%s)) {throw new Exception('Assertion failed')}" % (self.write(a.getContent())))
+		return self._format(res) or None
+
+	def onFunction( self, function ):
+		"""Writes a function element."""
+		parent = function.getParent()
+		name   = self._rewriteSymbol( function.getName() )
+		if parent and isinstance(parent, interfaces.IModule):
+			res = [
+				(
+					self.options["ENABLE_METADATA"] and "__def(function(%s){" \
+					or "function(%s){"
+				)  % (
+					", ".join(map(self.write, function.getParameters()))
+				),
+				[self._document(function)],
+				['var %s=%s;' % (self.jsSelf, self.getAbsoluteName(parent))],
+				self._writeClosureArguments(function),
+				self.writeFunctionWhen(function),
+				map(self.write, function.getOperations()),
+				(
+					(not self.options["ENABLE_METADATA"] and "}") or \
+					"},%s)" % ( self._writeFunctionMeta(function))
+				)
+			]
+		else:
+			res = [
+				self._document(function),
+				(
+					self.options["ENABLE_METADATA"] and "__def(function(%s){" \
+					or "function(%s){"
+				)  % (
+					", ".join(map(self.write, function.getParameters()))
+				),
+				self._writeClosureArguments(function),
+				self.writeFunctionWhen(function),
+				map(self.write, function.getOperations()),
+				(
+					(not self.options["ENABLE_METADATA"] and "}") or \
+					"},%s)" % ( self._writeFunctionMeta(closure))
+				)
+			]
+		if function.getAnnotations(withName="post"):
+			res[0] = "var __wrapped__ = " + res[0] + ";"
+			if parent and isinstance(parent, interfaces.IModule):
+				res.insert(0, 'var %s=%s;' % (self.jsSelf, self.getAbsoluteName(parent)))
+			res.append("var result = __wrapped__.apply(%s, arguments);" % (self.jsSelf))
+			res.append(self.writeFunctionPost(function))
+			res.append("return result;")
+		return self._format(res)
+
+
+	# =========================================================================
+	# CLOSURES
+	# =========================================================================
+
 	def onClosure( self, closure, bodyOnly=False, transpose=None ):
 		"""Writes a closure element. The `transpose` element is used
 		to rename parameters when there is an `encloses` annotation in
@@ -678,65 +837,10 @@ class Writer(AbstractWriter):
 			i += 1
 		return result
 
-	def onFunctionWhen(self, function ):
-		res = []
-		for a in function.getAnnotations(withName="when"):
-			res.append("if (!(%s)) {return}" % (self.write(a.getContent())))
-		return self._format(res) or None
 
-	def onFunctionPost(self, function ):
-		res = []
-		for a in function.getAnnotations(withName="post"):
-			res.append("if (!(%s)) {throw new Exception('Assertion failed')}" % (self.write(a.getContent())))
-		return self._format(res) or None
-
-	def onFunction( self, function ):
-		"""Writes a function element."""
-		parent = function.getParent()
-		name   = self._rewriteSymbol( function.getName() )
-		if parent and isinstance(parent, interfaces.IModule):
-			res = [
-				(
-					self.options["ENABLE_METADATA"] and "__def(function(%s){" \
-					or "function(%s){"
-				)  % (
-					", ".join(map(self.write, function.getParameters()))
-				),
-				[self._document(function)],
-				['var %s=%s;' % (self.jsSelf, self.getAbsoluteName(parent))],
-				self._writeClosureArguments(function),
-				self.writeFunctionWhen(function),
-				map(self.write, function.getOperations()),
-				(
-					(not self.options["ENABLE_METADATA"] and "}") or \
-					"},%s)" % ( self._writeFunctionMeta(function))
-				)
-			]
-		else:
-			res = [
-				self._document(function),
-				(
-					self.options["ENABLE_METADATA"] and "__def(function(%s){" \
-					or "function(%s){"
-				)  % (
-					", ".join(map(self.write, function.getParameters()))
-				),
-				self._writeClosureArguments(function),
-				self.writeFunctionWhen(function),
-				map(self.write, function.getOperations()),
-				(
-					(not self.options["ENABLE_METADATA"] and "}") or \
-					"},%s)" % ( self._writeFunctionMeta(closure))
-				)
-			]
-		if function.getAnnotations(withName="post"):
-			res[0] = "var __wrapped__ = " + res[0] + ";"
-			if parent and isinstance(parent, interfaces.IModule):
-				res.insert(0, 'var %s=%s;' % (self.jsSelf, self.getAbsoluteName(parent)))
-			res.append("var result = __wrapped__.apply(%s, arguments);" % (self.jsSelf))
-			res.append(self.writeFunctionPost(function))
-			res.append("return result;")
-		return self._format(res)
+	# =========================================================================
+	# BLOCKS
+	# =========================================================================
 
 	def onBlock( self, block ):
 		"""Writes a block element."""
@@ -749,39 +853,6 @@ class Writer(AbstractWriter):
 	def onParameter( self, param ):
 		"""Writes a parameter element."""
 		return "%s" % (self._rewriteSymbol(param.getName()))
-
-	def onAttribute( self, element ):
-		default_value = element.getDefaultValue()
-		if default_value: default_value = self.write(default_value)
-		else: default_value="undefined"
-		return self._format(
-			self._document(element),
-			"%s:%s" % (self._rewriteSymbol(element.getName()), default_value)
-		)
-
-	def onClassAttribute( self, element ):
-		"""Writes an argument element."""
-		default_value = element.getDefaultValue()
-		if default_value:
-			res = "%s:%s" % (self._rewriteSymbol(element.getName()), self.write(default_value))
-		else:
-			res = "%s:undefined" % (self._rewriteSymbol(element.getName()))
-		return self._format(self._document(element), res)
-
-	def onModuleAttribute( self, element ):
-		"""Writes an argument element."""
-		default_value = element.getDefaultValue()
-		if default_value:
-			default_value = self.write(default_value)
-			return self._format(
-				self._document(element),
-				"%s=%s" % (self._rewriteSymbol(element.getName()), default_value)
-			)
-		else:
-			return self._format(
-				self._document(element),
-				"%s;" % (self._rewriteSymbol(element.getName()))
-			)
 
 	def onReference( self, element ):
 		"""Writes an argument element."""
@@ -922,6 +993,11 @@ class Writer(AbstractWriter):
 		o = JS_OPERATORS.get(o) or o
 		return "%s" % (o)
 
+
+	# =========================================================================
+	# LITTERALS
+	# =========================================================================
+
 	def onNumber( self, number ):
 		"""Writes a number element."""
 		return "%s" % (number.getActualValue())
@@ -964,6 +1040,10 @@ class Writer(AbstractWriter):
 				self.jsCore,
 				",".join("[%s,%s]" % ( self.write(k),self.write(v)) for k,v in element.getItems())
 			)
+
+	# =========================================================================
+	# OPERATIONS
+	# =========================================================================
 
 	def onAllocation( self, allocation ):
 		"""Writes an allocation operation."""
@@ -1458,6 +1538,11 @@ class Writer(AbstractWriter):
 		else:
 			return embed.getCode()
 
+
+	# =========================================================================
+	# HELEPR
+	# =========================================================================
+
 	def _document( self, element ):
 		if element.getDocumentation():
 			doc = element.getDocumentation()
@@ -1469,4 +1554,5 @@ class Writer(AbstractWriter):
 			return None
 
 MAIN_CLASS = Writer
+
 # EOF - vim: tw=80 ts=4 sw=4 noet
