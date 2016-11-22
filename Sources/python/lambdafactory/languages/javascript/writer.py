@@ -101,11 +101,11 @@ class Writer(AbstractWriter):
 		return s
 
 	def pushContext( self, value ):
-		self._generatedVars.append(self._generatedVars[-1] + 1)
+		self._generatedVars.append(0)
 		AbstractWriter.pushContext(self, value)
 
 	def popContext( self ):
-		AbstractWriter.popContext(self, value)
+		AbstractWriter.popContext(self)
 		self._generatedVars.pop()
 
 	def _extendGetMethodByName(self, name):
@@ -562,10 +562,11 @@ class Writer(AbstractWriter):
 
 	def onMethod( self, methodElement ):
 		"""Writes a method element."""
+		self.pushContext(methodElement)
 		method_name = self._rewriteSymbol(methodElement.getName())
 		if method_name == interfaces.Constants.Constructor: method_name = "init"
 		if method_name == interfaces.Constants.Destructor:  method_name = "cleanup"
-		return self._format(
+		res = self._format(
 			self._document(methodElement),
 			(
 				self.options["ENABLE_METADATA"] and "%s:__def(function(%s){" \
@@ -584,6 +585,8 @@ class Writer(AbstractWriter):
 				"},%s)" % ( self._writeFunctionMeta(methodElement))
 			)
 		)
+		self.popContext()
+		return res
 
 	def _writeFunctionMeta( self, function ):
 		arguments = []
@@ -626,9 +629,10 @@ class Writer(AbstractWriter):
 
 	def onClassMethod( self, methodElement ):
 		"""Writes a class method element."""
+		self.pushContext(methodElement)
 		method_name = self._rewriteSymbol(methodElement.getName())
 		args        = methodElement.getParameters()
-		return self._format(
+		res = self._format(
 			self._document(methodElement),
 			(
 				self.options["ENABLE_METADATA"] and "%s:__def(function(%s){" \
@@ -643,6 +647,8 @@ class Writer(AbstractWriter):
 				"},%s)" % ( self._writeFunctionMeta(methodElement))
 			)
 		)
+		self.popContext(methodElement)
+		return res
 
 	def _writeClassMethodProxy(self, currentClass, inheritedMethodElement):
 		"""This function is used to wrap class methods inherited from parent
@@ -669,6 +675,7 @@ class Writer(AbstractWriter):
 
 	def onConstructor( self, element ):
 		"""Writes a constructor element"""
+		self.pushContext(element)
 		current_class = self.getCurrentClass()
 		attributes    = []
 		# FIXME: Same as onClass
@@ -679,7 +686,7 @@ class Writer(AbstractWriter):
 				self.jsSelf, self._rewriteSymbol(a.getName()),
 				self.write(a.getDefaultValue()))
 			)
-		return self._format(
+		res = self._format(
 			self._document(element),
 			(
 				self.options["ENABLE_METADATA"] and "initialize:__def(function(%s){" \
@@ -696,6 +703,8 @@ class Writer(AbstractWriter):
 				"},%s)" % ( self._writeFunctionMeta(element))
 			)
 		)
+		self.popContext()
+		return res
 
 	# =========================================================================
 	# FUNCTIONS
@@ -715,6 +724,7 @@ class Writer(AbstractWriter):
 
 	def onFunction( self, function ):
 		"""Writes a function element."""
+		self.pushContext(function)
 		parent = function.getParent()
 		name   = self._rewriteSymbol( function.getName() )
 		if parent and isinstance(parent, interfaces.IModule):
@@ -759,6 +769,7 @@ class Writer(AbstractWriter):
 			res.append("var result = __wrapped__.apply(%s, arguments);" % (self.jsSelf))
 			res.append(self.writeFunctionPost(function))
 			res.append("return result;")
+		self.popContext()
 		return self._format(res)
 
 	# =========================================================================
@@ -770,6 +781,7 @@ class Writer(AbstractWriter):
 		to rename parameters when there is an `encloses` annotation in
 		an iteration loop.
 		"""
+		self.pushContext(closure)
 		operations = closure.getOperations ()
 		if bodyOnly:
 			result = [self.write(_) + ";" for _ in operations]
@@ -813,6 +825,7 @@ class Writer(AbstractWriter):
 				", ".join(transposed),
 				result
 			)
+		self.popContext()
 		return result
 
 	def onClosureBody(self, closure):
@@ -1401,6 +1414,7 @@ class Writer(AbstractWriter):
 		# Now, this requires some explanation. If the iteration is annotated
 		# as `force-scope`, this means that there is a nested closure that references
 		# some variable that is going to be re-assigned here
+		self.pushContext(iteration)
 		closure = iteration.getClosure()
 		args    = map(lambda a:self._rewriteSymbol(a.getName()), closure.getParameters()) if isinstance(closure, interfaces.IClosure) else []
 		if len(args) == 0: args.append(self._getRandomVariable())
@@ -1428,6 +1442,7 @@ class Writer(AbstractWriter):
 		# If there is no scope forcing, then we can do a simple iteration
 		# over the array/object
 		# TODO: Use for of https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Statements/for...of
+		self.popContext()
 		return self._format(
 			# OK, so it is a bit complicated here. We start by storing a reference
 			# to the iterated expression
