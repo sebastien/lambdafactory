@@ -52,6 +52,8 @@ MODULE_VANILLA = "vanilla"
 MODULE_UMD     = "umd"
 MODULE_GOOGLE  = "google"
 
+OPTION_EXTEND_ITERATE = "iterate"
+
 OPTIONS = {
 	"ENABLE_METADATA" : False,
 	"INCLUDE_SOURCE"  : False,
@@ -168,10 +170,11 @@ class Writer(AbstractWriter):
 		# Detects the module type
 		if self.environment.options.get(MODULE_UMD):
 			self._moduleType = MODULE_UMD
-		elif self.environment.options.get("google"):
+		elif self.environment.options.get(MODULE_GOOGLE):
 			self._moduleType = MODULE_GOOGLE
 		else:
 			self._moduleType = MODULE_VANILLA
+		self._withExtendIterate = self.environment.options.get(OPTION_EXTEND_ITERATE) and True or False
 		module_name = self._rewriteSymbol(moduleElement.getName())
 		self._moduleName = module_name
 		code = [
@@ -332,14 +335,15 @@ class Writer(AbstractWriter):
 			"// START:GOOGLE_PREAMBLE",
 			"goog.module('{0}');".format(module_name)
 		] + modules + symbols + [
-			"var __module__ = exports;",
-			"var {0} = exports;".format(module_name),
+			"goog.scope(function(){",
+			"var __module__ = {0};".format(module_name),
 			"// END:GOOGLE_PREAMBLE"
 		]
 
 	def getModuleGoogleSuffix( self, moduleElement ):
 		return [
 			"// START:GOOGLE_POSTAMBLE",
+			"});",
 			"// END:GOOGLE_POSTAMBLE"
 		]
 
@@ -756,7 +760,6 @@ class Writer(AbstractWriter):
 			res.append(self.writeFunctionPost(function))
 			res.append("return result;")
 		return self._format(res)
-
 
 	# =========================================================================
 	# CLOSURES
@@ -1390,10 +1393,11 @@ class Writer(AbstractWriter):
 
 	def _writeObjectIteration( self, iteration ):
 		# NOTE: This would return the "regular" iteration
-		# return self.write("extend.iterate({0}, {1})".format(
-		# 	self.write(iteration.getIterator()),
-		# 	self.write(iteration.getClosure())
-		# ))
+		if self._withExtendIterate:
+			return self.write("extend.iterate({0}, {1})".format(
+				self.write(iteration.getIterator()),
+				self.write(iteration.getClosure())
+			))
 		# Now, this requires some explanation. If the iteration is annotated
 		# as `force-scope`, this means that there is a nested closure that references
 		# some variable that is going to be re-assigned here
