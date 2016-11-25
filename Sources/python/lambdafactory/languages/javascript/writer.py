@@ -326,23 +326,25 @@ class Writer(AbstractWriter):
 			if not slot:
 				# Modules are already imported
 				if alias:
-					symbols.append("var {0} = goog.require('{1}');".format(alias or module, module))
+					symbols.append("var {0} = {1};".format(alias or module, module))
 			else:
 				# Extend gets a special treatment
 				if module != "extend" or alias:
-					symbols.append("var {0} = goog.require('{1}.{2}');".format(alias or slot, module, slot))
+					symbols.append("var {0} = {1}.{2};".format(alias or slot, module, slot))
 		return [
 			"// START:GOOGLE_PREAMBLE",
-			"goog.module('{0}');".format(module_name)
+			"goog.loadModule(function(exports){",
+			"goog.module('{0}');".format(module_name),
+			"var extend = goog.require('extend');"
 		] + modules + symbols + [
-			"goog.scope(function(){",
-			"var __module__ = {0};".format(module_name),
+			"var __module__ = {0}; var {0} = exports;".format(module_name),
 			"// END:GOOGLE_PREAMBLE"
 		]
 
 	def getModuleGoogleSuffix( self, moduleElement ):
 		return [
 			"// START:GOOGLE_POSTAMBLE",
+			"return exports;",
 			"});",
 			"// END:GOOGLE_POSTAMBLE"
 		]
@@ -647,7 +649,7 @@ class Writer(AbstractWriter):
 				"},%s)" % ( self._writeFunctionMeta(methodElement))
 			)
 		)
-		self.popContext(methodElement)
+		self.popContext()
 		return res
 
 	def _writeClassMethodProxy(self, currentClass, inheritedMethodElement):
