@@ -5,9 +5,19 @@ __module__ = sys.modules[__name__]
 import lambdafactory.interfaces as interfaces
 from lambdafactory.passes import Pass
 from lambdafactory.splitter import SNIP
-import string
+import string, sys
 __module_name__ = 'lambdafactory.modelwriter'
 PREFIX = '\t'
+IS_PYTHON3 = (sys.version_info.major >= 3)
+def isString (value):
+	self=__module__
+	if IS_PYTHON3:
+		return isinstance(value, str) or isinstance(value, bytes)
+	else:
+		return isinstance(value, str) or isinstance(value, unicode)
+	
+
+
 def _format (value, level=None):
 	"""Format helper operation. See @format"""
 	self=__module__
@@ -20,7 +30,7 @@ def _format (value, level=None):
 		return res
 	else:
 		if value is None: return ""
-		assert type(value) in (str, unicode), "Type not suitable for formatting: %s" % (value)
+		assert isString(value), "Type not suitable for formatting: %s" % (value)
 		return ["\n".join((level*PREFIX)+v for v in value.split("\n"))]
 	
 
@@ -71,7 +81,7 @@ class AbstractWriter(Pass):
 		if (element is None):
 			return ''
 		elif True:
-			if (type(element) in [str, unicode]):
+			if isString(element):
 				return element
 			elif element.hasAnnotation('shadow'):
 				return ''

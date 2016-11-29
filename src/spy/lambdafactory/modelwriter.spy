@@ -2,9 +2,19 @@
 @import lambdafactory.interfaces as interfaces
 @import Pass from lambdafactory.passes
 @import SNIP from lambdafactory.splitter
-@import string
+@import string, sys
 
 @shared PREFIX     = "\t"
+@shared IS_PYTHON3    = sys version_info major >= 3
+
+@function isString value
+	@embed Python
+	|if IS_PYTHON3:
+	|	return isinstance(value, str) or isinstance(value, bytes)
+	|else:
+	|	return isinstance(value, str) or isinstance(value, unicode)
+	@end
+@end
 
 @function _format value, level=-1
 | Format helper operation. See @format
@@ -17,7 +27,7 @@
 	|	return res
 	|else:
 	|	if value is None: return ""
-	|	assert type(value) in (str, unicode), "Type not suitable for formatting: %s" % (value)
+	|	assert isString(value), "Type not suitable for formatting: %s" % (value)
 	|	return ["\n".join((level*PREFIX)+v for v in value.split("\n"))]
 	@end
 @end
@@ -130,9 +140,9 @@
 		if element is None
 			return ""
 		else
-			if type(element) in [str, unicode]
+			if isString(element)
 				return element
-			if element hasAnnotation "shadow"
+			elif element hasAnnotation "shadow"
 				# We do not write out shadow elements (like automatic import
 				# operations added)
 				return ""

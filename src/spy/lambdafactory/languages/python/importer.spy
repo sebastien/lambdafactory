@@ -14,7 +14,7 @@
 	@method importModule moduleName
 		try
 			@embed Python
-			|exec "import %s" % (moduleName)
+			|__import__(moduleName)
 			@end
 		catch e
 			# FIXME: Issue warning

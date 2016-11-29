@@ -13,7 +13,7 @@ class Importer:
 	
 	def importModule(self, moduleName):
 		try:
-			exec "import %s" % (moduleName)
+			__import__(moduleName)
 			
 		except Exception as e:
 			return False
