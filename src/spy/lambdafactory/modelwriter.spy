@@ -91,6 +91,7 @@
 		interfaces IInvocation
 		interfaces IInstanciation
 		interfaces IResolution
+		interfaces IChain
 		interfaces ISelection
 		interfaces IRepetition
 		interfaces IFilterIteration
@@ -142,7 +143,7 @@
 				|	name = the_interface.__name__[1:]
 				|	if isinstance(element, the_interface):
 				|		if not hasattr(self, "on" + name ):
-				|			raise Exception("Writer does not define write method for: " + name)
+				|			raise Exception("Writer does not define write method for: " + name + " in " + str(self))
 				|		else:
 				|			self.context.append(element)
 				|			result = getattr(self, "on" + name)(element)

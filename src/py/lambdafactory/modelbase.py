@@ -186,6 +186,11 @@ class Factory:
 		if rules: map(s.addRule, rules)
 		return s
 
+	def chain( self, *groups ):
+		s = self._getImplementation("Chain")()
+		if groups: map(s.addGroup, groups)
+		return s
+
 	def rule( self, evaluable, process ):
 		"""Alias for matchProcess"""
 		return self.matchProcess(evaluable, process)

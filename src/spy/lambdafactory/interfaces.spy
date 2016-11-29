@@ -1047,6 +1047,19 @@
 
 @end
 
+@class IChain: IOperation
+
+	@shared ARGS = [ IEvaluable, [IOperation] ]
+
+	@abstract @method setTarget value
+	@abstract @method getTarget value
+	@abstract @method addGroup evaluable
+	@abstract @method getGroups
+
+
+@end
+
+
 @class IIteration: IOperation
 |	An iteration is the multiple application of a process given a set of
 |	values produced by an iterator.

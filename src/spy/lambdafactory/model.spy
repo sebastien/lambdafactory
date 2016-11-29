@@ -1510,7 +1510,7 @@
 @class Selection: Operation, ISelection
 
 	@method addRule evaluable
-		res = getOpArguments()
+		let res = getOpArguments()
 		if not res
 			res = []
 			self addOpArgument(res)
@@ -1530,6 +1530,43 @@
 	@end
 @end
 
+@class Chain: Operation, IChain
+
+	@method _ensureOpArguments
+		let a = self getOpArguments ()
+		if not a
+			opArguments = [None, []]
+		end
+		return opArguments
+	@end
+
+	@method setTarget value
+		_ensureOpArguments ()
+		setOpArgument (0, value)
+		return self
+	@end
+
+	@method addGroup group
+		_ensureOpArguments ()
+		let res = getOpArgument 1
+		if not res
+			res = [group]
+		else
+			res append (group)
+		end
+		setOpArgument (1, res)
+		return self
+	@end
+
+	@method getGroups
+		return getOpArgument 1
+	@end
+
+	@method getTarget
+		return getOpArgument 0
+	@end
+
+@end
 
 @class Evaluation: Operation, IEvaluation
 @end

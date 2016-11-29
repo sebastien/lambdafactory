@@ -1,167 +1,119 @@
-# LambdaFactory makefile
-# ----------------------
+# -----------------------------------------------------------------------------
 #
-# Revision 1.5.1 (24-Mar-2006)
+# Python Project Makefile
+# =======================
 #
-# Distributed under BSD License
-# See www.type-z.org/copyleft.html
-# (c) Sébastien Pierre - http://www.type-z.org, 2003 - 2006
+# Updated: 2016-11-01
+# Author:  FFunction <ffctn.com>
 #
-#  This Makefile is intendended for developers only. It allows to automate
-#  common tasks such as checking the code, getting statistics, listing the TODO,
-#  FIXME, etc, generating the documentation, packaging a source tarball and so
-#  on.
+# -----------------------------------------------------------------------------
+
+PROJECT          ?=lambdafactory
+SOURCES_PATH     ?=src
+BUILD_PATH       ?=.build
+DIST_PATH        ?=dist
+
+# === SOURCES =================================================================
+
+SOURCES_PY       =$(shell find $(SOURCES_PATH)/py -name "*.py")
+SOURCES_SPY      =$(shell find $(SOURCES_PATH)/spy -name "*.spy")
+SOURCES_PYMODULES=$(filter-out $(SOURCES_PATH)/spy/,$(shell find $(SOURCES_PATH)/spy/ -type "d")) 
+SOURCES_MD       =$(wildcard *.md)
+SOURCES_ALL      =$(SOURCES_SUGAR_PY) $(SOURCES_MODULES) $(SOURCES_MD)
+
+# === BUILD ===================================================================
+
+BUILD_ALL       =
+
+# === PRODUCT =================================================================
+
+PRODUCT_PY      =$(SOURCES_SPY:$(SOURCES_PATH)/spy/%.spy=$(DIST_PATH)/%.py)\
+                 $(SOURCES_PY:$(SOURCES_PATH)/py/%.py=$(DIST_PATH)/%.py))\
+                 $(SOURCES_PYMODULES:$(SOURCES_PATH)/spy/%=$(DIST_PATH)/py/%/__init__.py)
+PRODUCT_HTML    =$(SOURCES_MD:%.md=%.html)
+PRODUCT_ALL     =$(PRODUCT_PY) $(PRODUCT_MODULES) $(PRODUCT_HTML)
+
+# === TOOLS ===================================================================
+
+SUGAR           =sugar
+PYTHON          =PYTHONPATH=$(SOURCES)/py:$(PYTHONPATH) && python3.5
+PANDOC          =pandoc
+
+# === HELPERS =================================================================
+
+YELLOW           =`tput setaf 11`
+GREEN            =`tput setaf 10`
+BLUE             =`tput setaf 12`
+CYAN             =`tput setaf 14`
+RED              =`tput setaf 1`
+GRAY             =`tput setaf 7`
+RESET            =`tput sgr0`
+
+TIMESTAMP       :=$(shell date +'%F')
+BUILD_ID        :=$(shell git rev-parse --verify HEAD)
+MAKEFILE_PATH   := $(abspath $(lastword $(MAKEFILE_LIST)))
+MAKEFILE_DIR    := $(notdir $(patsubst %/,%,$(dir $(MAKEFILE_PATH))))
+
+
+# From: http://marmelab.com/blog/2016/02/29/auto-documented-makefile.html
+.DEFAULT_GOAL   := all
+.PHONY          : all
+
+# -----------------------------------------------------------------------------
 #
-#  On of the main advantage is that this Makefile can "prepare" the development
-#  environment quickly by creating a symblink from the main package to the
-#  proper location in Python site-packages, so that testing can be done without
-#  having to run 'setup.py install' each time.
-#  
-#  For that reason, end-users will use the setup.py, while developers will
-#  typically want to use this makefile, by first running "make prepare".
+# RULES
+#
+# -----------------------------------------------------------------------------
 
 
-# Project variables___________________________________________________________
+all: $(PRODUCT_ALL) ## Builds all the project assets
 
-# Project name. Do not put spaces.
-PROJECT         = LambdaFactory
-PROJECT_VERSION = $(shell grep __version__ Sources/$(PACKAGE)/__init__.py | cut -d'"' -f2)
-PROJECT_STATUS  = DEVELOPMENT
+help: ## Displays a description of the different Makefile rules
+	@echo "$(CYAN)¿¿¿ $(PROJECT) Makefile ¿¿¿$(RESET)"
+	@grep -E -o '((\w|-)+):[^#]+(##.*)$$'  $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":|##"}; {printf "make \033[01;32m%-15s\033[0m¿ %s\n", $$1, $$3}'
 
-DOCUMENTATION   = Documentation
-SOURCES         = Sources
-TESTS           = Tests
-SCRIPTS         = Scripts
-LIBRARY         = Library
-RESOURCES       = Resources
-DISTRIBUTION    = Distribution
-API             = $(DOCUMENTATION)/lambdafactory-api.html
-DISTROCONTENT   = $(DOCUMENTATION) $(SOURCES) $(SCRIPTS) $(TESTS) $(RESOURCES) \
-                  Makefile README setup.py
+clean: ## Cleans the build files
+	@echo "$(RED)¿  clean: Cleaning $(words $(PRODUCT_ALL)) files $(RESET)"
+	@echo "$(BLUE)¿  $(PRODUCT_ALL) $(RESET)"
+	@echo $(PRODUCT_ALL) $(BUILD_ALL) | xargs -n1 rm 2> /dev/null ; true
+	@test -e $(BUILD_PATH) && rm -r $(BUILD_PATH) ; true
 
-# Project files_______________________________________________________________
+# -----------------------------------------------------------------------------
+#
+# BUILDING
+#
+# -----------------------------------------------------------------------------
 
-PACKAGE         = lambdafactory
-MAIN            = main.py
-MODULES         = lambdafactory.interfaces \
-                  lambdafactory.modelbase \
-                  lambdafactory.modelwriter \
-                  lambdafactory.modeltypes \
-                  lambdafactory.typecast \
-                  lambdafactory.passes \
-                  lambdafactory.reporter
+$(DIST_PATH)/%.py: $(SOURCES_PATH)/py/%.py
+	@echo "$(GREEN)¿  $@ [PY]$(RESET)"
+	@mkdir -p `dirname $@`
+	@cp --preserve=mode $< $@
 
-TEST_MAIN       = $(TESTS)/$(PROJECT)Test.py
-SOURCE_FILES    = $(shell find $(SOURCES) -name "*.py")
-TEST_FILES      = $(shell find $(TESTS) -name "*.py")
-CHECK_BLACKLIST = 
+$(DIST_PATH)/%.py: $(SOURCES_PATH)/spy/%.spy
+	@echo "$(GREEN)¿  $@ [SPY]$(RESET)"
+	@mkdir -p `dirname $@`
+	@$(SUGAR) -L$(SOURCES_PATH)/spy -clpy $< > $@
+	@cp --attributes-only --preserve=mode $< $@
 
-# Tools_______________________________________________________________________
+$(DIST_PATH)%/__init__.py: $(SOURCES_PATH)/spy/%
+	@echo "$(GREEN)¿  $@ [PY MODULE]$(RESET)"
+	@mkdir -p `dirname $@`
+	@touch $@
 
-PYTHON          = $(shell which python)
-PYTHONHOME      = $(shell $(PYTHON) -c \
- "import sys;print filter(lambda x:x[-13:]=='site-packages',sys.path)[0]")
-SDOC            = $(shell which sdoc)
-PYCHECKER       = $(shell which pychecker)
-CTAGS           = $(shell which ctags)
+%.html: %.md
+	@echo "$(GREEN)¿  $@ [PANDOC]$(RESET)"
+	@mkdir -p `dirname $@`
+	@$(PANDOC) $< -thtml -s -c "https://cdn.rawgit.com/sindresorhus/github-markdown-css/gh-pages/github-markdown.css"  | sed 's|<body>|<body><div class=markdown-body style="padding:4em;max-width:55em;">|g' > $@
 
-# Useful variables____________________________________________________________
+# -----------------------------------------------------------------------------
+#
+# HELPERS
+#
+# -----------------------------------------------------------------------------
 
-CURRENT_ARCHIVE = $(PROJECT)-$(PROJECT_VERSION).tar.gz
-# This is the project name as lower case, used in the install rule
-project_lower   = $(shell echo $(PROJECT) | tr "A-Z" "a-z")
-# The installation prefix, used in the install rule
-prefix          = /usr/local
+print-%:
+	@echo $*=
+	@echo $($*) | xargs -n1 echo | sort -dr
 
-# Rules_______________________________________________________________________
+# EOF
 
-.PHONY: help info preparing-pre clean check dist doc tags todo
-
-help:
-	@echo
-	@echo " $(PROJECT) development make rules:"
-	@echo
-	@echo "    prepare - prepares the project, may require editing this file"
-	@echo "    check   - executes pychecker"
-	@echo "    clean   - cleans up build files"
-	@echo "    test    - executes the test suite"
-	@echo "    doc     - generates the documentation"
-	@echo "    info    - displays project information"
-	@echo "    tags    - generates ctags"
-	@echo "    todo    - view TODO, FIXMES, etc"
-	@echo "    dist    - generates distribution"
-	@echo
-	@echo "    Look at the makefile for overridable variables."
-
-all: prepare clean check test doc dist
-	@echo "Making everything for $(PROJECT)"
-
-info:
-	@echo "$(PROJECT)-$(PROJECT_VERSION) ($(PROJECT_STATUS))"
-	@echo Source file lines:
-	@wc -l $(SOURCE_FILES)
-
-todo:
-	@grep  -R --only-matching "TODO.*$$"  $(SOURCE_FILES)
-	@grep  -R --only-matching "FIXME.*$$" $(SOURCE_FILES)
-
-prepare:
-	@echo "WARNING : You may required root priviledges to execute this rule."
-	@echo "Preparing python for $(PROJECT)"
-	sudo ln -snf $(PWD)/$(SOURCES)/$(PACKAGE) \
-		  $(PYTHONHOME)/$(PACKAGE)
-	@echo "Preparing done."
-
-clean:
-	@echo "Cleaning $(PROJECT)."
-	@find . -name "*.pyc" -or -name "*.sw?" -or -name ".DS_Store" -or -name "*.bak" -or -name "*~" -exec rm '{}' ';'
-	@rm -rf $(DOCUMENTATION)/API build dist
-
-check:
-	@echo "Checking $(PROJECT) sources :"
-ifeq ($(shell basename spam/$(PYCHECKER)),pychecker)
-	@$(PYCHECKER) -b $(CHECK_BLACKLIST) $(SOURCE_FILES)
-	@echo "Checking $(PROJECT) tests :"
-	@$(PYCHECKER) -b $(CHECK_BLACKLIST) $(TEST_FILES)
-else
-	@echo "You need Pychecker to check $(PROJECT)."
-	@echo "See <http://pychecker.sf.net>"
-endif
-	@echo "done."
-
-test: $(SOURCE_FILES) $(TEST_FILES)
-	@echo "Testing $(PROJECT)."
-	@$(PYTHON) $(TEST_MAIN)
-
-dist:
-	@echo "Creating archive $(DISTRIBUTION)/$(PROJECT)-$(PROJECT_VERSION).tar.gz"
-	@mkdir -p $(DISTRIBUTION)/$(PROJECT)-$(PROJECT_VERSION)
-	@cp -r $(DISTROCONTENT) $(DISTRIBUTION)/$(PROJECT)-$(PROJECT_VERSION)
-	@make -C $(DISTRIBUTION)/$(PROJECT)-$(PROJECT_VERSION) clean
-	@make -C $(DISTRIBUTION)/$(PROJECT)-$(PROJECT_VERSION) doc
-	@tar cfz $(DISTRIBUTION)/$(PROJECT)-$(PROJECT_VERSION).tar.gz \
-	-C $(DISTRIBUTION) $(PROJECT)-$(PROJECT_VERSION)
-	@rm -rf $(DISTRIBUTION)/$(PROJECT)-$(PROJECT_VERSION)
-
-man: README
-	kiwi -m -ilatin-1 README  Documentation/README.html
-
-doc: man
-	@echo "Generating $(PROJECT) documentation"
-ifeq ($(shell basename spam/$(SDOC)),sdoc)
-	@$(SDOC) -cp$(SOURCES) $(MODULES) $(API)
-else
-	@echo "Sdoc is required to generate $(PROJECT) documentation."
-	@echo "Please see <http://www.ivy.fr/sdoc>"
-endif
-
-tags:
-	@echo "Generating $(PROJECT) tags"
-ifeq ($(shell basename spam/$(CTAGS)),ctags)
-	@$(CTAGS) -R
-else
-	@echo "Ctags is required to generate $(PROJECT) tags."
-	@echo "Please see <http://ctags.sf.net>"
-endif
-
-#EOF

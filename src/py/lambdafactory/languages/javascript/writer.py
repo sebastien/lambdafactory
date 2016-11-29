@@ -1276,6 +1276,15 @@ class Writer(AbstractWriter):
 			", ".join(map(self.write, operation.getArguments()))
 		)
 
+	def onChain( self, chain ):
+		target = self.write(chain.getTarget())
+		v      = self._getRandomVariable()
+		groups = chain.getGroups() or None
+		print ("GROUPS", groups)
+		return [
+			"var {0}={1};".format(v, target),
+		]
+
 	def onSelection( self, selection ):
 		# If-expressions are not going to be with a process or block as parent.
 		in_process = isinstance(self.context[-2], interfaces.IProcess) or isinstance(self.context[-2], interfaces.IBlock)
