@@ -14,9 +14,9 @@
 # FIXME: Evaluable == Expression ?
 # TODO: Add type checking in factory
 
-import model
+from . import model
 from . import modeltypes as mt
-import interfaces
+from . import interfaces
 
 ANONYMOUS_SLOTS_INDEX = 0
 

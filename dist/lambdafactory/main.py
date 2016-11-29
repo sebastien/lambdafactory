@@ -8,7 +8,6 @@ from lambdafactory.environment import Environment
 from lambdafactory.splitter import FileSplitter
 import lambdafactory.passes as passes
 import lambdafactory.resolution as resolution
-from StringIO import StringIO
 __module_name__ = 'lambdafactory.main'
 class Command:
 	OPT_LANG = 'Specifies the target language (js, java, pnuts, actionscript)'

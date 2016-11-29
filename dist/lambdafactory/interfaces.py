@@ -666,7 +666,7 @@ class IWithBlock(IBlock):
 		raise Exception("Abstract method IWithBlock.setContext not implemented in: " + str(self))
 	
 
-class IClosure(IProcess, IContext):
+class IClosure(IProcess, IContext, IReferencable, IAbstractable, IConstruct):
 	def getParameters(self):
 		raise Exception("Abstract method IClosure.getParameters not implemented in: " + str(self))
 	
@@ -682,7 +682,7 @@ class IClosure(IProcess, IContext):
 		raise Exception("Abstract method IClosure.setReturnTypeDescription not implemented in: " + str(self))
 	
 
-class IFunction(IClosure, IReferencable, IAbstractable, IConstruct):
+class IFunction(IProcess, IContext, IReferencable, IAbstractable, IConstruct):
 	def getName(self):
 		"""Returns this @protocol name. It can be `None` if the @protocol is anonymous."""
 		raise Exception("Abstract method IFunction.getName not implemented in: " + str(self))

@@ -13,6 +13,7 @@
 | It defines objects that allow you to build a complete OO program model on
 | which you can apply transformation passes, and from which you can generate
 | code using the different back-ends.
+
 @import * from lambdafactory.interfaces
 @import pprint, sys
 @import lambdafactory.modeltypes as modeltypes
@@ -697,7 +698,7 @@
 #
 # ------------------------------------------------------------------------------
 
-@class Context: Element
+@class Context: Element, IContext
 
 	@property slots     = []
 	@property slotIndex = {}
@@ -1123,7 +1124,8 @@
 #
 # ------------------------------------------------------------------------------
 
-@class Process: Context, IContext, IProcess, IAbstractable
+#@class Process: Context, IContext, IProcess, IAbstractable
+@class Process: Context
 
 	@property operations = []
 	@constructor name=Undefined
@@ -1188,8 +1190,9 @@
 
 @end
 
+
 # FIXME: Confusion between arg/param
-@class Closure: Process, IAssignable, IClosure, IEvaluable
+@class Callable: Process
 
 	@property parameters = Undefined
 	@property returnTypeDescription = Undefined
@@ -1277,11 +1280,14 @@
 
 @end
 
-@class Function: Closure, IFunction, IReferencable
+@class Closure: Callable, IClosure
+@end
+
+@class Function: Callable, IFunction
 
 	@constructor name, parameters
 		#REWRITE: super parameters, name)
-		Closure __init__ ( self,  parameters, name)
+		Callable __init__ ( self,  parameters, name)
 	@end
 
 	@method getAbsoluteName

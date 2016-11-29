@@ -1,7 +1,7 @@
 # Encoding: ISO-8859-1
 # vim: ts=4 tw=79 noet
 
-import typecast, interfaces
+from . import typecast, interfaces
 
 # This is not very pretty, but the typer module will populate the catalog
 # with the types parsed from the library. The "typeForValue" operation will

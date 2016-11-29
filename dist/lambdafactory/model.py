@@ -514,7 +514,7 @@ class Documentation(Annotation, IDocumentation):
 	
 	pass
 
-class Context(Element):
+class Context(Element, IContext):
 	def __init__ (self, name=None):
 		self.slots = []
 		self.slotIndex = {}
@@ -816,7 +816,7 @@ class Program(Context, IProgram):
 		return self.factory
 	
 
-class Process(Context, IContext, IProcess, IAbstractable):
+class Process(Context):
 	def __init__ (self, name=None):
 		self.operations = []
 		if name is None: name = None
@@ -864,7 +864,7 @@ class WithBlock(Group, IWithBlock):
 		return self.context
 	
 
-class Closure(Process, IAssignable, IClosure, IEvaluable):
+class Callable(Process):
 	def __init__ (self, parameters, name=None):
 		self.parameters = None
 		self.returnTypeDescription = None
@@ -931,9 +931,12 @@ class Closure(Process, IAssignable, IClosure, IEvaluable):
 		self.returnTypeDescription = description
 	
 
-class Function(Closure, IFunction, IReferencable):
+class Closure(Callable, IClosure):
+	pass
+
+class Function(Callable, IFunction):
 	def __init__ (self, name, parameters):
-		Closure.__init__(self, parameters, name)
+		Callable.__init__(self, parameters, name)
 	
 	def getAbsoluteName(self):
 		if self.getParent():

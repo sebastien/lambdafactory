@@ -5,7 +5,6 @@
 @import FileSplitter from lambdafactory.splitter
 @import lambdafactory.passes as passes
 @import lambdafactory.resolution as resolution
-@import StringIO from StringIO
 
 # ------------------------------------------------------------------------------
 #

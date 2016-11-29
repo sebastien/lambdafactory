@@ -647,7 +647,7 @@
 
 @end
 
-@protocol IClosure: IProcess, IContext
+@protocol IClosure: IProcess, IContext, IReferencable, IAbstractable, IConstruct
 
 	@abstract @method getParameters
 
@@ -662,7 +662,7 @@
 @end
 
 
-@protocol IFunction: IClosure, IReferencable, IAbstractable, IConstruct
+@protocol IFunction: IProcess, IContext, IReferencable, IAbstractable, IConstruct
 
 	@abstract @method getName
 	|	Returns this @protocol name. It can be `None` if the @protocol is anonymous.
