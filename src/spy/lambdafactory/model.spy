@@ -14,10 +14,15 @@
 | which you can apply transformation passes, and from which you can generate
 | code using the different back-ends.
 @import * from lambdafactory.interfaces
-@import pprint
-@import sys
-@import lambdafactory.modeltypes
+@import pprint, sys
+@import lambdafactory.modeltypes as modeltypes
 
+@shared ERR_SLOT_NOT_FOUND = "ERR_SLOT_NOT_FOUND"
+@shared ERR_SLOT_VALUE_NOT_ASSIGNABLE = "ERR_SLOT_VALUE_NOT_ASSIGNABLE"
+@shared ERR_MODULE_ADDED_TWICE = "ERR_MODULE_ADDED_TWICE"
+@shared ERR_ABSTRACT_PROCESS_NO_OPERATIONS = "ERR_ABSTRACT_PROCESS_NO_OPERATIONS"
+@shared ERR_NOT_AN_OPERATION = "ERR_NOT_AN_OPERATION"
+@shared ERR_CLOSURE_ARGUMENT_NOT_SLOT = "ERR_CLOSURE_ARGUMENT_NOT_SLOT"
 # ------------------------------------------------------------------------------
 #
 # DATA FLOW ELEMENTS

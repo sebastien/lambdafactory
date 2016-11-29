@@ -81,6 +81,15 @@ clean: ## Cleans the build files
 	@echo $(BUILD_ALL) | xargs -n1 rm 2> /dev/null ; true
 	@test -e $(BUILD_PATH) && rm -r $(BUILD_PATH) ; true
 
+release: $(PRODUCT)
+	git commit -a -m "Release $(VERSION)" ; true
+	git tag $(VERSION) ; true
+	git push --all ; true
+	python setup.py clean sdist register upload
+
+check:
+	export PYTHONPATH=$(BUILD_PATH):$(PTYHONPATH) && pychecker -100 $(BUILD_PY)
+
 # -----------------------------------------------------------------------------
 #
 # BUILDING

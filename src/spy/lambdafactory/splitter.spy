@@ -5,6 +5,8 @@
 @shared SNIP_END   = "]---"
 @shared SNIP       =  (SNIP_START + "%s" + SNIP_END)
 
+@shared ERR_MUST_START_WITH_SNIP = "ERR_MUST_START_WITH_SNIP"
+
 #------------------------------------------------------------------------------
 #
 #  File Splitter

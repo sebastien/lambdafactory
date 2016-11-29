@@ -3,6 +3,9 @@
 @import lambdafactory.interfaces as interfaces
 @import json
 
+@shared ERR_NO_DATAFLOW_AVAILABLE    = "ERR_NO_DATAFLOW_AVAILABLE"
+@shared ERR_PASS_HANDLER_NOT_DEFINED = "ERR_PASS_HANDLER_NOT_DEFINED"
+
 # ============================================================================
 #
 # PASS CONTEXT

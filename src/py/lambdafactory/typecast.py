@@ -45,29 +45,29 @@ class Type:
 		self._parentTypes = []
 		self._definition  = None
 		self._concrete    = None
-	
+
 	def setConcreteType( self, value ):
 		"""Sets the _concrete type_ for this abstract type. The concrete type
 		is a value which represents the type. For instance, if this type
 		represents a class, then the concrete type would be the class instance."""
 		self._concrete = value
-	
+
 	def concreteType( self ):
 		"""Returns the _concrete type_ for this abstract type."""
 		return self._concrete
-	
+
 	def definedBy( self, definition=None ):
 		if definition == None:
 			return self._definition
 		else:
 			self._definition = definition
 			return self._definition
-			
+
 	def result( self ):
 		"""Returns the result for this type. This is usually just the type
 		itself, except for processes types."""
 		return self
-	
+
 	def isSameAs( self, otherType ):
 		"""Generic implementation of isSameAs. You should always call this method
 		in subclasses."""
@@ -81,13 +81,13 @@ class Type:
 		if otherType == self: return True
 		if otherType == Any: return True
 		return False
-	
+
 	def subtype( self, name ):
 		subtype = self.__class__()
 		subtype.name(name)
 		subtype._parentTypes.append(self)
 		return subtype
-		
+
 	def isSubtypeOf( self, otherType ):
 		"""Generic implementation of isSubtypeOf. You should always call this method
 		in subclasses, as it implements basic type systems rules such as
@@ -96,7 +96,7 @@ class Type:
 		if otherType == Any: return True
 		# FIXME: Implement transitivity, or whatever...
 		else: return otherType in self._parentTypes
-	
+
 	def name( self, name=None):
 		"""Returns/sets the name for this type. By defaults, types are unnamed."""
 		if name: self._name = name
@@ -116,18 +116,18 @@ class Type:
 		return None
 
 	def __str__( self ):
-		res = self.asString() 
+		res = self.asString()
 		assert res != None, "Method asString not implemented in %s." % \
 		(self.__class__.__name__)
 		return res
-	
+
 	def __call__(self):
 		"""A type instance can be used as a class to construct a new type, which
 		will be cloned from the current type."""
 		res = self.clone()
 		assert res
 		return res
-	
+
 	def clone(self):
 		raise Exception("Clone method not implemented in: %s" % (self.__class__))
 
@@ -145,17 +145,17 @@ class Symbolic(Type):
 
 	def __init__( self, name ):
 		Type.__init__(self, name)
-	
+
 	def asString( self, fromType=None ):
 		return self._name
-	
+
 	def clone(self):
 		return self
-	
+
 class Unresolved(Symbolic):
 	"""Unresolved types are temporary types that can be resolved later
 	when necessary."""
-	
+
 # ------------------------------------------------------------------------------
 #
 # CELL TYPE
@@ -193,14 +193,14 @@ class Cell(Type):
 	def length( self ):
 		"""Returns the length (in bytes) for this cell."""
 		return self._bytes
-	
+
 	def asString( self, fromType=None ):
 		if self.name(): return self.name()
 		else: return "%sb" % (self.length())
 
 	def clone(self):
 		return self.__class__(self._bytes)
-		
+
 # ------------------------------------------------------------------------------
 #
 # ARRAY TYPE
@@ -214,7 +214,7 @@ class Array(Type):
 		Type.__init__(self, name)
 		assert contentType != Nothing, "There is no point in an array of Nothing."
 		self._contentType = contentType
-	
+
 	def setContentType( self, theType ):
 		assert isinstance(theType, Type)
 		self._contentType = theType
@@ -235,7 +235,7 @@ class Array(Type):
 		if Type.isLike(self, otherType): return True
 		if not isinstance(otherType, Array): return False
 		return self.content().isLike(otherType.content())
-	
+
 	def isSubtypeOf( self, otherType ):
 		"""Othertype must be an Array with a content type that is a subtype of
 		this content type."""
@@ -262,13 +262,13 @@ class Sequence(Type):
 		Type.__init__(self)
 		self._elements = []
 		for arg in args: self.add(arg)
-	
+
 	def add( self, theType ):
 		assert isinstance(theType, Type)
 		assert not self._elements or \
 		not self._elements[-1] == Rest, "No element is allowed after Rest"
 		self._elements.append(theType)
-	
+
 	def extend( self, othertype ):
 		if isinstance(othertype, Sequence):
 			for e in othertype.elements():
@@ -278,7 +278,7 @@ class Sequence(Type):
 
 	def elements( self ):
 		return self._elements
-	
+
 	def length( self ):
 		return len(self._elements)
 
@@ -351,14 +351,14 @@ def Sequence_combine( a, b, sequenceclass=Sequence ):
 	if isinstance(a, Sequence):
 		if isinstance(b, Sequence):
 			for el in b.elements():
-				a.add(element)
+				a.add(el)
 		else:
 			a.add(b)
 		return a
 	if isinstance(b, Sequence):
 		a = sequenceclass(a)
 		for el in b.elements():
-			a.add(element)
+			a.add(el)
 		return a
 	else:
 		return sequenceclass(a, b)
@@ -412,7 +412,7 @@ class Process(Type):
 				return self._elements[0]
 			else:
 				return apply(Arguments, self._elements[:-1])
-	
+
 	def elements( self ):
 		return self._elements
 
@@ -427,7 +427,7 @@ class Process(Type):
 				return self._elements[-1]
 			else:
 				return Nothing
-	
+
 	def peel( self ):
 		"""If this process is (A, B)->C, will return (B)->C. You cannot peel a
 		process that is (B)->C."""
@@ -482,7 +482,7 @@ class Process(Type):
 		if clone == None: clone = Process()
 		clone._elements.extend(self._elements)
 		return clone
-	
+
 # ------------------------------------------------------------------------------
 #
 # MAP TYPE
@@ -497,7 +497,7 @@ class Map(Type):
 		self._elements = {}
 		for name,value in kwargs.items():
 			self.add(name,value)
-	
+
 	# FIXME: Deprecate this
 	def add( self, name, theType ):
 		"""This is a *deprecated* methods that is simply an alias for 'Map.set'."""
@@ -521,7 +521,7 @@ class Map(Type):
 	def elements( self ):
 		"""Returns a dict of the elements in this map. Do not modify it."""
 		return self._elements
-	
+
 	def element( self, key ):
 		"""Returns the element associated to the given key."""
 		return self._elements[key]
@@ -580,7 +580,7 @@ class Map(Type):
 		if clone == None: clone = Map()
 		clone._elements = dict(self._elements)
 		return clone
-	
+
 # ------------------------------------------------------------------------------
 #
 # CONTEXT TYPE
@@ -597,7 +597,7 @@ class Context(Map):
 		self._parents = []
 		for arg in args:
 			self.extends(arg)
-	
+
 	def extends( self, parent ):
 		"""Add a new parent from which this Context inherits."""
 		assert parent not in self._parents
@@ -616,7 +616,7 @@ class Context(Map):
 		else:
 			if self._parents: return self._parents[0]
 			else: return None
-		
+
 	def elements( self ):
 		"""Returns a dict of the elements in this map."""
 		e = {}
@@ -627,7 +627,7 @@ class Context(Map):
 			for key in pe.keys(): e[key] = pe[key]
 		# And return it
 		return e
-	
+
 	def fullName( self ):
 		"""Returns the fully qualified name for this context, by
 		concateniating the chain of parents name with '.'"""
@@ -636,7 +636,7 @@ class Context(Map):
 			return self.name()
 		else:
 			return parent.fullName() + "." + self.name()
-			
+
 	def element( self, key ):
 		"""Returns the element associated with the given key, or 'None' if it
 		does not exist."""
@@ -647,7 +647,7 @@ class Context(Map):
 			return None
 		else:
 			return Map.element(self, key)
-	
+
 	def clone(self, clone=None ):
 		if clone == None: clone = Context()
 		Map.clone(clone)
@@ -698,7 +698,7 @@ def isLike( a, b ):
 	"""Type (b) is like type (a) if (b) can be used where (a) can be used. When
 	two types are alike but not the same, this usually means that one type is
 	composed at some level of 'Any' or 'Rest' types.
-	
+
 	Not that isLike(a,b) does not imply isLike(b,a), as (a) may be a "broad"
 	type (such as 'Any'), and (b) a particular type (say 'String')."""
 	return a.isLike(b)
@@ -720,13 +720,13 @@ def isType( a ):
 class Environment:
 	"""The environment stores types and names them. This allows to easily
 	retrieve types from a given name."""
-	
+
 	def __init__(self):
 		self._types = {}
-		
+
 	def register(self, name, _type):
 		self.types[name] = _type
-	
+
 	def resolve(self, typeName):
 		return None
 

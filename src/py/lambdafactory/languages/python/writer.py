@@ -602,7 +602,7 @@ class Writer(AbstractWriter):
 			#	t = self.write(resolution.getContext())
 			#	return "(lambda *a,**kw:%s.__self__.__class__.__bases__[0].%s(%s.__self__))" % (t,t,t)
 			elif resolution.getContext() == self.getCurrentModule():
-				return "%s" % (resolve_name)
+				return "%s" % (resolved_name)
 			else:
 				return "%s.%s" % (self.write(resolution.getContext()), resolved_name)
 		else:

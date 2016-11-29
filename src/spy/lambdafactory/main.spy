@@ -132,7 +132,9 @@
 			end
 		end
 		if options source
-			parseSource(args[0], options source, options module)
+			# NOTE define
+			throw Exception "Not supported yet"
+			#parseSource(args[0], options source, options module)
 		else
 			if options module
 				if len(args) > 1
