@@ -18,6 +18,17 @@
 @import pprint, sys
 @import lambdafactory.modeltypes as modeltypes
 
+@shared IS_PYTHON3    = sys version_info major >= 3
+
+@function isString value
+	@embed Python
+	|if IS_PYTHON3:
+	|	return isinstance(value, str) or isinstance(value, bytes)
+	|else:
+	|	return isinstance(value, str) or isinstance(value, unicode)
+	@end
+@end
+
 @shared ERR_SLOT_NOT_FOUND = "ERR_SLOT_NOT_FOUND"
 @shared ERR_SLOT_VALUE_NOT_ASSIGNABLE = "ERR_SLOT_VALUE_NOT_ASSIGNABLE"
 @shared ERR_MODULE_ADDED_TWICE = "ERR_MODULE_ADDED_TWICE"
@@ -517,7 +528,7 @@
 		end
 		if type(annotation) in [tuple, list]
 			map(addAnnotation, annotation)
-		elif type(annotation) in [str, unicode]
+		elif isString(annotation)
 			addAnnotation (new Annotation (annotation, value))
 		else
 			assert (isinstance(annotation, IAnnotation))

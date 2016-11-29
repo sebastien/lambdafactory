@@ -98,11 +98,11 @@ class PassContext:
 		self.context.pop()
 	
 	def filterContext(self, interface):
-		return filter(lambda x:isinstance(x,interface), self.context)
+		return [_ for _ in self.context if isinstance(_,interface)]
 		
 	
 	def filter(self, list, interface):
-		return filter(lambda x:isinstance(x,interface), list)
+		return [_ for _ in list if isinstance(_,interface)]
 		
 	
 	def findInContext(self, interface):

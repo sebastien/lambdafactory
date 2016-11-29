@@ -10,6 +10,16 @@ from lambdafactory.interfaces import *
 import pprint, sys
 import lambdafactory.modeltypes as modeltypes
 __module_name__ = 'lambdafactory.model'
+IS_PYTHON3 = (sys.version_info.major >= 3)
+def isString (value):
+	self=__module__
+	if IS_PYTHON3:
+		return isinstance(value, str) or isinstance(value, bytes)
+	else:
+		return isinstance(value, str) or isinstance(value, unicode)
+	
+
+
 ERR_SLOT_NOT_FOUND = 'ERR_SLOT_NOT_FOUND'
 ERR_SLOT_VALUE_NOT_ASSIGNABLE = 'ERR_SLOT_VALUE_NOT_ASSIGNABLE'
 ERR_MODULE_ADDED_TWICE = 'ERR_MODULE_ADDED_TWICE'
@@ -384,7 +394,7 @@ class Element:
 			return None
 		if (type(annotation) in [tuple, list]):
 			map(self.addAnnotation , annotation)
-		elif (type(annotation) in [str, unicode]):
+		elif isString(annotation):
 			self.addAnnotation(Annotation(annotation, value))
 		elif True:
 			assert(isinstance(annotation, IAnnotation))

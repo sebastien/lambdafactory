@@ -1,20 +1,11 @@
 @module lambdafactory.modelwriter
 @import lambdafactory.interfaces as interfaces
+@import isString from lambdafactory.model
 @import Pass from lambdafactory.passes
 @import SNIP from lambdafactory.splitter
-@import string, sys
+@import string
 
 @shared PREFIX     = "\t"
-@shared IS_PYTHON3    = sys version_info major >= 3
-
-@function isString value
-	@embed Python
-	|if IS_PYTHON3:
-	|	return isinstance(value, str) or isinstance(value, bytes)
-	|else:
-	|	return isinstance(value, str) or isinstance(value, unicode)
-	@end
-@end
 
 @function _format value, level=-1
 | Format helper operation. See @format

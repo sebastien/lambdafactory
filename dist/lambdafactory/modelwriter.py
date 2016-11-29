@@ -3,21 +3,12 @@
 import sys
 __module__ = sys.modules[__name__]
 import lambdafactory.interfaces as interfaces
+from lambdafactory.model import isString
 from lambdafactory.passes import Pass
 from lambdafactory.splitter import SNIP
-import string, sys
+import string
 __module_name__ = 'lambdafactory.modelwriter'
 PREFIX = '\t'
-IS_PYTHON3 = (sys.version_info.major >= 3)
-def isString (value):
-	self=__module__
-	if IS_PYTHON3:
-		return isinstance(value, str) or isinstance(value, bytes)
-	else:
-		return isinstance(value, str) or isinstance(value, unicode)
-	
-
-
 def _format (value, level=None):
 	"""Format helper operation. See @format"""
 	self=__module__
