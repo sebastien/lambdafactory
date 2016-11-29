@@ -13,7 +13,7 @@
 from distutils.core import setup
 
 NAME        = "lambdafactory"
-VERSION     = "0.9.0"
+VERSION     = "0.8.9"
 WEBSITE     = "http://github.com/sebastien/lambdafactory/" + NAME.lower()
 SUMMARY     = "Programming language development toolkit"
 DESCRIPTION = """\
@@ -34,37 +34,37 @@ passes (documentation, representation, analysis, optimization)
 # ------------------------------------------------------------------------------
 
 setup(
-    name         = NAME,
-    version      = VERSION,
-    author       = "Sebastien Pierre", author_email = "sebastien@ivy.fr",
-    description  = SUMMARY, long_description = DESCRIPTION,
-    license      = "Revised BSD License",
-    keywords     = "program representation, structural analysis, documentation",
-    url          =  WEBSITE,
-    download_url =  WEBSITE + "/%s-%s.tar.gz" % (NAME.lower(), VERSION) ,
-    package_dir  = { "": "dist" },
-    package_data = {
-       "lambdafactory.languages.javascript": ["*.js"]
-    },
-    packages    = [
-        "lambdafactory",
-        "lambdafactory.languages",
-        "lambdafactory.languages.actionscript",
-        "lambdafactory.languages.javascript",
-        "lambdafactory.languages.python",
-        "lambdafactory.languages.pnuts"
-    ],
-    classifiers = [
-      "Development Status :: 4 - Beta",
-      "Environment :: Console",
-      "Intended Audience :: Developers",
-      "License :: OSI Approved :: BSD License",
-      # TODO: Add more here
-      "Natural Language :: English",
-      "Operating System :: POSIX",
-      "Operating System :: Microsoft :: Windows",
-      "Programming Language :: Python",
-    ]
+	name         = NAME,
+	version      = VERSION,
+	author       = "Sebastien Pierre", author_email = "sebastien.pierre@gmail.com",
+	description  = SUMMARY, long_description = DESCRIPTION,
+	license      = "Revised BSD License",
+	keywords     = "program representation, structural analysis, documentation",
+	url          =  WEBSITE,
+	download_url =  WEBSITE + "/%s-%s.tar.gz" % (NAME.lower(), VERSION) ,
+	package_dir  = { "": "dist" },
+	package_data = {
+	   "lambdafactory.languages.javascript": ["*.js"]
+	},
+	packages    = [
+		"lambdafactory",
+		"lambdafactory.languages",
+		"lambdafactory.languages.actionscript",
+		"lambdafactory.languages.javascript",
+		"lambdafactory.languages.python",
+		"lambdafactory.languages.pnuts"
+	],
+	classifiers = [
+	  "Development Status :: 4 - Beta",
+	  "Environment :: Console",
+	  "Intended Audience :: Developers",
+	  "License :: OSI Approved :: BSD License",
+	  # TODO: Add more here
+	  "Natural Language :: English",
+	  "Operating System :: POSIX",
+	  "Operating System :: Microsoft :: Windows",
+	  "Programming Language :: Python",
+	]
 )
 
 # EOF - vim: tw=80 ts=4 sw=4 noet

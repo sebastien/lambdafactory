@@ -17,5 +17,3 @@ Installing
 ```shell
 pip install --user lambdafactory
 ```
-
-# EOF

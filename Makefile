@@ -28,11 +28,11 @@ BUILD_PY        =$(SOURCES_SPY:$(SOURCES_PATH)/spy/%.spy=$(BUILD_PATH)/%.py)\
                  $(SOURCES_PYMODULES:$(SOURCES_PATH)/spy/%=$(BUILD_PATH)/%/__init__.py)
 BUILD_ALL       =$(BUILD_PY)
 
-# === PRODUCT =================================================================
+# === DIST ====================================================================
 
-PRODUCT_PY      =$(BUILD_PY:$(BUILD_PATH)/%.py=$(DIST_PATH)/%.py)
-PRODUCT_HTML    =$(SOURCES_MD:%.md=%.html)
-PRODUCT_ALL     =$(PRODUCT_PY) $(PRODUCT_MODULES) $(PRODUCT_HTML)
+DIST_PY         =$(BUILD_PY:$(BUILD_PATH)/%.py=$(DIST_PATH)/%.py)
+DIST_HTML       =$(SOURCES_MD:%.md=%.html)
+DIST_ALL        =$(DIST_PY) $(DIST_MODULES) $(DIST_HTML)
 
 # === TOOLS ===================================================================
 
@@ -69,7 +69,7 @@ MAKEFILE_DIR    := $(notdir $(patsubst %/,%,$(dir $(MAKEFILE_PATH))))
 
 build: $(BUILD_ALL) ## Builds all the project assets
 
-dist: $(PRODUCT_ALL) ## Updates the distribution of the project
+dist: $(DIST_ALL) ## Updates the distribution of the project
 
 help: ## Displays a description of the different Makefile rules
 	@echo "$(CYAN)★★★ $(PROJECT) Makefile ★★★$(RESET)"
