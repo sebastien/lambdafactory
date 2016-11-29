@@ -1,4 +1,0 @@
-Fix JS property bindings:
-	 they should be created in the constructor, not declared in the module
-Fix classes operations/methods:
-	A class should be able to have shared and property with the same name, and same thing for the method/operation

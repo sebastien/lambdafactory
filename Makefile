@@ -23,13 +23,14 @@ SOURCES_ALL      =$(SOURCES_SUGAR_PY) $(SOURCES_MODULES) $(SOURCES_MD)
 
 # === BUILD ===================================================================
 
-BUILD_ALL       =
+BUILD_PY        =$(SOURCES_SPY:$(SOURCES_PATH)/spy/%.spy=$(BUILD_PATH)/%.py)\
+                 $(SOURCES_PY:$(SOURCES_PATH)/py/%.py=$(BUILD_PATH)/%.py)\
+                 $(SOURCES_PYMODULES:$(SOURCES_PATH)/spy/%=$(BUILD_PATH)/%/__init__.py)
+BUILD_ALL       =$(BUILD_PY)
 
 # === PRODUCT =================================================================
 
-PRODUCT_PY      =$(SOURCES_SPY:$(SOURCES_PATH)/spy/%.spy=$(DIST_PATH)/%.py)\
-                 $(SOURCES_PY:$(SOURCES_PATH)/py/%.py=$(DIST_PATH)/%.py))\
-                 $(SOURCES_PYMODULES:$(SOURCES_PATH)/spy/%=$(DIST_PATH)/py/%/__init__.py)
+PRODUCT_PY      =$(BUILD_PY:$(BUILD_PATH)/%.py=$(DIST_PATH)/%.py)
 PRODUCT_HTML    =$(SOURCES_MD:%.md=%.html)
 PRODUCT_ALL     =$(PRODUCT_PY) $(PRODUCT_MODULES) $(PRODUCT_HTML)
 
@@ -56,8 +57,8 @@ MAKEFILE_DIR    := $(notdir $(patsubst %/,%,$(dir $(MAKEFILE_PATH))))
 
 
 # From: http://marmelab.com/blog/2016/02/29/auto-documented-makefile.html
-.DEFAULT_GOAL   := all
-.PHONY          : all
+.DEFAULT_GOAL   := build
+.PHONY          : build dist help clean
 
 # -----------------------------------------------------------------------------
 #
@@ -66,16 +67,18 @@ MAKEFILE_DIR    := $(notdir $(patsubst %/,%,$(dir $(MAKEFILE_PATH))))
 # -----------------------------------------------------------------------------
 
 
-all: $(PRODUCT_ALL) ## Builds all the project assets
+build: $(BUILD_ALL) ## Builds all the project assets
+
+dist: $(PRODUCT_ALL) ## Updates the distribution of the project
 
 help: ## Displays a description of the different Makefile rules
-	@echo "$(CYAN)øøø $(PROJECT) Makefile øøø$(RESET)"
-	@grep -E -o '((\w|-)+):[^#]+(##.*)$$'  $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":|##"}; {printf "make \033[01;32m%-15s\033[0mø %s\n", $$1, $$3}'
+	@echo "$(CYAN)‚òÖ‚òÖ‚òÖ $(PROJECT) Makefile ‚òÖ‚òÖ‚òÖ$(RESET)"
+	@grep -E -o '((\w|-)+):[^#]+(##.*)$$'  $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":|##"}; {printf "make \033[01;32m%-15s\033[0müïÆ %s\n", $$1, $$3}'
 
 clean: ## Cleans the build files
-	@echo "$(RED)ø  clean: Cleaning $(words $(PRODUCT_ALL)) files $(RESET)"
-	@echo "$(BLUE)ø  $(PRODUCT_ALL) $(RESET)"
-	@echo $(PRODUCT_ALL) $(BUILD_ALL) | xargs -n1 rm 2> /dev/null ; true
+	@echo "$(RED)‚ôª  clean: Cleaning $(words $(BUILD_ALL)) files $(RESET)"
+	@echo "$(BLUE)‚ôª  $(BUILD_ALL) $(RESET)"
+	@echo $(BUILD_ALL) | xargs -n1 rm 2> /dev/null ; true
 	@test -e $(BUILD_PATH) && rm -r $(BUILD_PATH) ; true
 
 # -----------------------------------------------------------------------------
@@ -84,24 +87,29 @@ clean: ## Cleans the build files
 #
 # -----------------------------------------------------------------------------
 
-$(DIST_PATH)/%.py: $(SOURCES_PATH)/py/%.py
-	@echo "$(GREEN)ø  $@ [PY]$(RESET)"
+$(BUILD_PATH)/%.py: $(SOURCES_PATH)/py/%.py
+	@echo "$(GREEN)üìùx‚áè  $@ [PY]$(RESET)"
 	@mkdir -p `dirname $@`
 	@cp --preserve=mode $< $@
 
-$(DIST_PATH)/%.py: $(SOURCES_PATH)/spy/%.spy
-	@echo "$(GREEN)ø  $@ [SPY]$(RESET)"
+$(BUILD_PATH)/%.py: $(SOURCES_PATH)/spy/%.spy
+	@echo "$(GREEN)üìù  $@ [SPY]$(RESET)"
 	@mkdir -p `dirname $@`
 	@$(SUGAR) -L$(SOURCES_PATH)/spy -clpy $< > $@
 	@cp --attributes-only --preserve=mode $< $@
 
-$(DIST_PATH)%/__init__.py: $(SOURCES_PATH)/spy/%
-	@echo "$(GREEN)ø  $@ [PY MODULE]$(RESET)"
+$(BUILD_PATH)%/__init__.py: $(SOURCES_PATH)/spy/%
+	@echo "$(GREEN)üìù  $@ [PY MODULE]$(RESET)"
 	@mkdir -p `dirname $@`
 	@touch $@
 
+$(DIST_PATH)/%.py: $(BUILD_PATH)/%.py
+	@echo "$(GREEN)üìù  $@ [DIST]$(RESET)"
+	@mkdir -p `dirname $@`
+	@cp --preserve=mode $< $@
+
 %.html: %.md
-	@echo "$(GREEN)ø  $@ [PANDOC]$(RESET)"
+	@echo "$(GREEN)üìù  $@ [PANDOC]$(RESET)"
 	@mkdir -p `dirname $@`
 	@$(PANDOC) $< -thtml -s -c "https://cdn.rawgit.com/sindresorhus/github-markdown-css/gh-pages/github-markdown.css"  | sed 's|<body>|<body><div class=markdown-body style="padding:4em;max-width:55em;">|g' > $@
 

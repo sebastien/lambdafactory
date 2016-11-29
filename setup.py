@@ -6,14 +6,14 @@
 # Author            :   Sebastien Pierre           <sebastien.pierre@gmail.com>
 # License           :   Revised BSD License
 # -----------------------------------------------------------------------------
-# Creation date     :   17-Mar-2008
-# Last mod.         :   01-Jul-2011
+# Creation date     :   2008-04-17
+# Last mod.         :   2016-11-29
 # -----------------------------------------------------------------------------
 
 from distutils.core import setup
 
-NAME        = "LambdaFactory"
-VERSION     = "0.8.7"
+NAME        = "lambdafactory"
+VERSION     = "0.9.0"
 WEBSITE     = "http://github.com/sebastien/lambdafactory/" + NAME.lower()
 SUMMARY     = "Programming language development toolkit"
 DESCRIPTION = """\
@@ -34,17 +34,16 @@ passes (documentation, representation, analysis, optimization)
 # ------------------------------------------------------------------------------
 
 setup(
-    name        = NAME,
-    version     = VERSION,
-    author      = "Sebastien Pierre", author_email = "sebastien@ivy.fr",
-    description = SUMMARY, long_description = DESCRIPTION,
-    license     = "Revised BSD License",
-    keywords    = "program representation, structural analysis, documentation",
-    url         =  WEBSITE,
-    download_url=  WEBSITE + "/%s-%s.tar.gz" % (NAME.lower(), VERSION) ,
-    package_dir = { "": "Distribution" },
-    package_data= {
-       "lambdafactory.languages.actionscript": ["*.as"],
+    name         = NAME,
+    version      = VERSION,
+    author       = "Sebastien Pierre", author_email = "sebastien@ivy.fr",
+    description  = SUMMARY, long_description = DESCRIPTION,
+    license      = "Revised BSD License",
+    keywords     = "program representation, structural analysis, documentation",
+    url          =  WEBSITE,
+    download_url =  WEBSITE + "/%s-%s.tar.gz" % (NAME.lower(), VERSION) ,
+    package_dir  = { "": "dist" },
+    package_data = {
        "lambdafactory.languages.javascript": ["*.js"]
     },
     packages    = [
@@ -68,4 +67,4 @@ setup(
     ]
 )
 
-# EOF - vim: tw=80 ts=4 sw=4 noet 
+# EOF - vim: tw=80 ts=4 sw=4 noet

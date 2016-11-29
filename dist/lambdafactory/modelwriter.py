@@ -1,3 +1,4 @@
+#8< ---[lambdafactory/modelwriter.py]---
 #!/usr/bin/env python
 import sys
 __module__ = sys.modules[__name__]
@@ -56,7 +57,7 @@ def notEmpty (p):
 
 
 class AbstractWriter(Pass):
-	HANDLES = [interfaces.IProgram, interfaces.IClass, interfaces.IModule, interfaces.IAccessor, interfaces.IMutator, interfaces.IDestructor, interfaces.IConstructor, interfaces.IClassMethod, interfaces.IMethod, interfaces.IFunction, interfaces.IClosure, interfaces.IWithBlock, interfaces.IBlock, interfaces.IModuleAttribute, interfaces.IClassAttribute, interfaces.IAttribute, interfaces.IArgument, interfaces.IParameter, interfaces.IOperator, interfaces.IReference, interfaces.INumber, interfaces.IString, interfaces.IList, interfaces.IDict, interfaces.IEnumeration, interfaces.IAllocation, interfaces.IAssignment, interfaces.IComputation, interfaces.IInvocation, interfaces.IInstanciation, interfaces.IResolution, interfaces.ISelection, interfaces.IRepetition, interfaces.IFilterIteration, interfaces.IMapIteration, interfaces.IIteration, interfaces.IAccessOperation, interfaces.ISliceOperation, interfaces.IEvaluation, interfaces.ITermination, interfaces.INOP, interfaces.IBreaking, interfaces.IContinue, interfaces.IExcept, interfaces.IInterception, interfaces.IImportSymbolOperation, interfaces.IImportSymbolsOperation, interfaces.IImportModuleOperation, interfaces.IImportModulesOperation, interfaces.IEmbed]
+	HANDLES = [interfaces.IProgram, interfaces.IClass, interfaces.IModule, interfaces.IAccessor, interfaces.IMutator, interfaces.IDestructor, interfaces.IConstructor, interfaces.IClassMethod, interfaces.IMethod, interfaces.IFunction, interfaces.IClosure, interfaces.IWithBlock, interfaces.IBlock, interfaces.IModuleAttribute, interfaces.IClassAttribute, interfaces.IAttribute, interfaces.IArgument, interfaces.IParameter, interfaces.IOperator, interfaces.IReference, interfaces.INumber, interfaces.IString, interfaces.IList, interfaces.IDict, interfaces.IEnumeration, interfaces.IAllocation, interfaces.IAssignment, interfaces.IComputation, interfaces.IInvocation, interfaces.IInstanciation, interfaces.IResolution, interfaces.IChain, interfaces.ISelection, interfaces.IRepetition, interfaces.IFilterIteration, interfaces.IMapIteration, interfaces.IIteration, interfaces.IAccessOperation, interfaces.ISliceOperation, interfaces.IEvaluation, interfaces.ITermination, interfaces.INOP, interfaces.IBreaking, interfaces.IContinue, interfaces.IExcept, interfaces.IInterception, interfaces.IImportSymbolOperation, interfaces.IImportSymbolsOperation, interfaces.IImportModuleOperation, interfaces.IImportModulesOperation, interfaces.IEmbed]
 	def __init__ (self):
 		self._generatedSymbols = {}
 		Pass.__init__(self)
@@ -80,7 +81,7 @@ class AbstractWriter(Pass):
 					name = the_interface.__name__[1:]
 					if isinstance(element, the_interface):
 						if not hasattr(self, "on" + name ):
-							raise Exception("Writer does not define write method for: " + name)
+							raise Exception("Writer does not define write method for: " + name + " in " + str(self))
 						else:
 							self.context.append(element)
 							result = getattr(self, "on" + name)(element)

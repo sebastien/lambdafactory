@@ -1,3 +1,4 @@
+#8< ---[lambdafactory/passes.py]---
 #!/usr/bin/env python
 import sys
 __module__ = sys.modules[__name__]
@@ -74,7 +75,7 @@ class PassContext:
 			for op_arg in element.getOpArguments():
 				if (type(op_arg) in [tuple, list]):
 					for arg in op_arg:
-						assert(isinstance(arg, interfaces.IElement))
+						assert(isinstance(arg, interfaces.IElement), 'Element expected, got {0}'.format(arg))
 						self.walk(arg)
 				elif True:
 					self.walk(op_arg)

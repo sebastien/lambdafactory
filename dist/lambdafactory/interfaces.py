@@ -1,3 +1,4 @@
+#8< ---[lambdafactory/interfaces.py]---
 #!/usr/bin/env python
 import sys
 __module__ = sys.modules[__name__]
@@ -981,6 +982,21 @@ class ISelection(IOperation):
 	def getRules(self):
 		"""Returns the ordered set of rule for this selection."""
 		raise Exception("Abstract method ISelection.getRules not implemented in: " + str(self))
+	
+
+class IChain(IOperation):
+	ARGS = [IEvaluable, [IOperation]]
+	def setTarget(self, value):
+		raise Exception("Abstract method IChain.setTarget not implemented in: " + str(self))
+	
+	def getTarget(self, value):
+		raise Exception("Abstract method IChain.getTarget not implemented in: " + str(self))
+	
+	def addGroup(self, evaluable):
+		raise Exception("Abstract method IChain.addGroup not implemented in: " + str(self))
+	
+	def getGroups(self):
+		raise Exception("Abstract method IChain.getGroups not implemented in: " + str(self))
 	
 
 class IIteration(IOperation):

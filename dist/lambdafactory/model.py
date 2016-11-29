@@ -1,3 +1,4 @@
+#8< ---[lambdafactory/model.py]---
 #!/usr/bin/env python
 """This module is the default implementation of the LambdaFactory interfaces.
 It defines objects that allow you to build a complete OO program model on
@@ -1081,7 +1082,7 @@ class Instanciation(Operation, IInstanciation):
 
 class Selection(Operation, ISelection):
 	def addRule(self, evaluable):
-		res = self.getOpArguments()
+		res=self.getOpArguments()
 		if (not res):
 			res = []
 			self.addOpArgument(res)
@@ -1095,6 +1096,35 @@ class Selection(Operation, ISelection):
 			return self.getOpArgument(0)
 		elif True:
 			return []
+	
+
+class Chain(Operation, IChain):
+	def _ensureOpArguments(self):
+		a=self.getOpArguments()
+		if (not a):
+			self.opArguments = [None, []]
+		return self.opArguments
+	
+	def setTarget(self, value):
+		self._ensureOpArguments()
+		self.setOpArgument(0, value)
+		return self
+	
+	def addGroup(self, group):
+		self._ensureOpArguments()
+		res=self.getOpArgument(1)
+		if (not res):
+			res = [group]
+		elif True:
+			res.append(group)
+		self.setOpArgument(1, res)
+		return self
+	
+	def getGroups(self):
+		return self.getOpArgument(1)
+	
+	def getTarget(self):
+		return self.getOpArgument(0)
 	
 
 class Evaluation(Operation, IEvaluation):

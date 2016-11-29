@@ -1,3 +1,4 @@
+#8< ---[lambdafactory/main.py]---
 #!/usr/bin/env python
 """Command-line interface and main module for LambdaFactory"""
 import sys

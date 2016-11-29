@@ -1,3 +1,4 @@
+#8< ---[lambdafactory/environment.py]---
 #!/usr/bin/env python
 import sys
 __module__ = sys.modules[__name__]
