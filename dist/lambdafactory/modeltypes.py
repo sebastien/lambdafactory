@@ -1,5 +1,5 @@
 # Encoding: ISO-8859-1
-# vim: ts=4 tw=79 noet 
+# vim: ts=4 tw=79 noet
 
 import typecast, interfaces
 
@@ -13,12 +13,12 @@ class TypeCollection:
 	easily retrieved using the @getType method."""
 
 	@classmethod
-	def getType( self, name ):
+	def getType( cls, name ):
 		"""Returns the type with the given name, or None if it does not
 		exist."""
 		keys = dir()
 		if name in keys:
-			return getattr(self, name)
+			return getattr(cls, name)
 		else:
 			return None
 

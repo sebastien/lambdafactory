@@ -97,7 +97,7 @@ check:
 # -----------------------------------------------------------------------------
 
 $(BUILD_PATH)/%.py: $(SOURCES_PATH)/py/%.py
-	@echo "$(GREEN)📝x⇏  $@ [PY]$(RESET)"
+	@echo "$(GREEN)📝  $@ [PY]$(RESET)"
 	@mkdir -p `dirname $@`
 	@cp --preserve=mode $< $@
 

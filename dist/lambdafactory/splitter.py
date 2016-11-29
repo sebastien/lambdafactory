@@ -7,6 +7,7 @@ __module_name__ = 'lambdafactory.splitter'
 SNIP_START = '8< ---['
 SNIP_END = ']---'
 SNIP = ((SNIP_START + '%s') + SNIP_END)
+ERR_MUST_START_WITH_SNIP = 'ERR_MUST_START_WITH_SNIP'
 class FileSplitter:
 	"""Some languages (like Java or ActionScript) may generate multiple files
 	for one single module. The FileSplitter makes it easy for front-end to

@@ -7,10 +7,15 @@ code using the different back-ends."""
 import sys
 __module__ = sys.modules[__name__]
 from lambdafactory.interfaces import *
-import pprint
-import sys
-import lambdafactory.modeltypes
+import pprint, sys
+import lambdafactory.modeltypes as modeltypes
 __module_name__ = 'lambdafactory.model'
+ERR_SLOT_NOT_FOUND = 'ERR_SLOT_NOT_FOUND'
+ERR_SLOT_VALUE_NOT_ASSIGNABLE = 'ERR_SLOT_VALUE_NOT_ASSIGNABLE'
+ERR_MODULE_ADDED_TWICE = 'ERR_MODULE_ADDED_TWICE'
+ERR_ABSTRACT_PROCESS_NO_OPERATIONS = 'ERR_ABSTRACT_PROCESS_NO_OPERATIONS'
+ERR_NOT_AN_OPERATION = 'ERR_NOT_AN_OPERATION'
+ERR_CLOSURE_ARGUMENT_NOT_SLOT = 'ERR_CLOSURE_ARGUMENT_NOT_SLOT'
 class DataFlowSlot(IDataFlowSlot):
 	def __init__ (self, name, value, origin, slotType):
 		self.name = None

@@ -436,11 +436,11 @@ class Writer(AbstractWriter):
 		# generate an '_imp' suffixed method that will be invoked by the
 		for meth in classElement.getClassMethods():
 			classOperations[self._rewriteSymbol(meth.getName())] = meth
-		classOperations = classOperations.values()
+		classOperations = list(classOperations.values())
 		classAttributes = {}
 		for attribute in classElement.getClassAttributes():
 			classAttributes[self._rewriteSymbol(attribute.getName())] = self.write(attribute)
-		classAttributes = classAttributes.values()
+		classAttributes = list(classAttributes.values())
 		result = []
 		result.append(self._document(classElement))
 		result.append("name:'%s', parent:%s," % (self.getAbsoluteName(classElement, relativeModule=False), parent))
@@ -457,10 +457,7 @@ class Writer(AbstractWriter):
 		if attributes:
 			# In attributes, we only print the name, ans use Undefined as the
 			# value, because properties will be instanciated at construction
-			written_attrs = ",\n".join(map(
-				lambda e:"%s:undefined" % (self._rewriteSymbol(e.getName())),
-				attributes
-			))
+			written_attrs = ",\n".join(["%s:undefined" % (self._rewriteSymbol(e.getName())) for e in attributes])
 			result.append("properties:{")
 			result.append([written_attrs])
 			result.append("},")
@@ -581,7 +578,7 @@ class Writer(AbstractWriter):
 			self._writeClosureArguments(methodElement),
 			self.writeFunctionWhen(methodElement),
 			self.writeFunctionPre(methodElement),
-			map(self.write, methodElement.getOperations()),
+			list(map(self.write, methodElement.getOperations())),
 			(
 				(not self.options["ENABLE_METADATA"] and "}") or \
 				"},%s)" % ( self._writeFunctionMeta(methodElement))
@@ -643,7 +640,7 @@ class Writer(AbstractWriter):
 			["var %s = this;" % (self.jsSelf)], #, self.getAbsoluteName(methodElement.getParent()))],
 			self._writeClosureArguments(methodElement),
 			self.writeFunctionWhen(methodElement),
-			map(self.write, methodElement.getOperations()),
+			list(map(self.write, methodElement.getOperations())),
 			(
 				(not self.options["ENABLE_METADATA"] and "}") or \
 				"},%s)" % ( self._writeFunctionMeta(methodElement))
@@ -699,7 +696,7 @@ class Writer(AbstractWriter):
 			["var %s=this;" % (self.jsSelf)],
 			self._writeClosureArguments(element),
 			attributes or None,
-			map(self.write, element.getOperations()),
+			list(map(self.write, element.getOperations())),
 			(
 				(not self.options["ENABLE_METADATA"] and "}") or \
 				"},%s)" % ( self._writeFunctionMeta(element))
@@ -741,7 +738,7 @@ class Writer(AbstractWriter):
 				['var %s=%s;' % (self.jsSelf, self.getAbsoluteName(parent))],
 				self._writeClosureArguments(function),
 				self.writeFunctionWhen(function),
-				map(self.write, function.getOperations()),
+				list(map(self.write, function.getOperations())),
 				(
 					(not self.options["ENABLE_METADATA"] and "}") or \
 					"},%s)" % ( self._writeFunctionMeta(function))
@@ -758,7 +755,7 @@ class Writer(AbstractWriter):
 				),
 				self._writeClosureArguments(function),
 				self.writeFunctionWhen(function),
-				map(self.write, function.getOperations()),
+				list(map(self.write, function.getOperations())),
 				(
 					(not self.options["ENABLE_METADATA"] and "}") or \
 					"},%s)" % ( self._writeFunctionMeta(closure))
@@ -795,7 +792,7 @@ class Writer(AbstractWriter):
 					or "function(%s){"
 				) % ( ", ".join(map(self.write, closure.getArguments()))),
 				self._writeClosureArguments(closure),
-				map(self.write, operations),
+				list(map(self.write, operations)),
 				(
 					(not self.options["ENABLE_METADATA"] and "}") or \
 					"},%s)" % ( self._writeFunctionMeta(closure))
@@ -831,7 +828,7 @@ class Writer(AbstractWriter):
 		return result
 
 	def onClosureBody(self, closure):
-		return self._format('{', map(self.write, closure.getOperations()), '}')
+		return self._format('{', list(map(self.write, closure.getOperations())), '}')
 
 	def _writeClosureArguments(self, closure):
 		# NOTE: Don't forget to update in AS backend as well
@@ -864,7 +861,7 @@ class Writer(AbstractWriter):
 		"""Writes a block element."""
 		return self._format(
 			"{",
-			map(self.write, block.getOperations()),
+			list(map(self.write, block.getOperations())),
 			"}"
 		)
 
@@ -1115,7 +1112,7 @@ class Writer(AbstractWriter):
 	def onComputation( self, computation ):
 		"""Writes a computation operation."""
 		# FIXME: For now, we supposed operator is prefix or infix
-		operands = filter(lambda x:x!=None,computation.getOperands())
+		operands = [x for x in computation.getOperands() if x!=None]
 		operator = computation.getOperator()
 		# FIXME: Add rules to remove unnecessary parens
 		if len(operands) == 1:
@@ -1248,7 +1245,7 @@ class Writer(AbstractWriter):
 						assert current == normal_arguments
 						current.append(self.write(param.getValue()))
 				normal_str = "[%s]" % (",".join(normal_arguments))
-				extra_str  = "{%s}" % (",".join("%s:%s" % (k,v) for k,v in extra_arguments.items()))
+				extra_str  = "{%s}" % (",".join("%s:%s" % (k,v) for k,v in list(extra_arguments.items())))
 				return "extend.invoke(%s,%s,%s,%s)%s" % (
 					self.jsSelf,
 					t,
@@ -1280,7 +1277,6 @@ class Writer(AbstractWriter):
 		target = self.write(chain.getTarget())
 		v      = self._getRandomVariable()
 		groups = chain.getGroups() or None
-		print ("GROUPS", groups)
 		return [
 			"var {0}={1};".format(v, target),
 		]
@@ -1395,7 +1391,7 @@ class Writer(AbstractWriter):
 		if "." in start or "." in end or "." in step: filt = float
 		else: filt = int
 		comp = "<"
-		start, end, step = map(filt, (start, end, step))
+		start, end, step = list(map(filt, (start, end, step)))
 		# If start > end, then step < 0
 		if start > end:
 			if step > 0: step =  -step
@@ -1403,7 +1399,7 @@ class Writer(AbstractWriter):
 		# If start <= end then step >  0
 		else:
 			if step < 0: step = -step
-		args  = map(lambda a:self._rewriteSymbol(a.getName()), closure.getParameters())
+		args  = [self._rewriteSymbol(a.getName()) for a in closure.getParameters()]
 		if len(args) == 0: args.append(self._getRandomVariable())
 		if len(args) == 1: args.append(self._getRandomVariable())
 		i = args[1]
@@ -1427,7 +1423,7 @@ class Writer(AbstractWriter):
 		# some variable that is going to be re-assigned here
 		self.pushContext(iteration)
 		closure = iteration.getClosure()
-		args    = map(lambda a:self._rewriteSymbol(a.getName()), closure.getParameters()) if isinstance(closure, interfaces.IClosure) else []
+		args    = [self._rewriteSymbol(a.getName()) for a in closure.getParameters()] if isinstance(closure, interfaces.IClosure) else []
 		if len(args) == 0: args.append(self._getRandomVariable())
 		if len(args) == 1: args.append(self._getRandomVariable())
 		v  = args[0]
@@ -1545,16 +1541,16 @@ class Writer(AbstractWriter):
 		try_block   = interception.getProcess()
 		try_catch   = interception.getIntercept()
 		try_finally = interception.getConclusion()
-		res         = ["try {", map(self.write, try_block.getOperations()), "}"]
+		res         = ["try {", list(map(self.write, try_block.getOperations())), "}"]
 		if try_catch:
 			res[-1] += " catch(%s) {" % ( self.write(try_catch.getArguments()[0]))
 			res.extend([
-				map(self.write, try_catch.getOperations()),
+				list(map(self.write, try_catch.getOperations())),
 				"}"
 			])
 		if try_finally:
 			res[-1] += " finally {"
-			res.extend([map(self.write, try_finally.getOperations()), "}"])
+			res.extend([list(map(self.write, try_finally.getOperations())), "}"])
 		return self._format(*res)
 
 	def onEmbed( self, embed ):

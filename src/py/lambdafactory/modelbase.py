@@ -15,7 +15,7 @@
 # TODO: Add type checking in factory
 
 import model
-import modeltypes as mt
+from . import modeltypes as mt
 import interfaces
 
 ANONYMOUS_SLOTS_INDEX = 0
@@ -84,16 +84,16 @@ class Factory:
 
 	def createBlock( self, *operations ):
 		r = self._getImplementation("Block")()
-		if operations: map(r.addOperation, operations)
+		if operations: list(map(r.addOperation, operations))
 		return r
 
 	def withBlock( self, context, *operations ):
 		r = self._getImplementation("WithBlock")(context)
-		if operations: map(r.addOperation, operations)
+		if operations: list(map(r.addOperation, operations))
 
 	def createClosure( self, parameters, *operations ):
 		r = self._getImplementation("Closure")(parameters)
-		if operations: map(r.addOperation, operations)
+		if operations: list(map(r.addOperation, operations))
 		return r
 
 	def createFunction( self, name, parameters=None ):
@@ -147,15 +147,15 @@ class Factory:
 		return self._getImplementation("ImportModulesOperation")(names)
 
 	def evaluate( self, evaluable ):
-		if type(evaluable) in (str, unicode): evaluable = self._ref(evaluable)
+		if type(evaluable) in (str, str): evaluable = self._ref(evaluable)
 		return self._getImplementation("Evaluation")(evaluable)
 
 	def allocate( self, slot, value=None ):
-		if type(slot) in (str, unicode): slot = self._slot(slot)
+		if type(slot) in (str, str): slot = self._slot(slot)
 		return self._getImplementation("Allocation")(slot, value)
 
 	def assign( self, name, evaluable ):
-		if type(name) in (str, unicode): name = self._ref(name)
+		if type(name) in (str, str): name = self._ref(name)
 		return self._getImplementation("Assignment")(name, evaluable)
 
 	def compute( self, operatorName, leftOperand, rightOperand=None ):
@@ -168,7 +168,7 @@ class Factory:
 		return self.invoke_args(evaluable, arguments)
 
 	def invoke_args( self, evaluable, arguments ):
-		arguments = map(self._ensureArg,arguments)
+		arguments = list(map(self._ensureArg,arguments))
 		# FIXME: Arguments should not be a list, they should be wrapped in an
 		# arguments object that supports copy () and detach () properly
 		return self._getImplementation("Invocation")(evaluable, arguments)
@@ -178,17 +178,17 @@ class Factory:
 		return self._getImplementation("Instanciation")(evaluable, arguments)
 
 	def resolve( self, reference, context=None ):
-		if type(reference) in (str, unicode): reference = self._ref(reference)
+		if type(reference) in (str, str): reference = self._ref(reference)
 		return self._getImplementation("Resolution")(reference, context)
 
 	def select( self, *rules ):
 		s = self._getImplementation("Selection")()
-		if rules: map(s.addRule, rules)
+		if rules: list(map(s.addRule, rules))
 		return s
 
 	def chain( self, *groups ):
 		s = self._getImplementation("Chain")()
-		if groups: map(s.addGroup, groups)
+		if groups: list(map(s.addGroup, groups))
 		return s
 
 	def rule( self, evaluable, process ):
@@ -316,9 +316,9 @@ class Factory:
 	def _list( self, *args ):
 		r = self._getImplementation("List")()
 		if len(args) == 1 and type(args[0]) in (list,tuple):
-			map(lambda a:r.addValue(a), args[0])
+			list(map(lambda a:r.addValue(a), args[0]))
 		else:
-			map(lambda a:r.addValue(a), args)
+			list(map(lambda a:r.addValue(a), args))
 		return r
 
 	def _dict( self ):

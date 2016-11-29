@@ -11,7 +11,7 @@
 # -----------------------------------------------------------------------------
 
 import interfaces, reporter
-import typecast, modeltypes
+from . import typecast, modeltypes
 
 # ------------------------------------------------------------------------------
 #
@@ -70,7 +70,7 @@ class Typer(object):
 	# FIXME: Inherit from Pass
 	
 	def _filterContext( self, interface ):
-		return filter(lambda x:isinstance(x,interface), self.contexts)
+		return [x for x in self.contexts if isinstance(x,interface)]
 
 	def getCurrentClosure( self ):
 		res = self._filterContext(interfaces.IClosure)
@@ -256,7 +256,7 @@ def type( element ):
 	catalog = modeltypes.CATALOG = Catalog()
 	typer = Typer(catalog)
 	catalog.make(element.getDataFlow())
-	keys = catalog.catalog.keys()
+	keys = list(catalog.catalog.keys())
 	keys.sort()
 	typer.type(element)
 

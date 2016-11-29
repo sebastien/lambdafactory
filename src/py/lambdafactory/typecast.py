@@ -333,7 +333,7 @@ def Sequence_make( args, sequenceclass=Sequence ):
 	"""
 	if len(args) == 0: return Nothing
 	if len(args) == 1: return args[0]
-	else: return apply(sequenceclass, args)
+	else: return sequenceclass(*args)
 
 def Sequence_combine( a, b, sequenceclass=Sequence ):
 	"""Combines the given arguments into a sequence. This follows the following
@@ -411,7 +411,7 @@ class Process(Type):
 			if len(self._elements) == 2:
 				return self._elements[0]
 			else:
-				return apply(Arguments, self._elements[:-1])
+				return Arguments(*self._elements[:-1])
 
 	def elements( self ):
 		return self._elements
@@ -495,7 +495,7 @@ class Map(Type):
 	def __init__( self, **kwargs ):
 		Type.__init__(self)
 		self._elements = {}
-		for name,value in kwargs.items():
+		for name,value in list(kwargs.items()):
 			self.add(name,value)
 
 	# FIXME: Deprecate this
@@ -516,7 +516,7 @@ class Map(Type):
 
 	def elementNames( self ):
 		"""Returns the list of slots/elements defined in this map."""
-		return self._elements.keys()
+		return list(self._elements.keys())
 
 	def elements( self ):
 		"""Returns a dict of the elements in this map. Do not modify it."""
@@ -531,8 +531,8 @@ class Map(Type):
 		if not isinstance(otherType, Map): return False
 		this_elements  = self.elements()
 		other_elements = otherType.elements()
-		if len(this_elements.keys()) != len(other_elements.keys()): return False
-		for key in this_elements.keys():
+		if len(list(this_elements.keys())) != len(list(other_elements.keys())): return False
+		for key in list(this_elements.keys()):
 			val = other_elements.get(key)
 			if val == None: return False
 			if not this_elements[key].isSameAs(val): return False
@@ -546,8 +546,8 @@ class Map(Type):
 		if not isinstance(otherType, Map): return False
 		this_elements  = self.elements()
 		other_elements = otherType.elements()
-		if len(this_elements.keys()) != len(other_elements.keys()): return False
-		for key in this_elements.keys():
+		if len(list(this_elements.keys())) != len(list(other_elements.keys())): return False
+		for key in list(this_elements.keys()):
 			val = other_elements.get(key)
 			if val == None: return False
 			if not this_elements[key].isLike(val): return False
@@ -561,8 +561,8 @@ class Map(Type):
 		this_elements  = self.elements()
 		other_elements = otherType.elements()
 		# This type must be longer or equal than the other
-		if len(this_elements.keys()) < len(other_elements.keys()): return False
-		for key in other_elements.keys():
+		if len(list(this_elements.keys())) < len(list(other_elements.keys())): return False
+		for key in list(other_elements.keys()):
 			val = this_elements.get(key)
 			if val == None: return False
 			if not val.isSubtypeOf(other_elements[key]): return False
@@ -574,7 +574,7 @@ class Map(Type):
 		if res: return res
 		assert self in fromTypes
 		return "%s={" % (self.name() or '_') + ",".join(["%s:%s" % (k, t.asString(fromTypes)) for k, t in
-		self.elements().items()]) + "}"
+		list(self.elements().items())]) + "}"
 
 	def clone(self, clone=None ):
 		if clone == None: clone = Map()
@@ -621,10 +621,10 @@ class Context(Map):
 		"""Returns a dict of the elements in this map."""
 		e = {}
 		# We merge the current and parent elements into the e dict
-		for key in self._elements.keys(): e[key] = self._elements[key]
+		for key in list(self._elements.keys()): e[key] = self._elements[key]
 		for parent in self._parents:
 			pe = parent.elements()
-			for key in pe.keys(): e[key] = pe[key]
+			for key in list(pe.keys()): e[key] = pe[key]
 		# And return it
 		return e
 
@@ -640,7 +640,7 @@ class Context(Map):
 	def element( self, key ):
 		"""Returns the element associated with the given key, or 'None' if it
 		does not exist."""
-		if key not in self._elements.keys():
+		if key not in list(self._elements.keys()):
 			for parent in self._parents:
 				r = parent.element(key)
 				if r != None: return r

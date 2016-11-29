@@ -110,7 +110,7 @@ class Command:
 					if parsed_module:
 						program.addModule(parsed_module)
 		if options.source:
-			parseSource(args[0], options.source, options.module)
+			throw.Exception('Not supported yet')
 		elif True:
 			if options.module:
 				if (len(args) > 1):

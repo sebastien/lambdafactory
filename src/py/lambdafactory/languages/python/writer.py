@@ -101,7 +101,7 @@ class Writer(AbstractWriter):
 				code.insert(imports_offset, self.write(i))
 		# We take care of the module_init
 		if module_init:
-			init_code = ["def __module_init__():", map(self.write,module_init)]
+			init_code = ["def __module_init__():", list(map(self.write,module_init))]
 			init_code.append("__module_init__()")
 			code.extend(init_code)
 		# We take care or the main function
@@ -211,7 +211,7 @@ class Writer(AbstractWriter):
 			[self._document(methodElement)],
 			self._writeFunctionArgumentsInit(methodElement),
 			#self.writeFunctionWhen(methodElement),
-			map(self.write, methodElement.getOperations()) or default_body,
+			list(map(self.write, methodElement.getOperations())) or default_body,
 			""
 		)
 
@@ -233,7 +233,7 @@ class Writer(AbstractWriter):
 			[self._document(methodElement)],
 			self._writeFunctionArgumentsInit(methodElement),
 			#self.writeFunctionWhen(methodElement),
-			map(self.write, methodElement.getOperations()) or default_body,
+			list(map(self.write, methodElement.getOperations())) or default_body,
 			""
 		)
 
@@ -278,7 +278,7 @@ class Writer(AbstractWriter):
 			"def __init__ (%s):" % (arguments),
 			self._writeConstructorAttributes(element),
 			self._writeFunctionArgumentsInit(element),
-			map(self.write, element.getOperations()) or ["pass"],
+			list(map(self.write, element.getOperations())) or ["pass"],
 			""
 		)
 
@@ -290,7 +290,7 @@ class Writer(AbstractWriter):
 			"lambda %s:(" % ( ", ".join(map(self.write, closure.getParameters()))),
 				", ".join(map(self.write, closure.getParameters())),
 				self._writeFunctionArgumentsInit(closure),
-				map(self.write, closure.getOperations()) or ["pass"],
+				list(map(self.write, closure.getOperations())) or ["pass"],
 			")"
 		)
 
@@ -301,7 +301,7 @@ class Writer(AbstractWriter):
 			self._document(closure),
 			"def %s(%s):" % (name, ", ".join(map(self.write, closure.getParameters()))),
 				self._writeFunctionArgumentsInit(closure),
-				map(self.write, closure.getOperations()) or ["pass"],
+				list(map(self.write, closure.getOperations())) or ["pass"],
 			")"
 		)
 
@@ -331,7 +331,7 @@ class Writer(AbstractWriter):
 				['self=__module__'],
 				self._writeFunctionArgumentsInit(function),
 				#self.writeFunctionWhen(function),
-				map(self.write, function.getOperations()) or ["pass"],
+				list(map(self.write, function.getOperations())) or ["pass"],
 				"\n"
 			]
 		else:
@@ -342,7 +342,7 @@ class Writer(AbstractWriter):
 					", ".join(map(self.write, function.getParameters()))
 				),
 				#self.writeFunctionWhen(function),
-				map(self.write, function.getOperations()),
+				list(map(self.write, function.getOperations())),
 				"\n"
 			]
 		if function.getAnnotations("post"):
@@ -357,7 +357,7 @@ class Writer(AbstractWriter):
 	def onBlock( self, block ):
 		"""Writes a block element."""
 		return self._format(
-			*(map(self.write, block.getOperations()))
+			*(list(map(self.write, block.getOperations())))
 		)
 
 	def onParameter( self, param ):
@@ -611,7 +611,7 @@ class Writer(AbstractWriter):
 	def onComputation( self, computation ):
 		"""Writes a computation operation."""
 		# FIXME: For now, we supposed operator is prefix or infix
-		operands = filter(lambda x:x!=None,computation.getOperands())
+		operands = [x for x in computation.getOperands() if x!=None]
 		operator = computation.getOperator()
 		# FIXME: Add rules to remove unnecessary parens
 		if len(operands) == 1:
@@ -786,14 +786,14 @@ class Writer(AbstractWriter):
 		it_name = self._unique("_iterator")
 		iterator = iteration.getIterator()
 		closure  = iteration.getClosure()
-		args  = map(lambda a:a.getName(), closure.getParameters())
+		args  = [a.getName() for a in closure.getParameters()]
 		if len(args) == 0: args.append("__iterator_value")
 		if len(args) == 1: args.append("__iterator_index")
 		i = args[1]
 		v = args[0]
 		return self._format(
 				"for %s in %s:" % (v, self.write(iterator)),
-				map(self.write, closure.getOperations())
+				list(map(self.write, closure.getOperations()))
 		)
 
 
@@ -852,14 +852,14 @@ class Writer(AbstractWriter):
 		try_block   = interception.getProcess()
 		try_catch   = interception.getIntercept()
 		try_finally = interception.getConclusion()
-		res         = ["try:", map(self.write, try_block.getOperations())]
+		res         = ["try:", list(map(self.write, try_block.getOperations()))]
 		if try_catch:
 			res.extend([
 				"except Exception as %s:" % ( self.write(try_catch.getArguments()[0])) ,
-				map(self.write, try_catch.getOperations())
+				list(map(self.write, try_catch.getOperations()))
 			])
 		if try_finally:
-			res.extend(["finally:", map(self.write, try_finally.getOperations())])
+			res.extend(["finally:", list(map(self.write, try_finally.getOperations()))])
 		return self._format(*res)
 
 	def onImportSymbolOperation( self, element ):

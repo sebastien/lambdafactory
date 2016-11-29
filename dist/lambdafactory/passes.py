@@ -6,6 +6,8 @@ import lambdafactory.reporter as reporter
 import lambdafactory.interfaces as interfaces
 import json
 __module_name__ = 'lambdafactory.passes'
+ERR_NO_DATAFLOW_AVAILABLE = 'ERR_NO_DATAFLOW_AVAILABLE'
+ERR_PASS_HANDLER_NOT_DEFINED = 'ERR_PASS_HANDLER_NOT_DEFINED'
 class PassContext:
 	"""The 'PassContext' represents the current state of one or more passes when
 	walking the program. It offers access to the 'environment' (gives access

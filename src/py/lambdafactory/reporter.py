@@ -33,7 +33,7 @@ class Reporter:
 
 	def isDone(self, message, element, update=True):
 		key = "%s:%s" % (message, element)
-		if self._alreadyDone.has_key(key):
+		if key in self._alreadyDone:
 			return True
 		if update:
 			self._alreadyDone[key] = 1
@@ -42,11 +42,11 @@ class Reporter:
 	def warning( self, message, element=None ):
 		if self.isDone(message, element): return
 		self.warnings.append(message)
-		map( lambda c:c(message, element), self._onWarning)
+		list(map( lambda c:c(message, element), self._onWarning))
 
 	def error( self, *message ):
 		self.errors.append(message)
-		map( lambda c:c(message), self._onError)
+		list(map( lambda c:c(message), self._onError))
 
 	def trace( self, *message):
 		pass
