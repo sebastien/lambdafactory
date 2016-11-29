@@ -335,7 +335,6 @@ class Writer(AbstractWriter):
 			"// START:GOOGLE_PREAMBLE",
 			"goog.loadModule(function(exports){",
 			"goog.module('{0}');".format(module_name),
-			"var extend = goog.require('extend');"
 		] + modules + symbols + [
 			"var __module__ = {0}; var {0} = exports;".format(module_name),
 			"// END:GOOGLE_PREAMBLE"
