@@ -100,12 +100,10 @@ class Writer(AbstractWriter):
 		self._generatedVars[-1] += 1
 		return s
 
-	def pushContext( self, value ):
+	def pushVarContext( self, value ):
 		self._generatedVars.append(0)
-		AbstractWriter.pushContext(self, value)
 
-	def popContext( self ):
-		AbstractWriter.popContext(self)
+	def popVarContext( self ):
 		self._generatedVars.pop()
 
 	def _extendGetMethodByName(self, name):
@@ -566,7 +564,7 @@ class Writer(AbstractWriter):
 
 	def onMethod( self, methodElement ):
 		"""Writes a method element."""
-		self.pushContext(methodElement)
+		self.pushVarContext(methodElement)
 		method_name = self._rewriteSymbol(methodElement.getName())
 		if method_name == interfaces.Constants.Constructor: method_name = "init"
 		if method_name == interfaces.Constants.Destructor:  method_name = "cleanup"
@@ -589,7 +587,7 @@ class Writer(AbstractWriter):
 				"},%s)" % ( self._writeFunctionMeta(methodElement))
 			)
 		)
-		self.popContext()
+		self.popVarContext()
 		return res
 
 	def _writeFunctionMeta( self, function ):
@@ -633,7 +631,7 @@ class Writer(AbstractWriter):
 
 	def onClassMethod( self, methodElement ):
 		"""Writes a class method element."""
-		self.pushContext(methodElement)
+		self.pushVarContext(methodElement)
 		method_name = self._rewriteSymbol(methodElement.getName())
 		args        = methodElement.getParameters()
 		res = self._format(
@@ -651,7 +649,7 @@ class Writer(AbstractWriter):
 				"},%s)" % ( self._writeFunctionMeta(methodElement))
 			)
 		)
-		self.popContext()
+		self.popVarContext()
 		return res
 
 	def _writeClassMethodProxy(self, currentClass, inheritedMethodElement):
@@ -679,7 +677,7 @@ class Writer(AbstractWriter):
 
 	def onConstructor( self, element ):
 		"""Writes a constructor element"""
-		self.pushContext(element)
+		self.pushVarContext(element)
 		current_class = self.getCurrentClass()
 		attributes    = []
 		# FIXME: Same as onClass
@@ -707,7 +705,7 @@ class Writer(AbstractWriter):
 				"},%s)" % ( self._writeFunctionMeta(element))
 			)
 		)
-		self.popContext()
+		self.popVarContext()
 		return res
 
 	# =========================================================================
@@ -728,7 +726,7 @@ class Writer(AbstractWriter):
 
 	def onFunction( self, function ):
 		"""Writes a function element."""
-		self.pushContext(function)
+		self.pushVarContext(function)
 		parent = function.getParent()
 		name   = self._rewriteSymbol( function.getName() )
 		if parent and isinstance(parent, interfaces.IModule):
@@ -773,7 +771,7 @@ class Writer(AbstractWriter):
 			res.append("var result = __wrapped__.apply(%s, arguments);" % (self.jsSelf))
 			res.append(self.writeFunctionPost(function))
 			res.append("return result;")
-		self.popContext()
+		self.popVarContext()
 		return self._format(res)
 
 	# =========================================================================
@@ -785,7 +783,6 @@ class Writer(AbstractWriter):
 		to rename parameters when there is an `encloses` annotation in
 		an iteration loop.
 		"""
-		self.pushContext(closure)
 		operations = closure.getOperations ()
 		if bodyOnly:
 			result = [self.write(_) + ";" for _ in operations]
@@ -829,7 +826,6 @@ class Writer(AbstractWriter):
 				", ".join(transposed),
 				result
 			)
-		self.popContext()
 		return result
 
 	def onClosureBody(self, closure):
@@ -1426,7 +1422,6 @@ class Writer(AbstractWriter):
 		# Now, this requires some explanation. If the iteration is annotated
 		# as `force-scope`, this means that there is a nested closure that references
 		# some variable that is going to be re-assigned here
-		self.pushContext(iteration)
 		closure = iteration.getClosure()
 		args    = [self._rewriteSymbol(a.getName()) for a in closure.getParameters()] if isinstance(closure, interfaces.IClosure) else []
 		if len(args) == 0: args.append(self._getRandomVariable())
@@ -1454,7 +1449,6 @@ class Writer(AbstractWriter):
 		# If there is no scope forcing, then we can do a simple iteration
 		# over the array/object
 		# TODO: Use for of https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Statements/for...of
-		self.popContext()
 		return self._format(
 			# OK, so it is a bit complicated here. We start by storing a reference
 			# to the iterated expression

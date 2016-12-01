@@ -682,7 +682,7 @@ class IClosure(IProcess, IContext, IReferencable, IAbstractable, IConstruct):
 		raise Exception("Abstract method IClosure.setReturnTypeDescription not implemented in: " + str(self))
 	
 
-class IFunction(IProcess, IContext, IReferencable, IAbstractable, IConstruct):
+class IFunction(IClosure):
 	def getName(self):
 		"""Returns this @protocol name. It can be `None` if the @protocol is anonymous."""
 		raise Exception("Abstract method IFunction.getName not implemented in: " + str(self))
