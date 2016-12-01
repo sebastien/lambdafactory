@@ -320,10 +320,13 @@ class Writer(AbstractWriter):
 
 	def getModuleGooglePrefix( self, moduleElement):
 		module_name = self._rewriteSymbol(moduleElement.getName())
-		modules     = ["var {0} = goog.require('{0}');".format(_) for _ in self.getImportedModules(moduleElement)]
+		# NOTE: We prevent modules from importing themselves
+		modules     = ["var {0} = goog.require('{0}');".format(_) for _ in self.getImportedModules(moduleElement) if _ != module_name]
 		symbols     = []
 		for alias, module, slot in self.getImportedSymbols(moduleElement):
-			if not slot:
+			if module == module_name:
+				continue
+			elif not slot:
 				# Modules are already imported
 				if alias:
 					symbols.append("var {0} = {1};".format(alias or module, module))
@@ -331,19 +334,22 @@ class Writer(AbstractWriter):
 				# Extend gets a special treatment
 				if module != "extend" or alias:
 					symbols.append("var {0} = {1}.{2};".format(alias or slot, module, slot))
+		symbols = list(set(symbols))
 		return [
 			"// START:GOOGLE_PREAMBLE",
 			"goog.loadModule(function(exports){",
 			"goog.module('{0}');".format(module_name),
 		] + modules + symbols + [
-			"var __module__ = {0}; var {0} = exports;".format(module_name),
+			"var {0} = exports; var __module__ = {0};".format(module_name),
 			"// END:GOOGLE_PREAMBLE"
 		]
 
 	def getModuleGoogleSuffix( self, moduleElement ):
+		module_name = self._rewriteSymbol(moduleElement.getName())
 		return [
 			"// START:GOOGLE_POSTAMBLE",
-			"return exports;",
+			"window['{0}'] = __module__;".format(module_name),
+			"return __module__;",
 			"});",
 			"// END:GOOGLE_POSTAMBLE"
 		]
