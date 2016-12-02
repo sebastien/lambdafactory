@@ -275,6 +275,7 @@
 	@shared ALIASES = {
 		actionscript : ["actionscript", "as", "ascript"]
 		javascript   : ["javascript",   "js", "jscript"]
+		extern       : ["extern"]
 		python       : ["python",       "py"]
 		php          : ["php"]
 		pnuts        : ["pnuts"]

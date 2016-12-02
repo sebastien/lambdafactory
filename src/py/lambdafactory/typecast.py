@@ -2,7 +2,7 @@
 # vim: ts=4 tw=79 noet
 # ------------------------------------------------------------------------------
 # Project           :   SweetC                        <http://www.ivy.fr/sweetc>
-# Author            :   Sebastien Pierre                      <sebastien@ivy.fr>
+# Author            :   Sebastien Pierre                      <sebastien@ffctn.com>
 # License           :   BSD License (revised)
 # ------------------------------------------------------------------------------
 # Creation date     :   21-Mar-2005

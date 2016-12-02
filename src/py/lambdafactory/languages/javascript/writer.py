@@ -1,7 +1,7 @@
 # -----------------------------------------------------------------------------
 # Project   : LambdaFactory
 # -----------------------------------------------------------------------------
-# Author    : Sebastien Pierre                               <sebastien@ivy.fr>
+# Author    : Sebastien Pierre                               <sebastien@ffctn.com>
 # License   : Revised BSD License
 # -----------------------------------------------------------------------------
 # Creation  : 2006-11-02
@@ -101,10 +101,13 @@ class Writer(AbstractWriter):
 		return s
 
 	def pushVarContext( self, value ):
-		self._generatedVars.append(0)
+		# FIXME: This does not work properly
+		pass
+		#self._generatedVars.append(0)
 
 	def popVarContext( self ):
-		self._generatedVars.pop()
+		#self._generatedVars.pop()
+		pass
 
 	def _extendGetMethodByName(self, name):
 		return self.jsSelf + ".getMethod('%s') " % (name)
