@@ -16,6 +16,12 @@ __doc__ = """
 A backend that writes closure-compiler compatible extern files.
 """
 
+KEYWORDS = ['abstract', 'break', 'case', 'class', 'let', 'continue', 'const', 'debugger',
+'default', 'enum', 'export', 'extends', 'final', 'finally', 'for', 'function',
+'goto', 'if', 'implements', 'import', 'in', 'interface', 'native', 'new',
+'package', 'private', 'protected', 'public', 'return', 'short', 'static',
+'super', 'switch', 'synchronized', 'throw', 'throws', 'transient', 'try',
+'var', 'void', 'volatile', 'while', 'with']
 
 # More info about externs: https://developers.google.com/closure/compiler/docs/api-tutorial3
 # ES* externs: https://github.com/google/closure-compiler/tree/master/externs
@@ -48,7 +54,7 @@ class Writer(AbstractWriter):
 
 	def onModule( self, element ):
 		"""Writes a Module element."""
-		name = element.getName()
+		name = self.getName(element)
 		yield "/* Module {0} */".format(name)
 		yield self._docstring("@const")
 		yield "var {0} = {{}};".format(name)
@@ -79,15 +85,7 @@ class Writer(AbstractWriter):
 
 
 	def onFunction( self, element ):
-		name   = self.getAbsoluteName(element)
-		params = self._extractParameters(element)
-		header = self._docstring(
-			["@param {type} {name}".format(**_) for _ in params] + ["@return {Object}"]
-		)
-		return [
-			header,
-			"{0} = function({1});".format(name, ", ".join(_["name"] for _ in params))
-		]
+		yield self._docfunction(element, inInstance=True)
 
 	# =========================================================================
 	# HELPER
@@ -115,13 +113,13 @@ class Writer(AbstractWriter):
 			name = name.split(".")
 			name.insert(-1, "prototype")
 			name = ".".join(name)
-		return "\n" + header + "\n{0} = function({1});".format(name, ", ".join(_["name"] for _ in params))
+		return "\n" + header + "\n{0} = function({1}){{}};".format(name, ", ".join(_["name"] for _ in params))
 
 	def _extractParameters( self, element ):
 		params = []
 		for param in element.getParameters():
 			params.append(dict(
-				name = param.getName(),
+				name = self.getName(param),
 				type = "Object"
 			))
 		return params
@@ -141,15 +139,19 @@ class Writer(AbstractWriter):
 			"// " + "-" * 76,
 		))
 
+	def getName( self, element ):
+		name = element.getName()
+		return "_" + name if name in KEYWORDS else name
+
 	def getAbsoluteName( self, element ):
 		"""Returns the absolute name for the given element. This is the '.'
 		concatenation of the individual names of the parents."""
-		names = [] if isinstance(element, interfaces.IConstructor) else [element.getName()]
+		names = [] if isinstance(element, interfaces.IConstructor) else [self.getName(element)]
 		while element.getParent():
 			element = element.getParent()
 			# FIXME: Some elements may not have a name
 			if not isinstance(element, interfaces.IProgram):
-				names.insert(0, element.getName())
+				names.insert(0, self.getName(element))
 		return ".".join(names)
 
 MAIN_CLASS = Writer
