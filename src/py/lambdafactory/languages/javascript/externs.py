@@ -8,39 +8,36 @@
 # Last mod  : 2016-12-02
 # -----------------------------------------------------------------------------
 
-from   lambdafactory.modelwriter import AbstractWriter, flatten
 import lambdafactory.interfaces as interfaces
-import lambdafactory.reporter   as reporter
 
-__doc__ = """
-A backend that writes closure-compiler compatible extern files.
-"""
-
+# __doc__ = """
+# A backend that writes closure-compiler compatible extern files.
+# """
+#
 KEYWORDS = ['abstract', 'break', 'case', 'class', 'let', 'continue', 'const', 'debugger',
 'default', 'enum', 'export', 'extends', 'final', 'finally', 'for', 'function',
 'goto', 'if', 'implements', 'import', 'in', 'interface', 'native', 'new',
 'package', 'private', 'protected', 'public', 'return', 'short', 'static',
 'super', 'switch', 'synchronized', 'throw', 'throws', 'transient', 'try',
 'var', 'void', 'volatile', 'while', 'with']
-
-# More info about externs: <https://developers.google.com/closure/compiler/docs/api-tutorial3>
-# ES* externs: https://github.com/google/closure-compiler/tree/master/externs
-# 3rd party externs: https://github.com/google/closure-compiler/tree/master/contrib/externs
-# # Types:
-# https://github.com/google/closure-compiler/wiki/Types-in-the-Closure-Type-System
 #
-# Annotating:
-# https://github.com/google/closure-compiler/wiki/Annotating-JavaScript-for-the-Closure-Compiler
+# # More info about externs: <https://developers.google.com/closure/compiler/docs/api-tutorial3>
+# # ES* externs: https://github.com/google/closure-compiler/tree/master/externs
+# # 3rd party externs: https://github.com/google/closure-compiler/tree/master/contrib/externs
+# # # Types:
+# # https://github.com/google/closure-compiler/wiki/Types-in-the-Closure-Type-System
+# #
+# # Annotating:
+# # https://github.com/google/closure-compiler/wiki/Annotating-JavaScript-for-the-Closure-Compiler
+# #
+# # General wiki:
+# # https://github.com/google/closure-compiler/wiki
 #
-# General wiki:
-# https://github.com/google/closure-compiler/wiki
+# LINE = ('',)
+#
+TYPE_ANY = "Object|Array|Function|string|boolean|number|null|undefined"
 
-LINE = ('',)
-
-class Writer(AbstractWriter):
-
-	def __init__( self ):
-		AbstractWriter.__init__(self)
+class ExternsWriter(object):
 
 	def onProgram( self, element ):
 		res = [self._docstring(
@@ -81,7 +78,7 @@ class Writer(AbstractWriter):
 
 	def onModuleAttribute( self, element ):
 		return [
-			self._docstring("@type Object"),
+			self._docstring("@type {0}".format(TYPE_ANY)),
 			"{0};".format(self.getAbsoluteName(element))
 		]
 
@@ -116,7 +113,7 @@ class Writer(AbstractWriter):
 	def _docvalue( self, element, prefix=None, inInstance=False ):
 		name   = self.getAbsoluteName(element)
 		header = [prefix] if prefix else [] + self.getDocumentation(element)
-		header.append("@type {Object}")
+		header.append("@type {{{0}}}".format(TYPE_ANY))
 		header = self._docstring(*header)
 		if inInstance:
 			name = name.split(".")
@@ -124,7 +121,7 @@ class Writer(AbstractWriter):
 			name = ".".join(name)
 		return "\n" + header + "\n{0};".format(name)
 
-	def _docfunction( self, element, prefix=None, inInstance=False ):
+	def _docfunction( self, element, prefix=None, inInstance=False, declaration=True ):
 		name   = self.getAbsoluteName(element)
 		params = self._extractParameters(element)
 		header = [prefix] if prefix else [] + self.getDocumentation(element)
@@ -135,14 +132,17 @@ class Writer(AbstractWriter):
 			name = name.split(".")
 			name.insert(-1, "prototype")
 			name = ".".join(name)
-		return "\n" + header + "\n{0} = function({1}){{}};".format(name, ", ".join(_["name"] for _ in params))
+		if not declaration:
+			return header + "\n"
+		else:
+			return "\n" + header + "\n{0} = function({1}){{}};".format(name, ", ".join(_["name"] for _ in params))
 
 	def _extractParameters( self, element ):
 		params = []
 		for param in element.getParameters():
 			params.append(dict(
 				name     = self.getName(param),
-				type     = "Object",
+				type     = TYPE_ANY,
 				optional = param.getDefaultValue()
 			))
 		return params
@@ -185,7 +185,7 @@ class Writer(AbstractWriter):
 			if not isinstance(element, interfaces.IProgram):
 				names.insert(0, self.getName(element))
 		return ".".join(names)
-
-MAIN_CLASS = Writer
-
-# EOF - vim: tw=80 ts=4 sw=4 noet
+#
+# MAIN_CLASS = Writer
+#
+#

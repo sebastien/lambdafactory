@@ -23,7 +23,7 @@ KEYWORDS = ['abstract', 'break', 'case', 'class', 'let', 'continue', 'const', 'd
 'super', 'switch', 'synchronized', 'throw', 'throws', 'transient', 'try',
 'var', 'void', 'volatile', 'while', 'with']
 
-# More info about externs: <https://developers.google.com/closure/compiler/docs/api-tutorial3>
+# More info about externs: https://developers.google.com/closure/compiler/docs/api-tutorial3
 # ES* externs: https://github.com/google/closure-compiler/tree/master/externs
 # 3rd party externs: https://github.com/google/closure-compiler/tree/master/contrib/externs
 # # Types:
@@ -58,22 +58,7 @@ class Writer(AbstractWriter):
 		name = self.getName(element)
 		yield "/* Module {0} */".format(name)
 		yield self._docstring("@const")
-		yield "goog.module('{0}');".format(name),
-		for _ in self.getImportedModules(element):
-			if _ != name:
-				yield "var {0} = goog.require('{0}');".format(_)
-		for alias, module, slot in self.getImportedSymbols(element):
-			if module == name:
-				continue
-			elif not slot:
-				# Modules are already imported
-				if alias:
-					yield ("var {0} = {1};".format(alias or module, module))
-			else:
-				# Extend gets a special treatment
-				if module != "extend" or alias:
-					yield ("var {0} = {1}.{2};".format(alias or slot, module, slot))
-		# yield "var {0} = {{}};".format(name)
+		yield "var {0} = {{}};".format(name)
 		for name,value in element.getSlots():
 			yield LINE
 			for _ in self.write(value):
@@ -81,22 +66,15 @@ class Writer(AbstractWriter):
 
 	def onModuleAttribute( self, element ):
 		return [
-			self._docstring("@type Object"),
+			self._docstring("@typedef Object"),
 			"{0};".format(self.getAbsoluteName(element))
 		]
 
 	def onClass( self, element ):
 		name         = self.getAbsoluteName(element)
 		yield self._section("Class " + name)
-		constructors = element.getConstructors()
-		# TODO: Should resolve the constructor in the parent if not found
-		if constructors:
-			for _ in constructors:
-				yield self._docfunction(_, "@constructor")
-		else:
-			yield LINE
-			yield self._docstring("@constructor")
-			yield "{0} = function(){{}};".format(name)
+		for _ in element.getConstructors():
+			yield self._docfunction(_, "@constructor")
 		for _ in element.getClassAttributes():
 			yield self._docvalue(_, inInstance=False)
 		for _ in element.getClassMethods():
@@ -106,8 +84,9 @@ class Writer(AbstractWriter):
 		for _ in element.getInstanceMethods():
 			yield self._docfunction(_, inInstance=True)
 
+
 	def onFunction( self, element ):
-		yield self._docfunction(element, inInstance=False)
+		yield self._docfunction(element, inInstance=True)
 
 	# =========================================================================
 	# HELPER
@@ -115,7 +94,7 @@ class Writer(AbstractWriter):
 
 	def _docvalue( self, element, prefix=None, inInstance=False ):
 		name   = self.getAbsoluteName(element)
-		header = [prefix] if prefix else [] + self.getDocumentation(element)
+		header = [prefix] if prefix else []
 		header.append("@type {Object}")
 		header = self._docstring(*header)
 		if inInstance:
@@ -127,7 +106,7 @@ class Writer(AbstractWriter):
 	def _docfunction( self, element, prefix=None, inInstance=False ):
 		name   = self.getAbsoluteName(element)
 		params = self._extractParameters(element)
-		header = [prefix] if prefix else [] + self.getDocumentation(element)
+		header = [prefix] if prefix else []
 		for p in params:
 			header.append("@param {{{0}{2}}} {1}".format(p["type"], p["name"], "=" if p["optional"] else ""))
 		header = self._docstring(*header)
@@ -143,7 +122,7 @@ class Writer(AbstractWriter):
 			params.append(dict(
 				name     = self.getName(param),
 				type     = "Object",
-				optional = param.getDefaultValue()
+				optional = param.isOptional()
 			))
 		return params
 
@@ -161,15 +140,6 @@ class Writer(AbstractWriter):
 			"//",
 			"// " + "-" * 76,
 		))
-
-	def getDocumentation( self, element ):
-		"""Returns a list of strings corresonding to each line of documentation
-		in the original element."""
-		doc = element.getDocumentation()
-		if doc:
-			return doc.getContent().split("\n") + [""]
-		else:
-			return ["Missing documentation for element `{0}`".format(self.getName(element)), ""]
 
 	def getName( self, element ):
 		name = element.getName()

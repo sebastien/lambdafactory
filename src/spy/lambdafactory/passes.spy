@@ -381,6 +381,64 @@
 			return ancestors
 		@end
 
+		@method getImportedModules moduleElement
+			@embed Python
+			|res = []
+			|for o in moduleElement.getImportOperations():
+			|	if   isinstance(o, interfaces.IImportModuleOperation):
+			|		res.append(o.getImportedModuleName())
+			|	elif isinstance(o, interfaces.IImportSymbolOperation):
+			|		res.append(o.getImportOrigin())
+			|	elif isinstance(o, interfaces.IImportSymbolsOperation):
+			|		res.append(o.getImportOrigin())
+			|	elif isinstance(o, interfaces.IImportModulesOperation):
+			|		res += o.getImportedModuleNames()
+			|	else:
+			|		raise NotImplementedError
+			|n = []
+			|for _ in res:
+			|	if _ not in n:
+			|		n.append(_)
+			|return n
+			@end
+		@end
+
+		@method getImportedSymbols moduleElement
+			@embed Python
+			|res = []
+			|for o in moduleElement.getImportOperations():
+			|	if   isinstance(o, interfaces.IImportModuleOperation):
+			|		res.append([
+			|			o.getAlias(),
+			|			o.getImportedModuleName(),
+			|			None
+			|		])
+			|	elif isinstance(o, interfaces.IImportSymbolOperation):
+			|		res.append([
+			|			o.getAlias(),
+			|			o.getImportOrigin(),
+			|			o.getImportedElement()
+			|		])
+			|	elif isinstance(o, interfaces.IImportSymbolsOperation):
+			|		for s in o.getImportedElements():
+			|			res.append([
+			|				None,
+			|				o.getImportOrigin(),
+			|				s
+			|			])
+			|	elif isinstance(o, interfaces.IImportModulesOperation):
+			|		for s in o.getImportedModuleNames():
+			|			res.append([
+			|				None,
+			|				s,
+			|				None
+			|			])
+			|	else:
+			|		raise NotImplementedError
+			|return res
+			@end
+		@end
+
 	@end
 
 	@method annotate value, name, content=None

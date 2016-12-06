@@ -166,7 +166,10 @@
 		var lines = []
 		for module in element getModules()
 			if not module isImported()
-				lines append (self write(module))
+				var line = self write (module)
+				if line
+					lines append (line)
+				end
 			end
 		end
 		return "\n" join(lines)

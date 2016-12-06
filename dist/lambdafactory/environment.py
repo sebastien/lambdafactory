@@ -201,7 +201,7 @@ class Environment:
 	program. The order of passe is important, as some passes depend on each other.
 	It is up to the 'lambdafactory.main.Command' subclass to set up the passes
 	appropriately."""
-	ALIASES = {'actionscript':['actionscript', 'as', 'ascript'], 'javascript':['javascript', 'js', 'jscript'], 'python':['python', 'py'], 'php':['php'], 'pnuts':['pnuts']}
+	ALIASES = {'actionscript':['actionscript', 'as', 'ascript'], 'javascript':['javascript', 'js', 'jscript'], 'extern':['extern'], 'python':['python', 'py'], 'php':['php'], 'pnuts':['pnuts']}
 	def __init__ (self):
 		self.factory = None
 		self.program = None

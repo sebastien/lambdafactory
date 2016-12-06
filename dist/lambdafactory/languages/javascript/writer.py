@@ -101,6 +101,7 @@ class Writer(AbstractWriter):
 		return s
 
 	def pushVarContext( self, value ):
+		# FIXME: This does not work properly
 		pass
 		#self._generatedVars.append(0)
 

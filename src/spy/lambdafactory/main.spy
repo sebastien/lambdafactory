@@ -269,7 +269,6 @@
 
 	@method writeProgram program, inLanguage, includeRuntime=False, includeSource=False
 		var writer = getWriter (inLanguage)
-		writer setOption ("INCLUDE_SOURCE", includeSource)
 		var program_source = writer run (program)
 		if includeRuntime
 			program_source = writer getRuntimeSource() + program_source

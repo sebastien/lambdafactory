@@ -1,3 +1,4 @@
+# encoding: utf8
 # -----------------------------------------------------------------------------
 # Project   : LambdaFactory
 # -----------------------------------------------------------------------------
@@ -5,7 +6,7 @@
 # License   : Revised BSD License
 # -----------------------------------------------------------------------------
 # Creation  : 2006-11-02
-# Last mod  : 2016-09-11
+# Last mod  : 2016-12-06
 # -----------------------------------------------------------------------------
 
 # TODO: Cleanup the code generation by moving the templates to the top
@@ -18,6 +19,7 @@ from   lambdafactory.modelwriter import AbstractWriter, flatten
 import lambdafactory.interfaces as interfaces
 import lambdafactory.reporter   as reporter
 from   lambdafactory.splitter import SNIP
+from   lambdafactory.languages.javascript.externs import ExternsWriter
 import os.path, re, time, string, random, json
 
 #------------------------------------------------------------------------------
@@ -51,6 +53,8 @@ volatile while with""".replace("\n", " ").split()
 MODULE_VANILLA = "vanilla"
 MODULE_UMD     = "umd"
 MODULE_GOOGLE  = "google"
+
+OPTION_EXTERNS        = "externs"
 
 OPTION_EXTEND_ITERATE = "iterate"
 
@@ -144,18 +148,57 @@ class Writer(AbstractWriter):
 		f = file(js_runtime, 'r') ; text = f.read() ; f.close()
 		return text
 
-	def getAbsoluteName( self, element, relativeModule=True ):
+	def getLocalName( self, element ):
+		"""Returns the "local" name for the element, which means the
+		last part of a dot-separated name."""
+		names = element.getName().split(".")
+		return names[-1]
+
+	def getAbsoluteName( self, element, relativeModule=True, asList=False ):
 		"""Returns the absolute name for the given element. This is the '.'
 		concatenation of the individual names of the parents."""
-		names = [self._rewriteSymbol(element.getName())]
+		names = element.getName().split(".")
+		if len(names) > 1: return ".".join(names)
 		while element.getParent():
 			element = element.getParent()
 			# FIXME: Some elements may not have a name
-			if not isinstance(element, interfaces.IProgram):
-				names.insert(0, self._rewriteSymbol(element.getName()))
+			if isinstance(element, interfaces.IModule):
+				# TODO: Should be able to detect a reference to the current module
+				names = element.getName().split(".") + names
+			elif not isinstance(element, interfaces.IProgram):
+				names.insert(0, element.getName())
 		if relativeModule and len(names) > 1 and names[0] == self._moduleName:
 			names = ["__module__"] + names[1:]
-		return ".".join(names)
+		return names if asList else ".".join(names)
+
+	def getSafeAbsoluteName( self, element, relativeModule=True ):
+		"""Returns the absolute name of the element, replacing dots
+		with underscores: `a.b.c`→`a_b_c`. This is used when
+		referencing imported submodules."""
+		abs_name = self.getAbsoluteName(element, relativeModule=relativeModule, asList=True)
+		print ("XXX abs_name", element, abs_name)
+		if isinstance(element, interfaces.IModule):
+			return "_".join(abs_name)
+		elif len(abs_name) > 1:
+			return "_".join(abs_name[:-2]) + "." + abs_name[-1]
+		else:
+			return abs_name[0]
+
+	def getParentName( self, element ):
+		"""Returns the name of the parent element. This will try to return
+		the local name of the parent, and default to the absoute name
+		or __module__ if the name is shadowed."""
+		parent      = element.parent
+		parent_name = self.getLocalName(parent)
+		parent_slot = element.dataflow.getSlot(parent_name)
+		if parent_slot and parent_slot.getValue() != parent:
+			# If the slot is shadowed, then we return an absoute reference
+			if isinstance(parent, interfaces.IModule):
+				return "__module__"
+			else:
+				return self.getSafeAbsoluteName(element)
+		else:
+			return parent_name
 
 	def renameModuleSlot(self, name):
 		if name == interfaces.Constants.ModuleInit: name = "init"
@@ -169,6 +212,10 @@ class Writer(AbstractWriter):
 	def onModule( self, moduleElement ):
 		"""Writes a Module element."""
 		# Detects the module type
+		if self.environment.options.get(OPTION_EXTERNS):
+			self._externs = ExternsWriter()
+		else:
+			self._externs = None
 		if self.environment.options.get(MODULE_UMD):
 			self._moduleType = MODULE_UMD
 		elif self.environment.options.get(MODULE_GOOGLE):
@@ -176,8 +223,9 @@ class Writer(AbstractWriter):
 		else:
 			self._moduleType = MODULE_VANILLA
 		self._withExtendIterate = self.environment.options.get(OPTION_EXTEND_ITERATE) and True or False
-		module_name = self._rewriteSymbol(moduleElement.getName())
-		self._moduleName = module_name
+		module_name             = self._rewriteSymbol(self.getLocalName(moduleElement))
+		full_name               = self.getAbsoluteName(moduleElement)
+		self._moduleName        = module_name
 		code = [
 			"// " + SNIP % ("%s.js" % (self.getAbsoluteName(moduleElement).replace(".", "/"))),
 			self._document(moduleElement),
@@ -193,24 +241,24 @@ class Writer(AbstractWriter):
 		# --- VERSION ---------------------------------------------------------
 		version = moduleElement.getAnnotation("version")
 		if version:
-			code.append("__module__.__VERSION__='%s';" % (version.getContent()))
+			code.append("%s.__VERSION__='%s';" % (module_name, version.getContent()))
 		# --- SLOTS -----------------------------------------------------------
 		for name, value in moduleElement.getSlots():
 			if isinstance(value, interfaces.IModuleAttribute):
-				declaration = "{0}.{1}".format(module_name, self.write(value))
+				declaration = "{2}{0}.{1};".format(module_name, self.write(value), self._docextern(value))
 			else:
 				# NOTE: Some slot values may be shadowed, in which case they
 				# won't return any value
 				value_code = self.write(value)
 				if value_code:
 					slot_name   = self.renameModuleSlot(name)
-					declaration = "{0}.{1} = {2}".format(module_name, slot_name, value_code)
+					declaration = "{3}{0}.{1} = {2}".format(module_name, slot_name, value_code, self._docextern(value))
 			code.append(declaration)
 		# --- INIT ------------------------------------------------------------
 		# FIXME: Init should be only invoked once
 		code.append('if (typeof(%s.init)!="undefined") {%s.init();}' % (
-			"__module__",
-			"__module__"
+			module_name,
+			module_name
 		))
 		# --- SOURCE ----------------------------------------------------------
 		# We append the source code
@@ -236,22 +284,45 @@ class Writer(AbstractWriter):
 	# === VANILLA MODULES =====================================================
 
 	def getModuleVanillaPrefix( self, moduleElement ):
-		module_name = self._rewriteSymbol(moduleElement.getName())
+		local_name  = self.getLocalName(moduleElement)
+		full_name   = self.getAbsoluteName(moduleElement)
+		module_name = self._rewriteSymbol(local_name)
+		declaration = []
+		names       = full_name.split(".")
+		if len(names) == 1:
+			declaration.append("var {0}=typeof(extend)!='undefined' ?  extend.module('{0}') : (typeof({0})!='undefined' ? {0} : {{}};".format(local_name))
+		else:
+			declaration.append("var {0}=typeof(extend)!='undefined' ?  extend.module('{0}') : (typeof({0})!='undefined' ? {0} : {{}};".format(names[0]))
+			for i,n in enumerate(names[1:-1]):
+				declaration.append("if (!{0}.{1}) {{{0}.{1}={{}};}}; var {1}={0}.{1};".format(names[i - 3], n))
+			declaration.append("if (!{0}.{1}) {{{0}.{1}=typeof(extend)!='undefined' ? extend.module('{2}') : {{}};}}; var {1}={0}.{1};".format(names[-2], names[-1], full_name))
+
+		# for name in full_name.split("."):
+		# 	line = "var {0}=typeof(extend)!=undefined ? extend.module('{0}') : (typeof({0})!=undefined ? {0} : {{}};".format(name)
+		# 	declaration.append(line)
 		return [
-			"var %s=(typeof(extend)!='undefined' && extend && extend.module && extend.module(\"%s\")) || %s || {};" % (module_name, self.getAbsoluteName(moduleElement) or module_name, module_name),
+			"// START:VANILLA_PREAMBLE",
+		] + declaration + [
+
 			"(function(%s){" % (module_name),
-			"var {0}={2}, {1}={2}".format(self.jsSelf, self.jsModule, module_name),
+			"var {0}={1}".format(self.jsModule, module_name),
+			"// END:VANILLA_PREAMBLE"
 		]
 
 	def getModuleVanillaSuffix( self, moduleElement ):
-		module_name = self._rewriteSymbol(moduleElement.getName())
-		return ["})(%s);" % (module_name)]
+		module_name = self._rewriteSymbol(self.getLocalName(moduleElement))
+		return [
+			"// START:VANILLA_POSTAMBLE",
+			"return {0};}})({0});".format(module_name),
+			"// END:VANILLA_POSTAMBLE",
+		]
 
 	# === UMD MODULES =========================================================
 
 	def getModuleUMDPrefix( self, moduleElement):
 		# SEE: http://babeljs.io/docs/plugins/transform-es2015-modules-umd/
-		module_name = self._rewriteSymbol(moduleElement.getName())
+		module_name = self.getLocalName(moduleElement)
+		abs_name    = self.getAbsoluteName(moduleElement)
 		imported    = self.getImportedModules(moduleElement)
 		imports     = (", " + ", ".join(['"' + _ + '"' for _ in imported])) if imported else ""
 		preamble = """// START:UMD_PREAMBLE
@@ -278,10 +349,8 @@ class Writer(AbstractWriter):
 			"IMPORTS", imports
 		).replace("\n\t\t", "\n")
 		module_declaration = [
-			"var __extend__ = typeof extend !== 'undefined' ? extend : window.extend || null;",
-			"var __module__;"
-			# NOTE: Here we don't prefix with var, so it creates a global
-			"{0} = __module__ = exports = typeof exports === 'undefined' ? {{}} : exports;".format(module_name),
+			"var __module__ = typeof(exports)==='undefined' ? {{}} : exports;",
+			"var {0} = __module__;".format(module_name),
 		]
 		symbols = []
 		for alias, module, slot in self.getImportedSymbols(moduleElement):
@@ -300,17 +369,18 @@ class Writer(AbstractWriter):
 		] + symbols + module_declaration + ["// END:UMD_PREAMBLE"]
 
 	def getModuleUMDSuffix( self, moduleElement ):
-		module_name = self._rewriteSymbol(moduleElement.getName())
+		module_name = self.getLocalName(moduleElement)
+		abs_name    = self.getAbsoluteName(moduleElement)
 		return [
 			"// START:UMD_POSTAMBLE",
-			"if (__extend__) {{__extend__.module(\"{0}\", {0})}}".format(module_name),
+			"if (extend) {{extend.module(\"{0}\", {1})}}".format(abs_name, module_name),
 			(
-				"if (typeof window !== 'undefined') {{var n='{0}'.split('.');"
+				"if (typeof(window)!=='undefined') {{var n='{0}'.split('.');"
 				"var c=window;for(var i=0;i<n.length;i++){{"
-				"if(i<n.length-1){{c[n[i]]=c[n[i]]||{{}}}}"
-				"else{{c[n[i]]={0}}}"
+				"if(i<n.length-1){{c[n[i]]=c[n[i]]||{{}};}}"
+				"else{{c[n[i]]=__module__;}}"
 				"}}}}"
-			).format(module_name),
+			).format(abs_name),
 			"return {0}".format(module_name),
 			"});",
 			"// END:UMD_POSTAMBLE"
@@ -320,96 +390,53 @@ class Writer(AbstractWriter):
 	# https://github.com/google/closure-library/wiki/goog.module:-an-ES6-module-like-alternative-to-goog.provide
 
 	def getModuleGooglePrefix( self, moduleElement):
-		module_name = self._rewriteSymbol(moduleElement.getName())
+		module_name = self.getLocalName(moduleElement)
+		abs_name    = self.getAbsoluteName(moduleElement)
 		# NOTE: We prevent modules from importing themselves
-		modules     = ["var {0} = goog.require('{0}');".format(_) for _ in self.getImportedModules(moduleElement) if _ != module_name]
+		modules     = ["var {1} = goog.require('{0}');".format(_, _.replace(".", "_")) for _ in self.getImportedModules(moduleElement) if _ != module_name]
 		symbols     = []
 		for alias, module, slot in self.getImportedSymbols(moduleElement):
-			if module == module_name:
+			if module == abs_name:
 				continue
 			elif not slot:
 				# Modules are already imported
 				if alias:
-					symbols.append("var {0} = {1};".format(alias or module, module))
+					symbols.append("var {0} = {1};".format(alias or module.replace(".", "_"), module))
 			else:
 				# Extend gets a special treatment
 				if module != "extend" or alias:
-					symbols.append("var {0} = {1}.{2};".format(alias or slot, module, slot))
+					symbols.append("var {0} = {1}.{2};".format(alias or slot, module.replace(".", "_"), slot))
 		symbols = list(set(symbols))
 		return [
 			"// START:GOOGLE_PREAMBLE",
 			"goog.loadModule(function(exports){",
-			"goog.module('{0}');".format(module_name),
+			"goog.module('{0}');".format(abs_name),
 		] + modules + symbols + [
 			"var {0} = exports; var __module__ = {0};".format(module_name),
 			"// END:GOOGLE_PREAMBLE"
 		]
 
 	def getModuleGoogleSuffix( self, moduleElement ):
-		module_name = self._rewriteSymbol(moduleElement.getName())
+		module_name = self.getLocalName(moduleElement)
+		abs_name    = self.getAbsoluteName(moduleElement)
+		declaration = []
+
 		return [
 			"// START:GOOGLE_POSTAMBLE",
-			"window['{0}'] = __module__;".format(module_name),
-			"return __module__;",
-			"});",
+			(
+				"if (typeof(window)!=='undefined') {{var n='{0}'.split('.');"
+				"var c=window;for(var i=0;i<n.length;i++){{"
+				"if(i<n.length-1){{c[n[i]]=c[n[i]]||{{}};}}"
+				"else{{c[n[i]]=__module__;}}"
+				"}}}}"
+			).format(abs_name),
+			"return __module__;})",
 			"// END:GOOGLE_POSTAMBLE"
 		]
 
 	# =========================================================================
 	# IMPORTS
 	# =========================================================================
-
-	def getImportedModules( self, moduleElement ):
-		res = []
-		for o in moduleElement.getImportOperations():
-			if   isinstance(o, interfaces.IImportModuleOperation):
-				res.append(o.getImportedModuleName())
-			elif isinstance(o, interfaces.IImportSymbolOperation):
-				res.append(o.getImportOrigin())
-			elif isinstance(o, interfaces.IImportSymbolsOperation):
-				res.append(o.getImportOrigin())
-			elif isinstance(o, interfaces.IImportModulesOperation):
-				res += o.getImportedModuleNames()
-			else:
-				raise NotImplementedError
-		n = []
-		for _ in res:
-			if _ not in n:
-				n.append(_)
-		return n
-
-	def getImportedSymbols( self, moduleElement ):
-		res = []
-		for o in moduleElement.getImportOperations():
-			if   isinstance(o, interfaces.IImportModuleOperation):
-				res.append([
-					o.getAlias(),
-					o.getImportedModuleName(),
-					None
-				])
-			elif isinstance(o, interfaces.IImportSymbolOperation):
-				res.append([
-					o.getAlias(),
-					o.getImportOrigin(),
-					o.getImportedElement()
-				])
-			elif isinstance(o, interfaces.IImportSymbolsOperation):
-				for s in o.getImportedElements():
-					res.append([
-						None,
-						o.getImportOrigin(),
-						s
-					])
-			elif isinstance(o, interfaces.IImportModulesOperation):
-				for s in o.getImportedModuleNames():
-					res.append([
-						None,
-						s,
-						None
-					])
-			else:
-				raise NotImplementedError
-		return res
 
 	def onImportOperation( self, importElement):
 		return self._format("")
@@ -425,7 +452,7 @@ class Writer(AbstractWriter):
 		if len(parents) == 1:
 			parent_class = parents[0]
 			if isinstance(parent_class, interfaces.IClass):
-				parent = self.getAbsoluteName(parent_class)
+				parent = elf.getSafeAbsoluteName(parent_class)
 			else:
 				assert isinstance(parent_class, interfaces.IReference)
 				parent = self.write(parent_class)
@@ -484,7 +511,7 @@ class Writer(AbstractWriter):
 				# in a block to avoid scoping problems.
 				invoke_parent_constructor = "".join([
 					"\tif (true) {var __super__=",
-					"%s.getSuper(%s.getParent());" % (self.jsSelf, self.getAbsoluteName(classElement)),
+					"%s.getSuper(%s.getParent());" % (self.jsSelf, self.getSafeAbsoluteName(classElement)),
 					"__super__.initialize.apply(__super__,arguments);}"
 				])
 			for a in classElement.getAttributes():
@@ -557,7 +584,7 @@ class Writer(AbstractWriter):
 			default_value = self.write(default_value)
 			return self._format(
 				self._document(element),
-				"%s=%s" % (self._rewriteSymbol(element.getName()), default_value)
+				"%s = %s" % (self._rewriteSymbol(element.getName()), default_value)
 			)
 		else:
 			return self._format(
@@ -741,7 +768,7 @@ class Writer(AbstractWriter):
 					", ".join(map(self.write, function.getParameters()))
 				),
 				[self._document(function)],
-				['var %s=%s;' % (self.jsSelf, self.getAbsoluteName(parent))],
+				['var %s=%s;' % (self.jsSelf, self.getParentName(function))],
 				self._writeClosureArguments(function),
 				self.writeFunctionWhen(function),
 				list(map(self.write, function.getOperations())),
@@ -775,7 +802,7 @@ class Writer(AbstractWriter):
 			res.append(self.writeFunctionPost(function))
 			res.append("return result;")
 		self.popVarContext()
-		return self._format(res)
+		return self._format(*res)
 
 	# =========================================================================
 	# CLOSURES
@@ -877,6 +904,7 @@ class Writer(AbstractWriter):
 		"""Writes an argument element."""
 		symbol_name = element.getReferenceName()
 		slot, value = self.resolve(symbol_name)
+		print ("XXX REFE", symbol_name)
 		if slot:
 			scope = slot.getDataFlow().getElement()
 		else:
@@ -886,6 +914,7 @@ class Writer(AbstractWriter):
 		elif symbol_name == "target":
 			return "this"
 		elif symbol_name == "__class__":
+			# FIXME: Submodule support
 			return self._rewriteSymbol(self.getCurrentClass().getName())
 		elif symbol_name == "__module__":
 			return "__module__"
@@ -905,6 +934,7 @@ class Writer(AbstractWriter):
 			if self.isIn(interfaces.IClassAttribute) or self.isIn(interfaces.IClassMethod):
 				c = self.getCurrentClass()
 				p = self.getClassParents(c)
+				# FIXME: Submodule support
 				if p:
 					return self.getAbsoluteName(p[0])
 				else:
@@ -912,6 +942,7 @@ class Writer(AbstractWriter):
 			else:
 				assert self.resolve("self"), "Super must be used inside method"
 				# FIXME: Should check that the element has a method in parent scope
+				# FIXME: Submodule support
 				return "%s.getSuper(%s.getParent())" % (
 					self.jsSelf,
 					self.getAbsoluteName(self.getCurrentClass())
@@ -926,6 +957,7 @@ class Writer(AbstractWriter):
 
 		# If there is no scope, then the symmbol is undefined
 		if not scope:
+			print ("XXX NO SCOPE", symbol_name)
 			if symbol_name == "print": return self.jsPrefix + self.jsCore + "print"
 			else: return symbol_name
 		# If the slot is imported
@@ -993,6 +1025,7 @@ class Writer(AbstractWriter):
 		"""Helper for the 'onReference' method"""
 		# We proces the importation to convert the slot to an absolute name
 		symbol_name = name
+		print ("IMPORTED", name)
 		o = slot.origin[0]
 		if isinstance(o, interfaces.IImportModuleOperation):
 			return o.getImportedModuleName()
@@ -1566,10 +1599,16 @@ class Writer(AbstractWriter):
 		else:
 			return embed.getCode()
 
-
 	# =========================================================================
 	# HELEPR
 	# =========================================================================
+
+	def _docextern( self, element ):
+		if not self._externs: return ""
+		if isinstance(element, interfaces.IFunction):
+			return self._externs._docfunction(element, declaration=False)
+		else:
+			return ""
 
 	def _document( self, element ):
 		if element.getDocumentation():
