@@ -82,7 +82,7 @@ class Writer(AbstractWriter):
 
 	# The following generates short random variables. Note that it's not thread
 	# safe.
-	RNDVARLETTERS = string.ascii_letters + "01234567890"
+	RNDVARLETTERS = "ijklmonpqrstuvwxyzabcdefgh"
 
 	def __init__( self ):
 		AbstractWriter.__init__(self)
@@ -95,29 +95,35 @@ class Writer(AbstractWriter):
 		self.supportedEmbedLanguages = ["ecmascript", "js", "javascript"]
 		self.inInvocation            = False
 		self.options                 = {} ; self.options.update(OPTIONS)
-		self._generatedVars          = [0]
+		self._generatedVars          = [[]]
 
-	def _getRandomVariable(self):
-		"""Generates a new random variable."""
+	def _XXXgetRandomVariable( self ):
 		s = "__"
 		i = self._generatedVars[-1]
 		c = self.RNDVARLETTERS
 		l = len(c)
 		while i >= l:
-			s += c[i % l]
-			i  = i / l
+				s += c[i % l]
+				i  = i / l
 		s += c[i]
 		self._generatedVars[-1] += 1
 		return s
 
+	def _getRandomVariable(self, suffix=0):
+		"""Generates a new random variable."""
+		for _ in self.RNDVARLETTERS:
+			s = _ if suffix == 0 else _ + str(suffix)
+			if s not in self._generatedVars[-1] and not self.resolve(s)[1]:
+				self._generatedVars[-1].append(s)
+				return s
+		return self._getRandomVariable(suffix+1)
+
 	def pushVarContext( self, value ):
 		# FIXME: This does not work properly
-		pass
-		#self._generatedVars.append(0)
+		self._generatedVars.append([])
 
 	def popVarContext( self ):
-		#self._generatedVars.pop()
-		pass
+		self._generatedVars.pop()
 
 	def _extendGetMethodByName(self, name):
 		return self.jsSelf + ".getMethod('%s') " % (name)
@@ -213,7 +219,7 @@ class Writer(AbstractWriter):
 				return "__module__." + local_name
 			else:
 				return parent_name + "." + local_name
-		elif element_module:
+		elif element_module and element_module != element:
 			parent_name = self.getResolvedName(element_module)
 			if self.isShadowed(parent_name, element_module):
 				parent_name = self.getAbsoluteName(element_module)
@@ -481,7 +487,7 @@ class Writer(AbstractWriter):
 		if len(parents) == 1:
 			parent_class = parents[0]
 			if isinstance(parent_class, interfaces.IClass):
-				parent = elf.getResolvedName(parent_class)
+				parent = self.getResolvedName(parent_class)
 			else:
 				assert isinstance(parent_class, interfaces.IReference)
 				parent = self.write(parent_class)
@@ -1052,7 +1058,6 @@ class Writer(AbstractWriter):
 		"""Helper for the 'onReference' method"""
 		# We proces the importation to convert the slot to an absolute name
 		symbol_name = name
-		print ("IMPORTED", name)
 		o = slot.origin[0]
 		if isinstance(o, interfaces.IImportModuleOperation):
 			return o.getImportedModuleName()
@@ -1419,15 +1424,8 @@ class Writer(AbstractWriter):
 
 	def onIteration( self, iteration ):
 		"""Writes a iteration operation."""
-		it_name     = self._unique("_iterator")
 		iterator    = iteration.getIterator()
-		# If the iteration iterates on an enumeration, we can use a for
-		# loop instead. We have to make sure that there is no scope forcing
-		# though
-		if isinstance(iterator, interfaces.IEnumeration) \
-		and isinstance(iterator.getStart(), interfaces.INumber) \
-		and isinstance(iterator.getEnd(),   interfaces.INumber) \
-		and (isinstance(iterator.getStep(), interfaces.INumber) or not iterator.getStep()):
+		if iteration.isRangeIteration():
 			return self._writeRangeIteration(iteration)
 		else:
 			return self._writeObjectIteration(iteration)
@@ -1586,13 +1584,27 @@ class Writer(AbstractWriter):
 
 	def onBreaking( self, breaking ):
 		"""Writes a break operation."""
-		#return "throw extend.FLOW_BREAK;"
-		return "break"
+		if self._withExtendIterate:
+			closure_index   = self.indexLikeInContext(interfaces.IClosure)
+			iteration_index = self.indexLikeInContext(interfaces.IIteration)
+			if iteration_index >= 0 and iteration_index > closure_index and not self.context[iteration_index].isRangeIteration():
+				return "return extend.FLOW_BREAK;"
+			else:
+				return "break"
+		else:
+			return "break"
 
 	def onContinue( self, breaking ):
 		"""Writes a continue operation."""
-		#return "throw extend.FLOW_CONTINUE"
-		return "continue"
+		if self._withExtendIterate:
+			closure_index   = self.indexLikeInContext(interfaces.IClosure)
+			iteration_index = self.indexLikeInContext(interfaces.IIteration)
+			if iteration_index >= 0 and iteration_index > closure_index and not self.context[iteration_index].isRangeIteration():
+				return "return extend.FLOW_CONTINUE;"
+			else:
+				return "continue"
+		else:
+			return "continue"
 
 	def onExcept( self, exception ):
 		"""Writes a except operation."""

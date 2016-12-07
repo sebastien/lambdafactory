@@ -1615,6 +1615,19 @@
 @end
 
 @class Iteration: Operation, IIteration
+
+	@method isRangeIteration
+		var iterator = getIterator ()
+		# If the iteration iterates on an enumeration, we can use a for
+		# loop instead. We have to make sure that there is no scope forcing
+		# though
+		if isinstance(iterator, IEnumeration) and isinstance(iterator getStart(), INumber) and isinstance(iterator getEnd(), INumber) and (isinstance(iterator getStep(), INumber) or (not iterator getStep()))
+			return True
+		else
+			return False
+		end
+	@end
+
 @end
 
 @class MapIteration: Operation, IMapIteration

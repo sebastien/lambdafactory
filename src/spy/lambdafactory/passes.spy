@@ -184,7 +184,6 @@
 			return -1
 		@end
 
-
 		@method indexLikeInContext interface
 			# FIXME: Should be find
 			@embed Python
