@@ -5,7 +5,7 @@
 # License   : Revised BSD License
 # -----------------------------------------------------------------------------
 # Creation  : 02-Nov-2006
-# Last mod  : 12-Aug-2010
+# Last mod  : 07-Dec-2016
 # -----------------------------------------------------------------------------
 
 @module lambdafactory.model
@@ -267,6 +267,15 @@
 
 	@method getSlot name
 		return hasSlot (name)
+	@end
+
+	@method getSlotValue name
+		var slot = getSlot (name)
+		if slot
+			return slot getValue ()
+		else
+			return None
+		end
 	@end
 
 	@method getElement

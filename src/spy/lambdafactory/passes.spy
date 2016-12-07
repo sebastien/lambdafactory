@@ -227,6 +227,14 @@
 			return program
 		@end
 
+		@method getModuleFor element
+			parent = element
+			while parent and not isinstance(parent, interfaces IModule)
+				parent = element parent
+			end
+			return parent
+		@end
+
 		@method getFactory
 		@as alias
 			return environment getFactory()
@@ -234,6 +242,14 @@
 
 		@method isIn interface
 			return findInContext (interface ) != None
+		@end
+
+		@method isShadowed name:String, element:IElement
+		| Tells if the element with the given (local) name is shadowed
+		| by another declaration. Basically, this means that
+		| the name is resolved to a different element.
+			var value = resolve(name)[1]
+			return value and value != element
 		@end
 
 		@method getCurrentClosure
@@ -411,27 +427,31 @@
 			|		res.append([
 			|			o.getAlias(),
 			|			o.getImportedModuleName(),
-			|			None
+			|			None,
+			|			o
 			|		])
 			|	elif isinstance(o, interfaces.IImportSymbolOperation):
 			|		res.append([
 			|			o.getAlias(),
 			|			o.getImportOrigin(),
-			|			o.getImportedElement()
+			|			o.getImportedElement(),
+			|			o
 			|		])
 			|	elif isinstance(o, interfaces.IImportSymbolsOperation):
 			|		for s in o.getImportedElements():
 			|			res.append([
 			|				None,
 			|				o.getImportOrigin(),
-			|				s
+			|				s,
+			|				o
 			|			])
 			|	elif isinstance(o, interfaces.IImportModulesOperation):
 			|		for s in o.getImportedModuleNames():
 			|			res.append([
 			|				None,
 			|				s,
-			|				None
+			|				None,
+			|				o
 			|			])
 			|	else:
 			|		raise NotImplementedError
