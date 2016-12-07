@@ -6,7 +6,7 @@
 # License   : Revised BSD License
 # -----------------------------------------------------------------------------
 # Creation  : 2006-11-02
-# Last mod  : 2016-12-06
+# Last mod  : 2016-12-07
 # -----------------------------------------------------------------------------
 
 # TODO: Cleanup the code generation by moving the templates to the top
@@ -95,21 +95,22 @@ class Writer(AbstractWriter):
 		self.supportedEmbedLanguages = ["ecmascript", "js", "javascript"]
 		self.inInvocation            = False
 		self.options                 = {} ; self.options.update(OPTIONS)
-		self._generatedVars          = [[]]
+		self._generatedVars          = [0]
 
-	def _XXXgetRandomVariable( self ):
+	def _getRandomVariable( self ):
 		s = "__"
-		i = self._generatedVars[-1]
+		i = self._generatedVars[0]
 		c = self.RNDVARLETTERS
 		l = len(c)
 		while i >= l:
 				s += c[i % l]
 				i  = i / l
 		s += c[i]
-		self._generatedVars[-1] += 1
+		self._generatedVars[0] += 1
 		return s
 
-	def _getRandomVariable(self, suffix=0):
+	# FIXME: This is still not good enough
+	def XXXX_getRandomVariable(self, suffix=0):
 		"""Generates a new random variable."""
 		for _ in self.RNDVARLETTERS:
 			s = _ if suffix == 0 else _ + str(suffix)
@@ -117,6 +118,10 @@ class Writer(AbstractWriter):
 				self._generatedVars[-1].append(s)
 				return s
 		return self._getRandomVariable(suffix+1)
+
+	def _reserveVariableNames( self, *names ):
+		pass
+		#self._generatedVars[-1] += names
 
 	def pushVarContext( self, value ):
 		# FIXME: This does not work properly
@@ -1450,6 +1455,11 @@ class Writer(AbstractWriter):
 		start    = self.write(iterator.getStart())
 		end      = self.write(iterator.getEnd())
 		step     = self.write(iterator.getStep()) or "1"
+		# We ensure there's no clash with the radom variables
+		# FIXME: Sometimes the dataflow is empty, which seems odd
+		dataflow            = (closure and closure.dataflow or iteration.dataflow)
+		reserved_slot_names = [_.getName() for _ in dataflow.getSlots()] if dataflow else []
+		self._reserveVariableNames(*reserved_slot_names)
 		if "." in start or "." in end or "." in step: filt = float
 		else: filt = int
 		comp = "<"
@@ -1484,6 +1494,11 @@ class Writer(AbstractWriter):
 		# as `force-scope`, this means that there is a nested closure that references
 		# some variable that is going to be re-assigned here
 		closure = iteration.getClosure()
+		# We ensure there's no clash with the radom variables
+		# FIXME: Sometimes the dataflow is empty, which seems odd
+		dataflow            = (closure and closure.dataflow or iteration.dataflow)
+		reserved_slot_names = [_.getName() for _ in dataflow.getSlots()] if dataflow else []
+		self._reserveVariableNames(*reserved_slot_names)
 		args    = [self._rewriteSymbol(a.getName()) for a in closure.getParameters()] if isinstance(closure, interfaces.IClosure) else []
 		if len(args) == 0: args.append(self._getRandomVariable())
 		if len(args) == 1: args.append(self._getRandomVariable())
