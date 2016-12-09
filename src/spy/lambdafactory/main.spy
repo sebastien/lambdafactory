@@ -5,6 +5,7 @@
 @import FileSplitter from lambdafactory.splitter
 @import lambdafactory.passes as passes
 @import lambdafactory.resolution as resolution
+@import BytesIO from io
 
 # ------------------------------------------------------------------------------
 #
@@ -48,7 +49,7 @@
 	| Runs Sugar, but instead of printing the result to the given
 	| output, it returns a Python string with the result. It is very useful
 	| when embedding LambdaFactory somewhere.
-		var output = new StringIO()
+		var output = new BytesIO()
 		run (args, output)
 		return "" + output getvalue()
 	@end
@@ -151,7 +152,9 @@
 				end
 				# REWRITE: language = options get "lang" ? guessLanguage(source_path) ? raise ERR_NOT_LANGUAGE_SPECIFIED
 				# We get the language to which we'd like to translate the program to
-				if not language
+				if language == "none"
+					language = None
+				elif not language
 					language = guessLanguage (source_path)
 				else
 					language = environment normalizeLanguage (language)
@@ -174,8 +177,8 @@
 				end
 			end
 		end
-		if not language
-			raise ERR_NO_LANGUAGE_SPECIFIED
+		if language == "none"
+			language = None
 		end
 		if options passes
 			setupPasses (language, options passes split ",", options passOptions or [])
@@ -258,6 +261,9 @@
 	@end
 
 	@method getWriter language
+		if not language
+			return None
+		end
 		language     = environment loadLanguage (language)
 		# FIXME: The language should be initialized for the environment
 		var writer   = language writer ()
@@ -269,11 +275,15 @@
 
 	@method writeProgram program, inLanguage, includeRuntime=False, includeSource=False
 		var writer = getWriter (inLanguage)
-		var program_source = writer run (program)
-		if includeRuntime
-			program_source = writer getRuntimeSource() + program_source
+		if writer
+			var program_source = writer run (program)
+			if includeRuntime
+				program_source = writer getRuntimeSource() + program_source
+			end
+			return program_source
+		else
+			return ""
 		end
-		return program_source
 	@end
 
 	@method createEnvironment

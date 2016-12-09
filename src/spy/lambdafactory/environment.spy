@@ -32,11 +32,10 @@
 		self environment = environment
 	@end
 
-	@method findSugarModule moduleName
-		var paths = []
-		for path in environment libraryPaths
-			paths append (path)
-		end
+	@method findSugarModule moduleName, paths=None
+	| Finds the module with the given name in the given ppaths
+		var exts = [".sg", ".sjs", ".sjava", ".spnuts", ".spy"]
+		paths = (paths or []) + environment libraryPaths
 		if os environ get "SUGARPATH"
 			paths extend (os environ get "SUGARPATH" split ":")
 		end
@@ -44,7 +43,7 @@
 		for path in paths
 			# We normalize the path, so that paths like . and ~/ work fine
 			path = os path abspath ( os path expandvars ( os path expanduser (path)))
-			for ext in ".sg .sjs .sjava .spnuts .spy" split()
+			for ext in exts
 				var file_path = os path join(path, module_path + ext)
 				if os path exists(file_path)
 					return file_path
@@ -54,6 +53,7 @@
 		return None
 	@end
 
+	# FIXME: This should be language specific
 	@method importModule moduleName
 		# FIXME: Should use a module cache, same for parsefile so that we don't re-parse
 		# all the time
@@ -433,6 +433,9 @@
 	@as internal
 	| Loads the given language plug-in and returns a dictionary containing
 	| its features.
+		if name == "none" or (not name)
+			return None
+		end
 		name = normalizeLanguage (name)
 		if not (name in languages keys ())
 			var language =  new Language(name, self)
