@@ -1460,16 +1460,6 @@ class Writer(AbstractWriter):
 					body,
 					"}"
 				]
-			# Outputs the conditional on one line if it's small enough
-			if self._isNice and (len(rule_code[0]) + len (body)) < 60:
-				if body == rule_code[1]:
-					while body.startswith("\t"):
-						body = body[1:]
-					body = body.strip()
-					if not body.endswith(";"):
-						body += ";"
-					rule_code[1] = body
-				rule_code = ["".join(rule_code)]
 			if not result:
 				result = rule_code
 			else:
@@ -1760,6 +1750,7 @@ class Writer(AbstractWriter):
 		]
 
 	def _section( self, name ):
+		if not self._isNice: return []
 		return [
 			"",
 			"// ---------------------------------------------------------------------------",
@@ -1772,6 +1763,7 @@ class Writer(AbstractWriter):
 
 
 	def _group( self, name, depth=0 ):
+		if not self._isNice: return []
 		c = (79 - 3) - depth * 4 ; sep = "// " + "=" * c
 		return [
 			"",
