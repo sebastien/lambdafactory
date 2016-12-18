@@ -77,7 +77,6 @@ class PassContext:
 			for op_arg in element.getOpArguments():
 				if (type(op_arg) in [tuple, list]):
 					for arg in op_arg:
-						assert(isinstance(arg, interfaces.IElement), 'Element expected, got {0}'.format(arg))
 						self.walk(arg)
 				elif True:
 					self.walk(op_arg)
@@ -147,11 +146,24 @@ class PassContext:
 	def getProgram(self):
 		return self.program
 	
+	def getModuleFor(self, element):
+		parent = element
+		while (parent and (not isinstance(parent, interfaces.IModule))):
+			parent = element.parent
+		return parent
+	
 	def getFactory(self):
 		return self.environment.getFactory()
 	
 	def isIn(self, interface):
 		return (self.findInContext(interface) != None)
+	
+	def isShadowed(self, name, element):
+		"""Tells if the element with the given (local) name is shadowed
+		by another declaration. Basically, this means that
+		the name is resolved to a different element."""
+		value=self.resolve(name)[1]
+		return (value and (value != element))
 	
 	def getCurrentClosure(self):
 		return self.findInContext(interfaces.IClosure)
@@ -255,6 +267,64 @@ class PassContext:
 						ancestors.append(ancestor)
 		ancestors.extend(parents)
 		return ancestors
+	
+	def getImportedModules(self, moduleElement):
+		res = []
+		for o in moduleElement.getImportOperations():
+			if   isinstance(o, interfaces.IImportModuleOperation):
+				res.append(o.getImportedModuleName())
+			elif isinstance(o, interfaces.IImportSymbolOperation):
+				res.append(o.getImportOrigin())
+			elif isinstance(o, interfaces.IImportSymbolsOperation):
+				res.append(o.getImportOrigin())
+			elif isinstance(o, interfaces.IImportModulesOperation):
+				res += o.getImportedModuleNames()
+			else:
+				raise NotImplementedError
+		n = []
+		for _ in res:
+			if _ not in n:
+				n.append(_)
+		return n
+		
+	
+	def getImportedSymbols(self, moduleElement):
+		res = []
+		for o in moduleElement.getImportOperations():
+			if   isinstance(o, interfaces.IImportModuleOperation):
+				res.append([
+					o.getAlias(),
+					o.getImportedModuleName(),
+					None,
+					o
+				])
+			elif isinstance(o, interfaces.IImportSymbolOperation):
+				res.append([
+					o.getAlias(),
+					o.getImportOrigin(),
+					o.getImportedElement(),
+					o
+				])
+			elif isinstance(o, interfaces.IImportSymbolsOperation):
+				for s in o.getImportedElements():
+					res.append([
+						None,
+						o.getImportOrigin(),
+						s,
+						o
+					])
+			elif isinstance(o, interfaces.IImportModulesOperation):
+				for s in o.getImportedModuleNames():
+					res.append([
+						None,
+						s,
+						None,
+						o
+					])
+			else:
+				raise NotImplementedError
+		return res
+		
 	
 	def annotate(self, value, name, content=None):
 		if content is None: content = None

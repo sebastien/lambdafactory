@@ -8,6 +8,7 @@ from lambdafactory.environment import Environment
 from lambdafactory.splitter import FileSplitter
 import lambdafactory.passes as passes
 import lambdafactory.resolution as resolution
+from io import BytesIO
 __module_name__ = 'lambdafactory.main'
 class Command:
 	OPT_LANG = 'Specifies the target language (js, java, pnuts, actionscript)'
@@ -42,7 +43,7 @@ class Command:
 		"""Runs Sugar, but instead of printing the result to the given
 		output, it returns a Python string with the result. It is very useful
 		when embedding LambdaFactory somewhere."""
-		output=StringIO()
+		output=BytesIO()
 		self.run(args, output)
 		return ('' + output.getvalue())
 	
@@ -118,7 +119,9 @@ class Command:
 				result_module=self.parseFile(source_path, options.module)
 				if result_module:
 					program.addModule(result_module)
-				if (not language):
+				if (language == 'none'):
+					language = None
+				elif (not language):
 					language = self.guessLanguage(source_path)
 				elif True:
 					language = self.environment.normalizeLanguage(language)
@@ -131,8 +134,8 @@ class Command:
 						name_and_value[1].addAnnotation(self.environment.getFactory().annotation('shadow'))
 				elif True:
 					self.environment.addLibraryPath(l)
-		if (not language):
-			raise ERR_NO_LANGUAGE_SPECIFIED
+		if (language == 'none'):
+			language = None
 		if options.passes:
 			self.setupPasses(language, options.passes.split(','), (options.passOptions or []))
 		elif True:
@@ -201,6 +204,8 @@ class Command:
 		return None
 	
 	def getWriter(self, language):
+		if (not language):
+			return None
 		language = self.environment.loadLanguage(language)
 		writer=language.writer()
 		writer.report = self.environment.report
@@ -211,11 +216,13 @@ class Command:
 		if includeRuntime is None: includeRuntime = False
 		if includeSource is None: includeSource = False
 		writer=self.getWriter(inLanguage)
-		writer.setOption('INCLUDE_SOURCE', includeSource)
-		program_source=writer.run(program)
-		if includeRuntime:
-			program_source = (writer.getRuntimeSource() + program_source)
-		return program_source
+		if writer:
+			program_source=writer.run(program)
+			if includeRuntime:
+				program_source = (writer.getRuntimeSource() + program_source)
+			return program_source
+		elif True:
+			return ''
 	
 	def createEnvironment(self):
 		self.environment = Environment()

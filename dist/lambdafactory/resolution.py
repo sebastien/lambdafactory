@@ -239,14 +239,14 @@ class DataFlowBinding(Pass):
 	dataflow slot to the proper value. If the binding fails, an exception will be
 	raised, meaning that either the passes were not set up properly, or that the
 	resolution has failed (and there is an inconsistency in the program model)."""
+	FAILED = tuple([None, None])
 	HANDLES = [interfaces.IModule, interfaces.IClass]
 	NAME = 'ClassParentsResolution'
 	def __init__ (self):
 		Pass.__init__(self)
 	
-	def importSymbol(self, operation, symbolName, fromModuleName, moduleDest, alias=None):
+	def _importSymbol(self, operation, symbolName, fromModuleName, moduleDest, alias=None):
 		if alias is None: alias = None
-		FAILED=tuple([None, None])
 		module_name=fromModuleName
 		symbol_name=symbolName
 		element=moduleDest
@@ -254,15 +254,15 @@ class DataFlowBinding(Pass):
 		result={}
 		imported_name=(alias or symbol_name)
 		df=element.getDataFlow()
-		if (slot_and_value == FAILED):
+		if (slot_and_value == self.__class__.FAILED):
 			self.environment.report.error('Imported module not found in scope:', module_name, 'in', element.getName())
 		elif (symbol_name == '*'):
 			imported_module=slot_and_value[1]
 			for slot_name in imported_module.getSlotNames():
-				result.update(self.importSymbol(operation, slot_name, fromModuleName, moduleDest))
+				result.update(self._importSymbol(operation, slot_name, fromModuleName, moduleDest))
 		elif True:
 			symbol_slot_and_value=self.resolve(symbol_name, slot_and_value[1])
-			if (symbol_slot_and_value == FAILED):
+			if (symbol_slot_and_value == self.__class__.FAILED):
 				if (fromModuleName != self.getCurrentModule().getAbsoluteName()):
 					self.environment.report.error('Symbol not found in module scope:', symbol_name, 'in', module_name)
 				if (not df.hasSlot(imported_name)):
@@ -278,34 +278,41 @@ class DataFlowBinding(Pass):
 				result[imported_name] = value
 		return result
 	
+	def _importModule(self, module, operation, fullname, alias=None):
+		if alias is None: alias = None
+		imported={}
+		slot_and_value=self.resolveAbsolute(fullname)
+		if (slot_and_value == self.__class__.FAILED):
+			self.environment.report.error('Imported module not found in scope:', fullname, 'in', module.getName())
+		elif True:
+			name=(alias or fullname)
+			module.getDataFlow().declareImported(name, slot_and_value[1], operation)
+			imported[name] = slot_and_value[1]
+			assert((module.getDataFlow().getElement() == module))
+			assert((module.getDataFlow().resolve(name)[0].getDataFlow() == module.getDataFlow()))
+			assert((module.getDataFlow().resolve(name)[0].getDataFlow().getElement() == module))
+		return imported
+	
 	def onModule(self, element):
 		"""Processes the module import operations and adds them to the module
 		dataflow"""
 		imports=element.getImportOperations()
-		FAILED=tuple([None, None])
 		imported={}
 		for i in imports:
 			if isinstance(i, interfaces.IImportModuleOperation):
-				absolute_name=i.getImportedModuleName()
-				alias=i.getAlias()
-				slot_and_value=self.resolveAbsolute(absolute_name)
-				if (slot_and_value == FAILED):
-					self.environment.report.error('Imported module not found in scope:', absolute_name, 'in', element.getName())
-				elif alias:
-					element.getDataFlow().declareImported(alias, slot_and_value[1], i)
-					imported[alias] = slot_and_value[1]
-					assert((element.getDataFlow().getElement() == element))
-					assert((element.getDataFlow().resolve(alias)[0].getDataFlow() == element.getDataFlow()))
-					assert((element.getDataFlow().resolve(alias)[0].getDataFlow().getElement() == element))
+				imported.update(self._importModule(element, i, i.getImportedModuleName(), i.getAlias()))
+			elif isinstance(i, interfaces.IImportModulesOperation):
+				for n in i.getImportedModuleNames():
+					imported.update(self._importModule(element, i, n))
 			elif isinstance(i, interfaces.IImportSymbolOperation):
 				module_name=i.getImportOrigin()
 				symbol_name=i.getImportedElement()
 				alias=i.getAlias()
-				imported.update(self.importSymbol(i, symbol_name, module_name, element, alias))
+				imported.update(self._importSymbol(i, symbol_name, module_name, element, alias))
 			elif isinstance(i, interfaces.IImportSymbolsOperation):
 				module_name=i.getImportOrigin()
 				for symbol_name in i.getOpArgument(0):
-					imported.update(self.importSymbol(i, symbol_name, module_name, element, None))
+					imported.update(self._importSymbol(i, symbol_name, module_name, element, None))
 			elif True:
 				self.environment.report.error(('DataFlowBinding: operation not implemented ' + repr(i)))
 		if element.hasAnnotation('imported'):

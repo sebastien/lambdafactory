@@ -55,7 +55,7 @@ MODULE_UMD     = "umd"
 MODULE_GOOGLE  = "google"
 
 OPTION_EXTERNS        = "externs"
-OPTION_NICE           = "externs"
+OPTION_NICE           = "nice"
 
 OPTION_EXTEND_ITERATE = "iterate"
 
@@ -264,8 +264,9 @@ class Writer(AbstractWriter):
 		full_name               = self.getAbsoluteName(moduleElement)
 		code = [
 			"// " + SNIP % ("%s.js" % (self.getAbsoluteName(moduleElement).replace(".", "/"))),
+		] + self._header() + [
 			self._document(moduleElement),
-			self.options["ENABLE_METADATA"] and "function __def(v,m){var ms=v['__def__']||{};for(var k in m){ms[k]=m[k]};v['__def__']=ms;return v}" or "",
+			self.options["ENABLE_METADATA"] and "function __def(v,m){var ms=v['__def__']||{};for(var k in m){ms[k]=m[k]};v['__def__']=ms;return v}" or None,
 		]
 		# --- PREFIX ----------------------------------------------------------
 		if self._moduleType == MODULE_UMD:
@@ -288,14 +289,30 @@ class Writer(AbstractWriter):
 				value_code = self.write(value)
 				if value_code:
 					slot_name     = name
-					if slot_name == interfaces.Constants.ModuleInit:   slot_name = "init"
-					if slot_name == interfaces.Constants.MainFunction: slot_name = "main"
-					declaration   = "{3}{0}.{1} = {2}".format(module_name, slot_name, value_code, self._docextern(value))
+					declaration   = ""
+					if slot_name == interfaces.Constants.ModuleInit:
+						slot_name = "init"
+						if self._isNice:
+							declaration = "\n".join(self._section("Module init")) + "\n"
+					if slot_name == interfaces.Constants.MainFunction:
+						# FIXME: Technically, this should be moved after the init
+						slot_name = "main"
+						if self._isNice:
+							declaration = "\n".join(self._section("Module main")) + "\n"
+
+					declaration   += "{3}{0}.{1} = {2}".format(module_name, slot_name, value_code, self._docextern(value))
+			code.append(self._document(value))
 			code.append(declaration)
 		# --- INIT ------------------------------------------------------------
 		# FIXME: Init should be only invoked once
 		if self._moduleType != MODULE_VANILLA:
 			code.extend(self.registerModuleInWindow(moduleElement))
+		if self._isNice:
+			code += self._section("Module initialization code")
+			code += [
+				"// NOTE: This is called after the registration, as init code might",
+				"// depend on the module to be registered (eg. dynamic loading)."
+			]
 		code.append('if (typeof(%s.init)!="undefined") {%s.init();}' % (
 			module_name,
 			module_name
@@ -462,13 +479,21 @@ class Writer(AbstractWriter):
 				if module != "extend" or alias:
 					symbols.append("var {0} = {1}.{2};".format(alias or slot, module.replace(".", "_"), slot))
 		symbols = list(set(symbols))
+		prefix  = []
+		if self._isNice:
+			prefix  = [
+				"// Defines the gmodule, imports its dependencies and binds imported",
+				"// imported symbols to corresponding slots within the module's namespace."
+			]
 		return [
 			"// START:GOOGLE_PREAMBLE",
+		] + prefix + [
 			"goog.loadModule(function(exports){",
 			"goog.module('{0}');".format(abs_name),
 		] + modules + symbols + [
-			"var {0} = exports; var __module__ = {0};".format(module_name),
-			"// END:GOOGLE_PREAMBLE\n"
+			"var {0} = exports;".format(module_name),
+			"var __module__ = {0};".format(module_name),
+			"// END:GOOGLE_PREAMBLE"
 		]
 
 	def getModuleGoogleSuffix( self, moduleElement ):
@@ -486,11 +511,6 @@ class Writer(AbstractWriter):
 		safe_name = self.getSafeName(moduleElement)
 		names     = self.getAbsoluteName(moduleElement, asList=True)
 		res       = ["var c = window;"]
-		if self._isNice:
-			res = [
-				"// Registers the m odule in the global namespace so"
-				"that it is accessible from the console"
-			] + res
 		last      = len(names) - 1
 		for i,name in enumerate(names):
 			if i<last:
@@ -498,13 +518,14 @@ class Writer(AbstractWriter):
 			else:
 				line = "c.{0} = __module__".format(name)
 			res.append(line)
-		return [
+		return (self._section("Module registration") if self._isNice else []) + [
+			"// Registers the module in `extend`, if available" if self._isNice else None,
 			"if (typeof extend !== 'undefined') {{extend.module(\"{0}\", {1})}}".format(".".join(names), safe_name),
+			"// Registers the module in the globals, creating any submodule if necessary" if self._isNice else None,
 			"if (typeof window !== 'undefined') {",
 			res,
 			"}"
 		]
-
 
 	# =========================================================================
 	# IMPORTS
@@ -546,27 +567,37 @@ class Writer(AbstractWriter):
 		for attribute in classElement.getClassAttributes():
 			classAttributes[self._rewriteSymbol(attribute.getName())] = self.write(attribute)
 		classAttributes = list(classAttributes.values())
+		# === RESULT ==========================================================
 		result = []
-		result.append(self._document(classElement))
-		result.append("name:'%s', parent:%s," % (self.getAbsoluteName(classElement), parent))
+		result.append(           "name  :'%s'," % (self.getAbsoluteName(classElement)))
+		if parent: result.append("parent: %s," % (parent))
 		# We collect class attributes
 		attributes   = classElement.getAttributes()
 		constructors = classElement.getConstructors()
 		destructors  = classElement.getDestructors()
 		methods      = classElement.getInstanceMethods()
 		if classAttributes:
+			result += self._group("Class attributes", 1)
 			written_attrs = ",\n".join(map(self.write, classAttributes))
-			result.append("shared:{")
+			result.append("shared: {")
 			result.append([written_attrs])
 			result.append("},")
 		if attributes:
 			# In attributes, we only print the name, ans use Undefined as the
 			# value, because properties will be instanciated at construction
+			result += self._group("Properties", 1)
 			written_attrs = ",\n".join(["%s:undefined" % (self._rewriteSymbol(e.getName())) for e in attributes])
-			result.append("properties:{")
+			result.append("properties: {")
 			result.append([written_attrs])
 			result.append("},")
+		if classOperations:
+			result += self._group("Class methods", 1)
+			written_ops = ",\n".join(map(self.write, classOperations))
+			result.append("operations:{")
+			result.append([written_ops])
+			result.append("},")
 		if constructors:
+			result += self._group("Constructor", 1)
 			assert len(constructors) == 1, "Multiple constructors are not supported yet"
 			result.append("%s," % (self.write(constructors[0])))
 		else:
@@ -582,12 +613,16 @@ class Writer(AbstractWriter):
 				# way to cover our ass. We encapsulate the __super__ declaration
 				# in a block to avoid scoping problems.
 				invoke_parent_constructor = "".join([
+					"// Invokes the parent constructor ― this requires the parent to be an extend.Class class",
 					"\tif (true) {var __super__=",
 					"%s.getSuper(%s.getParent());" % (self.jsSelf, self.getResolvedName(classElement)),
-					"__super__.initialize.apply(__super__,arguments);}"
+					"__super__.initialize.apply(__super__, arguments);}"
 				])
 			for a in classElement.getAttributes():
 				if not a.getDefaultValue(): continue
+				constructor_attributes.append(
+					"// Default value for property `{0}`".format(a.getName())
+				)
 				constructor_attributes.append(
 					"if (typeof(%s.%s)=='undefined') {%s.%s = %s;};" % (
 						self.jsSelf, self._rewriteSymbol(a.getName()),
@@ -598,31 +633,29 @@ class Writer(AbstractWriter):
 			# declared and no constructor declared
 			default_constructor = self._format(
 				(
-					self.options["ENABLE_METADATA"] and "initialize:__def(function(){" \
-					or "initialize:function(){"
+					self.options["ENABLE_METADATA"] and "initialize: __def(function(){" \
+					or "initialize: function(){"
 				),
-				["var %s=this;" % (self.jsSelf)],
+				["var %s = this;" % (self.jsSelf)],
 				constructor_attributes or None,
 				invoke_parent_constructor,
 				(
 					(not self.options["ENABLE_METADATA"] and "},") or \
-					"},{arguments:[]),"
+					"}, {arguments:[]),"
 				)
 			)
 			# in case no constructor is given, we create a default constructor
+			result += self._group("Constructor", 1)
 			result.append(default_constructor)
 		if destructors:
+			result += self._group("Destructor", 1)
 			assert len(destructors) == 1, "Multiple destructors are not supported"
 			result.append("%s," % (self.write(destructors[0])))
 		if methods:
-			written_meths = ",\n".join(map(self.write, methods))
-			result.append("methods:{")
+			result += self._group("Methods", 1)
+			written_meths = ",\n\n".join(map(self.write, methods))
+			result.append("methods: {")
 			result.append([written_meths])
-			result.append("},")
-		if classOperations:
-			written_ops = ",\n".join(map(self.write, classOperations))
-			result.append("operations:{")
-			result.append([written_ops])
 			result.append("},")
 		if result[-1][-1] == ",":result[-1] =result[-1][:-1]
 		return self._format(
@@ -637,16 +670,16 @@ class Writer(AbstractWriter):
 		else: default_value="undefined"
 		return self._format(
 			self._document(element),
-			"%s:%s" % (self._rewriteSymbol(element.getName()), default_value)
+			"%s: %s" % (self._rewriteSymbol(element.getName()), default_value)
 		)
 
 	def onClassAttribute( self, element ):
 		"""Writes an argument element."""
 		default_value = element.getDefaultValue()
 		if default_value:
-			res = "%s:%s" % (self._rewriteSymbol(element.getName()), self.write(default_value))
+			res = "%s: %s" % (self._rewriteSymbol(element.getName()), self.write(default_value))
 		else:
-			res = "%s:undefined" % (self._rewriteSymbol(element.getName()))
+			res = "%s: undefined" % (self._rewriteSymbol(element.getName()))
 		return self._format(self._document(element), res)
 
 	def onModuleAttribute( self, element ):
@@ -673,20 +706,20 @@ class Writer(AbstractWriter):
 		res = self._format(
 			self._document(methodElement),
 			(
-				self.options["ENABLE_METADATA"] and "%s:__def(function(%s){" \
-				or "%s:function(%s){"
+				self.options["ENABLE_METADATA"] and "%s:__def(function(%s) {" \
+				or "%s: function(%s) {"
 			) % (
 				method_name,
 				", ".join(map(self.write, methodElement.getParameters()))
 			),
-			["var %s=this;" % (self.jsSelf)],
+			["var %s = this;" % (self.jsSelf)],
 			self._writeClosureArguments(methodElement),
 			self.writeFunctionWhen(methodElement),
 			self.writeFunctionPre(methodElement),
 			list(map(self.write, methodElement.getOperations())),
 			(
 				(not self.options["ENABLE_METADATA"] and "}") or \
-				"},%s)" % ( self._writeFunctionMeta(methodElement))
+				"}, %s)" % ( self._writeFunctionMeta(methodElement))
 			)
 		)
 		self.popVarContext()
@@ -740,7 +773,7 @@ class Writer(AbstractWriter):
 			self._document(methodElement),
 			(
 				self.options["ENABLE_METADATA"] and "%s:__def(function(%s){" \
-				or "%s:function(%s){"
+				or "%s: function( %s ){"
 			) % (method_name, ", ".join(map(self.write, args))),
 			["var %s = this;" % (self.jsSelf)], #, self.getAbsoluteName(methodElement.getParent()))],
 			self._writeClosureArguments(methodElement),
@@ -764,7 +797,7 @@ class Writer(AbstractWriter):
 		return self._format(
 			(
 				self.options["ENABLE_METADATA"] and "%s:__def(function(%s){" \
-				or "%s:function(%s){"
+				or "%s: function( %s ){"
 			) % (method_name, ", ".join(map(self.write, method_args))),
 			["return %s.%s.apply(%s, arguments);" % (
 				self.getAbsoluteName(inheritedMethodElement.getParent()),
@@ -773,7 +806,7 @@ class Writer(AbstractWriter):
 			)],
 			(
 				(not self.options["ENABLE_METADATA"] and "}") or \
-				"},%s)" % ( self._writeFunctionMeta(inheritedMethodElement))
+				"}, %s)" % ( self._writeFunctionMeta(inheritedMethodElement))
 			)
 		)
 
@@ -785,26 +818,28 @@ class Writer(AbstractWriter):
 		# FIXME: Same as onClass
 		for a in current_class.getAttributes():
 			if not a.getDefaultValue(): continue
+			name = self._rewriteSymbol(a.getName())
+			attributes.append("// Default initialization of property `{0}`".format(name))
 			attributes.append("if (typeof(%s.%s)=='undefined') {%s.%s = %s;};" % (
-				self.jsSelf, self._rewriteSymbol(a.getName()),
-				self.jsSelf, self._rewriteSymbol(a.getName()),
+				self.jsSelf, name,
+				self.jsSelf, name,
 				self.write(a.getDefaultValue()))
 			)
 		res = self._format(
 			self._document(element),
 			(
-				self.options["ENABLE_METADATA"] and "initialize:__def(function(%s){" \
-				or "initialize:function(%s){"
+				self.options["ENABLE_METADATA"] and "initialize: __def(function( %s ){" \
+				or "initialize: function( %s ){"
 			)  % (
 				", ".join(map(self.write, element.getParameters()))
 			),
-			["var %s=this;" % (self.jsSelf)],
+			["var %s = this;" % (self.jsSelf)],
 			self._writeClosureArguments(element),
 			attributes or None,
 			list(map(self.write, element.getOperations())),
 			(
 				(not self.options["ENABLE_METADATA"] and "}") or \
-				"},%s)" % ( self._writeFunctionMeta(element))
+				"}, %s)" % ( self._writeFunctionMeta(element))
 			)
 		)
 		self.popVarContext()
@@ -834,27 +869,27 @@ class Writer(AbstractWriter):
 		if parent and isinstance(parent, interfaces.IModule):
 			res = [
 				(
-					self.options["ENABLE_METADATA"] and "__def(function(%s){" \
+					self.options["ENABLE_METADATA"] and "__def(function(%s) {" \
 					or "function(%s){"
 				)  % (
 					", ".join(map(self.write, function.getParameters()))
 				),
 				[self._document(function)],
-				['var %s=%s;' % (self.jsSelf, self.getResolvedName(function.parent))],
+				['var %s = %s;' % (self.jsSelf, self.getResolvedName(function.parent))],
 				self._writeClosureArguments(function),
 				self.writeFunctionWhen(function),
 				list(map(self.write, function.getOperations())),
 				(
 					(not self.options["ENABLE_METADATA"] and "}") or \
-					"},%s)" % ( self._writeFunctionMeta(function))
+					"}, %s)" % ( self._writeFunctionMeta(function))
 				)
 			]
 		else:
 			res = [
 				self._document(function),
 				(
-					self.options["ENABLE_METADATA"] and "__def(function(%s){" \
-					or "function(%s){"
+					self.options["ENABLE_METADATA"] and "__def(function(%s) {" \
+					or "function(%s) {"
 				)  % (
 					", ".join(map(self.write, function.getParameters()))
 				),
@@ -863,7 +898,7 @@ class Writer(AbstractWriter):
 				list(map(self.write, function.getOperations())),
 				(
 					(not self.options["ENABLE_METADATA"] and "}") or \
-					"},%s)" % ( self._writeFunctionMeta(closure))
+					"}, %s)" % ( self._writeFunctionMeta(closure))
 				)
 			]
 		if function.getAnnotations(withName="post"):
@@ -892,14 +927,14 @@ class Writer(AbstractWriter):
 			result   = [
 				self._document(closure),
 				(
-					self.options["ENABLE_METADATA"] and "__def(function(%s){" \
-					or "function(%s){"
+					self.options["ENABLE_METADATA"] and "__def(function(%s) {" \
+					or "function(%s) {"
 				) % ( ", ".join(map(self.write, closure.getArguments()))),
 				self._writeClosureArguments(closure),
 				list(map(self.write, operations)),
 				(
 					(not self.options["ENABLE_METADATA"] and "}") or \
-					"},%s)" % ( self._writeFunctionMeta(closure))
+					"}, %s)" % ( self._writeFunctionMeta(closure))
 				)
 			]
 		# We format the result as a string
@@ -962,11 +997,7 @@ class Writer(AbstractWriter):
 
 	def onBlock( self, block ):
 		"""Writes a block element."""
-		return self._format(
-			"{",
-			list(map(self.write, block.getOperations())),
-			"}"
-		)
+		return self._format(list(map(self.write, block.getOperations())))
 
 	def onParameter( self, param ):
 		"""Writes a parameter element."""
@@ -1098,6 +1129,8 @@ class Writer(AbstractWriter):
 		o = slot.origin[0]
 		if isinstance(o, interfaces.IImportModuleOperation):
 			return o.getImportedModuleName()
+		elif isinstance(o, interfaces.IImportModulesOperation):
+			return name
 		elif isinstance(o, interfaces.IImportSymbolOperation):
 			module_name = o.getImportOrigin()
 			symbol_name = o.getImportedElement()
@@ -1106,14 +1139,13 @@ class Writer(AbstractWriter):
 			module_name = o.getImportOrigin()
 			return module_name + "." + symbol_name
 		else:
-			raise Exception("Importation operation not implemeted yet")
+			raise Exception("Import operation not supported yet: {0}".format(o))
 
 	def onOperator( self, operator ):
 		"""Writes an operator element."""
 		o = operator.getReferenceName()
 		o = JS_OPERATORS.get(o) or o
 		return "%s" % (o)
-
 
 	# =========================================================================
 	# LITTERALS
@@ -1171,7 +1203,7 @@ class Writer(AbstractWriter):
 		s = allocation.getSlotToAllocate()
 		v = allocation.getDefaultValue()
 		if v:
-			return "var %s=%s;" % (self._rewriteSymbol(s.getName()), self.write(v))
+			return "var %s = %s;" % (self._rewriteSymbol(s.getName()), self.write(v))
 		else:
 			return "var %s;" % (self._rewriteSymbol(s.getName()))
 
@@ -1397,39 +1429,53 @@ class Writer(AbstractWriter):
 		for i in range(0,len(rules)):
 			rule = rules[i]
 			if isinstance(rule, interfaces.IMatchProcessOperation):
-				process = self.write(rule.getProcess())
+				process = rule.getProcess()
+				is_expression = False
 			else:
 				assert isinstance(rule, interfaces.IMatchExpressionOperation)
-				process = "{%s}" % (self.write(rule.getExpression()))
-			# If the rule process is a block/closure, we simply expand the
-			# closure. So we have
-			# if (...) { code }
-			# instead of
-			# if (...) { (function(){code})() }
-			if process and isinstance(process, interfaces.IClosure):
-				process = self.writeClosureBody(process)
-			elif process:
-				process = "%s" % (self.write(process))
-			else:
-				process = '{}'
+				process  = rule.getExpression()
+				is_expression = True
+			body      = ("\t" if is_expression else "") + self.write(process) + (";" if is_expression else "")
 			predicate = rule.getPredicate()
-			is_else   = isinstance(predicate, interfaces.IReference) and predicate.getName() == "True"
+			is_else   = rule.hasAnnotation("else") or isinstance(predicate, interfaces.IReference) and predicate.getName() == "True"
+			condition = self._format(self.write(predicate)).strip()
+			if condition[0] == "(" and condition[-1] == ")": condition = condition[1:-1].strip()
 			if i==0:
-				rule_code = (
-					"if ( %s )" % (self.write(predicate)),
-					process,
-				)
+				# NOTE: This is an edge case (more like a bug, really) where two
+				# branches of 1 selection are output as 2 selections with 1 branch.
+				rule_code = [
+					"else {" if is_else else "if (%s) {" % (condition) ,
+					body,
+					"}"
+				]
 			elif is_else or rule.hasAnnotation("else"):
-				rule_code = (
-					"else",
-					process
-				)
+				rule_code = [
+					"} else {",
+					body,
+					"}"
+				]
 			else:
-				rule_code = (
-					"else if ( %s )" % (self.write(predicate)),
-					process,
-				)
-			result.extend(rule_code)
+				rule_code = [
+					"} else if (%s) {" % (condition),
+					body,
+					"}"
+				]
+			# Outputs the conditional on one line if it's small enough
+			if self._isNice and (len(rule_code[0]) + len (body)) < 60:
+				if body == rule_code[1]:
+					while body.startswith("\t"):
+						body = body[1:]
+					body = body.strip()
+					if not body.endswith(";"):
+						body += ";"
+					rule_code[1] = body
+				rule_code = ["".join(rule_code)]
+			if not result:
+				result = rule_code
+			else:
+				result = result[:-1] + rule_code
+		if selection.hasAnnotation("assignment"):
+			result = ["// This is a conditional assignment (default value)"] + result
 		return self._format(*result)
 
 	def _writeSelectionInExpression( self, selection ):
@@ -1560,6 +1606,7 @@ class Writer(AbstractWriter):
 		return self._format(
 			# OK, so it is a bit complicated here. We start by storing a reference
 			# to the iterated expression
+			"// Iterates over `{0}`. This works on array,objects and null/undefined".format(self.write(iterator)),
 			"var {l}={iterator};".format(l=l, iterator=iterator),
 			"var {k}={l} instanceof Array ? {l} : Object.getOwnPropertyNames({l}||{{}});".format(k=k, l=l),
 			"var {kl}={k}.length;".format(k=k, kl=kl),
@@ -1570,6 +1617,9 @@ class Writer(AbstractWriter):
 			(
 				"var {i}=({k}==={l})?{ki}:{k}[{ki}];".format(i=i,k=k,l=l,ki=ki),
 				"var {v}={l}[{i}];".format(v=v,l=l,i=i),
+				"// This is the body of the iteration with (value={0}, key/index={1}) in {2}".format(
+					v,i,l
+				),
 				closure,
 			),
 			"}"
@@ -1577,8 +1627,9 @@ class Writer(AbstractWriter):
 
 	def onRepetition( self, repetition ):
 		return self._format(
-			"while (%s) " % (self.write(repetition.getCondition())),
-			self.write(repetition.getProcess())
+			"while (%s) {" % (self.write(repetition.getCondition())),
+			self.write(repetition.getProcess()),
+			"}",
 		)
 
 	def onAccessOperation( self, operation ):
@@ -1686,6 +1737,51 @@ class Writer(AbstractWriter):
 			return embed.getCode()
 
 	# =========================================================================
+	# NICE HELPERS
+	# =========================================================================
+
+	def _header( self, project=None, source=None ):
+		if not self._isNice: return []
+		return [
+			"// ---------------------------------------------------------------------------",
+			"// Project   : ${PROJECT}",
+			"// ---------------------------------------------------------------------------",
+			"// License   : ${LICENSE}",
+			"// ---------------------------------------------------------------------------",
+			"// Creation  : ${CREATED}",
+			"// Last mod  : ${UPDATED}",
+			"// ---------------------------------------------------------------------------",
+			"// NOTE: This file is produced by Sugar/LambdaFactory, and as such should",
+			"// not be edited directly if you have access to the  original Sugar code.",
+			"// If you plan to continue support in JavaScript, then this file provide a good",
+			"// starting point. If you are targetting another language, you",
+			"// might consider writing a new backend for LambdaFactory.",
+			"",
+		]
+
+	def _section( self, name ):
+		return [
+			"",
+			"// ---------------------------------------------------------------------------",
+			"//",
+			"// " + name.upper(),
+			"//",
+			"// ---------------------------------------------------------------------------",
+			"",
+		]
+
+
+	def _group( self, name, depth=0 ):
+		c = (79 - 3) - depth * 4 ; sep = "// " + "=" * c
+		return [
+			"",
+			sep,
+			"// " + name.upper(),
+			sep,
+			"",
+		]
+
+	# =========================================================================
 	# HELPERS
 	# =========================================================================
 
@@ -1697,14 +1793,17 @@ class Writer(AbstractWriter):
 			return ""
 
 	def _document( self, element ):
+		res = None
+		if isinstance(element, interfaces.IClass):
+			res = "\n".join(self._section(element.getName()))
 		if element.getDocumentation():
 			doc = element.getDocumentation()
-			res = []
+			r   = ["/**"]
 			for line in doc.getContent().split("\n"):
-				res.append("// " + line)
-			return "\n".join(res)
-		else:
-			return None
+				r.append("  * " + line)
+			r.append("*/")
+			res = (res or "") + "\n".join(r)
+		return res
 
 MAIN_CLASS = Writer
 

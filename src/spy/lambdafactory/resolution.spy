@@ -379,6 +379,8 @@
 | raised, meaning that either the passes were not set up properly, or that the
 | resolution has failed (and there is an inconsistency in the program model).
 
+	@shared FAILED         =  tuple([None,None])
+
 	@shared HANDLES = [
 		interfaces IModule
 		interfaces IClass
@@ -390,8 +392,7 @@
 	@end
 
 	# FIXME: Arguments are messy
-	@method importSymbol operation, symbolName, fromModuleName, moduleDest, alias = None
-		var FAILED         =  tuple([None,None])
+	@method _importSymbol operation, symbolName, fromModuleName, moduleDest, alias = None
 		var module_name    = fromModuleName
 		var symbol_name    = symbolName
 		var element        = moduleDest
@@ -406,7 +407,7 @@
 			# We import all the symbols defined in the module
 			var imported_module = slot_and_value[1]
 			for slot_name in imported_module getSlotNames ()
-				result update (importSymbol (operation, slot_name, fromModuleName, moduleDest))
+				result update (_importSymbol (operation, slot_name, fromModuleName, moduleDest))
 			end
 		else
 			var symbol_slot_and_value = self resolve ( symbol_name, slot_and_value[1] )
@@ -434,37 +435,45 @@
 		return result
 	@end
 
+	@method _importModule module, operation, fullname, alias=None
+		var imported       = {}
+		var slot_and_value = self resolveAbsolute(fullname)
+		if slot_and_value == FAILED
+			self environment report error ("Imported module not found in scope:", fullname, "in", module getName())
+		else
+			var name = alias or fullname
+			module getDataFlow() declareImported ( name, slot_and_value[1], operation)
+			imported[name] = slot_and_value[1]
+			assert (module getDataFlow() getElement() == module)
+			assert (module getDataFlow() resolve (name)[0] getDataFlow() == module getDataFlow() )
+			assert (module getDataFlow() resolve (name)[0] getDataFlow() getElement() == module)
+		end
+		return imported
+	@end
+
 	@method onModule element
 	| Processes the module import operations and adds them to the module
 	| dataflow
 		var imports = element getImportOperations()
-		var FAILED =  tuple([None,None])
 		var imported = {}
 		for i in imports
 			if isinstance(i, interfaces IImportModuleOperation)
-				var absolute_name  = i getImportedModuleName()
-				var alias          = i getAlias()
-				var slot_and_value = self resolveAbsolute(absolute_name)
-				if slot_and_value == FAILED
-					self environment report error ("Imported module not found in scope:", absolute_name, "in", element getName())
-				if alias
-					element getDataFlow() declareImported ( alias, slot_and_value[1], i)
-					imported[alias] = slot_and_value[1]
-					assert (element getDataFlow() getElement() == element)
-					assert (element getDataFlow() resolve (alias)[0] getDataFlow() == element getDataFlow() )
-					assert (element getDataFlow() resolve (alias)[0] getDataFlow() getElement() == element)
+				imported update (_importModule (element, i, i getImportedModuleName (), i getAlias ()))
+			elif isinstance(i, interfaces IImportModulesOperation)
+				for n in i getImportedModuleNames ()
+					imported update (_importModule (element, i, n))
 				end
-			if isinstance(i, interfaces IImportSymbolOperation)
+			elif isinstance(i, interfaces IImportSymbolOperation)
 				var module_name = i getImportOrigin()
 				var symbol_name = i getImportedElement()
 				var alias = i getAlias()
 				# FIXME: Arguments are messy
-				imported update (importSymbol (i, symbol_name, module_name, element, alias))
-			if isinstance(i, interfaces IImportSymbolsOperation)
+				imported update (_importSymbol (i, symbol_name, module_name, element, alias))
+			elif isinstance(i, interfaces IImportSymbolsOperation)
 				var module_name = i getImportOrigin()
 				for symbol_name in i getOpArgument 0
 					# FIXME: Arguments are messy
-					imported update (importSymbol (i, symbol_name, module_name, element, None))
+					imported update (_importSymbol (i, symbol_name, module_name, element, None))
 				end
 			else
 				# TEST: When resolution works well, self should not be necessary

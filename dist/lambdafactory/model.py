@@ -198,6 +198,13 @@ class DataFlow(IDataFlow):
 	def getSlot(self, name):
 		return self.hasSlot(name)
 	
+	def getSlotValue(self, name):
+		slot=self.getSlot(name)
+		if slot:
+			return slot.getValue()
+		elif True:
+			return None
+	
 	def getElement(self):
 		return self.element
 	
@@ -1161,7 +1168,13 @@ class MatchExpressionOperation(Operation, IMatchExpressionOperation):
 	pass
 
 class Iteration(Operation, IIteration):
-	pass
+	def isRangeIteration(self):
+		iterator=self.getIterator()
+		if (((isinstance(iterator, IEnumeration) and isinstance(iterator.getStart(), INumber)) and isinstance(iterator.getEnd(), INumber)) and (isinstance(iterator.getStep(), INumber) or (not iterator.getStep()))):
+			return True
+		elif True:
+			return False
+	
 
 class MapIteration(Operation, IMapIteration):
 	pass

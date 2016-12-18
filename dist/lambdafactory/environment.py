@@ -27,16 +27,17 @@ class Importer:
 		self.environment = None
 		self.environment = environment
 	
-	def findSugarModule(self, moduleName):
-		paths=[]
-		for path in self.environment.libraryPaths:
-			paths.append(path)
+	def findSugarModule(self, moduleName, paths=None):
+		"""Finds the module with the given name in the given ppaths"""
+		if paths is None: paths = None
+		exts=['.sg', '.sjs', '.sjava', '.spnuts', '.spy']
+		paths = ((paths or []) + self.environment.libraryPaths)
 		if os.environ.get('SUGARPATH'):
 			paths.extend(os.environ.get('SUGARPATH').split(':'))
 		module_path=moduleName.replace('.', os.path.sep)
 		for path in paths:
 			path = os.path.abspath(os.path.expandvars(os.path.expanduser(path)))
-			for ext in '.sg .sjs .sjava .spnuts .spy'.split():
+			for ext in exts:
 				file_path=os.path.join(path, (module_path + ext))
 				if os.path.exists(file_path):
 					return file_path
@@ -94,9 +95,9 @@ class Language:
 		"""Dynamically loads the language (sub) module"""
 		try:
 			module=None
-			module_name   = "lambdafactory.languages." + self.name + "." + moduleName
-			root_module   = __import__(module_name)
-			module        = getattr(getattr(getattr(root_module, "languages"), self.name), moduleName)
+			module_name = "lambdafactory.languages." + self.name + "." + moduleName
+			root_module = __import__(module_name)
+			module      = getattr(getattr(getattr(root_module, "languages"), self.name), moduleName)
 			
 			return getattr(module, 'MAIN_CLASS')
 		except Exception as e:
@@ -320,6 +321,8 @@ class Environment:
 	def loadLanguage(self, name):
 		"""Loads the given language plug-in and returns a dictionary containing
 		its features."""
+		if ((name == 'none') or (not name)):
+			return None
 		name = self.normalizeLanguage(name)
 		if (not (name in self.languages.keys())):
 			language=Language(name, self)

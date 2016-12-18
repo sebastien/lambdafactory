@@ -100,7 +100,9 @@ class AbstractWriter(Pass):
 		lines=[]
 		for module in element.getModules():
 			if (not module.isImported()):
-				lines.append(self.write(module))
+				line=self.write(module)
+				if line:
+					lines.append(line)
 		return '\n'.join(lines)
 	
 	def _format(self, *values):
