@@ -590,12 +590,7 @@ class Writer(AbstractWriter):
 			result.append("properties: {")
 			result.append([written_attrs])
 			result.append("},")
-		if classOperations:
-			result += self._group("Class methods", 1)
-			written_ops = ",\n".join(map(self.write, classOperations))
-			result.append("operations:{")
-			result.append([written_ops])
-			result.append("},")
+
 		if constructors:
 			result += self._group("Constructor", 1)
 			assert len(constructors) == 1, "Multiple constructors are not supported yet"
@@ -613,7 +608,7 @@ class Writer(AbstractWriter):
 				# way to cover our ass. We encapsulate the __super__ declaration
 				# in a block to avoid scoping problems.
 				invoke_parent_constructor = "".join([
-					"// Invokes the parent constructor ― this requires the parent to be an extend.Class class",
+					"// Invokes the parent constructor ― this requires the parent to be an extend.Class class\n",
 					"\tif (true) {var __super__=",
 					"%s.getSuper(%s.getParent());" % (self.jsSelf, self.getResolvedName(classElement)),
 					"__super__.initialize.apply(__super__, arguments);}"
@@ -657,6 +652,12 @@ class Writer(AbstractWriter):
 			result.append("methods: {")
 			result.append([written_meths])
 			result.append("},")
+		if classOperations:
+			result += self._group("Class methods", 1)
+			written_ops = ",\n".join(map(self.write, classOperations))
+			result.append("operations:{")
+			result.append([written_ops])
+			result.append("},")
 		if result[-1][-1] == ",":result[-1] =result[-1][:-1]
 		return self._format(
 			"extend.Class({",
@@ -688,12 +689,10 @@ class Writer(AbstractWriter):
 		if default_value:
 			default_value = self.write(default_value)
 			return self._format(
-				self._document(element),
 				"%s = %s" % (self._rewriteSymbol(element.getName()), default_value)
 			)
 		else:
 			return self._format(
-				self._document(element),
 				"%s;" % (self._rewriteSymbol(element.getName()))
 			)
 
@@ -920,7 +919,7 @@ class Writer(AbstractWriter):
 		to rename parameters when there is an `encloses` annotation in
 		an iteration loop.
 		"""
-		operations = closure.getOperations ()
+		operations = closure.getOperations()
 		if bodyOnly:
 			result = [self.write(_) + ";" for _ in operations]
 		else:
@@ -943,7 +942,12 @@ class Writer(AbstractWriter):
 		# to capture its environment, because JS only has function-level
 		# scoping.
 		encloses = closure.getAnnotation("encloses")
-		if encloses:
+		# The `encloses` tag is useful for iterations so that there's no
+		# propagation of iteration-local variables back to a parent scope.
+		# However, when we're using `_withExtendIterate`  this is not
+		# relevant anymore, as everything is wrapped in a closure.
+		iterate_bypass = self._withExtendIterate and self.isIn(interfaces.IIteration)
+		if encloses and not iterate_bypass:
 			# The scope will be a map containing the current enclosed values. We
 			# get the list of names of enclosed variables.
 			transpose = transpose or {}
@@ -1580,9 +1584,12 @@ class Writer(AbstractWriter):
 		prefix     = None
 		encloses   = None
 		if isinstance(closure, interfaces.IClosure):
+			# We might need to prevent leaking of scope if an inner loop mutates
+			# a variable defined in an outer loop. This is not a problem when
+			# using iterate, as it always wraps in a closure.
 			encloses = {}
 			for _ in closure.getAnnotations("encloses") or (): encloses.update(_.content)
-			if v in encloses:
+			if not self._withExtendIterate and v in encloses:
 				w = self._getRandomVariable()
 				closure = self.onClosure(closure, bodyOnly=True, transpose={v:w})
 				v = w
