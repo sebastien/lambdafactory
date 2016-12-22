@@ -19,7 +19,6 @@ from   lambdafactory.modelwriter import AbstractWriter, flatten
 import lambdafactory.interfaces as interfaces
 import lambdafactory.reporter   as reporter
 from   lambdafactory.splitter import SNIP
-from   lambdafactory.languages.javascript.externs import ExternsWriter
 import os.path, re, time, string, random, json
 
 #------------------------------------------------------------------------------
@@ -194,7 +193,10 @@ class Writer(AbstractWriter):
 
 	def getSafeName( self, element ):
 		"""Returns the same as absolute name but with `_` instead of `_`."""
-		return "_".join(self.getAbsoluteName(element, asList=True))
+		if self._moduleType == MODULE_VANILLA:
+			return self.getAbsoluteName(element)
+		else:
+			return "_".join(self.getAbsoluteName(element, asList=True))
 
 	def getResolvedName( self, element ):
 		"""Returns the absolute name of the element, resolved in the current
@@ -213,12 +215,15 @@ class Writer(AbstractWriter):
 		local_name     = self.getLocalName(element)
 		resolved_slot, resolved_value  = self.resolve(local_name)
 		resolved       = resolved_value == element
-		resolved_local = self.getCurrentDataFlow().getSlotValue(local_name) == element
+		resolved_local = self.getCurrentDataFlow().getSlotValue(local_name)
+		shadowed       = resolved_local and resolved_local != element
 		element_module = self.getModuleFor(element)
-		if resolved_local:
+		if resolved and not shadowed:
 			# If we can resolve the value locally, then we simply return
 			# the slot name
 			return local_name
+		elif isinstance(element, interfaces.IModule):
+			return self.getSafeName(element)
 		elif element == self.getCurrentModule():
 			name = self.getSafeName(element_module)
 			if self.isShadowed(name, element_module):
@@ -239,7 +244,7 @@ class Writer(AbstractWriter):
 				parent_name = self.getAbsoluteName(element_module)
 			return parent_name + "." + local_name
 		else:
-			return self.getAbsoluteName(element)
+			return self.getSafeName(element)
 
 	# =========================================================================
 	# MODULES
@@ -248,11 +253,8 @@ class Writer(AbstractWriter):
 	def onModule( self, moduleElement ):
 		"""Writes a Module element."""
 		# Detects the module type
-		if self.environment.options.get(OPTION_EXTERNS):
-			self._externs = ExternsWriter()
-		else:
-			self._externs = None
-		self._isNice = self.environment.options.get(OPTION_NICE)
+		self._withExterns = self.environment.options.get(OPTION_EXTERNS) and True or False
+		self._isNice      = self.environment.options.get(OPTION_NICE)
 		if self.environment.options.get(MODULE_UMD):
 			self._moduleType = MODULE_UMD
 		elif self.environment.options.get(MODULE_GOOGLE):
@@ -282,7 +284,7 @@ class Writer(AbstractWriter):
 		# --- SLOTS -----------------------------------------------------------
 		for name, value in moduleElement.getSlots():
 			if isinstance(value, interfaces.IModuleAttribute):
-				declaration = "{2}{0}.{1};".format(module_name, self.write(value), self._docextern(value))
+				declaration = "{0}.{1};".format(module_name, self.write(value))
 			else:
 				# NOTE: Some slot values may be shadowed, in which case they
 				# won't return any value
@@ -300,7 +302,7 @@ class Writer(AbstractWriter):
 						if self._isNice:
 							declaration = "\n".join(self._section("Module main")) + "\n"
 
-					declaration   += "{3}{0}.{1} = {2}".format(module_name, slot_name, value_code, self._docextern(value))
+					declaration   += "{0}.{1} = {2}".format(module_name, slot_name, value_code)
 			code.append(self._document(value))
 			code.append(declaration)
 		# --- INIT ------------------------------------------------------------
@@ -516,11 +518,11 @@ class Writer(AbstractWriter):
 			if i<last:
 				line = "c = c.{0} = c.{0} || {{}};".format(name)
 			else:
-				line = "c.{0} = __module__".format(name)
+				line = "c.{0} = __module__;".format(name)
 			res.append(line)
 		return (self._section("Module registration") if self._isNice else []) + [
 			"// Registers the module in `extend`, if available" if self._isNice else None,
-			"if (typeof extend !== 'undefined') {{extend.module(\"{0}\", {1})}}".format(".".join(names), safe_name),
+			"if (typeof extend !== 'undefined') {{extend.module(\"{0}\", {1});}}".format(".".join(names), safe_name),
 			"// Registers the module in the globals, creating any submodule if necessary" if self._isNice else None,
 			"if (typeof window !== 'undefined') {",
 			res,
@@ -873,7 +875,6 @@ class Writer(AbstractWriter):
 				)  % (
 					", ".join(map(self.write, function.getParameters()))
 				),
-				[self._document(function)],
 				['var %s = %s;' % (self.jsSelf, self.getResolvedName(function.parent))],
 				self._writeClosureArguments(function),
 				self.writeFunctionWhen(function),
@@ -885,7 +886,6 @@ class Writer(AbstractWriter):
 			]
 		else:
 			res = [
-				self._document(function),
 				(
 					self.options["ENABLE_METADATA"] and "__def(function(%s) {" \
 					or "function(%s) {"
@@ -1131,6 +1131,8 @@ class Writer(AbstractWriter):
 		# We proces the importation to convert the slot to an absolute name
 		symbol_name = name
 		o = slot.origin[0]
+		# FIXME: This should be consistent with the getSafeName, etc
+		return self.getResolvedName(slot.getValue())
 		if isinstance(o, interfaces.IImportModuleOperation):
 			return o.getImportedModuleName()
 		elif isinstance(o, interfaces.IImportModulesOperation):
@@ -1781,24 +1783,54 @@ class Writer(AbstractWriter):
 		]
 
 	# =========================================================================
+	# EXTERNS HELPERS
+	# =========================================================================
+
+	def _extern( self, element, prefix=None, inInstance=False ):
+		res = []
+		if isinstance(element, interfaces.IFunction):
+			params = self._extractParameters(element)
+			for p in params:
+				res.append("@param {{{0}{2}}} {1}".format(p["type"], p["name"], "=" if p["optional"] else ""))
+		elif isinstance(element, interfaces.IValue):
+			res.append("@type {Object}")
+		return res
+
+	def _extractParameters( self, element ):
+		params = []
+		for param in element.getParameters():
+			params.append(dict(
+				name     = param.getName(),
+				type     = "Object",
+				optional = param.getDefaultValue()
+			))
+		return params
+
+	# =========================================================================
 	# HELPERS
 	# =========================================================================
 
-	def _docextern( self, element ):
-		if not self._externs: return ""
-		if isinstance(element, interfaces.IFunction):
-			return self._externs._docfunction(element, declaration=False)
-		else:
-			return ""
+	def getDocumentationLines( self, element ):
+		"""Returns a list of strings corresonding to each line of documentation
+		in the original element."""
+		doc    = element.getDocumentation()
+		body   = []
+		suffix = []
+		if doc:
+			body = doc.getContent().split("\n") + [""]
+		elif self._isNice or self._withExterns:
+			body = ["Missing documentation for element `{0}`".format(element.getName()), ""]
+		if self._withExterns:
+			suffix += self._extern(element)
+		return body + suffix
 
 	def _document( self, element ):
 		res = None
 		if isinstance(element, interfaces.IClass):
 			res = "\n".join(self._section(element.getName()))
 		if element.getDocumentation():
-			doc = element.getDocumentation()
 			r   = ["/**"]
-			for line in doc.getContent().split("\n"):
+			for line in self.getDocumentationLines(element):
 				r.append("  * " + line)
 			r.append("*/")
 			res = (res or "") + "\n".join(r)
