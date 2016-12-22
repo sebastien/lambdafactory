@@ -181,6 +181,9 @@ class Writer(AbstractWriter):
 		concatenation of the individual names of the parents."""
 		names = element.getName().split(".")
 		if len(names) > 1: return names if asList else ".".join(names)
+		# TODO: We should have a special handling for the current module
+		# if element == self.getCurrentModule() and self.resolve(element.getName())[1] != element:
+		# 	return ["__module__"] if asList else "__module__"
 		while element.getParent():
 			element = element.getParent()
 			# FIXME: Some elements may not have a name
@@ -197,6 +200,17 @@ class Writer(AbstractWriter):
 			return self.getAbsoluteName(element)
 		else:
 			return "_".join(self.getAbsoluteName(element, asList=True))
+
+	def getSafeSuperName( self, element ):
+		parent = element.getParent()
+		name   = element.getName()
+		if parent == self.getCurrentModule():
+			if self.resolve(self.getLocalName(parent))[1] == parent:
+				return self.getLocalName(parent) + "." + name
+			else:
+				return "__module__" + "." + name
+		else:
+			return self.getSafeName(parent) + "." + name
 
 	def getResolvedName( self, element ):
 		"""Returns the absolute name of the element, resolved in the current
@@ -612,7 +626,9 @@ class Writer(AbstractWriter):
 				invoke_parent_constructor = "".join([
 					"// Invokes the parent constructor ― this requires the parent to be an extend.Class class\n",
 					"\tif (true) {var __super__=",
-					"%s.getSuper(%s.getParent());" % (self.jsSelf, self.getResolvedName(classElement)),
+					# FIXME: Make sure that that the module name is not shadowed
+					# by something else
+					"%s.getSuper(%s.getParent());" % (self.jsSelf, self.getSafeSuperName(classElement)),
 					"__super__.initialize.apply(__super__, arguments);}"
 				])
 			for a in classElement.getAttributes():
@@ -1051,7 +1067,7 @@ class Writer(AbstractWriter):
 				# FIXME: Submodule support
 				return "%s.getSuper(%s.getParent())" % (
 					self.jsSelf,
-					self.getResolvedName(self.getCurrentClass())
+					self.getSafeSuperName(self.getCurrentClass())
 				)
 		elif value == self.getCurrentModule():
 			return "__module__"
