@@ -561,7 +561,7 @@ class Writer(AbstractWriter):
 		if len(parents) == 1:
 			parent_class = parents[0]
 			if isinstance(parent_class, interfaces.IClass):
-				parent = self.getResolvedName(parent_class)
+				parent = self.getSafeSuperName(parent_class)
 			else:
 				assert isinstance(parent_class, interfaces.IReference)
 				parent = self.write(parent_class)
@@ -1147,8 +1147,7 @@ class Writer(AbstractWriter):
 		# We proces the importation to convert the slot to an absolute name
 		symbol_name = name
 		o = slot.origin[0]
-		# FIXME: This should be consistent with the getSafeName, etc
-		return self.getResolvedName(slot.getValue())
+		# FIXME: Get the output proper
 		if isinstance(o, interfaces.IImportModuleOperation):
 			return o.getImportedModuleName()
 		elif isinstance(o, interfaces.IImportModulesOperation):
