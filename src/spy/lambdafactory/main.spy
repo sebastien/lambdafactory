@@ -6,6 +6,16 @@
 @import lambdafactory.passes as passes
 @import lambdafactory.resolution as resolution
 @import BytesIO from io
+@import sys
+
+@function ensureOutput value
+	@embed Python
+	|if sys.version_info.major >= 3:
+	|	return value.encode("utf8") if isinstance(value, str) else value
+	|else:
+	|	return value.encode("utf8") if isinstance(value, unicode) else value
+	@end
+@end
 
 # ------------------------------------------------------------------------------
 #
@@ -192,7 +202,7 @@
 		if options api
 			var doc_pass       = environment getPass "Documentation"
 			doc_pass setWriter (getWriter "js")
-			json_documentation = doc_pass  asJSON()
+			json_documentation = doc_pass asJSON()
 			if options api == "-"
 				output write ( json_documentation )
 			else
@@ -203,18 +213,19 @@
 		elif options compile
 			var program_source = writeProgram (program, language, options runtime, options includeSource)
 			if not options output
-				output write( program_source + "\n" )
+				output write (ensureOutput(program_source))
+				output write ("\n" )
 			if os path isdir (options output)
 				var splitter = FileSplitter(options output)
-				splitter fromString ( program_source )
+				splitter fromString (program_source)
 			else
 				var f = file(options output, mode = "a")
-				f write (program_source)
+				f write (ensureOutput (program_source))
 			end
 		elif options run
 			var program_source = writeProgram (program, language, True, options includeSource)
 			var file_and_path = tempfile mkstemp ()
-			os write(file_and_path[0],program_source )
+			os write(file_and_path[0], ensureOutput (program_source))
 			os close(file_and_path[0])
 			var args_str = " " join(args[1:])
 			var interpreter = None

@@ -29,6 +29,15 @@
 	@end
 @end
 
+@function ensureUnicode value
+	@embed Python
+	|if IS_PYTHON3:
+	|	return value.decode("utf8") if isinstance(value, bytes) else value
+	|else:
+	|	return value.decode("utf8") if isinstance(value, str) else value
+	@end
+@end
+
 @shared ERR_SLOT_NOT_FOUND = "ERR_SLOT_NOT_FOUND"
 @shared ERR_SLOT_VALUE_NOT_ASSIGNABLE = "ERR_SLOT_VALUE_NOT_ASSIGNABLE"
 @shared ERR_MODULE_ADDED_TWICE = "ERR_MODULE_ADDED_TWICE"

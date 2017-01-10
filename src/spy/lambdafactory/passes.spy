@@ -359,7 +359,7 @@
 				else
 					# Here we add the reference anyway, even if the class is not resolved
 					parents append (parent_class_ref)
-					environment report error ("Unable to resolve parent class:", parent_class_name, "from", current_class getName())
+					# environment report error ("Unable to resolve parent class:", parent_class_name, "from", current_class getName())
 				end
 			end
 			return parents
@@ -381,7 +381,7 @@
 				# properly...
 				if isinstance(parent, interfaces IReference)
 					# IF we have a reference
-					self environment report error ("Cannot resolve reference to class", parent getReferenceName () )
+					#self environment report error ("Cannot resolve reference to class", parent getReferenceName () )
 					pass
 				if not (parent in ancestors)
 					for ancestor in getClassAncestors(parent)

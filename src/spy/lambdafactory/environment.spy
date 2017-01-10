@@ -71,8 +71,12 @@
 		environment report indent()
 		# The module is automatically addded to the program
 		var module = environment parseFile (modulePath)
-		if moduleName -> module setName (moduleName)
-		module setImported (True)
+		if module
+			if moduleName -> module setName (moduleName)
+			module setImported (True)
+		else
+			environment report error ("Cannot parse module:", moduleName)
+		end
 		environment report dedent ()
 		return module
 	@end

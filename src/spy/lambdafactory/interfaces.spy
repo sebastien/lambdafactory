@@ -733,6 +733,7 @@
 @class INOP:IOperation
 @end
 
+
 @class IImportOperation: IOperation
 @end
 
@@ -804,11 +805,21 @@
 @end
 
 @class IEvaluation: IOperation
+| An operation that simply returns its value, evaluating it if necessary.
+
 	@shared ARGS = [ IEvaluable, IEvaluable ]
 	@shared ARG_NAMES = [ "Evaluable" ]
 
 	@method getEvaluable
 		return getOpArgument(0)
+	@end
+
+	@method getValue
+		return getOpArgument 0
+	@end
+
+	@method setValue value
+		return setOpArgument (0, value)
 	@end
 @end
 
@@ -867,7 +878,42 @@
 
 @end
 
-@class IComputation: IOperation, IEvaluable
+@class IBinaryOperation: IOperation, IEvaluable
+
+	@method getOperand
+	|	Returns the left operand of this computation.
+		return getLeftOperand()
+	@end
+
+	@method getOperands
+	|	Returns the left (and right, if any) operands of this computation.
+		return [getLeftOperand(), getRightOperand()]
+	@end
+
+	@method getLeftOperand
+	|	Returns the left operand of this computation.
+		return getOpArgument 0
+	@end
+
+	@method getRightOperand
+	|	Returns the right operand of this computation (if any)
+		return getOpArgument 1
+	@end
+
+	@method setLeftOperand operand
+	|	Sets the left operand of this computation.
+		return setOpArgument(0, operand)
+	@end
+
+	@method setRightOperand operand
+	|	Sets the right operand of this computation
+		return setOpArgument(1, operand)
+	@end
+
+@end
+
+@class IComputation: IBinaryOperation
+
 	@shared ARGS = [ IOperator, IEvaluable, IEvaluable ]
 
 	@method getOperator
@@ -878,16 +924,6 @@
 	@method setOperator operator
 	|	Sets the operator for this computation
 		return setOpArgument(0, operator)
-	@end
-
-	@method getOperand
-	|	Returns the left operand of this computation.
-		return getLeftOperand()
-	@end
-
-	@method getOperands
-	|	Returns the left (and right, if any) operands of this computation.
-		return [getLeftOperand(), getRightOperand()]
 	@end
 
 	@method getLeftOperand
@@ -1060,9 +1096,10 @@
 @end
 
 
-@class IIteration: IOperation
+@class IIteration: IBinaryOperation
 |	An iteration is the multiple application of a process given a set of
 |	values produced by an iterator.
+
 	@shared ARGS = [IEvaluable, IEvaluable ]
 
 	@method getIterator
@@ -1076,12 +1113,12 @@
 	@end
 @end
 
-@class IMapIteration: IIteration, IEvaluable
+@class IMapIteration: IIteration
 | An iteration that is evaluable and that will produce a map of the iterator
 
 @end
 
-@class IFilterIteration: IIteration, IEvaluable
+@class IFilterIteration: IIteration
 | An iteration that is evaluable and that will produce a filtered map of the iterator
 
 	@shared ARGS = [IEvaluable, IEvaluable, IEvaluable ]
@@ -1096,7 +1133,7 @@
 
 @end
 
-@class IEnumeration: IOperation
+@class IEnumeration: IBinaryOperation
 |	An enumeration produces values between a start and an end value, with the
 |	given step.
 	@shared ARGS = [ IEvaluable, IEvaluable, IEvaluable ]
