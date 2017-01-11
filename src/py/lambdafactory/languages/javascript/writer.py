@@ -55,7 +55,7 @@ MODULE_GOOGLE  = "google"
 
 OPTION_EXTERNS        = "externs"
 OPTION_NICE           = "nice"
-OPTION_UNAMBIGUOUS    = "parens"
+OPTION_NOPARENS       = "noparens"
 OPTION_EXTEND_ITERATE = "iterate"
 
 OPTIONS = {
@@ -269,7 +269,7 @@ class Writer(AbstractWriter):
 		# Detects the module type
 		self._withExterns = self.environment.options.get(OPTION_EXTERNS) and True or False
 		self._isNice      = self.environment.options.get(OPTION_NICE)
-		self._isUnambiguous = True #self.environment.options.get(OPTION_UNAMBIGUOUS)
+		self._isUnambiguous = not self.environment.options.get(OPTION_NOPARENS)
 		if self.environment.options.get(MODULE_UMD):
 			self._moduleType = MODULE_UMD
 		elif self.environment.options.get(MODULE_GOOGLE):
