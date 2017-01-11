@@ -1,4 +1,4 @@
-# Encoding: iso-8859-1
+# Encoding: utf8
 # vim: tw=80 ts=4 sw=4 noet
 # -----------------------------------------------------------------------------
 # Project   : XXX
@@ -46,9 +46,9 @@ class Catalog(object):
 			self.parents.pop()
 
 class Typer(object):
-	
+
 	INTERFACES = (
-		
+
 		"Repetition",
 		"Resolution",
 		"Allocation",
@@ -56,19 +56,19 @@ class Typer(object):
 		"Invocation",
 		"Selection",
 		"Operation",
-		
+
 		"Process",
-		"Context"	
-		
+		"Context"
+
 	)
-		
+
 	def __init__( self, catalog, reporter=reporter.DefaultReporter ):
 		self.report = reporter
 		self.catalog = catalog
 		self.contexts= []
 
 	# FIXME: Inherit from Pass
-	
+
 	def _filterContext( self, interface ):
 		return [x for x in self.contexts if isinstance(x,interface)]
 
@@ -87,7 +87,7 @@ class Typer(object):
 	def getCurrentClass( self ):
 		res = self._filterContext(interfaces.IClass)
 		return res and res[-1] or None
-		
+
 	def getCurrentDataFlow( self ):
 		i = len(self.contexts) - 1
 		while i >= 0:
@@ -95,7 +95,7 @@ class Typer(object):
 				return self.contexts[i].getDataFlow()
 			i -= 1
 		return None
-	
+
 	def inferType( self, element ):
 		"""Infers the type for the given element."""
 		return modeltypes.typeForValue(element)
@@ -133,7 +133,7 @@ class Typer(object):
 	def typeProcess(self, element):
 		for op in element.getOperations():
 			self._type(op)
-	
+
 	def typeContext(self, element):
 		for slot, slot_value in element.getSlots():
 			self._type(slot_value)
@@ -247,7 +247,7 @@ class Typer(object):
 		# the resolution.
 		else:
 			return
-	
+
 	def typeOperation(self, element):
 		for arg in element.getOpArguments():
 			self._type(arg)

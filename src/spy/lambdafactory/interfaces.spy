@@ -351,6 +351,24 @@
 
 @end
 
+@protocol ITuple: IList
+| A tuple is a list with a fixed arity and optionally a name map
+
+	@abstract @method setNames names
+
+	@abstract @method addValue value
+	| Adds a value to this list.
+
+
+	@abstract @method getValues
+	| Returns the values within this list.
+
+	@abstract @method getName index:Int
+
+	@abstract @method setName index:Int, name:String
+
+@end
+
 @protocol IDict: IValue
 | A dictionary is a binding of key to values. It may or may not be ordered,
 | depending on the implementation/model semantics.

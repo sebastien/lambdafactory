@@ -324,6 +324,14 @@ class Factory:
 			list(map(lambda a:r.addValue(a), args))
 		return r
 
+	def _tuple( self, *args ):
+		r = self._getImplementation("Tuple")()
+		if len(args) == 1 and type(args[0]) in (list,tuple):
+			list(map(lambda a:r.addValue(a), args[0]))
+		else:
+			list(map(lambda a:r.addValue(a), args))
+		return r
+
 	def _dict( self ):
 		return self._getImplementation("Dict")()
 

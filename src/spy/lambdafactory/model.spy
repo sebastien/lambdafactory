@@ -1806,6 +1806,7 @@
 	@method addValue value:IElement
 		values append (value)
 		value setParent(self)
+		return self
 	@end
 
 	@method getValues
@@ -1824,6 +1825,31 @@
 			list_copy addValue (v copy() detach())
 		end
 		return list_copy
+	@end
+
+@end
+
+@class Tuple: List, ITuple
+
+	@property names = []
+
+	@constructor
+		List __init__ (self)
+	@end
+
+	@method addValue value:IElement, name:String=None
+		super addValue (value)
+		names append (name)
+		return self
+	@end
+
+	@method getName index:Int
+		return names[index]
+	@end
+
+	@method setName index:Int, name:String
+		names[index] = name
+		return self
 	@end
 
 @end
