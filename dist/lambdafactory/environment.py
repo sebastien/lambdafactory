@@ -55,9 +55,12 @@ class Importer:
 		if moduleName is None: moduleName = None
 		self.environment.report.indent()
 		module=self.environment.parseFile(modulePath)
-		if moduleName:
-			module.setName(moduleName)
-		module.setImported(True)
+		if module:
+			if moduleName:
+				module.setName(moduleName)
+			module.setImported(True)
+		elif True:
+			self.environment.report.error('Cannot parse module:', moduleName)
 		self.environment.report.dedent()
 		return module
 	

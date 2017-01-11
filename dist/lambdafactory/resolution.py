@@ -4,8 +4,9 @@ import sys
 __module__ = sys.modules[__name__]
 import lambdafactory.interfaces as interfaces
 from lambdafactory.passes import Pass
-import re
+import re, math
 __module_name__ = 'lambdafactory.resolution'
+LETTERS = 'abcdefghijklmnopqrstuvwxyz'
 class BasicDataFlow(Pass):
 	"""The basic dataflow pass will associate DataFlow objects to elements which
 	don't have any already, and will make sure that Context slots are defined
@@ -32,7 +33,7 @@ class BasicDataFlow(Pass):
 	3) Attaches operations that reference a value to the original slot (this
 	prepares the path for the typing pass)"""
 	RE_IMPLICIT = re.compile('^_[0-9]?$')
-	HANDLES = [interfaces.IProgram, interfaces.IModule, interfaces.IClass, interfaces.IMethod, interfaces.IClosure, interfaces.IProcess, interfaces.IContext, interfaces.IAllocation, interfaces.IAssignment, interfaces.IIteration, interfaces.IOperation, interfaces.IReference, interfaces.IValue]
+	HANDLES = [interfaces.IProgram, interfaces.IModule, interfaces.IClass, interfaces.IMethod, interfaces.IClosure, interfaces.IProcess, interfaces.IContext, interfaces.IAllocation, interfaces.IAssignment, interfaces.IIteration, interfaces.IOperation, interfaces.IAnonymousReference, interfaces.IReference, interfaces.IValue]
 	NAME = 'Resolution'
 	def __init__ (self):
 		Pass.__init__(self)
@@ -145,6 +146,31 @@ class BasicDataFlow(Pass):
 				slots=self.resolve(name)
 				if (slots and slots[0]):
 					closure.declareEnclosure(name, slots[0])
+	
+	def getAnonymousName(self, i):
+		l=len(LETTERS)
+		if (i < l):
+			return LETTERS[i]
+		elif True:
+			return (self.getAnonymousName((int((i / l)) - 1)) + self.getAnonymousName((i % l)))
+	
+	def getAnonymousReferenceName(self):
+		"""Gets the first anonymous reference name"""
+		i = 0
+		while True:
+			n=self.getAnonymousName(i)
+			s=self.resolve(n)
+			if (not s[0]):
+				return n
+			i = (i + 1)
+	
+	def onAnonymousReference(self, element):
+		"""Finds a name for the anonymous reference that does not conflict with
+		anything in scope."""
+		dataflow=self.getCurrentDataFlow()
+		name=self.getAnonymousReferenceName()
+		dataflow.declareVariable(name, None, element)
+		element.setReferenceName(name)
 	
 	def onReference(self, element):
 		i=self.lastIndexInContext(interfaces.IClosure)

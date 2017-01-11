@@ -3,7 +3,7 @@
 import sys
 __module__ = sys.modules[__name__]
 import lambdafactory.interfaces as interfaces
-from lambdafactory.model import isString
+from lambdafactory.model import isString, ensureUnicode
 from lambdafactory.passes import Pass
 from lambdafactory.splitter import SNIP
 import string
@@ -20,9 +20,9 @@ def _format (value, level=None):
 			res.extend(_format(v, level+1))
 		return res
 	else:
-		if value is None: return ""
+		if value is None: return u""
 		assert isString(value), "Type not suitable for formatting: %s" % (value)
-		return ["\n".join((level*PREFIX)+v for v in value.split("\n"))]
+		return [u"\n".join((level*PREFIX)+ensureUnicode(v) for v in value.split("\n"))]
 	
 
 
@@ -30,7 +30,8 @@ def format (*values):
 	"""Formats a combination of string ang tuples. Strings are joined by
 	newlines, and the content of the inner tuples gets indented"""
 	self=__module__
-	return '\n'.join(_format(values))
+	return u"\n".join(_format(values))
+	
 
 
 def _flatten (value, res):

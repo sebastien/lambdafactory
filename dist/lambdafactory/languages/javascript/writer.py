@@ -55,7 +55,7 @@ MODULE_GOOGLE  = "google"
 
 OPTION_EXTERNS        = "externs"
 OPTION_NICE           = "nice"
-
+OPTION_NOPARENS       = "noparens"
 OPTION_EXTEND_ITERATE = "iterate"
 
 OPTIONS = {
@@ -104,7 +104,7 @@ class Writer(AbstractWriter):
 		l = len(c)
 		while i >= l:
 				s += c[i % l]
-				i  = i / l
+				i  = int(i / l)
 		s += c[i]
 		self._generatedVars[0] += 1
 		return s
@@ -164,7 +164,7 @@ class Writer(AbstractWriter):
 		the program."""
 		this_file = os.path.abspath(__file__)
 		js_runtime = os.path.join(os.path.dirname(this_file), "runtime.js")
-		f = file(js_runtime, 'r') ; text = f.read() ; f.close()
+		f = open(js_runtime, 'r') ; text = f.read() ; f.close()
 		return text
 
 	# =========================================================================
@@ -269,6 +269,7 @@ class Writer(AbstractWriter):
 		# Detects the module type
 		self._withExterns = self.environment.options.get(OPTION_EXTERNS) and True or False
 		self._isNice      = self.environment.options.get(OPTION_NICE)
+		self._isUnambiguous = not self.environment.options.get(OPTION_NOPARENS)
 		if self.environment.options.get(MODULE_UMD):
 			self._moduleType = MODULE_UMD
 		elif self.environment.options.get(MODULE_GOOGLE):
@@ -298,7 +299,7 @@ class Writer(AbstractWriter):
 		# --- SLOTS -----------------------------------------------------------
 		for name, value in moduleElement.getSlots():
 			if isinstance(value, interfaces.IModuleAttribute):
-				declaration = "{0}.{1};".format(module_name, self.write(value))
+				declaration = u"{0}.{1};".format(module_name, self.write(value))
 			else:
 				# NOTE: Some slot values may be shadowed, in which case they
 				# won't return any value
@@ -316,7 +317,7 @@ class Writer(AbstractWriter):
 						if self._isNice:
 							declaration = "\n".join(self._section("Module main")) + "\n"
 
-					declaration   += "{0}.{1} = {2}".format(module_name, slot_name, value_code)
+					declaration   += u"{0}.{1} = {2}".format(module_name, slot_name, value_code)
 			code.append(self._document(value))
 			code.append(declaration)
 		# --- INIT ------------------------------------------------------------
@@ -623,8 +624,8 @@ class Writer(AbstractWriter):
 				# sure to know the parent constructors arity -- this is just a
 				# way to cover our ass. We encapsulate the __super__ declaration
 				# in a block to avoid scoping problems.
-				invoke_parent_constructor = "".join([
-					"// Invokes the parent constructor ― this requires the parent to be an extend.Class class\n",
+				invoke_parent_constructor = u"".join([
+					"// Invokes the parent constructor - this requires the parent to be an extend.Class class\n",
 					"\tif (true) {var __super__=",
 					# FIXME: Make sure that that the module name is not shadowed
 					# by something else
@@ -1257,16 +1258,20 @@ class Writer(AbstractWriter):
 		"""Writes a resolution operation."""
 		# We just want the raw reference name here, if we use _write() instead,
 		# we'll have improper scoping.
-		resolved_name = resolution.getReference().getReferenceName()
-		if not self._isSymbolValid(resolved_name):
-			resolved_name = self._rewriteSymbol(resolved_name)
-		if resolution.getContext():
-			if resolved_name == "super":
-				return "%s.getSuper()" % (self.write(resolution.getContext()))
-			else:
-				return "%s.%s" % (self.write(resolution.getContext()), resolved_name)
+		ref = resolution.getReference()
+		if isinstance(ref, interfaces.IAbsoluteReference):
+			return self.onReference(ref)
 		else:
-			return "%s" % (resolved_name)
+			resolved_name = resolution.getReference().getReferenceName()
+			if not self._isSymbolValid(resolved_name):
+				resolved_name = self._rewriteSymbol(resolved_name)
+			if resolution.getContext():
+				if resolved_name == "super":
+					return "%s.getSuper()" % (self.write(resolution.getContext()))
+				else:
+					return "%s.%s" % (self.write(resolution.getContext()), resolved_name)
+			else:
+				return "%s" % (resolved_name)
 
 	def onComputation( self, computation ):
 		"""Writes a computation operation."""
@@ -1275,7 +1280,7 @@ class Writer(AbstractWriter):
 		operator = computation.getOperator()
 		# FIXME: Add rules to remove unnecessary parens
 		if len(operands) == 1:
-			res = "%s %s" % (
+			res = "%s%s" % (
 				self.write(operator),
 				self.write(operands[0])
 			)
@@ -1303,7 +1308,8 @@ class Writer(AbstractWriter):
 					self.write(operator),
 					self.write(operands[1])
 				)
-		if self.isIn(interfaces.IComputation):
+		#if self.isIn(interfaces.IComputation) and computation.hasAnnotation("parens") or self._isUnambiguous:
+		if computation.hasAnnotation("parens") or self._isUnambiguous:
 			res = "(%s)" % (res)
 		return res
 
@@ -1447,6 +1453,7 @@ class Writer(AbstractWriter):
 			return self._writeSelectionInExpression(selection)
 		rules = selection.getRules()
 		result = []
+		last   = len(rules) - 1
 		for i in range(0,len(rules)):
 			rule = rules[i]
 			if isinstance(rule, interfaces.IMatchProcessOperation):
@@ -1458,7 +1465,9 @@ class Writer(AbstractWriter):
 				is_expression = True
 			body      = ("\t" if is_expression else "") + self.write(process) + (";" if is_expression else "")
 			predicate = rule.getPredicate()
-			is_else   = rule.hasAnnotation("else") or isinstance(predicate, interfaces.IReference) and predicate.getName() == "True"
+			# An else has to be last, and never the first
+			is_last   = i == last and i > 0
+			is_else   = rule.hasAnnotation("else") or is_last and isinstance(predicate, interfaces.IReference) and predicate.getName() == "True"
 			condition = self._format(self.write(predicate)).strip()
 			if condition[0] == "(" and condition[-1] == ")": condition = condition[1:-1].strip()
 			if i==0:
@@ -1560,7 +1569,12 @@ class Writer(AbstractWriter):
 		# If start <= end then step >  0
 		else:
 			if step < 0: step = -step
-		args  = [self._rewriteSymbol(a.getName()) for a in closure.getParameters()]
+		if isinstance(closure, interfaces.IClosure):
+			args  = [self._rewriteSymbol(a.getName()) for a in closure.getParameters()]
+		elif isinstance(closure, interfaces.IReference):
+			args = []
+		else:
+			raise NotImplementedError
 		if len(args) == 0: args.append(self._getRandomVariable())
 		if len(args) == 1: args.append(self._getRandomVariable())
 		i = args[1]
@@ -1568,7 +1582,9 @@ class Writer(AbstractWriter):
 		return self._format(
 			"for ( var %s=%s ; %s %s %s ; %s += %s ) {" % (i, start, i, comp, end, i, step),
 			"var %s=%s;" % (v,i),
-			self.onClosure(closure, bodyOnly=True),
+			self.onClosure(closure, bodyOnly=True) if isinstance(closure,
+			interfaces.IClosure) \
+			else closure.getReferenceName() + "({0}, {1})".format(*args),
 			"}"
 		)
 

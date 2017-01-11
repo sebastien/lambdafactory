@@ -244,7 +244,6 @@ class PassContext:
 				parents.append(parent_class)
 			elif True:
 				parents.append(parent_class_ref)
-				self.environment.report.error('Unable to resolve parent class:', parent_class_name, 'from', current_class.getName())
 		return parents
 	
 	def getCurrentClassAncestors(self):
@@ -259,7 +258,6 @@ class PassContext:
 		parents=self.getClassParents(theClass)
 		for parent in parents:
 			if isinstance(parent, interfaces.IReference):
-				self.environment.report.error('Cannot resolve reference to class', parent.getReferenceName())
 				pass
 			elif (not (parent in ancestors)):
 				for ancestor in self.getClassAncestors(parent):

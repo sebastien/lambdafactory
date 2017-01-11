@@ -9,7 +9,17 @@ from lambdafactory.splitter import FileSplitter
 import lambdafactory.passes as passes
 import lambdafactory.resolution as resolution
 from io import BytesIO
+import sys
 __module_name__ = 'lambdafactory.main'
+def ensureOutput (value):
+	self=__module__
+	if sys.version_info.major >= 3:
+		return value.encode("utf8") if isinstance(value, str) else value
+	else:
+		return value.encode("utf8") if isinstance(value, unicode) else value
+	
+
+
 class Command:
 	OPT_LANG = 'Specifies the target language (js, java, pnuts, actionscript)'
 	OPT_OUTPUT = 'Specifies the output where the files will be generated (stdout, file or folder)'
@@ -155,17 +165,18 @@ class Command:
 		elif options.compile:
 			program_source=self.writeProgram(program, language, options.runtime, options.includeSource)
 			if (not options.output):
-				output.write((program_source + '\n'))
+				output.write(ensureOutput(program_source))
+				output.write('\n')
 			elif os.path.isdir(options.output):
 				splitter=FileSplitter(options.output)
 				splitter.fromString(program_source)
 			elif True:
 				f=file(options.output, mode=('a'))
-				f.write(program_source)
+				f.write(ensureOutput(program_source))
 		elif options.run:
 			program_source=self.writeProgram(program, language, True, options.includeSource)
 			file_and_path=tempfile.mkstemp()
-			os.write(file_and_path[0], program_source)
+			os.write(file_and_path[0], ensureOutput(program_source))
 			os.close(file_and_path[0])
 			args_str=' '.join(args[1:])
 			interpreter=None

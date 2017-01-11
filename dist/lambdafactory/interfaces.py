@@ -361,6 +361,11 @@ class IAbsoluteReference(IReference):
 	root context as a starting point."""
 	pass
 
+class IAnonymousReference(IReference):
+	"""A reference which name is randomly generate and is guaranteed not to clash
+	with the scope."""
+	pass
+
 class IOperator(IReference):
 	def setPriority(self, priority):
 		"""Sets the priority for this operator"""
@@ -803,10 +808,17 @@ class IImportModulesOperation(IImportOperation):
 	
 
 class IEvaluation(IOperation):
+	"""An operation that simply returns its value, evaluating it if necessary."""
 	ARGS = [IEvaluable, IEvaluable]
 	ARG_NAMES = ['Evaluable']
 	def getEvaluable(self):
 		return self.getOpArgument(0)
+	
+	def getValue(self):
+		return self.getOpArgument(0)
+	
+	def setValue(self, value):
+		return self.setOpArgument(0, value)
 	
 
 class IAssignment(IOperation, IEvaluable):
@@ -847,7 +859,33 @@ class IResolution(IOperation, IEvaluable, IReferencable):
 		raise Exception("Abstract method IResolution.getContext not implemented in: " + str(self))
 	
 
-class IComputation(IOperation, IEvaluable):
+class IBinaryOperation(IOperation, IEvaluable):
+	def getOperand(self):
+		"""Returns the left operand of this computation."""
+		return self.getLeftOperand()
+	
+	def getOperands(self):
+		"""Returns the left (and right, if any) operands of this computation."""
+		return [self.getLeftOperand(), self.getRightOperand()]
+	
+	def getLeftOperand(self):
+		"""Returns the left operand of this computation."""
+		return self.getOpArgument(0)
+	
+	def getRightOperand(self):
+		"""Returns the right operand of this computation (if any)"""
+		return self.getOpArgument(1)
+	
+	def setLeftOperand(self, operand):
+		"""Sets the left operand of this computation."""
+		return self.setOpArgument(0, operand)
+	
+	def setRightOperand(self, operand):
+		"""Sets the right operand of this computation"""
+		return self.setOpArgument(1, operand)
+	
+
+class IComputation(IBinaryOperation):
 	ARGS = [IOperator, IEvaluable, IEvaluable]
 	def getOperator(self):
 		"""Gets the operator for this computation"""
@@ -856,14 +894,6 @@ class IComputation(IOperation, IEvaluable):
 	def setOperator(self, operator):
 		"""Sets the operator for this computation"""
 		return self.setOpArgument(0, operator)
-	
-	def getOperand(self):
-		"""Returns the left operand of this computation."""
-		return self.getLeftOperand()
-	
-	def getOperands(self):
-		"""Returns the left (and right, if any) operands of this computation."""
-		return [self.getLeftOperand(), self.getRightOperand()]
 	
 	def getLeftOperand(self):
 		"""Returns the left operand of this computation."""
@@ -880,6 +910,9 @@ class IComputation(IOperation, IEvaluable):
 	def setRightOperand(self, operand):
 		"""Sets the right operand of this computation"""
 		return self.setOpArgument(2, operand)
+	
+	def isUnary(self):
+		return (self.getRightOperand() is None)
 	
 
 class IInvocation(IOperation, IEvaluable):
@@ -999,7 +1032,7 @@ class IChain(IOperation):
 		raise Exception("Abstract method IChain.getGroups not implemented in: " + str(self))
 	
 
-class IIteration(IOperation):
+class IIteration(IBinaryOperation):
 	"""An iteration is the multiple application of a process given a set of
 	values produced by an iterator."""
 	ARGS = [IEvaluable, IEvaluable]
@@ -1012,11 +1045,11 @@ class IIteration(IOperation):
 		return self.getOpArgument(1)
 	
 
-class IMapIteration(IIteration, IEvaluable):
+class IMapIteration(IIteration):
 	"""An iteration that is evaluable and that will produce a map of the iterator"""
 	pass
 
-class IFilterIteration(IIteration, IEvaluable):
+class IFilterIteration(IIteration):
 	"""An iteration that is evaluable and that will produce a filtered map of the iterator"""
 	ARGS = [IEvaluable, IEvaluable, IEvaluable]
 	def getPredicate(self):
@@ -1026,7 +1059,7 @@ class IFilterIteration(IIteration, IEvaluable):
 		return self.getOpArgument(2)
 	
 
-class IEnumeration(IOperation):
+class IEnumeration(IBinaryOperation):
 	"""An enumeration produces values between a start and an end value, with the
 	given step."""
 	ARGS = [IEvaluable, IEvaluable, IEvaluable]

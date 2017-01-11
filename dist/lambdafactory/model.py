@@ -20,6 +20,15 @@ def isString (value):
 	
 
 
+def ensureUnicode (value):
+	self=__module__
+	if IS_PYTHON3:
+		return value.decode("utf8") if isinstance(value, bytes) else value
+	else:
+		return value.decode("utf8") if isinstance(value, str) else value
+	
+
+
 ERR_SLOT_NOT_FOUND = 'ERR_SLOT_NOT_FOUND'
 ERR_SLOT_VALUE_NOT_ASSIGNABLE = 'ERR_SLOT_VALUE_NOT_ASSIGNABLE'
 ERR_MODULE_ADDED_TWICE = 'ERR_MODULE_ADDED_TWICE'
@@ -406,6 +415,7 @@ class Element:
 		elif True:
 			assert(isinstance(annotation, IAnnotation))
 			self.annotations.append(annotation)
+		return self
 	
 	def getAnnotations(self, withName=None):
 		if withName is None: withName = None
