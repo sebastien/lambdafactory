@@ -1308,6 +1308,7 @@ class Writer(AbstractWriter):
 					self.write(operator),
 					self.write(operands[1])
 				)
+		#if self.isIn(interfaces.IComputation) and computation.hasAnnotation("parens") or self._isUnambiguous:
 		if computation.hasAnnotation("parens") or self._isUnambiguous:
 			res = "(%s)" % (res)
 		return res
