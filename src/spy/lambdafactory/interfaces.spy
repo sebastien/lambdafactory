@@ -380,6 +380,12 @@
 | root context as a starting point.
 @end
 
+@protocol IAnonymousReference: IReference
+| A reference which name is randomly generate and is guaranteed not to clash
+| with the scope.
+@end
+
+
 @protocol IOperator: IReference
 
 	@abstract @method setPriority priority
@@ -944,6 +950,10 @@
 	@method setRightOperand operand
 	|	Sets the right operand of this computation
 		return setOpArgument(2, operand)
+	@end
+
+	@method isUnary
+		return getRightOperand () is None
 	@end
 
 @end

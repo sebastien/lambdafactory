@@ -82,7 +82,6 @@
 		interfaces IArgument
 		interfaces IParameter
 		interfaces IOperator
-		interfaces IAbsoluteReference
 		interfaces IReference
 		interfaces INumber
 		interfaces IString

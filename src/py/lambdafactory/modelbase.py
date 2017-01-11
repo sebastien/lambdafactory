@@ -265,6 +265,9 @@ class Factory:
 	def _symbol(self, name):
 		return self._absref(name)
 
+	def _anonref(self):
+		return self._getImplementation("AnonymousReference")()
+
 	def _slot( self, name=None, typeinfo=None ):
 		global ANONYMOUS_SLOTS_INDEX
 		if not name:

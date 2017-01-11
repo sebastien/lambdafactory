@@ -1,7 +1,9 @@
 @module lambdafactory.resolution
 @import lambdafactory.interfaces as interfaces
 @import Pass from lambdafactory.passes
-@import re
+@import re, math
+
+@shared LETTERS = "abcdefghijklmnopqrstuvwxyz"
 
 # ============================================================================
 #
@@ -48,6 +50,7 @@
 		interfaces IAssignment
 		interfaces IIteration
 		interfaces IOperation
+		interfaces IAnonymousReference
 		interfaces IReference
 		interfaces IValue
 	]
@@ -217,6 +220,37 @@
 				end
 			end
 		end
+	@end
+
+	@method getAnonymousName i
+		let l = len(LETTERS)
+		if i < l
+			return LETTERS[i]
+		else
+			return getAnonymousName(int(i/l) - 1) + getAnonymousName( i % l )
+		end
+	@end
+
+	@method getAnonymousReferenceName
+	| Gets the first anonymous reference name
+		i = 0
+		while True
+			var n = getAnonymousName (i)
+			var s = resolve (n)
+			if not s[0]
+				return n
+			end
+			i    += 1
+		end
+	@end
+
+	@method onAnonymousReference element
+	| Finds a name for the anonymous reference that does not conflict with
+	| anything in scope.
+		let dataflow = getCurrentDataFlow ()
+		let name     = getAnonymousReferenceName ()
+		dataflow declareVariable (name, None, element)
+		element setReferenceName (name)
 	@end
 
 	@method onReference element

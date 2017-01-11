@@ -55,7 +55,7 @@ MODULE_GOOGLE  = "google"
 
 OPTION_EXTERNS        = "externs"
 OPTION_NICE           = "nice"
-
+OPTION_UNAMBIGUOUS    = "parens"
 OPTION_EXTEND_ITERATE = "iterate"
 
 OPTIONS = {
@@ -269,6 +269,7 @@ class Writer(AbstractWriter):
 		# Detects the module type
 		self._withExterns = self.environment.options.get(OPTION_EXTERNS) and True or False
 		self._isNice      = self.environment.options.get(OPTION_NICE)
+		self._isUnambiguous = True #self.environment.options.get(OPTION_UNAMBIGUOUS)
 		if self.environment.options.get(MODULE_UMD):
 			self._moduleType = MODULE_UMD
 		elif self.environment.options.get(MODULE_GOOGLE):
@@ -1279,7 +1280,7 @@ class Writer(AbstractWriter):
 		operator = computation.getOperator()
 		# FIXME: Add rules to remove unnecessary parens
 		if len(operands) == 1:
-			res = "%s %s" % (
+			res = "%s%s" % (
 				self.write(operator),
 				self.write(operands[0])
 			)
@@ -1307,7 +1308,7 @@ class Writer(AbstractWriter):
 					self.write(operator),
 					self.write(operands[1])
 				)
-		if self.isIn(interfaces.IComputation):
+		if computation.hasAnnotation("parens") or self._isUnambiguous:
 			res = "(%s)" % (res)
 		return res
 
@@ -1463,6 +1464,7 @@ class Writer(AbstractWriter):
 				is_expression = True
 			body      = ("\t" if is_expression else "") + self.write(process) + (";" if is_expression else "")
 			predicate = rule.getPredicate()
+			# An else has to be last, and never the first
 			is_last   = i == last and i > 0
 			is_else   = rule.hasAnnotation("else") or is_last and isinstance(predicate, interfaces.IReference) and predicate.getName() == "True"
 			condition = self._format(self.write(predicate)).strip()
