@@ -1550,7 +1550,7 @@
 
 @class Selection: Operation, ISelection
 
-	@method addRule evaluable
+	@method _ensureRules
 		let res = getOpArguments()
 		if not res
 			res = []
@@ -1558,6 +1558,17 @@
 		else
 			res = res[0]
 		end
+		return res
+	@end
+
+	@method prependRule evaluable
+		let res = _ensureRules ()
+		res insert (0, evaluable)
+		_setOpArgumentParent(evaluable)
+	@end
+
+	@method addRule evaluable
+		let res = _ensureRules ()
 		res append (evaluable)
 		_setOpArgumentParent(evaluable)
 	@end
@@ -1569,6 +1580,11 @@
 			return []
 		end
 	@end
+
+	@method getRule index
+		return getRules() [index]
+	@end
+
 @end
 
 @class Chain: Operation, IChain
