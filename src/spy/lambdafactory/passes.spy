@@ -206,6 +206,19 @@
 			return -1
 		@end
 
+		@method hasAnnotationInContext name:String
+			# FIXME: Should be rfind
+			var i = len(context) - 1
+			while i >= 0
+				var v = context[i]
+				if v hasAnnotation (name)
+					return i
+				end
+				i -= 1
+			end
+			return -1
+		@end
+
 		@method getParentElement
 		@as alias
 			return context[-2]

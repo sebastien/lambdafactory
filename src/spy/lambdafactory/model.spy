@@ -1818,6 +1818,10 @@
 		return actualValue
 	@end
 
+	@method setActualValue value
+		self actualValue = value
+	@end
+
 	@method copy
 		var value_copy = Value _copy ( self )
 		# FIXME: Maybe set parent ?

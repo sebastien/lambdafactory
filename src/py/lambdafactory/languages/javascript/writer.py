@@ -931,8 +931,25 @@ class Writer(AbstractWriter):
 			res.append("var result = __wrapped__.apply(%s, arguments);" % (self.jsSelf))
 			res.append(self.writeFunctionPost(function))
 			res.append("return result;")
+		res = self.writeDecorators(function, res)
 		self.popVarContext()
 		return self._format(*res)
+
+	def writeDecorators( self, element, lines ):
+		d = []
+		a = element.getAnnotations(withName="decorator")
+		l = len(a) - 1
+		for i,_ in enumerate(a):
+			t = self.write(_.getContent())
+			if i != l:
+				t = "_ = " + t
+			else:
+				t = "return " + t
+			d.append(t)
+		if len(d) > 0:
+			return ["(function(_){",d,"}(",lines,"))"]
+		else:
+			return lines
 
 	# =========================================================================
 	# CLOSURES
@@ -1691,13 +1708,15 @@ class Writer(AbstractWriter):
 	def onAccessOperation( self, operation ):
 		target = operation.getTarget()
 		index  = operation.getIndex()
-		if isinstance(index, interfaces.INumber) and index.getActualValue() < 0:
+		is_direct = isinstance(index, interfaces.IString) or isinstance(index, interfaces.INumber) and index.getActualValue() >= 0
+		is_lvalue = operation.hasAnnotation("lvalue") or self.hasAnnotationInContext("lvalue") >= 0
+		if is_lvalue or is_direct:
 			return self._format(
-				"%s%saccess(%s,%s)" % (self.jsPrefix, self.jsCore, self.write(target), self.write(index))
+				"%s[%s]" % (self.write(target), self.write(index))
 			)
 		else:
 			return self._format(
-				"%s[%s]" % (self.write(target), self.write(index))
+				"%s%saccess(%s,%s)" % (self.jsPrefix, self.jsCore, self.write(target), self.write(index))
 			)
 
 	def onSliceOperation( self, operation ):
