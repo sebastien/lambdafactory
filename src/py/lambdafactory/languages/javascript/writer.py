@@ -1512,7 +1512,7 @@ class Writer(AbstractWriter):
 			is_last   = i == last and i > 0
 			is_else   = rule.hasAnnotation("else") or is_last and isinstance(predicate, interfaces.IReference) and predicate.getName() == "True"
 			condition = self._format(self.write(predicate)).strip()
-			if condition[0] == "(" and condition[-1] == ")": condition = condition[1:-1].strip()
+			if self._isUnambiguous and condition[0] == "(" and condition[-1] == ")": condition = condition[1:-1].strip()
 			if i==0:
 				# NOTE: This is an edge case (more like a bug, really) where two
 				# branches of 1 selection are output as 2 selections with 1 branch.
