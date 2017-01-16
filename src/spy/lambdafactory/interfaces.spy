@@ -537,6 +537,7 @@
 
 @end
 
+
 # FIXME: Add getInheritedXXX functions
 @protocol IClass: IContext, IReferencable, IConstruct
 
@@ -585,6 +586,14 @@
 
 @protocol IInterface: IAbstractClass
 |	An interface is an abstract @protocol that only has abstract elements.
+@end
+
+@protocol ISingleton: IClass
+|	A *singleton* is an anonymous class with only one instance.
+@end
+
+@protocol ITrait: IClass
+|	A *trait* is a specific type of class that is intended to be mixed-in.
 @end
 
 @protocol IModule: IContext, IReferencable, IAssignable, IConstruct
@@ -1184,6 +1193,30 @@
 	@method setStep value
 	|	Sets this enumeration step
 		return setOpArgument(2, value)
+	@end
+
+@end
+
+@class IInterpolation: IBinaryOperation
+|	An interpolation will transform the given string using
+|	the given arguments. The semantics are left to the backend.
+
+	@shared ARGS = [ IString, IEvaluable ]
+
+	@method getString
+		return getOpArgument(0)
+	@end
+
+	@method setString value
+		return setOpArgument(0, value)
+	@end
+
+	@method getContext
+		return getOpArgument(1)
+	@end
+
+	@method setContext value
+		return setOpArgument(1, value)
 	@end
 
 @end

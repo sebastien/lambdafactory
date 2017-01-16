@@ -71,6 +71,7 @@ JS_OPERATORS = {
 	"or"    :"||"
 }
 
+RE_STRING_FORMAT = re.compile("\{((\d+)|([\w_]+))\s*(:\s*(\w+))?\}")
 
 #------------------------------------------------------------------------------
 #
@@ -554,6 +555,12 @@ class Writer(AbstractWriter):
 	# =========================================================================
 	# CLASS
 	# =========================================================================
+
+	def onSingleton( self, element ):
+		return self.onClass(element)
+
+	def onTrait( self, element ):
+		return self.onClass(element)
 
 	def onClass( self, classElement ):
 		"""Writes a class element."""
@@ -1240,6 +1247,25 @@ class Writer(AbstractWriter):
 			self.write(assignation.getAssignedValue()),
 			suffix
 		)
+
+	def onInterpolation( self, operation ):
+		"""Writes an interpolation operation."""
+		s = operation.getString().getActualValue()
+		c = operation.getContext()
+		o = 0
+		r = []
+		# NOTE: The parsing could be done at the compiler level, but for now
+		# the semantics are left to the backend.
+		for m in RE_STRING_FORMAT.finditer(s):
+			r.append(json.dumps(s[o:m.start()]))
+			ki = m.group(2)
+			ks = m.group(3)
+			f  = m.group(4)
+			v  = json.dumps(ks) if ks else ki
+			r.append("extend.sprintf(_[{0}],{1})".format(v, json.dumps(f)) if f else "_[{0}]".format(v))
+			o = m.end()
+		r.append(json.dumps(s[o:]))
+		return r[0] if len(r) == 1 else "(function(_){return " + "+".join(r) + "})(" + self.write(c) + ")"
 
 	def onEnumeration( self, operation ):
 		"""Writes an enumeration operation."""

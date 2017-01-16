@@ -922,6 +922,7 @@
 
 	@method setParentClasses classes
 		parentClasses = []
+		#sys stderr write ("PARENT {0}\n" format (classes))
 		for the_class in classes
 			if not (isinstance(the_class, IReference) or isinstance(the_class, IResolution))
 				raise ERR_PARENT_CLASS_REFERENCE_EXPECTED
@@ -972,6 +973,24 @@
 # -----------------------------------------------------------------------------
 
 @class Interface: Class, IInterface
+@end
+
+# -----------------------------------------------------------------------------
+#
+# SINGLETON
+#
+# -----------------------------------------------------------------------------
+
+@class Singleton: Class, ISingleton
+@end
+
+# -----------------------------------------------------------------------------
+#
+# TRAIT
+#
+# -----------------------------------------------------------------------------
+
+@class Trait: Class, ITrait
 @end
 
 # -----------------------------------------------------------------------------
@@ -1660,6 +1679,9 @@
 @end
 
 @class FilterIteration: Operation, IFilterIteration
+@end
+
+@class Interpolation: Operation, IInterpolation
 @end
 
 @class Enumeration: Operation, IEnumeration

@@ -232,13 +232,10 @@
 			var path = file_and_path[1]
 			var compilers = None
 			# FIXME: LambdaFactory should support compilers and runners
-			if (language in ["js","javascript"])
+			if (language in ["js","javascript","es","ecmascript"])
 				interpreter = os getenv("SUGAR_JS") or "js"
 				command = interpreter + " " + path + " " + args_str
-			if (language in ["pnuts"])
-				interpreter = os getenv("SUGAR_PNUTS") or "pnuts"
-				command = interpreter + " " + path + " " + args_str
-			if (language in ["python"])
+			elif (language in ["python"])
 				interpreter = os getenv("SUGAR_PYTHON") or "python"
 				command = interpreter + " " + path + " " + args_str
 			else

@@ -277,12 +277,9 @@
 | appropriately.
 
 	@shared ALIASES = {
-		actionscript : ["actionscript", "as", "ascript"]
 		javascript   : ["javascript",   "js", "jscript"]
-		extern       : ["extern"]
+		ecmascript   : ["ecmascript",   "es", "escript"]
 		python       : ["python",       "py"]
-		php          : ["php"]
-		pnuts        : ["pnuts"]
 	}
 
 	@property factory      = None
@@ -430,7 +427,7 @@
 				end
 			end
 		end
-		return None
+		return name
 	@end
 
 	@method loadLanguage name

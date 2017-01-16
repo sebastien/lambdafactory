@@ -64,6 +64,8 @@
 
 	@shared HANDLES = [
 		interfaces IProgram
+		interfaces ISingleton
+		interfaces ITrait
 		interfaces IClass
 		interfaces IModule
 		interfaces IAccessor
@@ -87,6 +89,7 @@
 		interfaces IString
 		interfaces IList
 		interfaces IDict
+		interfaces IInterpolation
 		interfaces IEnumeration
 		interfaces IAllocation
 		interfaces IAssignment
