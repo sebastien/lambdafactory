@@ -105,6 +105,9 @@ class Factory:
 		name = self._processName(name)
 		return self._getImplementation("InstanceMethod")(name, parameters)
 
+	def createInitializer( self, parameters=None ):
+		return self._getImplementation("Initializer")(parameters)
+
 	def createAccessor( self, name, parameters=None ):
 		name = self._processName(name)
 		return self._getImplementation("Accessor")(name, parameters)

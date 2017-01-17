@@ -18,6 +18,7 @@
 	@shared MainFunction:String    = "__main__"
 	@shared CurrentModule:String   = "__current__"
 	@shared Constructor:String     = "__init__"
+	@shared Init:String            = "__init__"
 	@shared Destructor:String      = "__destroy__"
 	@shared ModuleInit:String      = "__moduleinit__"
 	@shared CurrentValue:String    = "__currentvalue__"
@@ -733,6 +734,9 @@
 @end
 
 @protocol IClassMethod: IMethod
+@end
+
+@protocol IInitializer: IFunction
 @end
 
 #------------------------------------------------------------------------------

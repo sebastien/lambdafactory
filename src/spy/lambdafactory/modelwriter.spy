@@ -3,14 +3,14 @@
 @import isString, ensureUnicode from lambdafactory.model
 @import Pass from lambdafactory.passes
 @import SNIP from lambdafactory.splitter
-@import string
+@import string, types
 
 @shared PREFIX     = "\t"
 
 @function _format value, level=-1
 | Format helper operation. See @format
 	@embed Python
-	|if type(value) in (list, tuple):
+	|if type(value) in (list, tuple, types.GeneratorType):
 	|	res = []
 	|	for v in value:
 	|		if v is None: continue
@@ -19,7 +19,7 @@
 	|else:
 	|	if value is None: return u""
 	|	assert isString(value), "Type not suitable for formatting: %s" % (value)
-	|	return [u"\n".join((level*PREFIX)+ensureUnicode(v) for v in value.split("\n"))]
+	|	return [u"\n".join((max(0,level)*PREFIX)+ensureUnicode(v) for v in value.split("\n"))]
 	@end
 @end
 
@@ -74,6 +74,7 @@
 		interfaces IConstructor
 		interfaces IClassMethod
 		interfaces IMethod
+		interfaces IInitializer
 		interfaces IFunction
 		interfaces IClosure
 		interfaces IWithBlock
@@ -154,6 +155,9 @@
 				|			self.context.append(element)
 				|			result = getattr(self, "on" + name)(element)
 				|			self.context.pop()
+				|			# We support write rules returning generators
+				|			if type(result) is types.GeneratorType:
+				|				result = u"\n".join(_format(result, -2))
 				|			return result
 				|raise Exception("Element implements unsupported interface: " + str(element))
 				@end

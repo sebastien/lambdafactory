@@ -282,6 +282,7 @@ class Writer(AbstractWriter):
 		full_name               = self.getAbsoluteName(moduleElement)
 		code = [
 			"// " + SNIP % ("%s.js" % (self.getAbsoluteName(moduleElement).replace(".", "/"))),
+			'"use strict"'
 		] + self._header() + [
 			self._document(moduleElement),
 			self.options["ENABLE_METADATA"] and "function __def(v,m){var ms=v['__def__']||{};for(var k in m){ms[k]=m[k]};v['__def__']=ms;return v}" or None,
@@ -886,6 +887,9 @@ class Writer(AbstractWriter):
 			res.append("if (!(%s)) {throw new Exception('Assertion failed')}" % (self.write(a.getContent())))
 		return self._format(res) or None
 
+	def onInitializer( self, element ):
+		return self.onFunction(element)
+
 	def onFunction( self, function ):
 		"""Writes a function element."""
 		self.pushVarContext(function)
@@ -1013,6 +1017,7 @@ class Writer(AbstractWriter):
 	def onClosureBody(self, closure):
 		return self._format('{', list(map(self.write, closure.getOperations())), '}')
 
+	# FIXME: Deprecate
 	def _writeClosureArguments(self, closure):
 		# NOTE: Don't forget to update in AS backend as well
 		i = 0

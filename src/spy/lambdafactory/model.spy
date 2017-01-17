@@ -44,6 +44,7 @@
 @shared ERR_ABSTRACT_PROCESS_NO_OPERATIONS = "ERR_ABSTRACT_PROCESS_NO_OPERATIONS"
 @shared ERR_NOT_AN_OPERATION = "ERR_NOT_AN_OPERATION"
 @shared ERR_CLOSURE_ARGUMENT_NOT_SLOT = "ERR_CLOSURE_ARGUMENT_NOT_SLOT"
+
 # ------------------------------------------------------------------------------
 #
 # DATA FLOW ELEMENTS
@@ -1356,6 +1357,14 @@
 @end
 
 @class Mutator: Method, IMutator
+@end
+
+@class Initializer: Function, IInitializer
+
+	@constructor parameters
+		Function __init__ ( self, Constants Init, parameters)
+	@end
+
 @end
 
 @class Constructor: Method, IConstructor
