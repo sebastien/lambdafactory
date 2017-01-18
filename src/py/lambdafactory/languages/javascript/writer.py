@@ -131,11 +131,6 @@ class Writer(AbstractWriter):
 	def popVarContext( self ):
 		self._generatedVars.pop()
 
-	def _extendGetMethodByName(self, name):
-		return self.jsSelf + ".getMethod('%s') " % (name)
-
-	def _extendGetClass(self, variable=None):
-		return "%s.getClass()" % (variable or self.jsSelf)
 
 	def _isSymbolValid( self, string ):
 		"""Tells if the name of the symbol is valid, ie. not a keyword
@@ -1083,22 +1078,9 @@ class Writer(AbstractWriter):
 		elif symbol_name == "None":
 			return "null"
 		elif symbol_name == "super":
-			if self.isIn(interfaces.IClassAttribute) or self.isIn(interfaces.IClassMethod):
-				c = self.getCurrentClass()
-				p = self.getClassParents(c)
-				# FIXME: Submodule support
-				if p:
-					return self.getAbsoluteName(p[0])
-				else:
-					return symbol_name
-			else:
-				assert self.resolve("self"), "Super must be used inside method"
-				# FIXME: Should check that the element has a method in parent scope
-				# FIXME: Submodule support
-				return "%s.getSuper(%s.getParent())" % (
-					self.jsSelf,
-					self.getSafeSuperName(self.getCurrentClass())
-				)
+			return self._runtimeSuper(element)
+
+
 		elif value == self.getCurrentModule():
 			return "__module__"
 
@@ -1123,17 +1105,17 @@ class Writer(AbstractWriter):
 				if self.inInvocation:
 					return "%s.%s" % (self.jsSelf, symbol_name)
 				else:
-					return self._extendGetMethodByName(symbol_name)
+					return self._runtimeGetMethodByName(symbol_name)
 			elif isinstance(value, interfaces.IClassMethod):
 				if self.isIn(interfaces.IInstanceMethod):
-					return self._extendGetClass() + ".getOperation('%s')" % (symbol_name)
+					return self._runtimeGetClass() + ".getOperation('%s')" % (symbol_name)
 				else:
 					return "%s.%s" % (self.jsSelf, symbol_name)
 			elif isinstance(value, interfaces.IClassAttribute):
 				if self.isIn(interfaces.IClassMethod):
 					return "%s.%s" % (self.jsSelf, symbol_name)
 				else:
-					return self._extendGetClass() + "." + symbol_name
+					return self._runtimeGetClass() + "." + symbol_name
 			else:
 				return self.jsSelf + "." + symbol_name
 		# It is a local variable
@@ -1582,18 +1564,24 @@ class Writer(AbstractWriter):
 			return self._writeObjectIteration(iteration)
 
 	def onMapIteration( self, iteration ):
-		return "extend.map({0}, {1})".format(self.write(iteration.getIterator()), self.write(iteration.getClosure()))
+		return self._runtimeMap(
+			iteration.getIterator(),
+			iteration.getClosure()
+		)
 
 	def onFilterIteration( self, iteration ):
 		i= iteration.getIterator()
 		c = iteration.getClosure()
 		p = iteration.getPredicate()
 		if c and p:
-			return "extend.map(extend.filter({0}, {1}), {2})".format(self.write(i), self.write(p), self.write(c))
+			return self._runtimeMap(
+				self._runtimeFilter(i, p),
+				c
+			)
 		elif c:
-			return "extend.map({0}, {1})".format(self.write(i), self.write(c))
+			return self._runtimeMap(i,c)
 		else:
-			return "extend.filter({0}, {1})".format(self.write(i), self.write(p))
+			return self._runtimeFilter(i,p)
 
 	def _writeRangeIteration( self, iteration ):
 		iterator = iteration.getIterator()
@@ -1639,10 +1627,10 @@ class Writer(AbstractWriter):
 	def _writeObjectIteration( self, iteration ):
 		# NOTE: This would return the "regular" iteration
 		if self._withExtendIterate:
-			return self.write("extend.iterate({0}, {1})".format(
-				self.write(iteration.getIterator()),
-				self.write(iteration.getClosure())
-			))
+			return self._runtimeIterate(
+				iteration.getIterator(),
+				iteration.getClosure()
+			)
 		# Now, this requires some explanation. If the iteration is annotated
 		# as `force-scope`, this means that there is a nested closure that references
 		# some variable that is going to be re-assigned here
@@ -1766,7 +1754,7 @@ class Writer(AbstractWriter):
 			closure_index   = self.indexLikeInContext(interfaces.IClosure)
 			iteration_index = self.indexLikeInContext(interfaces.IIteration)
 			if iteration_index >= 0 and iteration_index > closure_index and not self.context[iteration_index].isRangeIteration():
-				return "return extend.FLOW_BREAK;"
+				return self._runtimeReturnBreak()
 			else:
 				return "break"
 		else:
@@ -1778,7 +1766,7 @@ class Writer(AbstractWriter):
 			closure_index   = self.indexLikeInContext(interfaces.IClosure)
 			iteration_index = self.indexLikeInContext(interfaces.IIteration)
 			if iteration_index >= 0 and iteration_index > closure_index and not self.context[iteration_index].isRangeIteration():
-				return "return extend.FLOW_CONTINUE;"
+				return self._runtimeReturnContinue()
 			else:
 				return "continue"
 		else:
@@ -1916,6 +1904,53 @@ class Writer(AbstractWriter):
 			r.append("*/")
 			res = (res or "") + "\n".join(r)
 		return res
+
+	# =========================================================================
+	# RUNTIME
+	# =========================================================================
+
+	def _runtimeSuper( self, element ):
+		if self.isIn(interfaces.IClassAttribute) or self.isIn(interfaces.IClassMethod):
+			c = self.getCurrentClass()
+			p = self.getClassParents(c)
+			# FIXME: Submodule support
+			if p:
+				return self.getAbsoluteName(p[0])
+			else:
+				return "self"
+		else:
+			assert self.resolve("self"), "Super must be used inside method"
+			# FIXME: Should check that the element has a method in parent scope
+			# FIXME: Submodule support
+			return "%s.getSuper(%s.getParent())" % (
+				self.jsSelf,
+				self.getSafeSuperName(self.getCurrentClass())
+			)
+
+	def _runtimeGetMethodByName(self, name):
+		return self.jsSelf + ".getMethod('%s') " % (name)
+
+	def _runtimeGetClass(self, variable=None):
+		return "%s.getClass()" % (variable or self.jsSelf)
+
+	def _runtimeOp( self, name, *args ):
+		args = [self.write(_) if isinstance(_,interfaces.IElement) else _]
+		return "extend." + name + "(" + ", ".join(args) + ")"
+
+	def _runtimeMap( self, lvalue, rvalue ):
+		return self._runtimeOp("map", lvalue, rvalue)
+
+	def _runtimeFilter( self, lvalue, rvalue ):
+		return self._runtimeOp("filter", lvalue, rvalue)
+
+	def _runtimeIterate( self, lvalue, rvalue ):
+		return self._runtimeOp("iterate", lvalue, rvalue)
+
+	def _runtimeReturnBreak( self ):
+		return "return extend.FLOW_BREAK;"
+
+	def _runtimeReturnContinue( self ):
+		return "return extend.FLOW_CONTINUE;"
 
 MAIN_CLASS = Writer
 
