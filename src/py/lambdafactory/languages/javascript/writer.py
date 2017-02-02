@@ -91,7 +91,7 @@ class Writer(AbstractWriter):
 		self.jsCore                  = "extend."
 		self.jsSelf                  = "self"
 		self.jsModule                = "__module__"
-		self.jsInit                  = "init"
+		self.jsInit                  = "__init__"
 		self._moduleType             = None
 		self.supportedEmbedLanguages = ["ecmascript", "js", "javascript"]
 		self.inInvocation            = False
@@ -382,8 +382,6 @@ class Writer(AbstractWriter):
 						parent_abs_name,
 						parent_safe_name,
 					))
-
-
 		# FIXME: This could be refactored to follow the other module types
 		symbols = []
 		for alias, module, slot, op in self.getImportedSymbols(moduleElement):
@@ -398,9 +396,8 @@ class Writer(AbstractWriter):
 		return [
 			"// START:VANILLA_PREAMBLE",
 		] + declaration + [
-			"(function({0}){{".format(safe_name),
+			"(function({0}){{".format(self.jsModule),
 		] + symbols + [
-			"var {0}={1};".format(self.jsModule, safe_name),
 			"// END:VANILLA_PREAMBLE\n"
 		]
 
@@ -1951,10 +1948,10 @@ class Writer(AbstractWriter):
 	def _runtimeReturnContinue( self ):
 		return "return extend.FLOW_CONTINUE;"
 
-	def _runtimeSelfReference( self ):
+	def _runtimeSelfReference( self, element=None ):
 		return self.jsSelf
 
-	def _runtimeSelfBinding( self ):
+	def _runtimeSelfBinding( self, element=None ):
 		return "var self = this;"
 
 MAIN_CLASS = Writer
