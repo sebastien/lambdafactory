@@ -50,15 +50,15 @@ class Writer(JavaScriptWriter):
 
 	def onTrait( self, element ):
 		self.pushContext (element)
-		yield "function(Base) { return class extends " + self._onClassParents(element, "Base") + " {"
-		yield [self._onClassBody(element)]
-		yield "}}"
+		yield "function(_) { return class extends " + self._onClassParents(element, "_") + " {"
+		yield self._onClassBody(element, withConstructors=False)
+		yield "};}"
 		self.popContext()
 
 	def onSingleton( self, element ):
 		self.pushContext (element)
 		yield "function() {"
-		yield "\tvar self = new " + self._onClassParents(element) + "();"
+		yield "\tvar self = new " + self._onClassParents(element, base="Object") + "();"
 		for e in element.getAttributes():
 			yield "\tself." + e.getName() + " = " + self.write(e.getDefaultValue()) + ";"
 		for e in element.getConstructors():
@@ -93,13 +93,13 @@ class Writer(JavaScriptWriter):
 				"Class has multiple class parents, ignoring the rest: {0}"
 				.format(self.getAbsoluteName(element)))
 		for t in traits:
-			parent = self.getAbsoluteName(t) + "(" + parent + ")"
+			parent = self.getAbsoluteName(t) + "(" + (parent or "Object") + ")"
 		return parent
 
-	def _onClassBody( self, element ):
+	def _onClassBody( self, element, withConstructors=True ):
 		"""Iterates through the slots in a context, writing their name and value"""
 		slots = element.getSlots()
-		for e in element.getConstructors() or [None]:
+		for e in element.getConstructors() or ([None] if withConstructors else ()):
 			self.pushContext(e)
 			yield self.onConstructor(e)
 			self.popContext()
@@ -117,7 +117,7 @@ class Writer(JavaScriptWriter):
 	def onFunction( self, element, anonymous=False, modifier="function", name=None, body=None, bindSelf=True ):
 		name   = name or element.getName() if element else None
 		params = self._onParametersList(element) if element else ""
-		yield modifier + (" " + name if name and not anonymous else "") + "(" + params + ") {"
+		yield (modifier + " " if modifier else "") + (name if name and not anonymous else "") + "(" + params + ") {"
 		yield self._onFunctionBody(element, body, bindSelf=bindSelf)
 		yield "}"
 
@@ -127,10 +127,14 @@ class Writer(JavaScriptWriter):
 	def onClassMethod( self, element ):
 		return self.onFunction( element, modifier="static" )
 
+
 	def onConstructor( self, element ):
 		r = []
-		if not element:
-			r.append("super();")
+		has_constructor = False
+		for op in element.operations:
+			if self.isSuperInvocation(op):
+				has_constructor = op
+				break
 		c = self.getCurrentClass()
 		if c:
 			for a in c.getAttributes():
@@ -141,6 +145,8 @@ class Writer(JavaScriptWriter):
 						"if (typeof {0}.{1} === typeof undefined) {{{0}.{1} = {2};}}".format(
 						"this", a.getName(), self.write(v))
 					)
+		if not has_constructor:
+			r.insert(0,"super();")
 		return self.onFunction( element, modifier="constructor", anonymous=True, body=r, bindSelf=False)
 
 	def onInitializer( self, element ):
@@ -194,6 +200,14 @@ class Writer(JavaScriptWriter):
 			predicate = self.write(a.getContent())
 			yield ("if (!({0})) {{throw new Exception('{1}: Post condition failed"
 			"{0}';}}".format(predicate, scope))
+
+
+	# =========================================================================
+	# USEFUL PREDICATES
+	# =========================================================================
+
+	def isSuperInvocation( self, element ):
+		return element and isinstance(element, interfaces.IInvocation) and element.getTarget().getReferenceName() == "super"
 
 	# =========================================================================
 	# UTILITIES
