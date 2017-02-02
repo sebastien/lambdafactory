@@ -2,11 +2,11 @@
 # -----------------------------------------------------------------------------
 # Project   : LambdaFactory
 # -----------------------------------------------------------------------------
-# Author    : Sebastien Pierre                               <sebastien@ffctn.com>
+# Author    : Sebastien Pierre                            <sebastien@ffctn.com>
 # License   : Revised BSD License
 # -----------------------------------------------------------------------------
 # Creation  : 2017-01-16
-# Last mod  : 2017-11-16
+# Last mod  : 2017-01-31
 # -----------------------------------------------------------------------------
 
 import lambdafactory.interfaces as interfaces
@@ -14,6 +14,11 @@ import lambdafactory.reporter   as reporter
 from   lambdafactory.languages.javascript.writer import Writer as JavaScriptWriter
 
 # FIXME: It's kind of odd to have to do push/pop context
+
+__doc__ = """
+A specialization of the JavaScript writer to output runtime-free ECMAScript
+code.
+"""
 
 #------------------------------------------------------------------------------
 #
@@ -23,28 +28,25 @@ from   lambdafactory.languages.javascript.writer import Writer as JavaScriptWrit
 
 class Writer(JavaScriptWriter):
 
+	def __init__( self ):
+		JavaScriptWriter.__init__(self)
+		self.jsInit = "__init__"
+
 	# -------------------------------------------------------------------------
 	#
 	# CONSTRUCTS
 	#
 	# -------------------------------------------------------------------------
 
-	def onSingleton( self, element ):
+	def onClass( self, element, anonymous=False ):
+		"""Writes a class element."""
 		self.pushContext (element)
-		yield "function() {"
-		yield "\tvar self = new " + self._onClassParents(element) + "();"
-		for e in element.getAttributes():
-			yield "\tself." + e.getName() + " = " + self.write(e.getDefaultValue()) + ";"
-		for e in element.getConstructors():
-			yield [self._onFunctionBody(e)]
-		for e in element.getInstanceMethods():
-			l = [_ for _ in self.onFunction(e, modifier="function")]
-			l[0]   = "self." + e.getName() + " = " + l[0]
-			l[-1] += ";"
-			yield [l]
-		yield "\treturn self;"
-		yield "}();"
-		self.popContext()
+		name = "" if anonymous else ((element.getName() or "") + " ")
+		parent = self._onClassParents(element)
+		yield "class " + name + ("extends " + parent if parent else "") + " {"
+		yield self._onClassBody(element)
+		yield "}"
+		self.popContext ()
 
 	def onTrait( self, element ):
 		self.pushContext (element)
@@ -53,15 +55,30 @@ class Writer(JavaScriptWriter):
 		yield "}}"
 		self.popContext()
 
-	def onClass( self, element ):
-		"""Writes a class element."""
+	def onSingleton( self, element ):
 		self.pushContext (element)
-		yield "class extends " + self._onClassParents(element) + " {"
-		yield self._onClassBody(element)
-		yield "}"
-		self.popContext ()
+		yield "function() {"
+		yield "\tvar self = new " + self._onClassParents(element) + "();"
+		for e in element.getAttributes():
+			yield "\tself." + e.getName() + " = " + self.write(e.getDefaultValue()) + ";"
+		for e in element.getConstructors():
+			self.pushContext(e)
+			yield [self._onFunctionBody(e)]
+			self.popContext()
+		for e in element.getInstanceMethods():
+			self.pushContext(e)
+			l = [_ for _ in self.onFunction(e, modifier="function")]
+			l[0]   = "self." + e.getName() + " = " + l[0]
+			l[-1] += ";"
+			yield [l]
+			self.popContext()
+		yield "\treturn self;"
+		yield "}();"
+		self.popContext()
 
-	def _onClassParents( self, element, base="Object" ):
+	def _onClassParents( self, element, base="" ):
+		"""Returns the parents of a class, taking into account the
+		pre-processing by traits."""
 		parents = self.getClassParents(element)
 		traits  = [_ for _ in parents if isinstance(_, interfaces.ITrait)]
 		parents = [_ for _ in parents if _ not in traits]
@@ -83,9 +100,13 @@ class Writer(JavaScriptWriter):
 		"""Iterates through the slots in a context, writing their name and value"""
 		slots = element.getSlots()
 		for e in element.getConstructors() or [None]:
+			self.pushContext(e)
 			yield self.onConstructor(e)
+			self.popContext()
 		for e in element.getInstanceMethods():
+			self.pushContext(e)
 			yield self.onMethod(e)
+			self.popContext()
 
 	# -------------------------------------------------------------------------
 	#
@@ -93,11 +114,11 @@ class Writer(JavaScriptWriter):
 	#
 	# -------------------------------------------------------------------------
 
-	def onFunction( self, element, anonymous=False, modifier="function", name=None, body=None ):
+	def onFunction( self, element, anonymous=False, modifier="function", name=None, body=None, bindSelf=True ):
 		name   = name or element.getName() if element else None
 		params = self._onParametersList(element) if element else ""
 		yield modifier + (" " + name if name and not anonymous else "") + "(" + params + ") {"
-		yield self._onFunctionBody(element, body)
+		yield self._onFunctionBody(element, body, bindSelf=bindSelf)
 		yield "}"
 
 	def onMethod( self, element ):
@@ -114,11 +135,13 @@ class Writer(JavaScriptWriter):
 		if c:
 			for a in c.getAttributes():
 				n = a.getName()
-				r.append(
-					"if (typeof {0}.{1} === typeof undefined) {{{0}.{1} = {2};}}".format(
-					self.jsSelf, a.getName(), self.write(a.getDefaultValue()))
-				)
-		return self.onFunction( element, modifier="constructor", anonymous=True, body=r)
+				v = a.getDefaultValue()
+				if v:
+					r.append(
+						"if (typeof {0}.{1} === typeof undefined) {{{0}.{1} = {2};}}".format(
+						"this", a.getName(), self.write(v))
+					)
+		return self.onFunction( element, modifier="constructor", anonymous=True, body=r, bindSelf=False)
 
 	def onInitializer( self, element ):
 		return self.onFunction( element,  anonymous=True )
@@ -127,18 +150,20 @@ class Writer(JavaScriptWriter):
 	# CALLBABLE-SPECIFIC RULES
 	# =========================================================================
 
-	def _onFunctionBody( self, element, body=None ):
+	def _onFunctionBody( self, element, body=None, bindSelf=True ):
 		"""WRites the body of a function."""
-		yield self._runtimeSelf(element)
+		# Adds the `var self = this`
+		if bindSelf: yield self._runtimeSelfBinding(element)
 		if element:
 			for _ in self._onParametersInit(element): yield _
 			for _ in self._onPreCondition(element): yield _
 		for _ in body or []:
 			yield _
-		for _ in element.getOperations():
-			yield self.write(_)
 		if element:
-			for _ in self._onPostCondition(element): yield _
+			for _ in element.getOperations():
+				yield self.write(_)
+			for _ in self._onPostCondition(element):
+				yield _
 
 	def _onParametersList( self, element ):
 		params = element.getParameters()
@@ -180,14 +205,22 @@ class Writer(JavaScriptWriter):
 	def _runtimeDefaultValue( self, name, value ):
 		return name + " === undefined ? " + value + " : " + name
 
-	def _runtimeSelf( self, element ):
+	def _runtimeSelfReference( self, element ):
+		if self.isIn(interfaces.IConstructor):
+			# We cannot pre-bind the `self` in constructors before  the
+			# super() is called
+			return "this"
+		else:
+			return "self"
+
+	def _runtimeSelfBinding( self, element ):
 		c = self.getCurrentContext()
 		t = "this"
 		if isinstance(c, interfaces.IModule):
 			t = "__module__"
 		elif isinstance(c, interfaces.ISingleton):
 			return None
-		return "var {0} = {1};".format(self.jsSelf, t)
+		return "let {0} = {1};".format(self.jsSelf, t)
 
 	def _runtimeSuper( self, element ):
 		if self.isIn(interfaces.IClassAttribute) or self.isIn(interfaces.IClassMethod):

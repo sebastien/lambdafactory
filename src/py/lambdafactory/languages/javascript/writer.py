@@ -91,6 +91,7 @@ class Writer(AbstractWriter):
 		self.jsCore                  = "extend."
 		self.jsSelf                  = "self"
 		self.jsModule                = "__module__"
+		self.jsInit                  = "init"
 		self._moduleType             = None
 		self.supportedEmbedLanguages = ["ecmascript", "js", "javascript"]
 		self.inInvocation            = False
@@ -277,7 +278,7 @@ class Writer(AbstractWriter):
 		full_name               = self.getAbsoluteName(moduleElement)
 		code = [
 			"// " + SNIP % ("%s.js" % (self.getAbsoluteName(moduleElement).replace(".", "/"))),
-			'"use strict"'
+			'"use strict";'
 		] + self._header() + [
 			self._document(moduleElement),
 			self.options["ENABLE_METADATA"] and "function __def(v,m){var ms=v['__def__']||{};for(var k in m){ms[k]=m[k]};v['__def__']=ms;return v}" or None,
@@ -305,7 +306,7 @@ class Writer(AbstractWriter):
 					slot_name     = name
 					declaration   = ""
 					if slot_name == interfaces.Constants.ModuleInit:
-						slot_name = "init"
+						slot_name = self.jsInit
 						if self._isNice:
 							declaration = "\n".join(self._section("Module init")) + "\n"
 					if slot_name == interfaces.Constants.MainFunction:
@@ -327,9 +328,9 @@ class Writer(AbstractWriter):
 				"// NOTE: This is called after the registration, as init code might",
 				"// depend on the module to be registered (eg. dynamic loading)."
 			]
-		code.append('if (typeof(%s.init)!="undefined") {%s.init();}' % (
-			module_name,
-			module_name
+		code.append('if (typeof(%s.%s)!="undefined") {%s.%s();}' % (
+			module_name, self.jsInit,
+			module_name, self.jsInit
 		))
 		# --- SOURCE ----------------------------------------------------------
 		# We append the source code
@@ -1057,8 +1058,8 @@ class Writer(AbstractWriter):
 		else:
 			scope = None
 		if symbol_name == "self":
-			return self.jsSelf
-		elif symbol_name == "target":
+			return self._runtimeSelfReference(element)
+		elif symbol_name == "__target__":
 			return "this"
 		elif symbol_name == "__class__":
 			# FIXME: Submodule support
@@ -1079,11 +1080,8 @@ class Writer(AbstractWriter):
 			return "null"
 		elif symbol_name == "super":
 			return self._runtimeSuper(element)
-
-
 		elif value == self.getCurrentModule():
 			return "__module__"
-
 		if not self._isSymbolValid(symbol_name):
 			# FIXME: This is temporary, we should have an AbsoluteReference
 			# operation that uses symbols as content
@@ -1123,6 +1121,7 @@ class Writer(AbstractWriter):
 			return symbol_name
 		# It within the current module
 		elif self.getCurrentModule() == scope:
+			# NOTE: We need the current module scope so as not to shadow
 			return "__module__." + symbol_name
 		# It is a property of a module
 		elif isinstance(scope, interfaces.IModule):
@@ -1951,6 +1950,12 @@ class Writer(AbstractWriter):
 
 	def _runtimeReturnContinue( self ):
 		return "return extend.FLOW_CONTINUE;"
+
+	def _runtimeSelfReference( self ):
+		return self.jsSelf
+
+	def _runtimeSelfBinding( self ):
+		return "var self = this;"
 
 MAIN_CLASS = Writer
 

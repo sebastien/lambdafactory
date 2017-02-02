@@ -178,9 +178,13 @@
 					# Here we annotate as shadow the parts of the imported module that are imported
 					# as a library.
 					var module = parseFile (l)
-					program addModule (module)
-					for name_and_value in module getSlots ()
-						name_and_value[1] addAnnotation (environment getFactory () annotation "shadow")
+					if not module
+						return None
+					else
+						program addModule (module)
+						for name_and_value in module getSlots ()
+							name_and_value[1] addAnnotation (environment getFactory () annotation "shadow")
+						end
 					end
 				else
 					environment addLibraryPath (l)
@@ -231,6 +235,7 @@
 			var interpreter = None
 			var path = file_and_path[1]
 			var compilers = None
+			var command   = None
 			# FIXME: LambdaFactory should support compilers and runners
 			if (language in ["js","javascript","es","ecmascript"])
 				interpreter = os getenv("SUGAR_JS") or "js"
@@ -238,10 +243,12 @@
 			elif (language in ["python"])
 				interpreter = os getenv("SUGAR_PYTHON") or "python"
 				command = interpreter + " " + path + " " + args_str
-			else
-				raise ERR_NO_RUNTIME_AVAILABLE(language)
 			end
-			status = (os system(command) / 256) or status
+			if command
+				status = (os system(command) / 256) or status
+			else
+				environment report error ("No command defined to run language: {0}" format (language))
+			end
 			os unlink(path)
 		end
 		return program
@@ -272,13 +279,19 @@
 		if not language
 			return None
 		end
+		let name = language
 		language     = environment loadLanguage (language)
 		# FIXME: The language should be initialized for the environment
-		var writer   = language writer ()
-		# FIXME: Writer should take environ
-		writer report = environment report
-		writer setEnvironment (environment)
-		return writer
+		if language and language writer
+			var writer   = language writer ()
+			# FIXME: Writer should take environ
+			writer report = environment report
+			writer setEnvironment (environment)
+			return writer
+		else
+			environment report error ("Language not defined: {0}" format (name))
+			return None
+		end
 	@end
 
 	@method writeProgram program, inLanguage, includeRuntime=False, includeSource=False
