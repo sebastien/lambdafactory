@@ -6,14 +6,14 @@ import lambdafactory.interfaces as interfaces
 from lambdafactory.model import isString, ensureUnicode
 from lambdafactory.passes import Pass
 from lambdafactory.splitter import SNIP
-import string
+import string, types
 __module_name__ = 'lambdafactory.modelwriter'
 PREFIX = '\t'
 def _format (value, level=None):
 	"""Format helper operation. See @format"""
 	self=__module__
 	if level is None: level = -1
-	if type(value) in (list, tuple):
+	if type(value) in (list, tuple, types.GeneratorType):
 		res = []
 		for v in value:
 			if v is None: continue
@@ -22,7 +22,7 @@ def _format (value, level=None):
 	else:
 		if value is None: return u""
 		assert isString(value), "Type not suitable for formatting: %s" % (value)
-		return [u"\n".join((level*PREFIX)+ensureUnicode(v) for v in value.split("\n"))]
+		return [u"\n".join((max(0,level)*PREFIX)+ensureUnicode(v) for v in value.split("\n"))]
 	
 
 
@@ -59,7 +59,7 @@ def notEmpty (p):
 
 
 class AbstractWriter(Pass):
-	HANDLES = [interfaces.IProgram, interfaces.IClass, interfaces.IModule, interfaces.IAccessor, interfaces.IMutator, interfaces.IDestructor, interfaces.IConstructor, interfaces.IClassMethod, interfaces.IMethod, interfaces.IFunction, interfaces.IClosure, interfaces.IWithBlock, interfaces.IBlock, interfaces.IModuleAttribute, interfaces.IClassAttribute, interfaces.IAttribute, interfaces.IArgument, interfaces.IParameter, interfaces.IOperator, interfaces.IReference, interfaces.INumber, interfaces.IString, interfaces.IList, interfaces.IDict, interfaces.IEnumeration, interfaces.IAllocation, interfaces.IAssignment, interfaces.IComputation, interfaces.IInvocation, interfaces.IInstanciation, interfaces.IResolution, interfaces.IChain, interfaces.ISelection, interfaces.IRepetition, interfaces.IFilterIteration, interfaces.IMapIteration, interfaces.IIteration, interfaces.IAccessOperation, interfaces.ISliceOperation, interfaces.IEvaluation, interfaces.ITermination, interfaces.INOP, interfaces.IBreaking, interfaces.IContinue, interfaces.IExcept, interfaces.IInterception, interfaces.IImportSymbolOperation, interfaces.IImportSymbolsOperation, interfaces.IImportModuleOperation, interfaces.IImportModulesOperation, interfaces.IEmbed]
+	HANDLES = [interfaces.IProgram, interfaces.ISingleton, interfaces.ITrait, interfaces.IClass, interfaces.IModule, interfaces.IAccessor, interfaces.IMutator, interfaces.IDestructor, interfaces.IConstructor, interfaces.IClassMethod, interfaces.IMethod, interfaces.IInitializer, interfaces.IFunction, interfaces.IClosure, interfaces.IWithBlock, interfaces.IBlock, interfaces.IModuleAttribute, interfaces.IClassAttribute, interfaces.IAttribute, interfaces.IArgument, interfaces.IParameter, interfaces.IOperator, interfaces.IReference, interfaces.INumber, interfaces.IString, interfaces.IList, interfaces.IDict, interfaces.IInterpolation, interfaces.IEnumeration, interfaces.IAllocation, interfaces.IAssignment, interfaces.IComputation, interfaces.IInvocation, interfaces.IInstanciation, interfaces.IResolution, interfaces.IChain, interfaces.ISelection, interfaces.IRepetition, interfaces.IFilterIteration, interfaces.IMapIteration, interfaces.IIteration, interfaces.IAccessOperation, interfaces.ISliceOperation, interfaces.IEvaluation, interfaces.ITermination, interfaces.INOP, interfaces.IBreaking, interfaces.IContinue, interfaces.IExcept, interfaces.IInterception, interfaces.IImportSymbolOperation, interfaces.IImportSymbolsOperation, interfaces.IImportModuleOperation, interfaces.IImportModulesOperation, interfaces.IEmbed]
 	def __init__ (self):
 		self._generatedSymbols = {}
 		Pass.__init__(self)
@@ -88,6 +88,9 @@ class AbstractWriter(Pass):
 							self.context.append(element)
 							result = getattr(self, "on" + name)(element)
 							self.context.pop()
+							# We support write rules returning generators
+							if type(result) is types.GeneratorType:
+								result = u"\n".join(_format(result, -2))
 							return result
 				raise Exception("Element implements unsupported interface: " + str(element))
 				

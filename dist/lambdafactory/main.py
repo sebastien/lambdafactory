@@ -139,9 +139,12 @@ class Command:
 			for l in options.libraries:
 				if os.path.isfile(l):
 					module=self.parseFile(l)
-					program.addModule(module)
-					for name_and_value in module.getSlots():
-						name_and_value[1].addAnnotation(self.environment.getFactory().annotation('shadow'))
+					if (not module):
+						return None
+					elif True:
+						program.addModule(module)
+						for name_and_value in module.getSlots():
+							name_and_value[1].addAnnotation(self.environment.getFactory().annotation('shadow'))
 				elif True:
 					self.environment.addLibraryPath(l)
 		if (language == 'none'):
@@ -182,18 +185,17 @@ class Command:
 			interpreter=None
 			path=file_and_path[1]
 			compilers=None
-			if (language in ['js', 'javascript']):
+			command=None
+			if (language in ['js', 'javascript', 'es', 'ecmascript']):
 				interpreter = (os.getenv('SUGAR_JS') or 'js')
-				command = ((((interpreter + ' ') + path) + ' ') + args_str)
-			elif (language in ['pnuts']):
-				interpreter = (os.getenv('SUGAR_PNUTS') or 'pnuts')
 				command = ((((interpreter + ' ') + path) + ' ') + args_str)
 			elif (language in ['python']):
 				interpreter = (os.getenv('SUGAR_PYTHON') or 'python')
 				command = ((((interpreter + ' ') + path) + ' ') + args_str)
+			if command:
+				status = ((os.system(command) / 256) or status)
 			elif True:
-				raise ERR_NO_RUNTIME_AVAILABLE(language)
-			status = ((os.system(command) / 256) or status)
+				self.environment.report.error('No command defined to run language: {0}'.format(language))
 			os.unlink(path)
 		return program
 	
@@ -217,11 +219,16 @@ class Command:
 	def getWriter(self, language):
 		if (not language):
 			return None
+		name=language
 		language = self.environment.loadLanguage(language)
-		writer=language.writer()
-		writer.report = self.environment.report
-		writer.setEnvironment(self.environment)
-		return writer
+		if (language and language.writer):
+			writer=language.writer()
+			writer.report = self.environment.report
+			writer.setEnvironment(self.environment)
+			return writer
+		elif True:
+			self.environment.report.error('Language not defined: {0}'.format(name))
+			return None
 	
 	def writeProgram(self, program, inLanguage, includeRuntime=None, includeSource=None):
 		if includeRuntime is None: includeRuntime = False

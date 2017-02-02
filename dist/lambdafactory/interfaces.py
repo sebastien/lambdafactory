@@ -7,6 +7,7 @@ class Constants:
 	MainFunction = '__main__'
 	CurrentModule = '__current__'
 	Constructor = '__init__'
+	Init = '__init__'
 	Destructor = '__destroy__'
 	ModuleInit = '__moduleinit__'
 	CurrentValue = '__currentvalue__'
@@ -333,6 +334,26 @@ class IList(IValue):
 		raise Exception("Abstract method IList.getValues not implemented in: " + str(self))
 	
 
+class ITuple(IList):
+	"""A tuple is a list with a fixed arity and optionally a name map"""
+	def setNames(self, names):
+		raise Exception("Abstract method ITuple.setNames not implemented in: " + str(self))
+	
+	def addValue(self, value):
+		"""Adds a value to this list."""
+		raise Exception("Abstract method ITuple.addValue not implemented in: " + str(self))
+	
+	def getValues(self):
+		"""Returns the values within this list."""
+		raise Exception("Abstract method ITuple.getValues not implemented in: " + str(self))
+	
+	def getName(self, index):
+		raise Exception("Abstract method ITuple.getName not implemented in: " + str(self))
+	
+	def setName(self, index, name):
+		raise Exception("Abstract method ITuple.setName not implemented in: " + str(self))
+	
+
 class IDict(IValue):
 	"""A dictionary is a binding of key to values. It may or may not be ordered,
 	depending on the implementation/model semantics."""
@@ -577,6 +598,14 @@ class IInterface(IAbstractClass):
 	"""An interface is an abstract @protocol that only has abstract elements."""
 	pass
 
+class ISingleton(IClass):
+	"""A *singleton* is an anonymous class with only one instance."""
+	pass
+
+class ITrait(IClass):
+	"""A *trait* is a specific type of class that is intended to be mixed-in."""
+	pass
+
 class IModule(IContext, IReferencable, IAssignable, IConstruct):
 	"""Note that a module 'getName' function returns the module absolute name"""
 	def isImported(self):
@@ -726,6 +755,9 @@ class IInstanceMethod(IMethod):
 	pass
 
 class IClassMethod(IMethod):
+	pass
+
+class IInitializer(IFunction):
 	pass
 
 class IOperation(IElement):
@@ -1078,6 +1110,23 @@ class IEnumeration(IBinaryOperation):
 	def setStep(self, value):
 		"""Sets this enumeration step"""
 		return self.setOpArgument(2, value)
+	
+
+class IInterpolation(IBinaryOperation):
+	"""An interpolation will transform the given string using
+	the given arguments. The semantics are left to the backend."""
+	ARGS = [IString, IEvaluable]
+	def getString(self):
+		return self.getOpArgument(0)
+	
+	def setString(self, value):
+		return self.setOpArgument(0, value)
+	
+	def getContext(self):
+		return self.getOpArgument(1)
+	
+	def setContext(self, value):
+		return self.setOpArgument(1, value)
 	
 
 class IRepetition(IOperation):

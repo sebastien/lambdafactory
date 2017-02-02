@@ -105,6 +105,9 @@ class Factory:
 		name = self._processName(name)
 		return self._getImplementation("InstanceMethod")(name, parameters)
 
+	def createInitializer( self, parameters=None ):
+		return self._getImplementation("Initializer")(parameters)
+
 	def createAccessor( self, name, parameters=None ):
 		name = self._processName(name)
 		return self._getImplementation("Accessor")(name, parameters)
@@ -127,6 +130,14 @@ class Factory:
 	def createClass( self, name, inherited=() ):
 		name = self._processName(name)
 		return self._getImplementation("Class")(name, inherited)
+
+	def createTrait( self, name, inherited=() ):
+		name = self._processName(name)
+		return self._getImplementation("Trait")(name, inherited)
+
+	def createSingleton( self, name, inherited=() ):
+		name = self._processName(name)
+		return self._getImplementation("Singleton")(name, inherited)
 
 	def createInterface( self, name, inherited=() ):
 		return self._getImplementation("Interface")(name, inherited)
@@ -217,10 +228,15 @@ class Factory:
 		return self._getImplementation("AccessOperation")(target, _index)
 
 	def slice( self, target, _start, _end=None ):
+		_start = F._number(_start) if type(_start) in (int, float) else _start
+		_end   = F._number(_end)   if type(_end)   in (int, float) else _end
 		return self._getImplementation("SliceOperation")(target, _start, _end)
 
 	def enumerate( self, start, end, step=None ):
 		return self._getImplementation("Enumeration")(start, end, step)
+
+	def interpolate( self, text, args ):
+		return self._getImplementation("Interpolation")(text, args)
 
 	def returns( self, evaluable ):
 		return self._getImplementation("Termination")(evaluable)
@@ -318,6 +334,14 @@ class Factory:
 
 	def _list( self, *args ):
 		r = self._getImplementation("List")()
+		if len(args) == 1 and type(args[0]) in (list,tuple):
+			list(map(lambda a:r.addValue(a), args[0]))
+		else:
+			list(map(lambda a:r.addValue(a), args))
+		return r
+
+	def _tuple( self, *args ):
+		r = self._getImplementation("Tuple")()
 		if len(args) == 1 and type(args[0]) in (list,tuple):
 			list(map(lambda a:r.addValue(a), args[0]))
 		else:

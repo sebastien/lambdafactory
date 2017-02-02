@@ -714,6 +714,12 @@ class Class(Context, IClass, IReferencable, IAssignable):
 class Interface(Class, IInterface):
 	pass
 
+class Singleton(Class, ISingleton):
+	pass
+
+class Trait(Class, ITrait):
+	pass
+
 class Module(Context, IModule):
 	def __init__ (self, name=None):
 		self.importOperations = []
@@ -981,6 +987,12 @@ class Accessor(Method, IAccessor):
 class Mutator(Method, IMutator):
 	pass
 
+class Initializer(Function, IInitializer):
+	def __init__ (self, parameters):
+		Function.__init__(self, Constants.Init, parameters)
+	
+	pass
+
 class Constructor(Method, IConstructor):
 	def __init__ (self, parameters):
 		Method.__init__(self, Constants.Constructor, parameters)
@@ -1116,13 +1128,22 @@ class Instanciation(Operation, IInstanciation):
 	pass
 
 class Selection(Operation, ISelection):
-	def addRule(self, evaluable):
+	def _ensureRules(self):
 		res=self.getOpArguments()
 		if (not res):
 			res = []
 			self.addOpArgument(res)
 		elif True:
 			res = res[0]
+		return res
+	
+	def prependRule(self, evaluable):
+		res=self._ensureRules()
+		res.insert(0, evaluable)
+		self._setOpArgumentParent(evaluable)
+	
+	def addRule(self, evaluable):
+		res=self._ensureRules()
 		res.append(evaluable)
 		self._setOpArgumentParent(evaluable)
 	
@@ -1131,6 +1152,9 @@ class Selection(Operation, ISelection):
 			return self.getOpArgument(0)
 		elif True:
 			return []
+	
+	def getRule(self, index):
+		return self.getRules()[index]
 	
 
 class Chain(Operation, IChain):
@@ -1190,6 +1214,9 @@ class MapIteration(Operation, IMapIteration):
 	pass
 
 class FilterIteration(Operation, IFilterIteration):
+	pass
+
+class Interpolation(Operation, IInterpolation):
 	pass
 
 class Enumeration(Operation, IEnumeration):
@@ -1294,6 +1321,9 @@ class Literal(Value, ILiteral):
 	def getActualValue(self):
 		return self.actualValue
 	
+	def setActualValue(self, value):
+		self.actualValue = value
+	
 	def copy(self):
 		value_copy=Value._copy(self)
 		value_copy.actualValue = self.actualValue
@@ -1314,6 +1344,7 @@ class List(Value, IList):
 	def addValue(self, value):
 		self.values.append(value)
 		value.setParent(self)
+		return self
 	
 	def getValues(self):
 		return self.values
@@ -1327,6 +1358,25 @@ class List(Value, IList):
 		for v in self.values:
 			list_copy.addValue(v.copy().detach())
 		return list_copy
+	
+
+class Tuple(List, ITuple):
+	def __init__ (self):
+		self.names = []
+		List.__init__(self)
+	
+	def addValue(self, value, name=None):
+		if name is None: name = None
+		(lambda *a,**kw:List.addValue(self,*a,**kw))(value)
+		self.names.append(name)
+		return self
+	
+	def getName(self, index):
+		return self.names[index]
+	
+	def setName(self, index, name):
+		self.names[index] = name
+		return self
 	
 
 class Dict(Value, IDict):

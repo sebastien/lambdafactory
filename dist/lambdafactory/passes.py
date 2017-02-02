@@ -134,6 +134,15 @@ class PassContext:
 			i = (i - 1)
 		return -1
 	
+	def hasAnnotationInContext(self, name):
+		i=(len(self.context) - 1)
+		while (i >= 0):
+			v=self.context[i]
+			if v.hasAnnotation(name):
+				return i
+			i = (i - 1)
+		return -1
+	
 	def getParentElement(self):
 		return self.context[-2]
 	
