@@ -49,8 +49,10 @@
 		interfaces IAllocation
 		interfaces IAssignment
 		interfaces IIteration
+		interfaces ISelection
 		interfaces IOperation
 		interfaces IAnonymousReference
+		interfaces IImplicitReference
 		interfaces IReference
 		interfaces IValue
 	]
@@ -196,6 +198,7 @@
 			dataflow = getParentDataFlow()
 			element setDataFlow(dataflow)
 		end
+		return dataflow
 	@end
 
 	@method onValue element
@@ -219,6 +222,15 @@
 					closure declareEnclosure (name, slots[0])
 				end
 			end
+		end
+	@end
+
+	@method onSelection element
+		onOperation (element)
+		let implicit = element getImplicitValue ()
+		if implicit
+			let slot = element dataflow declareImplicit (implicit, element)
+			print ("---", implicit, "=", slot, "in", element)
 		end
 	@end
 
@@ -253,6 +265,10 @@
 		element setReferenceName (name)
 	@end
 
+	@method onImplicitReference element
+		element setReferenceName (getCurrentDataFlow () getImplicitSlotFor (element getElement ()) getName ())
+	@end
+
 	@method onReference element
 		# If a reference is made withing a closure that is not the iteration's
 		# or repetition's closure, then we need to close the scope over the closure.
@@ -261,6 +277,8 @@
 		var jj = lastIndexInContext (interfaces IRepetition)
 		var name  = element getName ()
 		# We handle implicit references to a closure argument
+		# NOTE: Here we mean _, _0, _1‥ as implicit references, not the
+		# IImplicitReference types.
 		if i>=0 and RE_IMPLICIT match (name)
 			var slot   = resolve (element)
 			if not slot[0]
@@ -418,6 +436,7 @@
 	@shared HANDLES = [
 		interfaces IModule
 		interfaces IClass
+		interfaces IContext
 	]
 	@shared NAME    = "ClassParentsResolution"
 
@@ -532,6 +551,10 @@
 				self environment report error ("Unresolved parent class: " + parent_class getReferenceName () + " in " + element getAbsoluteName ())
 			end
 		end
+	@end
+
+	@method onContext element
+		element dataflow ensureImplicitsNamed ()
 	@end
 
 @end

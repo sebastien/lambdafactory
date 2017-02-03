@@ -127,7 +127,6 @@ class Writer(JavaScriptWriter):
 	def onClassMethod( self, element ):
 		return self.onFunction( element, modifier="static" )
 
-
 	def onConstructor( self, element ):
 		r = []
 		has_constructor = False
@@ -157,9 +156,11 @@ class Writer(JavaScriptWriter):
 	# =========================================================================
 
 	def _onFunctionBody( self, element, body=None, bindSelf=True ):
-		"""WRites the body of a function."""
+		"""Writes the body of a function."""
 		# Adds the `var self = this`
 		if bindSelf: yield self._runtimeSelfBinding(element)
+		for _ in self._writeImplicitAllocations(element):
+			yield _
 		if element:
 			for _ in self._onParametersInit(element): yield _
 			for _ in self._onPreCondition(element): yield _

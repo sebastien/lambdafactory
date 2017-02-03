@@ -157,6 +157,9 @@ class Factory:
 	def importModules( self, names ):
 		return self._getImplementation("ImportModulesOperation")(names)
 
+	def type( self, name, parameters=None ):
+		return self._getImplementation("Type")(name, parameters)
+
 	def evaluate( self, evaluable ):
 		if type(evaluable) in (str, str): evaluable = self._ref(evaluable)
 		return self._getImplementation("Evaluation")(evaluable)
@@ -201,6 +204,9 @@ class Factory:
 		s = self._getImplementation("Chain")()
 		if groups: list(map(s.addGroup, groups))
 		return s
+
+	def typeof( self, expression, type ):
+		return self._getImplementation("TypeIdentification")(expression, type)
 
 	def rule( self, evaluable, process ):
 		"""Alias for matchProcess"""
@@ -270,6 +276,9 @@ class Factory:
 
 	def annotation( self, name, content=None ):
 		return self._getImplementation("Annotation")(name, content)
+
+	def _implicitref( self, element=None ):
+		return self._getImplementation("ImplicitReference")(element)
 
 	# FIXME: RENAME TO SYMBOL
 	def _ref( self, name ):

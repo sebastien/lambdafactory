@@ -76,6 +76,11 @@
 		return dataflow
 	@end
 
+	@method setName name
+		self name = name
+		return self
+	@end
+
 	@method getName
 		return name
 	@end
@@ -113,6 +118,10 @@
 		return slotType == DataFlow ENVIRONMENT
 	@end
 
+	@method isImplicit
+		return slotType == DataFlow IMPLICIT
+	@end
+
 	@method __repr__
 		@embed Python
 		|return '<Slot("%s"=%s):%s@%s%s>' % (self.name, self.value, "TYPE", self.slotType, self.origin)
@@ -136,18 +145,19 @@
 | dataflow make use of the context to weave the elements togeher.
 
 
-	@shared ARGUMENT    = "Argument"
-	@shared ENVIRONMENT = "Environment"
-	@shared LOCAL       = "Local"
-	@shared IMPORTED    = "Imported"
+	@shared ARGUMENT    = "argument"
+	@shared ENVIRONMENT = "environment"
+	@shared LOCAL       = "local"
+	@shared IMPORTED    = "imported"
+	@shared IMPLICIT    = "implicit"
 
-	@property program:<IProgram>
-	@property element:<IElement>
-	@property parent:<IDataFlow>
-	@property sources:<[IDafaFlow]>      = []
-	@property destinations:<[IDafaFlow]> = []
-	@property slots:<[IDataFlowSlot>     = []
-	@property children:<[IDataFlow]>     = []
+	@property program
+	@property element
+	@property parent
+	@property sources      = []
+	@property destinations = []
+	@property slots        = []
+	@property children     = []
 
 	@constructor element, parent=Undefined
 		# FIXME: Resolution should happen in pass, no program required
@@ -161,30 +171,38 @@
 
 	# FIXME: Argument should be 'element' rather than 'value'
 	@method declareArgument  name, value
-		self _declare(name, value, None, ARGUMENT)
+		return self _declare(name, value, None, ARGUMENT)
 	@end
 
 	@method  declareEnvironment name, value
-		self _declare(name, value, None, ENVIRONMENT)
+		return self _declare(name, value, None, ENVIRONMENT)
 	@end
 
 	@method  declareVariable name, value, origin
-		self _declare(name, value, origin, LOCAL)
+		return self _declare(name, value, origin, LOCAL)
 	@end
 
 	@method  declareImported  name, value, origin
-		self _declare(name, value, origin, IMPORTED)
+		return self _declare(name, value, origin, IMPORTED)
+	@end
+
+	@method  declareImplicit   value, origin
+		return self _declare (None, value, origin, IMPLICIT)
 	@end
 
 	@method  _declare name, value, origin, slotType
 	| Declares the given slot with the given name, value, origin
 	| and type. This is used internaly by the other 'declare' methods.
-		var previous_slot = getSlot(name)
-		if previous_slot
-			# FIXME: Maybe trigger a warning when resetting the slot
-			slots remove(previous_slot)
+		# NOTE: We only erase pre-existing named slots, which is
+		# useful for implicit slots.
+		if name
+			var previous_slot = getSlot(name)
+			if previous_slot
+				# FIXME: Maybe trigger a warning when resetting the slot
+				slots remove(previous_slot)
+			end
 		end
-		addSlot(new DataFlowSlot(name, value, [origin], slotType))
+		return addSlot(new DataFlowSlot(name, value, [origin], slotType))
 	@end
 
 	@method addSource dataflow
@@ -217,6 +235,7 @@
 		# FIXME: Assert no duplicate slot
 		self slots append(slot)
 		slot setDataFlow(self)
+		return slot
 	@end
 
 	@method getSlots
@@ -260,6 +279,15 @@
 			end
 		end
 		return slots values()
+	@end
+
+	@method getImplicitSlotFor element
+		for slot in slots
+			if slot isImplicit () and slot getOrigin ()[0] == element
+				return  slot
+			end
+		end
+		return None
 	@end
 
 	@method getAvailableSlotNames
@@ -406,13 +434,49 @@
 		return tuple([None,None])
 	@end
 
+	@method ensureImplicitsNamed
+	| Ensures that the implicit slots all have a name.
+		for slot in slots
+			if slot isImplicit () and not slot getName ()
+				slot setName (generateImplicitName ())
+			end
+		end
+	@end
+
+	@method generateImplicitName
+	| Finds the first generated name that is not already defined in this
+	| scope or in a parent.
+		var i = 0
+		var prefix = ""
+		var n = prefix + _generateName (i)
+		while resolve(n)[0] != None
+			i += 1
+			n  = prefix + _generateName (i)
+		end
+		return n
+	@end
+
+	@method _generateName index
+	| A helper to generate a variable name from a number
+		let l = "abcdefghijklmnopqrstuvwxyz"
+		let n = len(l)
+		if index < n
+			return l[index]
+		else
+			let d = int( n / l )
+			let r = int( n % l )
+			return l[r] + _generateName (d)
+		end
+	@end
+
+
 @end
 
-# ------------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 #
 # Program Model Elements
 #
-# ------------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 
 @class Element
 | The Element class is a generic class that implements many of the
@@ -675,11 +739,39 @@
 
 @end
 
-# ------------------------------------------------------------------------------
+
+# -----------------------------------------------------------------------------
+#
+# SECTION
+#
+# -----------------------------------------------------------------------------
+
+@class Type: Element, IType
+
+	@property parameters=None
+
+	@constructor name=None, parameters=None
+		Element __init__ ( self, name )
+		self parameters = parameters
+	@end
+
+	@method setParameters params
+		self parameters = params
+		return self
+	@end
+
+	@method getParameters
+		return parameters
+	@end
+
+@end
+
+
+# -----------------------------------------------------------------------------
 #
 # Annotation/Documentation elements
 #
-# ------------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 
 @class Annotation: Element, IAnnotation
 
@@ -1578,15 +1670,14 @@
 
 @class Selection: Operation, ISelection
 
+	@constructor
+		Operation __init__( self )
+		opArguments = [[], None]
+	@end
+
 	@method _ensureRules
-		let res = getOpArguments()
-		if not res
-			res = []
-			self addOpArgument(res)
-		else
-			res = res[0]
-		end
-		return res
+
+		return getOpArgument 0
 	@end
 
 	@method prependRule evaluable
@@ -1603,7 +1694,7 @@
 
 	@method getRules
 		if opArguments
-			return self getOpArgument(0)
+			return self getOpArgument (0)
 		else
 			return []
 		end
@@ -1611,6 +1702,15 @@
 
 	@method getRule index
 		return getRules() [index]
+	@end
+
+	@method setImplicitValue value
+		setOpArgument (1, value)
+		return self
+	@end
+
+	@method getImplicitValue
+		return getOpArgument 1
 	@end
 
 @end
@@ -1649,6 +1749,30 @@
 
 	@method getTarget
 		return getOpArgument 0
+	@end
+
+@end
+
+@class TypeIdentification: Operation, ITypeIdentification
+
+	@method setTarget value
+		_ensureOpArguments ()
+		setOpArgument (0, value)
+		return self
+	@end
+
+	@method setType value
+		_ensureOpArguments ()
+		setOpArgument (0, type)
+		return self
+	@end
+
+	@method getTarget
+		return getOpArgument 0
+	@end
+
+	@method getType
+		return getOpArgument 1
 	@end
 
 @end
@@ -1966,6 +2090,27 @@
 	@end
 
 @end
+
+@class ImplicitReference: Reference, IImplicitReference
+
+	@property element = None
+
+	@constructor element:String
+		Reference __init__ (self, None)
+		self element = element
+	@end
+
+	@method setElement element
+		self element = element
+		return self
+	@end
+
+	@method getElement
+		return element
+	@end
+
+@end
+
 
 @class Operator: Reference, IOperator
 

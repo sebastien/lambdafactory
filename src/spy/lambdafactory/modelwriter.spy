@@ -85,6 +85,7 @@
 		interfaces IArgument
 		interfaces IParameter
 		interfaces IOperator
+		interfaces IImplicitReference
 		interfaces IReference
 		interfaces INumber
 		interfaces IString
@@ -106,6 +107,7 @@
 		interfaces IIteration
 		interfaces IAccessOperation
 		interfaces ISliceOperation
+		interfaces ITypeIdentification
 		interfaces IEvaluation
 		interfaces ITermination
 		interfaces INOP
