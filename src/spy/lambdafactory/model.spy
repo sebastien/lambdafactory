@@ -178,7 +178,7 @@
 		return self _declare(name, value, None, ENVIRONMENT)
 	@end
 
-	@method  declareVariable name, value, origin
+	@method  declareLocal name, value, origin
 		return self _declare(name, value, origin, LOCAL)
 	@end
 
@@ -755,6 +755,10 @@
 		self parameters = parameters
 	@end
 
+	@method getReferenceName
+		return name
+	@end
+
 	@method setParameters params
 		self parameters = params
 		return self
@@ -764,8 +768,43 @@
 		return parameters
 	@end
 
+	@method getResultAbstractType
+		return self
+	@end
+
 @end
 
+@class EnumerationType: Type, IEnumerationType
+
+	@property parameters=None
+	@property symbols=[]
+
+	@constructor name=None, parameters=None
+		Type __init__ ( self, name, parameters)
+	@end
+
+	@method setSymbols symbols
+		self symbols = []
+		for _ in symbols
+			addSymbol (_)
+		end
+		return self
+	@end
+
+	@method addSymbol symbol
+		symbols append (symbol)
+		return self
+	@end
+
+
+	@method getSymbols
+		return symbols
+	@end
+
+@end
+
+@class SymbolType: Type, ISymbolType
+@end
 
 # -----------------------------------------------------------------------------
 #

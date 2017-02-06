@@ -160,6 +160,12 @@ class Factory:
 	def type( self, name, parameters=None ):
 		return self._getImplementation("Type")(name, parameters)
 
+	def enum( self, name, parameters=None ):
+		return self._getImplementation("EnumerationType")(name, parameters)
+
+	def symbol( self, name ):
+		return self._getImplementation("SymbolType")(name)
+
 	def evaluate( self, evaluable ):
 		if type(evaluable) in (str, str): evaluable = self._ref(evaluable)
 		return self._getImplementation("Evaluation")(evaluable)

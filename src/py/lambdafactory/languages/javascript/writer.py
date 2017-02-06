@@ -1837,6 +1837,20 @@ class Writer(AbstractWriter):
 			return embed.getCode()
 
 	# =========================================================================
+	# TYPES
+	# =========================================================================
+
+	def onEnumerationType( self, element ):
+		symbols = [_.getName() for _ in element.getSymbols()]
+		m = self._runtimeModuleName(element)
+		yield "function(){"
+		yield "\treturn " + " || ".join("(_==={0}.{1})".format(m,_) for _ in symbols)
+		yield "}(_);"
+		for _ in symbols:
+			# NOTE: Symbol is not supported yet, but would be preferrable
+			yield "{0}.{1} = new String(\"{2}\");".format(m, _, _)
+
+	# =========================================================================
 	# NICE HELPERS
 	# =========================================================================
 
@@ -1971,8 +1985,11 @@ class Writer(AbstractWriter):
 		return "%s.getClass()" % (variable or self.jsSelf)
 
 	def _runtimeOp( self, name, *args ):
-		args = [self.write(_) if isinstance(_,interfaces.IElement) else _]
+		args = [self.write(_) if isinstance(_,interfaces.IElement) else _ for _ in args]
 		return "extend." + name + "(" + ", ".join(args) + ")"
+
+	def _runtimeModuleName( self, element=None ):
+		return "__module__"
 
 	def _runtimeMap( self, lvalue, rvalue ):
 		return self._runtimeOp("map", lvalue, rvalue)

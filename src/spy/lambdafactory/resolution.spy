@@ -116,6 +116,14 @@
 		onContext(element)
 	@end
 
+	@method onType element
+		pass
+	@end
+
+	@method onEnumerationType element
+		pass
+	@end
+
 	@method onClass element
 		# Programs have thir own dataflows
 		var dataflow = ensureDataFlow (element)
@@ -151,7 +159,7 @@
 		# Contexts have their own dataflows
 		var dataflow = ensureDataFlow (element)
 		for name_and_value in element getSlots()
-			dataflow declareVariable (name_and_value[0], name_and_value[1], element)
+			dataflow declareLocal (name_and_value[0], name_and_value[1], element)
 		end
 	@end
 
@@ -159,7 +167,7 @@
 		onOperation(element)
 		var dataflow = element getDataFlow()
 		var name = element getSlotToAllocate() getName()
-		dataflow declareVariable( name, element getDefaultValue(), element)
+		dataflow declareLocal( name, element getDefaultValue(), element)
 	@end
 
 	@method onAssignment element
@@ -261,7 +269,7 @@
 	| anything in scope.
 		let dataflow = getCurrentDataFlow ()
 		let name     = getAnonymousReferenceName ()
-		dataflow declareVariable (name, None, element)
+		dataflow declareLocal (name, None, element)
 		element setReferenceName (name)
 	@end
 
@@ -437,6 +445,7 @@
 		interfaces IModule
 		interfaces IClass
 		interfaces IContext
+		interfaces IEnumerationType
 	]
 	@shared NAME    = "ClassParentsResolution"
 
@@ -502,6 +511,13 @@
 			assert (module getDataFlow() resolve (name)[0] getDataFlow() getElement() == module)
 		end
 		return imported
+	@end
+
+	@method onEnumerationType element
+		let df = getCurrentModule () getDataFlow ()
+		for _ in element symbols
+			df declareLocal (_ getName (), _, element)
+		end
 	@end
 
 	@method onModule element

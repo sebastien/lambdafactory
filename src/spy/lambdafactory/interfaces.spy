@@ -94,7 +94,7 @@
 	| Declares an environment variable with the given name, value
 	| and origin.
 
-	@abstract @method declareVariable:None name:String, value:IElement, origin:IElement=None
+	@abstract @method declareLocal:None name:String, value:IElement, origin:IElement=None
 	| Declares a (local) variable with the given name, value and
 	| origin
 
@@ -234,17 +234,6 @@
 
 @end
 
-@protocol IType
-
-	@abstract @method getName
-
-	@abstract @method setName
-
-	@abstract @method getParameters
-
-	@abstract @method setParameters
-
-@end
 
 @protocol IConstruct
 | A construct is a high level programming element that allows to create a
@@ -336,6 +325,33 @@
 
 @end
 
+# -----------------------------------------------------------------------------
+#
+# TYPES
+#
+# -----------------------------------------------------------------------------
+
+@protocol IType :IReferencable
+
+	@abstract @method getName
+
+	@abstract @method setName
+
+	@abstract @method getParameters
+
+	@abstract @method setParameters
+
+@end
+
+@protocol IEnumerationType: IType
+
+	@abstract @method addSymbol name:String
+	@abstract @method getSymbols
+
+@end
+
+@protocol ISymbolType: IType, IEvaluable
+@end
 
 #------------------------------------------------------------------------------
 #
