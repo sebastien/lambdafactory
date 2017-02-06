@@ -33,7 +33,7 @@ class BasicDataFlow(Pass):
 	3) Attaches operations that reference a value to the original slot (this
 	prepares the path for the typing pass)"""
 	RE_IMPLICIT = re.compile('^_[0-9]?$')
-	HANDLES = [interfaces.IProgram, interfaces.IModule, interfaces.IClass, interfaces.IMethod, interfaces.IClosure, interfaces.IProcess, interfaces.IContext, interfaces.IAllocation, interfaces.IAssignment, interfaces.IIteration, interfaces.IOperation, interfaces.IAnonymousReference, interfaces.IReference, interfaces.IValue]
+	HANDLES = [interfaces.IProgram, interfaces.IModule, interfaces.IClass, interfaces.IMethod, interfaces.IClosure, interfaces.IProcess, interfaces.IContext, interfaces.IAllocation, interfaces.IAssignment, interfaces.IIteration, interfaces.ISelection, interfaces.IOperation, interfaces.IAnonymousReference, interfaces.IImplicitReference, interfaces.IReference, interfaces.IValue]
 	NAME = 'Resolution'
 	def __init__ (self):
 		Pass.__init__(self)
@@ -75,6 +75,12 @@ class BasicDataFlow(Pass):
 		dataflow=self.ensureDataFlow(element)
 		self.onContext(element)
 	
+	def onType(self, element):
+		pass
+	
+	def onEnumerationType(self, element):
+		pass
+	
 	def onClass(self, element):
 		dataflow=self.ensureDataFlow(element)
 		dataflow.declareEnvironment('super', None)
@@ -98,13 +104,13 @@ class BasicDataFlow(Pass):
 	def onContext(self, element):
 		dataflow=self.ensureDataFlow(element)
 		for name_and_value in element.getSlots():
-			dataflow.declareVariable(name_and_value[0], name_and_value[1], element)
+			dataflow.declareLocal(name_and_value[0], name_and_value[1], element)
 	
 	def onAllocation(self, element):
 		self.onOperation(element)
 		dataflow=element.getDataFlow()
 		name=element.getSlotToAllocate().getName()
-		dataflow.declareVariable(name, element.getDefaultValue(), element)
+		dataflow.declareLocal(name, element.getDefaultValue(), element)
 	
 	def onAssignment(self, element):
 		dataflow=element.getDataFlow()
@@ -128,6 +134,7 @@ class BasicDataFlow(Pass):
 		if (not dataflow):
 			dataflow = self.getParentDataFlow()
 			element.setDataFlow(dataflow)
+		return dataflow
 	
 	def onValue(self, element):
 		dataflow=element.getDataFlow()
@@ -146,6 +153,12 @@ class BasicDataFlow(Pass):
 				slots=self.resolve(name)
 				if (slots and slots[0]):
 					closure.declareEnclosure(name, slots[0])
+	
+	def onSelection(self, element):
+		self.onOperation(element)
+		implicit=element.getImplicitValue()
+		if implicit:
+			slot=element.dataflow.declareImplicit(implicit, element)
 	
 	def getAnonymousName(self, i):
 		l=len(LETTERS)
@@ -169,8 +182,11 @@ class BasicDataFlow(Pass):
 		anything in scope."""
 		dataflow=self.getCurrentDataFlow()
 		name=self.getAnonymousReferenceName()
-		dataflow.declareVariable(name, None, element)
+		dataflow.declareLocal(name, None, element)
 		element.setReferenceName(name)
+	
+	def onImplicitReference(self, element):
+		element.setReferenceName(self.getCurrentDataFlow().getImplicitSlotFor(element.getElement()).getName())
 	
 	def onReference(self, element):
 		i=self.lastIndexInContext(interfaces.IClosure)
@@ -266,7 +282,7 @@ class DataFlowBinding(Pass):
 	raised, meaning that either the passes were not set up properly, or that the
 	resolution has failed (and there is an inconsistency in the program model)."""
 	FAILED = tuple([None, None])
-	HANDLES = [interfaces.IModule, interfaces.IClass]
+	HANDLES = [interfaces.IModule, interfaces.IClass, interfaces.IContext, interfaces.IEnumerationType]
 	NAME = 'ClassParentsResolution'
 	def __init__ (self):
 		Pass.__init__(self)
@@ -319,6 +335,11 @@ class DataFlowBinding(Pass):
 			assert((module.getDataFlow().resolve(name)[0].getDataFlow().getElement() == module))
 		return imported
 	
+	def onEnumerationType(self, element):
+		df=self.getCurrentModule().getDataFlow()
+		for _ in element.symbols:
+			df.declareLocal(_.getName(), _, element)
+	
 	def onModule(self, element):
 		"""Processes the module import operations and adds them to the module
 		dataflow"""
@@ -354,5 +375,8 @@ class DataFlowBinding(Pass):
 				element.getDataFlow().addSource(parent_class.getDataFlow())
 			elif isinstance(parent_class, interfaces.IReference):
 				self.environment.report.error(((('Unresolved parent class: ' + parent_class.getReferenceName()) + ' in ') + element.getAbsoluteName()))
+	
+	def onContext(self, element):
+		element.dataflow.ensureImplicitsNamed()
 	
 

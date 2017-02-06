@@ -1751,7 +1751,8 @@ class Writer(AbstractWriter):
 	def onTypeIdentification( self, element ):
 		lvalue = self.write(element.getTarget())
 		t      = element.getType()
-		rvalue = t.name
+		# FIXME: We should probably resolve the name, or try at least..
+		rvalue = t.getName()
 		# TODO: We should resolve the type in the namespace
 		if not t.parameters or len(t.parameters) == 0:
 			if t.name == "String":

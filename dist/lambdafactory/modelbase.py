@@ -157,6 +157,18 @@ class Factory:
 	def importModules( self, names ):
 		return self._getImplementation("ImportModulesOperation")(names)
 
+	def type( self, name, parameters=None ):
+		return self._getImplementation("Type")(name, parameters)
+
+	def typeSlot( self, name, type=None ):
+		return self._getImplementation("SlotConstraint")(name, type)
+
+	def enum( self, name, parameters=None ):
+		return self._getImplementation("EnumerationType")(name, parameters)
+
+	def symbol( self, name ):
+		return self._getImplementation("SymbolType")(name)
+
 	def evaluate( self, evaluable ):
 		if type(evaluable) in (str, str): evaluable = self._ref(evaluable)
 		return self._getImplementation("Evaluation")(evaluable)
@@ -201,6 +213,9 @@ class Factory:
 		s = self._getImplementation("Chain")()
 		if groups: list(map(s.addGroup, groups))
 		return s
+
+	def typeof( self, expression, type ):
+		return self._getImplementation("TypeIdentification")(expression, type)
 
 	def rule( self, evaluable, process ):
 		"""Alias for matchProcess"""
@@ -271,12 +286,18 @@ class Factory:
 	def annotation( self, name, content=None ):
 		return self._getImplementation("Annotation")(name, content)
 
+	def _implicitref( self, element=None ):
+		return self._getImplementation("ImplicitReference")(element)
+
 	# FIXME: RENAME TO SYMBOL
 	def _ref( self, name ):
 		return self._getImplementation("Reference")(name)
 
 	def _absref( self, name ):
 		return self._getImplementation("AbsoluteReference")(name)
+
+	def _typeref( self, name, parameters=None ):
+		return self._getImplementation("TypeReference")(name, parameters)
 
 	def _symbol(self, name):
 		return self._absref(name)

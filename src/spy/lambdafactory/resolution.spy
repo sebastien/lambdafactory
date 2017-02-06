@@ -238,7 +238,6 @@
 		let implicit = element getImplicitValue ()
 		if implicit
 			let slot = element dataflow declareImplicit (implicit, element)
-			print ("---", implicit, "=", slot, "in", element)
 		end
 	@end
 

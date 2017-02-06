@@ -55,6 +55,10 @@ class DataFlowSlot(IDataFlowSlot):
 	def getDataFlow(self):
 		return self.dataflow
 	
+	def setName(self, name):
+		self.name = name
+		return self
+	
 	def getName(self):
 		return self.name
 	
@@ -83,6 +87,9 @@ class DataFlowSlot(IDataFlowSlot):
 	def isEnvironment(self):
 		return (self.slotType == DataFlow.ENVIRONMENT)
 	
+	def isImplicit(self):
+		return (self.slotType == DataFlow.IMPLICIT)
+	
 	def __repr__(self):
 		return '<Slot("%s"=%s):%s@%s%s>' % (self.name, self.value, "TYPE", self.slotType, self.origin)
 		
@@ -101,10 +108,11 @@ class DataFlow(IDataFlow):
 	While 'DataFlow' and 'Context' may appear very similar, they are not the
 	same: contexts are elements that keep track of declared slots, while the
 	dataflow make use of the context to weave the elements togeher."""
-	ARGUMENT = 'Argument'
-	ENVIRONMENT = 'Environment'
-	LOCAL = 'Local'
-	IMPORTED = 'Imported'
+	ARGUMENT = 'argument'
+	ENVIRONMENT = 'environment'
+	LOCAL = 'local'
+	IMPORTED = 'imported'
+	IMPLICIT = 'implicit'
 	def __init__ (self, element, parent=None):
 		self.program = None
 		self.element = None
@@ -121,24 +129,28 @@ class DataFlow(IDataFlow):
 		element.setDataFlow(self)
 	
 	def declareArgument(self, name, value):
-		self._declare(name, value, None, self.__class__.ARGUMENT)
+		return self._declare(name, value, None, self.__class__.ARGUMENT)
 	
 	def declareEnvironment(self, name, value):
-		self._declare(name, value, None, self.__class__.ENVIRONMENT)
+		return self._declare(name, value, None, self.__class__.ENVIRONMENT)
 	
-	def declareVariable(self, name, value, origin):
-		self._declare(name, value, origin, self.__class__.LOCAL)
+	def declareLocal(self, name, value, origin):
+		return self._declare(name, value, origin, self.__class__.LOCAL)
 	
 	def declareImported(self, name, value, origin):
-		self._declare(name, value, origin, self.__class__.IMPORTED)
+		return self._declare(name, value, origin, self.__class__.IMPORTED)
+	
+	def declareImplicit(self, value, origin):
+		return self._declare(None, value, origin, self.__class__.IMPLICIT)
 	
 	def _declare(self, name, value, origin, slotType):
 		"""Declares the given slot with the given name, value, origin
 		and type. This is used internaly by the other 'declare' methods."""
-		previous_slot=self.getSlot(name)
-		if previous_slot:
-			self.slots.remove(previous_slot)
-		self.addSlot(DataFlowSlot(name, value, [origin], slotType))
+		if name:
+			previous_slot=self.getSlot(name)
+			if previous_slot:
+				self.slots.remove(previous_slot)
+		return self.addSlot(DataFlowSlot(name, value, [origin], slotType))
 	
 	def addSource(self, dataflow):
 		assert dataflow != self, "DataFlow added as its own source"
@@ -161,6 +173,7 @@ class DataFlow(IDataFlow):
 	def addSlot(self, slot):
 		self.slots.append(slot)
 		slot.setDataFlow(self)
+		return slot
 	
 	def getSlots(self):
 		"""Returns the slots defiend for this dataflow."""
@@ -194,6 +207,12 @@ class DataFlow(IDataFlow):
 				visited.append(source)
 				source.getSourcesSlots(slots, visited)
 		return slots.values()
+	
+	def getImplicitSlotFor(self, element):
+		for slot in self.slots:
+			if (slot.isImplicit() and (slot.getOrigin()[0] == element)):
+				return slot
+		return None
 	
 	def getAvailableSlotNames(self):
 		return self._getAvailableSlots().keys()
@@ -303,6 +322,34 @@ class DataFlow(IDataFlow):
 				if res:
 					return child
 		return tuple([None, None])
+	
+	def ensureImplicitsNamed(self):
+		"""Ensures that the implicit slots all have a name."""
+		for slot in self.slots:
+			if (slot.isImplicit() and (not slot.getName())):
+				slot.setName(self.generateImplicitName())
+	
+	def generateImplicitName(self):
+		"""Finds the first generated name that is not already defined in this
+		scope or in a parent."""
+		i=0
+		prefix=''
+		n=(prefix + self._generateName(i))
+		while (self.resolve(n)[0] != None):
+			i = (i + 1)
+			n = (prefix + self._generateName(i))
+		return n
+	
+	def _generateName(self, index):
+		"""A helper to generate a variable name from a number"""
+		l='abcdefghijklmnopqrstuvwxyz'
+		n=len(l)
+		if (index < n):
+			return l[index]
+		elif True:
+			d=int((n / l))
+			r=int((n % l))
+			return (l[r] + self._generateName(d))
 	
 
 class Element:
@@ -503,6 +550,90 @@ class Element:
 			copy.dataflow = self.dataflow.clone().attach(copy)
 		return copy
 	
+
+class Type(Element, IType):
+	def __init__ (self, name=None, parameters=None):
+		self.parameters = None
+		self.constraints = []
+		self.parents = []
+		if name is None: name = None
+		if parameters is None: parameters = None
+		Element.__init__(self, name)
+		self.parameters = parameters
+	
+	def addParent(self, parent):
+		self.parents.append(parent)
+		return self
+	
+	def getParents(self):
+		return self.parents
+	
+	def addConstraint(self, constraint):
+		self.constraints.append(constraint)
+		return self
+	
+	def getReferenceName(self):
+		return self.name
+	
+	def setParameters(self, params):
+		self.parameters = params
+		return self
+	
+	def getParameters(self):
+		return self.parameters
+	
+	def getResultAbstractType(self):
+		return self
+	
+	def isConcrete(self):
+		return True
+	
+
+class SlotConstraint(ISlotConstraint):
+	def __init__ (self, name, type=None):
+		self.name = None
+		self.type = None
+		if type is None: type = None
+		self.name = name
+		self.type = type
+	
+	def getName(self):
+		return self.name
+	
+	def setName(self, name):
+		self.name = name
+	
+	def getType(self):
+		return self.type
+	
+	def setType(self, type):
+		self.type = type
+	
+
+class EnumerationType(Type, IEnumerationType):
+	def __init__ (self, name=None, parameters=None):
+		self.parameters = None
+		self.symbols = []
+		if name is None: name = None
+		if parameters is None: parameters = None
+		Type.__init__(self, name, parameters)
+	
+	def setSymbols(self, symbols):
+		self.symbols = []
+		for _ in symbols:
+			self.addSymbol(_)
+		return self
+	
+	def addSymbol(self, symbol):
+		self.symbols.append(symbol)
+		return self
+	
+	def getSymbols(self):
+		return self.symbols
+	
+
+class SymbolType(Type, ISymbolType):
+	pass
 
 class Annotation(Element, IAnnotation):
 	def __init__ (self, name=None, content=None):
@@ -1128,14 +1259,12 @@ class Instanciation(Operation, IInstanciation):
 	pass
 
 class Selection(Operation, ISelection):
+	def __init__ (self):
+		Operation.__init__(self)
+		self.opArguments = [[], None]
+	
 	def _ensureRules(self):
-		res=self.getOpArguments()
-		if (not res):
-			res = []
-			self.addOpArgument(res)
-		elif True:
-			res = res[0]
-		return res
+		return self.getOpArgument(0)
 	
 	def prependRule(self, evaluable):
 		res=self._ensureRules()
@@ -1155,6 +1284,13 @@ class Selection(Operation, ISelection):
 	
 	def getRule(self, index):
 		return self.getRules()[index]
+	
+	def setImplicitValue(self, value):
+		self.setOpArgument(1, value)
+		return self
+	
+	def getImplicitValue(self):
+		return self.getOpArgument(1)
 	
 
 class Chain(Operation, IChain):
@@ -1184,6 +1320,24 @@ class Chain(Operation, IChain):
 	
 	def getTarget(self):
 		return self.getOpArgument(0)
+	
+
+class TypeIdentification(Operation, ITypeIdentification):
+	def setTarget(self, value):
+		_ensureOpArguments()
+		self.setOpArgument(0, value)
+		return self
+	
+	def setType(self, value):
+		_ensureOpArguments()
+		self.setOpArgument(0, type)
+		return self
+	
+	def getTarget(self):
+		return self.getOpArgument(0)
+	
+	def getType(self):
+		return self.getOpArgument(1)
 	
 
 class Evaluation(Operation, IEvaluation):
@@ -1422,6 +1576,34 @@ class AbsoluteReference(Reference, IAbsoluteReference):
 		Reference.__init__(self, name)
 	
 	pass
+
+class TypeReference(Reference, ITypeReference):
+	def __init__ (self, name, parameters=None):
+		self.parameters = None
+		if parameters is None: parameters = None
+		Reference.__init__(self, name)
+		self.parameters = parameters
+	
+	def addParameter(self, parameter):
+		if (not self.parameters):
+			self.parameters = []
+		self.parameters.append(parameter)
+		return self
+	
+
+class ImplicitReference(Reference, IImplicitReference):
+	def __init__ (self, element):
+		self.element = None
+		Reference.__init__(self, None)
+		self.element = element
+	
+	def setElement(self, element):
+		self.element = element
+		return self
+	
+	def getElement(self):
+		return self.element
+	
 
 class Operator(Reference, IOperator):
 	def __init__ (self, operator, priority):

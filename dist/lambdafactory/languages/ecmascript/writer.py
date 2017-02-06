@@ -42,15 +42,31 @@ class Writer(JavaScriptWriter):
 		"""Writes a class element."""
 		self.pushContext (element)
 		name = "" if anonymous else ((element.getName() or "") + " ")
-		parent = self._onClassParents(element)
+		parent = self._onClassParents(element, self.getClassParents(element))
 		yield "class " + name + ("extends " + parent if parent else "") + " {"
 		yield self._onClassBody(element)
 		yield "}"
 		self.popContext ()
 
+	def onType( self, element, anonymous=False ):
+		assert element.isConcrete()
+		self.pushContext (element)
+		name   = "" if anonymous else ((element.getName() or "") + " ")
+		parent = self._onClassParents(element, element.getParents())
+		slots  = [_ for _ in element.constraints if isinstance(_, interfaces.ISlotConstraint)]
+		yield "class " + name + ("extends " + parent if parent else "") + " {"
+		yield "\tconstructor({0}){{".format(", ".join(_.getName() for _ in slots))
+		if parent:
+			yield "\t\tsuper();"
+		for s in slots:
+			yield "\t\tif (typeof {0} != \"undefined\") {{this.{0} = {0};}}".format(s.getName())
+		yield "\t}"
+		yield "}"
+		self.popContext ()
+
 	def onTrait( self, element ):
 		self.pushContext (element)
-		yield "function(_) { return class extends " + self._onClassParents(element, "_") + " {"
+		yield "function(_) { return class extends " + self._onClassParents(element, self.getClassParents(element), base="_") + " {"
 		yield self._onClassBody(element, withConstructors=False)
 		yield "};}"
 		self.popContext()
@@ -58,7 +74,7 @@ class Writer(JavaScriptWriter):
 	def onSingleton( self, element ):
 		self.pushContext (element)
 		yield "function() {"
-		yield "\tvar self = new " + self._onClassParents(element, base="Object") + "();"
+		yield "\tvar self = new " + self._onClassParents(element, self.getClassParents(element), base="Object") + "();"
 		for e in element.getAttributes():
 			yield "\tself." + e.getName() + " = " + self.write(e.getDefaultValue()) + ";"
 		for e in element.getConstructors():
@@ -76,10 +92,9 @@ class Writer(JavaScriptWriter):
 		yield "}();"
 		self.popContext()
 
-	def _onClassParents( self, element, base="" ):
+	def _onClassParents( self, element, parents, base="" ):
 		"""Returns the parents of a class, taking into account the
 		pre-processing by traits."""
-		parents = self.getClassParents(element)
 		traits  = [_ for _ in parents if isinstance(_, interfaces.ITrait)]
 		parents = [_ for _ in parents if _ not in traits]
 		parent  = ""
@@ -127,8 +142,8 @@ class Writer(JavaScriptWriter):
 	def onClassMethod( self, element ):
 		return self.onFunction( element, modifier="static" )
 
-
 	def onConstructor( self, element ):
+		if not element: return None
 		r = []
 		has_constructor = False
 		for op in element.operations:
@@ -157,9 +172,11 @@ class Writer(JavaScriptWriter):
 	# =========================================================================
 
 	def _onFunctionBody( self, element, body=None, bindSelf=True ):
-		"""WRites the body of a function."""
+		"""Writes the body of a function."""
 		# Adds the `var self = this`
 		if bindSelf: yield self._runtimeSelfBinding(element)
+		for _ in self._writeImplicitAllocations(element):
+			yield _
 		if element:
 			for _ in self._onParametersInit(element): yield _
 			for _ in self._onPreCondition(element): yield _

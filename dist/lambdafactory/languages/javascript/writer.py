@@ -1046,6 +1046,11 @@ class Writer(AbstractWriter):
 		"""Writes a parameter element."""
 		return "%s" % (self._rewriteSymbol(param.getName()))
 
+	def onImplicitReference( self, element ):
+		scope = element.getElement()
+		slot  = scope.dataflow.getImplicitSlotFor(scope)
+		return slot.getName()
+
 	def onReference( self, element ):
 		"""Writes an argument element."""
 		symbol_name = element.getReferenceName()
@@ -1497,6 +1502,13 @@ class Writer(AbstractWriter):
 			condition = self._format(self.write(predicate)).strip()
 			if self._isUnambiguous and condition[0] == "(" and condition[-1] == ")": condition = condition[1:-1].strip()
 			if i==0:
+				if selection.getImplicitValue():
+					implicit_slot = selection.dataflow.getImplicitSlotFor(selection)
+					condition = "(({0}={1} || true) && ({2}))".format(
+						implicit_slot.getName(),
+						self.write(selection.getImplicitValue()),
+						condition
+					)
 				# NOTE: This is an edge case (more like a bug, really) where two
 				# branches of 1 selection are output as 2 selections with 1 branch.
 				rule_code = [
@@ -1530,7 +1542,7 @@ class Writer(AbstractWriter):
 		result = []
 		text   = ""
 		has_else = False
-		for rule in rules:
+		for i, rule in enumerate(rules):
 			#assert isinstance(rule, interfaces.IMatchExpressionOperation)
 			if isinstance(rule, interfaces.IMatchExpressionOperation):
 				expression = rule.getExpression()
@@ -1540,7 +1552,15 @@ class Writer(AbstractWriter):
 				text += self.write(expression)
 				has_else = True
 			else:
-				text += "(%s ? %s : " % (
+				prefix = ""
+				if i==0 and selection.getImplicitValue():
+					implicit_slot = selection.dataflow.getImplicitSlotFor(selection)
+					prefix = "(({0}={1}) || true) && ".format(
+						implicit_slot.getName(),
+						self.write(selection.getImplicitValue()),
+					)
+				text += "(%s%s ? %s : " % (
+					prefix,
 					self.write(rule.getPredicate()),
 					self.write(expression)
 				)
@@ -1728,6 +1748,23 @@ class Writer(AbstractWriter):
 				end
 		))
 
+	def onTypeIdentification( self, element ):
+		lvalue = self.write(element.getTarget())
+		t      = element.getType()
+		# FIXME: We should probably resolve the name, or try at least..
+		rvalue = t.getName()
+		# TODO: We should resolve the type in the namespace
+		if not t.parameters or len(t.parameters) == 0:
+			if t.name == "String":
+				return "(typeof {0} === 'string')".format(lvalue)
+			elif t.name == "Number":
+				return "(!isNaN({0}))".format(lvalue)
+			elif t.name == "Undefined":
+				return "(typeof {0} === 'undefined')".format(lvalue)
+			elif t.name == "None":
+				return "({0} === null)".format(lvalue)
+		return ("({0} instanceof {1})".format(lvalue, rvalue))
+
 	def onEvaluation( self, operation ):
 		"""Writes an evaluation operation."""
 		return "%s" % ( self.write(operation.getEvaluable()) )
@@ -1799,6 +1836,30 @@ class Writer(AbstractWriter):
 			return "\n".join(res)
 		else:
 			return embed.getCode()
+
+	# =========================================================================
+	# TYPES
+	# =========================================================================
+
+	def onType( self, element ):
+		pass
+		parents = [self.getSafeName(_) for _ in element.parents]
+		if element.isConcrete():
+			slots = [_ for _ in element.constraints if isinstance(_, interfaces.ISlotConstraint)]
+			args  = ", ".join(_.getName() for _ in slots)
+			yield "class (" + args + "){"
+			yield "}"
+		yield "FFFU"
+
+	def onEnumerationType( self, element ):
+		symbols = [_.getName() for _ in element.getSymbols()]
+		m = self._runtimeModuleName(element)
+		yield "function(){"
+		yield "\treturn " + " || ".join("(_==={0}.{1})".format(m,_) for _ in symbols)
+		yield "}(_);"
+		for _ in symbols:
+			# NOTE: Symbol is not supported yet, but would be preferrable
+			yield "{0}.{1} = new String(\"{2}\");".format(m, _, _)
 
 	# =========================================================================
 	# NICE HELPERS
@@ -1901,6 +1962,11 @@ class Writer(AbstractWriter):
 			res = (res or "") + "\n".join(r)
 		return res
 
+	def _writeImplicitAllocations( self, element ):
+		l = [_.getName() for _ in element.dataflow.slots if _.isImplicit()]
+		if l:
+			yield "var {0}; /* implicits */".format(", ".join(l))
+
 	# =========================================================================
 	# RUNTIME
 	# =========================================================================
@@ -1930,8 +1996,11 @@ class Writer(AbstractWriter):
 		return "%s.getClass()" % (variable or self.jsSelf)
 
 	def _runtimeOp( self, name, *args ):
-		args = [self.write(_) if isinstance(_,interfaces.IElement) else _]
+		args = [self.write(_) if isinstance(_,interfaces.IElement) else _ for _ in args]
 		return "extend." + name + "(" + ", ".join(args) + ")"
+
+	def _runtimeModuleName( self, element=None ):
+		return "__module__"
 
 	def _runtimeMap( self, lvalue, rvalue ):
 		return self._runtimeOp("map", lvalue, rvalue)

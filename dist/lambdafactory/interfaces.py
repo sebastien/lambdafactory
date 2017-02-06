@@ -71,11 +71,11 @@ class IDataFlow:
 		and origin."""
 		raise Exception("Abstract method IDataFlow.declareEnvironment not implemented in: " + str(self))
 	
-	def declareVariable(self, name, value, origin=None):
+	def declareLocal(self, name, value, origin=None):
 		"""Declares a (local) variable with the given name, value and
 		origin"""
 		if origin is None: origin = None
-		raise Exception("Abstract method IDataFlow.declareVariable not implemented in: " + str(self))
+		raise Exception("Abstract method IDataFlow.declareLocal not implemented in: " + str(self))
 	
 	def getSlots(self):
 		"""Returns the list of slots defined for this dataflow."""
@@ -304,6 +304,72 @@ class IAbstractable:
 		raise Exception("Abstract method IAbstractable.setAbstract not implemented in: " + str(self))
 	
 
+class IImplicitAllocation:
+	"""An implication allocation trait tells that an operation might allocate
+	a new implicity slot with the given value. This is useful for operations
+	that need to create a temporary reference to be used many times without
+	re-evaluating the expression, such as selections/matches."""
+	def setImplicitValue(self, evaluable):
+		raise Exception("Abstract method IImplicitAllocation.setImplicitValue not implemented in: " + str(self))
+	
+	def getImplicitValue(self):
+		raise Exception("Abstract method IImplicitAllocation.getImplicitValue not implemented in: " + str(self))
+	
+
+class IType(IReferencable):
+	def getName(self):
+		raise Exception("Abstract method IType.getName not implemented in: " + str(self))
+	
+	def setName(self, name):
+		raise Exception("Abstract method IType.setName not implemented in: " + str(self))
+	
+	def getParents(self):
+		raise Exception("Abstract method IType.getParents not implemented in: " + str(self))
+	
+	def addParent(self, parent):
+		raise Exception("Abstract method IType.addParent not implemented in: " + str(self))
+	
+	def getParameters(self):
+		raise Exception("Abstract method IType.getParameters not implemented in: " + str(self))
+	
+	def setParameters(self):
+		raise Exception("Abstract method IType.setParameters not implemented in: " + str(self))
+	
+	def isConcrete(self):
+		raise Exception("Abstract method IType.isConcrete not implemented in: " + str(self))
+	
+	def addConstraint(self, constraint):
+		raise Exception("Abstract method IType.addConstraint not implemented in: " + str(self))
+	
+
+class ITypeConstraint:
+	pass
+
+class ISlotConstraint(ITypeConstraint):
+	def getName(self):
+		raise Exception("Abstract method ISlotConstraint.getName not implemented in: " + str(self))
+	
+	def setName(self):
+		raise Exception("Abstract method ISlotConstraint.setName not implemented in: " + str(self))
+	
+	def getType(self):
+		raise Exception("Abstract method ISlotConstraint.getType not implemented in: " + str(self))
+	
+	def setType(self):
+		raise Exception("Abstract method ISlotConstraint.setType not implemented in: " + str(self))
+	
+
+class IEnumerationType(IType):
+	def addSymbol(self, name):
+		raise Exception("Abstract method IEnumerationType.addSymbol not implemented in: " + str(self))
+	
+	def getSymbols(self):
+		raise Exception("Abstract method IEnumerationType.getSymbols not implemented in: " + str(self))
+	
+
+class ISymbolType(IType, IEvaluable):
+	pass
+
 class IValue(IElement, IEvaluable):
 	"""A value represents an atomic element of the language, like a number, a
 	string, or a name (that can resolved by the language, acts as key for data
@@ -376,6 +442,9 @@ class IReference(IValue, IReferencable):
 		raise Exception("Abstract method IReference.getReferenceName not implemented in: " + str(self))
 	
 
+class ITypeReference(IValue, IReferencable):
+	pass
+
 class IAbsoluteReference(IReference):
 	"""An absolute reference is a specific kind of reference that does not
 	necessarily resolve in the current context, but will rather use the program
@@ -386,6 +455,14 @@ class IAnonymousReference(IReference):
 	"""A reference which name is randomly generate and is guaranteed not to clash
 	with the scope."""
 	pass
+
+class IImplicitReference(IReference):
+	def getElement(self):
+		raise Exception("Abstract method IImplicitReference.getElement not implemented in: " + str(self))
+	
+	def setElement(self, element):
+		raise Exception("Abstract method IImplicitReference.setElement not implemented in: " + str(self))
+	
 
 class IOperator(IReference):
 	def setPriority(self, priority):
@@ -1035,11 +1112,11 @@ class IMatchProcessOperation(IMatchOperation):
 		return self.setOpArgument(1, v)
 	
 
-class ISelection(IOperation):
+class ISelection(IOperation, IImplicitAllocation):
 	"""Selections are the abstract objects behind `if`, `select` or
 	pattern-matching operations. Each selection has match operations as
 	arguments, which bind a subprocess to a predicate expression."""
-	ARGS = [[IMatchOperation]]
+	ARGS = [[IMatchOperation], IEvaluable]
 	def addRule(self, evaluable):
 		"""Adds a rule to this operation."""
 		raise Exception("Abstract method ISelection.addRule not implemented in: " + str(self))
@@ -1062,6 +1139,21 @@ class IChain(IOperation):
 	
 	def getGroups(self):
 		raise Exception("Abstract method IChain.getGroups not implemented in: " + str(self))
+	
+
+class ITypeIdentification(IOperation):
+	ARGS = [IEvaluable, IType]
+	def setTarget(self, value):
+		raise Exception("Abstract method ITypeIdentification.setTarget not implemented in: " + str(self))
+	
+	def getTarget(self, value):
+		raise Exception("Abstract method ITypeIdentification.getTarget not implemented in: " + str(self))
+	
+	def setType(self, value):
+		raise Exception("Abstract method ITypeIdentification.setType not implemented in: " + str(self))
+	
+	def getType(self, value):
+		raise Exception("Abstract method ITypeIdentification.getType not implemented in: " + str(self))
 	
 
 class IIteration(IBinaryOperation):
