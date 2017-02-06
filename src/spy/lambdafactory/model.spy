@@ -749,10 +749,26 @@
 @class Type: Element, IType
 
 	@property parameters=None
+	@property constraints=[]
+	@property parents=[]
 
 	@constructor name=None, parameters=None
 		Element __init__ ( self, name )
 		self parameters = parameters
+	@end
+
+	@method addParent parent
+		parents append (parent)
+		return self
+	@end
+
+	@method getParents
+		return parents
+	@end
+
+	@method addConstraint constraint
+		constraints append (constraint)
+		return self
 	@end
 
 	@method getReferenceName
@@ -772,8 +788,40 @@
 		return self
 	@end
 
+	@method isConcrete
+		#return (not (parameters)) or len(parameters) == 0
+		return True
+	@end
+
 @end
 
+@class SlotConstraint: ISlotConstraint
+
+	@property name
+	@property type
+
+	@constructor name, type=Undefined
+		self name = name
+		self type = type
+	@end
+
+	@method getName
+		return name
+	@end
+
+	@method setName name
+		self name = name
+	@end
+
+	@method getType
+		return type
+	@end
+
+	@method setType type
+		self type = type
+	@end
+
+@end
 @class EnumerationType: Type, IEnumerationType
 
 	@property parameters=None
@@ -2126,6 +2174,25 @@
 
 	@constructor name:String
 		Reference __init__ (self, name)
+	@end
+
+@end
+
+@class TypeReference: Reference, ITypeReference
+
+	@property parameters = None
+
+	@constructor name:String, parameters=None
+		Reference __init__ (self, name)
+		self parameters = parameters
+	@end
+
+	@method addParameter parameter
+		if not parameters
+			parameters = []
+		end
+		parameters append (parameter)
+		return self
 	@end
 
 @end

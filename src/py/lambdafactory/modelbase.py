@@ -160,6 +160,9 @@ class Factory:
 	def type( self, name, parameters=None ):
 		return self._getImplementation("Type")(name, parameters)
 
+	def typeSlot( self, name, type=None ):
+		return self._getImplementation("SlotConstraint")(name, type)
+
 	def enum( self, name, parameters=None ):
 		return self._getImplementation("EnumerationType")(name, parameters)
 
@@ -292,6 +295,9 @@ class Factory:
 
 	def _absref( self, name ):
 		return self._getImplementation("AbsoluteReference")(name)
+
+	def _typeref( self, name, parameters=None ):
+		return self._getImplementation("TypeReference")(name, parameters)
 
 	def _symbol(self, name):
 		return self._absref(name)

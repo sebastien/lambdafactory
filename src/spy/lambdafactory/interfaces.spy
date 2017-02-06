@@ -335,11 +335,32 @@
 
 	@abstract @method getName
 
-	@abstract @method setName
+	@abstract @method setName name
+
+	@abstract @method getParents
+
+	@abstract @method addParent parent:Name
 
 	@abstract @method getParameters
 
 	@abstract @method setParameters
+
+	@abstract @method isConcrete
+
+	@abstract @method addConstraint constraint
+
+@end
+
+@protocol ITypeConstraint
+@end
+
+@protocol ISlotConstraint: ITypeConstraint
+
+	@abstract @method getName
+	@abstract @method setName
+
+	@abstract @method getType
+	@abstract @method setType
 
 @end
 
@@ -430,6 +451,9 @@
 	|	Returns the name which this reference contains. The name is used by
 	|	the resolution operation to actually resolve a value from the name.
 
+@end
+
+@protocol ITypeReference: IValue, IReferencable
 @end
 
 @protocol IAbsoluteReference: IReference

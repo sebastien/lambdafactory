@@ -1840,6 +1840,16 @@ class Writer(AbstractWriter):
 	# TYPES
 	# =========================================================================
 
+	def onType( self, element ):
+		pass
+		parents = [self.getSafeName(_) for _ in element.parents]
+		if element.isConcrete():
+			slots = [_ for _ in element.constraints if isinstance(_, interfaces.ISlotConstraint)]
+			args  = ", ".join(_.getName() for _ in slots)
+			yield "class (" + args + "){"
+			yield "}"
+		yield "FFFU"
+
 	def onEnumerationType( self, element ):
 		symbols = [_.getName() for _ in element.getSymbols()]
 		m = self._runtimeModuleName(element)
