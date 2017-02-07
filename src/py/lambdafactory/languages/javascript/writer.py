@@ -1577,11 +1577,17 @@ class Writer(AbstractWriter):
 
 	def onIteration( self, iteration ):
 		"""Writes a iteration operation."""
-		iterator    = iteration.getIterator()
-		if iteration.isRangeIteration():
-			return self._writeRangeIteration(iteration)
+		if isinstance(iteration.parent, interfaces.IOperation):
+			return self._runtimeIterate(
+				iteration.getIterator(),
+				iteration.getClosure(),
+			)
 		else:
-			return self._writeObjectIteration(iteration)
+			iterator    = iteration.getIterator()
+			if iteration.isRangeIteration():
+				return self._writeRangeIteration(iteration)
+			else:
+				return self._writeObjectIteration(iteration)
 
 	def onMapIteration( self, iteration ):
 		return self._runtimeMap(
