@@ -87,7 +87,7 @@ class Writer(AbstractWriter):
 
 	def __init__( self ):
 		AbstractWriter.__init__(self)
-		self.jsPrefix                = ""
+		self.runtimePrefix                = ""
 		self.jsCore                  = "extend."
 		self.jsSelf                  = "self"
 		self.jsModule                = "__module__"
@@ -181,6 +181,9 @@ class Writer(AbstractWriter):
 		# TODO: We should have a special handling for the current module
 		# if element == self.getCurrentModule() and self.resolve(element.getName())[1] != element:
 		# 	return ["__module__"] if asList else "__module__"
+		if isinstance( element, interfaces.ITypeReference ):
+			# FIXME: This is a bit of a hack
+			return self.write(element)
 		while element.getParent():
 			element = element.getParent()
 			# FIXME: Some elements may not have a name
@@ -290,6 +293,7 @@ class Writer(AbstractWriter):
 			code.extend(self.getModuleGooglePrefix(moduleElement))
 		else:
 			code.extend(self.getModuleVanillaPrefix(moduleElement))
+		code.extend(self._runtimePreamble())
 		# --- VERSION ---------------------------------------------------------
 		version = moduleElement.getAnnotation("version")
 		if version:
@@ -1022,7 +1026,7 @@ class Writer(AbstractWriter):
 				assert i >= l - 2
 				result.append("%s = %s(arguments,%d)" % (
 					arg_name,
-					self.jsPrefix + self.jsCore + "sliceArguments",
+					self.runtimePrefix + self.jsCore + "sliceArguments",
 					i
 				))
 			if not (param.getDefaultValue() is None):
@@ -1091,7 +1095,7 @@ class Writer(AbstractWriter):
 
 		# If there is no scope, then the symmbol is undefined
 		if not scope:
-			if symbol_name == "print": return self.jsPrefix + self.jsCore + "print"
+			if symbol_name == "print": return self.runtimePrefix + self.jsCore + "print"
 			else: return symbol_name
 		# If the slot is imported
 		elif slot.isImported():
@@ -1223,7 +1227,7 @@ class Writer(AbstractWriter):
 		# Otherwise we'll use extend.createMapFromItems method
 		else:
 			return "%s%screateMapFromItems(%s)" % (
-				self.jsPrefix,
+				self.runtimePrefix,
 				self.jsCore,
 				",".join("[%s,%s]" % ( self.write(k),self.write(v)) for k,v in element.getItems())
 			)
@@ -1280,7 +1284,7 @@ class Writer(AbstractWriter):
 		else: start = "(%s)" % (self.write(start))
 		if isinstance(end, interfaces.ILiteral): end = self.write(end)
 		else: end = "(%s)" % (self.write(end))
-		res = self.jsPrefix + self.jsCore + "range(%s,%s)" % (start, end)
+		res = self.runtimePrefix + self.jsCore + "range(%s,%s)" % (start, end)
 		step = operation.getStep()
 		if step: res += " step " + self.write(step)
 		return res
@@ -1323,13 +1327,13 @@ class Writer(AbstractWriter):
 				)
 			elif operator.getReferenceName() == "in":
 				res = '(%sisIn(%s,%s))' % (
-					self.jsPrefix + self.jsCore,
+					self.runtimePrefix + self.jsCore,
 					self.write(operands[0]),
 					self.write(operands[1])
 				)
 			elif operator.getReferenceName() == "not in":
 				res = '(!(%sisIn(%s,%s)))' % (
-					self.jsPrefix + self.jsCore,
+					self.runtimePrefix + self.jsCore,
 					self.write(operands[0]),
 					self.write(operands[1])
 				)
@@ -1724,9 +1728,9 @@ class Writer(AbstractWriter):
 				"%s[%s]" % (self.write(target), self.write(index))
 			)
 		else:
-			return self._format(
-				"%s%saccess(%s,%s)" % (self.jsPrefix, self.jsCore, self.write(target), self.write(index))
-			)
+			return self._format(self._runtimeAccess(
+				self.write(target), self.write(index)
+			))
 
 	def onSliceOperation( self, operation ):
 		start = operation.getSliceStart()
@@ -1739,14 +1743,12 @@ class Writer(AbstractWriter):
 			end = self.write(end)
 		else:
 			end = "undefined"
-		return self._format(
-			"%s%sslice(%s,%s,%s)" % (
-				self.jsPrefix,
-				self.jsCore,
-				self.write(operation.getTarget()),
-				start,
-				end
+		return self._format(self._runtimeSlice(
+			self.write(operation.getTarget()),
+			start,
+			end
 		))
+
 
 	def onTypeIdentification( self, element ):
 		lvalue = self.write(element.getTarget())
@@ -1755,13 +1757,13 @@ class Writer(AbstractWriter):
 		rvalue = t.getName()
 		# TODO: We should resolve the type in the namespace
 		if not t.parameters or len(t.parameters) == 0:
-			if t.name == "String":
+			if rvalue == "String":
 				return "(typeof {0} === 'string')".format(lvalue)
-			elif t.name == "Number":
+			elif rvalue == "Number":
 				return "(!isNaN({0}))".format(lvalue)
-			elif t.name == "Undefined":
+			elif rvalue == "Undefined":
 				return "(typeof {0} === 'undefined')".format(lvalue)
-			elif t.name == "None":
+			elif rvalue == "None":
 				return "({0} === null)".format(lvalue)
 		return ("({0} instanceof {1})".format(lvalue, rvalue))
 
@@ -1807,7 +1809,13 @@ class Writer(AbstractWriter):
 
 	def onExcept( self, exception ):
 		"""Writes a except operation."""
-		return "throw " + self.write(exception.getValue()) + ";"
+		res = "throw " + self.write(exception.getValue())
+		if isinstance(exception, interfaces.IOperation):
+			# We can throw in an exception
+			return "(function(){" + res +"}())"
+		else:
+			return res + ";"
+
 
 	def onInterception( self, interception ):
 		"""Writes an interception operation."""
@@ -2012,16 +2020,34 @@ class Writer(AbstractWriter):
 		return self._runtimeOp("iterate", lvalue, rvalue)
 
 	def _runtimeReturnBreak( self ):
-		return "return extend.FLOW_BREAK;"
+		return "return " + self.runtimePrefix + "FLOW_BREAK;"
 
 	def _runtimeReturnContinue( self ):
-		return "return extend.FLOW_CONTINUE;"
+		return "return " + self.runtimePrefix + "FLOW_CONTINUE;"
 
 	def _runtimeSelfReference( self, element=None ):
 		return self.jsSelf
 
 	def _runtimeSelfBinding( self, element=None ):
 		return "var self = this;"
+
+	def _runtimePreamble( self ):
+		return []
+
+	def _runtimeAccess( self, target, index ):
+		return "%s%saccess(%s,%s)" % (
+			self.runtimePrefix, self.jsCore,
+			target, index
+		)
+
+	def _runtimeSlice( self, target, start, end ):
+		return "%s%sslice(%s,%s,%s)" % (
+			self.runtimePrefix,
+			self.jsCore,
+			target,
+			start,
+			end
+		)
 
 MAIN_CLASS = Writer
 

@@ -20,6 +20,12 @@ A specialization of the JavaScript writer to output runtime-free ECMAScript
 code.
 """
 
+RUNTIME_OPS = {
+	"map":"__map__",
+	"filter":"__filter__",
+	"reduce":"__reduce__",
+}
+
 #------------------------------------------------------------------------------
 #
 #  WRITER
@@ -31,6 +37,21 @@ class Writer(JavaScriptWriter):
 	def __init__( self ):
 		JavaScriptWriter.__init__(self)
 		self.jsInit = "__init__"
+
+	# -------------------------------------------------------------------------
+	#
+	# OPERATION
+	#
+	# -------------------------------------------------------------------------
+
+	def onEnumeration( self, operation ):
+		"""Writes an enumeration operation."""
+		start = self.write(operation.getStart())
+		end   = self.write(operation.getEnd())
+		step  = operation.getStep()
+		step  = self.write(step) if step else 1
+		# NOTE: This is a safe, runtime-free enumeration
+		return "__range__({0},{1},{2})".format(start,end,step)
 
 	# -------------------------------------------------------------------------
 	#
@@ -230,6 +251,18 @@ class Writer(JavaScriptWriter):
 	# UTILITIES
 	# =========================================================================
 
+	def _runtimeOp( self, name, lvalue, rvalue ):
+		return "{0}({1},{2})".format(
+			RUNTIME_OPS.get(name) or name,
+			self.write(lvalue), self.write(rvalue)
+		)
+
+	def _runtimeReturnBreak( self ):
+		return "return __BREAK__;"
+
+	def _runtimeReturnContinue( self ):
+		return "return __CONTINUE__;"
+
 	def _runtimeRestArguments( self, i ):
 		return "Array.prototype.slice.call(arguments," + str(i) + ")"
 
@@ -271,6 +304,15 @@ class Writer(JavaScriptWriter):
 		m = self.jsSelf + ".__method__" + name
 		n = self.jsSelf + "." + name
 		return "(typeof {0} === typeof undefined ? {0} = function(){{return {1}.apply(self,arguments);}} : {0})".format(m, n)
+
+	def _runtimePreamble( self ):
+		return []
+
+	def _runtimeAccess( self, target, index ):
+		return "({0} instanceof Array || typeof {0} === \"string\" ?  {0}.slice({1}) : undefined)".format(target, index)
+
+	def _runtimeSlice( self, target, start, end ):
+		return "({0} instanceof Array || typeof {0} === \"string\" ?  {0}.slice({1},{2}) : undefined)".format(target, start, end)
 
 MAIN_CLASS = Writer
 

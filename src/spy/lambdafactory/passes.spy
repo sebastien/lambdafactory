@@ -367,7 +367,8 @@
 				var slot, parent_class = resolution
 				# TODO: assert parent
 				if parent_class
-					assert (isinstance(parent_class, interfaces IClass))
+					# A parent class can be a type or a class
+					# assert (isinstance(parent_class, interfaces IType))
 					parents append (parent_class)
 				else
 					# Here we add the reference anyway, even if the class is not resolved
