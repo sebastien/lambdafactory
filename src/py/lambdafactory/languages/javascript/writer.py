@@ -962,16 +962,18 @@ class Writer(AbstractWriter):
 		an iteration loop.
 		"""
 		operations = closure.getOperations()
+		implicits  = [_ for _ in self._writeImplicitAllocations(closure)]
 		if bodyOnly:
-			result = [self.write(_) + ";" for _ in operations]
+			result = implicits + [self.write(_) + ";" for _ in operations]
 		else:
-			result   = [
+			result = [
 				self._document(closure),
 				(
 					self.options["ENABLE_METADATA"] and "__def(function(%s) {" \
 					or "function(%s) {"
 				) % ( ", ".join(map(self.write, closure.getArguments()))),
 				self._writeClosureArguments(closure),
+				implicits,
 				list(map(self.write, operations)),
 				(
 					(not self.options["ENABLE_METADATA"] and "}") or \
@@ -1265,15 +1267,19 @@ class Writer(AbstractWriter):
 		r = []
 		# NOTE: The parsing could be done at the compiler level, but for now
 		# the semantics are left to the backend.
+		is_multiple = False
+		occ         = []
 		for m in RE_STRING_FORMAT.finditer(s):
 			r.append(json.dumps(s[o:m.start()]))
-			ki = m.group(2)
+			ki = m.group(2) # Index
 			ks = m.group(3)
-			f  = m.group(4)
-			v  = json.dumps(ks) if ks else ki
+			f  = m.group(4) # Formatter
+			v  = json.dumps(ks) if ks else ki # Value
 			r.append("extend.sprintf(_[{0}],{1})".format(v, json.dumps(f)) if f else "_[{0}]".format(v))
 			o = m.end()
 		r.append(json.dumps(s[o:]))
+		# FIXME: Optimize so that no function has to be called if the arguments
+		# are not repeated, or use implicits.
 		return r[0] if len(r) == 1 else "(function(_){return " + "+".join(r) + "})(" + self.write(c) + ")"
 
 	def onEnumeration( self, operation ):
@@ -1481,6 +1487,7 @@ class Writer(AbstractWriter):
 		target = self.write(chain.getTarget())
 		v      = self._getRandomVariable()
 		groups = chain.getGroups() or None
+		# FIXME: What do we do with groups here?
 		return [
 			"var {0}={1};".format(v, target),
 		]

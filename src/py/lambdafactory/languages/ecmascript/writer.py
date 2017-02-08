@@ -68,7 +68,7 @@ class Writer(JavaScriptWriter):
 		yield "class " + name + ("extends " + parent if parent else "") + " {"
 		yield self._onClassBody(element)
 		yield "}"
-		yield "Object.defineProperty({0}, \"__name__\", {{value:\"{1}\",writable:false}});;".format(self.getSafeName(element), element.getAbsoluteName())
+		yield "Object.defineProperty({0}, \"__name__\", {{value:\"{1}\",writable:false}});".format(self.getSafeName(element), element.getAbsoluteName())
 		self.popContext ()
 
 	def onType( self, element, anonymous=False ):
