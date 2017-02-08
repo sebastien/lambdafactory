@@ -1895,10 +1895,35 @@
 
 @end
 
-@class MapIteration: Operation, IMapIteration
+@class MapIteration: Iteration, IMapIteration
 @end
 
-@class FilterIteration: Operation, IFilterIteration
+@class FilterIteration: Iteration, IFilterIteration
+@end
+
+@class ReduceIteration: Iteration, IReduceIteration
+
+	@property direction = 1
+
+	@constructor arguments...
+		Operation __init__ ( self )
+		self setOpArguments(arguments)
+	@end
+
+	@method setFromLeft
+		direction = 1
+		return self
+	@end
+
+	@method setFromRight
+		direction = -1
+		return self
+	@end
+
+	@method getDirection
+		return direction
+	@end
+
 @end
 
 @class Interpolation: Operation, IInterpolation

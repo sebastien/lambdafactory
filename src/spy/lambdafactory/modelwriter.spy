@@ -106,6 +106,7 @@
 		interfaces IRepetition
 		interfaces IFilterIteration
 		interfaces IMapIteration
+		interfaces IReduceIteration
 		interfaces IIteration
 		interfaces IAccessOperation
 		interfaces ISliceOperation

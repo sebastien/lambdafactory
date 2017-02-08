@@ -1253,6 +1253,22 @@
 
 @end
 
+@class IReduceIteration: IIteration
+| An iteration that is evaluable and that will produce a filtered map of the iterator
+
+	@shared ARGS = [IEvaluable, IEvaluable, IEvaluable ]
+
+	@method getInitialValue
+		return getOpArgument (2)
+	@end
+
+	@method setImplicitValue value
+		setOpArgument (2, value)
+		return self
+	@end
+
+@end
+
 @class IEnumeration: IBinaryOperation
 |	An enumeration produces values between a start and an end value, with the
 |	given step.

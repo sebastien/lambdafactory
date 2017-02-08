@@ -271,10 +271,10 @@ class Writer(JavaScriptWriter):
 	# UTILITIES
 	# =========================================================================
 
-	def _runtimeOp( self, name, lvalue, rvalue ):
-		return "{0}({1},{2})".format(
+	def _runtimeOp( self, name, *args ):
+		return "{0}({1})".format(
 			RUNTIME_OPS.get(name) or name,
-			self.write(lvalue), self.write(rvalue)
+			", ".join(self.write(_) for _ in args)
 		)
 
 	def _runtimeReturnBreak( self ):

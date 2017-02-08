@@ -1497,9 +1497,10 @@ class Writer(AbstractWriter):
 		in_process = isinstance(self.context[-2], interfaces.IProcess) or isinstance(self.context[-2], interfaces.IBlock)
 		if not in_process and selection.hasAnnotation("if-expression"):
 			return self._writeSelectionInExpression(selection)
-		rules = selection.getRules()
-		result = []
-		last   = len(rules) - 1
+		rules     = selection.getRules()
+		implicits = [_ for _ in self._writeImplicitAllocations(selection)]
+		result    = []
+		last      = len(rules) - 1
 		for i in range(0,len(rules)):
 			rule = rules[i]
 			if isinstance(rule, interfaces.IMatchProcessOperation):
@@ -1547,6 +1548,7 @@ class Writer(AbstractWriter):
 				result = rule_code
 			else:
 				result = result[:-1] + rule_code
+		result = implicits + result
 		if selection.hasAnnotation("assignment"):
 			result = ["// This is a conditional assignment (default value)"] + result
 		return self._format(*result)
@@ -1619,6 +1621,14 @@ class Writer(AbstractWriter):
 			return self._runtimeMap(i,c)
 		else:
 			return self._runtimeFilter(i,p)
+
+
+	def onReduceIteration( self, iteration ):
+		return self._runtimeReduce(
+			iteration.getIterator(),
+			iteration.getClosure(),
+			iteration.getInitialValue()
+		)
 
 	def _writeRangeIteration( self, iteration ):
 		iterator = iteration.getIterator()
@@ -1986,7 +1996,9 @@ class Writer(AbstractWriter):
 		return res
 
 	def _writeImplicitAllocations( self, element ):
-		if element:
+		# FIXME: assert(element.dataflow) fails sometimes
+		if element and element.dataflow:
+			# NOTE: Implicits can sometimes be declared twice
 			l = [_.getName() for _ in element.dataflow.slots if _.isImplicit()]
 			if l:
 				yield "var {0}; /* implicits */".format(", ".join(l))
@@ -2028,6 +2040,12 @@ class Writer(AbstractWriter):
 
 	def _runtimeMap( self, lvalue, rvalue ):
 		return self._runtimeOp("map", lvalue, rvalue)
+
+	def _runtimeReduce( self, lvalue, rvalue, initial=None ):
+		if initial is None:
+			return self._runtimeOp("reduce", lvalue, rvalue)
+		else:
+			return self._runtimeOp("reduce", lvalue, rvalue, initial)
 
 	def _runtimeFilter( self, lvalue, rvalue ):
 		return self._runtimeOp("filter", lvalue, rvalue)
