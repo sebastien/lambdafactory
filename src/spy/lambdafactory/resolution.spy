@@ -287,7 +287,7 @@
 		# NOTE: Here we mean _, _0, _1‥ as implicit references, not the
 		# IImplicitReference types.
 		if i>=0 and RE_IMPLICIT match (name)
-			var slot   = resolve (element)
+			var slot = resolve (element)
 			if not slot[0]
 				var n        = 0
 				if len(name) > 1 -> n = int(name[1:])

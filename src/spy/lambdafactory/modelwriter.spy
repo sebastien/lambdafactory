@@ -81,8 +81,8 @@
 		interfaces IBlock
 		interfaces IModuleAttribute
 		interfaces IClassAttribute
-		interfaces IType
 		interfaces IEnumerationType
+		interfaces IType
 		interfaces IAttribute
 		interfaces IArgument
 		interfaces IParameter

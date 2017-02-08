@@ -151,7 +151,7 @@
 		@method filterContext interface
 		@as internal
 			@embed Python
-			|return [_ for _ in self.context if isinstance(_,interface)]
+			|return [_ for _ in self.context if _ and (isinstance(_,interface) or _ is interface)]
 			@end
 		@end
 
@@ -252,7 +252,7 @@
 		@end
 
 		@method isIn interface
-			return findInContext (interface ) != None
+			return findInContext (interface) != None
 		@end
 
 		@method isShadowed name:String, element:IElement
@@ -291,9 +291,12 @@
 		@method getCurrentDataFlow
 			var i = len(context) - 1
 			while i >= 0
-				var dataflow = context[i] getDataFlow()
-				if dataflow
-					return dataflow
+				let e = context[i]
+				if isinstance (e, interfaces IElement)
+					var dataflow = e getDataFlow()
+					if dataflow
+						return dataflow
+					end
 				end
 				i -= 1
 			end
