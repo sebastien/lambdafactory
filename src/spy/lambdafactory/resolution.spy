@@ -44,6 +44,7 @@
 		interfaces IClass
 		interfaces IMethod
 		interfaces IClosure
+		interfaces IBlock
 		interfaces IProcess
 		interfaces IContext
 		interfaces IAllocation
@@ -150,6 +151,16 @@
 		# @end
 	@end
 
+	@method onBlock element
+		if isinstance (element parent, interfaces IMatchOperation)
+			# If the block is withing a match expression, then the dataflow
+			# is the same as the parent
+			element setDataFlow (element parent dataflow)
+		else
+			let dataflow = ensureDataFlow (element)
+		end
+	@end
+
 	@method onProcess element
 		# Processes have their own dataflows
 		var dataflow = ensureDataFlow (element)
@@ -204,7 +215,7 @@
 		var dataflow = element getDataFlow()
 		if not dataflow
 			dataflow = getParentDataFlow()
-			element setDataFlow(dataflow)
+			element setDataFlow (dataflow)
 		end
 		return dataflow
 	@end
