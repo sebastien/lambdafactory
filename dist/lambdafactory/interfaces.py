@@ -1183,6 +1183,17 @@ class IFilterIteration(IIteration):
 		return self.getOpArgument(2)
 	
 
+class IReduceIteration(IIteration):
+	"""An iteration that is evaluable and that will produce a filtered map of the iterator"""
+	ARGS = [IEvaluable, IEvaluable, IEvaluable]
+	def getInitialValue(self):
+		return self.getOpArgument(2)
+	
+	def setImplicitValue(self, value):
+		self.setOpArgument(2, value)
+		return self
+	
+
 class IEnumeration(IBinaryOperation):
 	"""An enumeration produces values between a start and an end value, with the
 	given step."""

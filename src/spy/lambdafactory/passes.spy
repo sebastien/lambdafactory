@@ -753,6 +753,38 @@
 
 # ============================================================================
 #
+# CONTROL FLOW PASS
+#
+# ============================================================================
+
+@class ControlFlow: Pass
+
+	@shared HANDLES = [
+		interfaces ITermination
+	]
+
+	@constructor
+		Pass __init__ (self)
+	@end
+
+	@method onTermination element
+		# If we have IIteration → IClosure, then the termination
+		# is within the body of a selection
+		let i = lastIndexInContext (interfaces IIteration)
+		let j = lastIndexInContext (interfaces IClosure)
+		if i >= 0 and (j == i + 1)
+			let e = context[i]
+			element addAnnotation "in-iteration"
+			if not e hasAnnotation "terminates"
+				e addAnnotation "terminates"
+			end
+		end
+	@end
+
+@end
+
+# ============================================================================
+#
 # IMPORTATION PASS
 #
 # ============================================================================

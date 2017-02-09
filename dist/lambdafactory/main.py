@@ -256,6 +256,7 @@ class Command:
 			if (((language == 'javascript') or (language == 'actionscript')) and (not ('NORUNTIME' in options))):
 				self.environment.addPass(passes.ExtendJSRuntime())
 			self.environment.addPass(passes.Importation())
+			self.environment.addPass(passes.ControlFlow())
 			self.environment.addPass(resolution.BasicDataFlow())
 			self.environment.addPass(resolution.DataFlowBinding())
 		elif True:

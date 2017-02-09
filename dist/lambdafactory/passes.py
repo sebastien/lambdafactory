@@ -97,7 +97,7 @@ class PassContext:
 		self.context.pop()
 	
 	def filterContext(self, interface):
-		return [_ for _ in self.context if isinstance(_,interface)]
+		return [_ for _ in self.context if _ and (isinstance(_,interface) or _ is interface)]
 		
 	
 	def filter(self, list, interface):
@@ -196,9 +196,11 @@ class PassContext:
 	def getCurrentDataFlow(self):
 		i=(len(self.context) - 1)
 		while (i >= 0):
-			dataflow=self.context[i].getDataFlow()
-			if dataflow:
-				return dataflow
+			e=self.context[i]
+			if isinstance(e, interfaces.IElement):
+				dataflow=e.getDataFlow()
+				if dataflow:
+					return dataflow
 			i = (i - 1)
 		return None
 	
@@ -249,7 +251,6 @@ class PassContext:
 			slot=parent_class[0]
 			parent_class = parent_class[1]
 			if parent_class:
-				assert(isinstance(parent_class, interfaces.IClass))
 				parents.append(parent_class)
 			elif True:
 				parents.append(parent_class_ref)
@@ -459,6 +460,21 @@ class ExtendJSRuntime(Pass):
 		
 		module.addImportOperation(self.environment.factory.importSymbols(self.runtime.getSlotNames(), self.runtime.getAbsoluteName()), 0)
 		return False
+	
+
+class ControlFlow(Pass):
+	HANDLES = [interfaces.ITermination]
+	def __init__ (self):
+		Pass.__init__(self)
+	
+	def onTermination(self, element):
+		i=self.lastIndexInContext(interfaces.IIteration)
+		j=self.lastIndexInContext(interfaces.IClosure)
+		if ((i >= 0) and (j == (i + 1))):
+			e=self.context[i]
+			element.addAnnotation('in-iteration')
+			if (not e.hasAnnotation('terminates')):
+				e.addAnnotation('terminates')
 	
 
 class Importation(Pass):

@@ -21,6 +21,7 @@ code.
 """
 
 RUNTIME_OPS = {
+	"isIn":"__in__",
 	"map":"__map__",
 	"filter":"__filter__",
 	"reduce":"__reduce__",
@@ -63,12 +64,16 @@ class Writer(JavaScriptWriter):
 	def onClass( self, element, anonymous=False ):
 		"""Writes a class element."""
 		self.pushContext (element)
+		safe_name = self.getSafeName(element)
+		abs_name  = element.getAbsoluteName()
 		name = "" if anonymous else ((element.getName() or "") + " ")
 		parent = self._onClassParents(element, self.getClassParents(element))
 		yield "class " + name + ("extends " + parent if parent else "") + " {"
 		yield self._onClassBody(element)
 		yield "}"
-		yield "Object.defineProperty({0}, \"__name__\", {{value:\"{1}\",writable:false}});".format(self.getSafeName(element), element.getAbsoluteName())
+		yield "Object.defineProperty({0}, \"__name__\", {{value:\"{1}\",writable:false}});".format(safe_name, abs_name)
+		for _ in element.getClassAttributes():
+			yield "Object.defineProperty({0}, \"{1}\", {{value:{2},writable:true}});".format(safe_name, _.getName(), self.write(_))
 		self.popContext ()
 
 	def onType( self, element, anonymous=False ):
@@ -144,6 +149,10 @@ class Writer(JavaScriptWriter):
 		for e in element.getConstructors() or ([None] if withConstructors else ()):
 			self.pushContext(e or interfaces.IConstructor)
 			yield self.onConstructor(e)
+			self.popContext()
+		for e in element.getClassMethods():
+			self.pushContext(e)
+			yield self.onClassMethod(e)
 			self.popContext()
 		for e in element.getInstanceMethods():
 			self.pushContext(e)
@@ -304,6 +313,9 @@ class Writer(JavaScriptWriter):
 			t = "__module__"
 		elif isinstance(c, interfaces.ISingleton):
 			return None
+		elif isinstance(c, interfaces.IClassMethod):
+			t = "this"
+			#t = self.getSafeName(self.getCurrentClass())
 		return "let {0} = {1};".format(self.jsSelf, t)
 
 	def _runtimeSuper( self, element ):

@@ -87,7 +87,7 @@ class Writer(AbstractWriter):
 
 	def __init__( self ):
 		AbstractWriter.__init__(self)
-		self.jsPrefix                = ""
+		self.runtimePrefix                = ""
 		self.jsCore                  = "extend."
 		self.jsSelf                  = "self"
 		self.jsModule                = "__module__"
@@ -181,6 +181,9 @@ class Writer(AbstractWriter):
 		# TODO: We should have a special handling for the current module
 		# if element == self.getCurrentModule() and self.resolve(element.getName())[1] != element:
 		# 	return ["__module__"] if asList else "__module__"
+		if isinstance( element, interfaces.ITypeReference ):
+			# FIXME: This is a bit of a hack
+			return self.write(element)
 		while element.getParent():
 			element = element.getParent()
 			# FIXME: Some elements may not have a name
@@ -290,6 +293,7 @@ class Writer(AbstractWriter):
 			code.extend(self.getModuleGooglePrefix(moduleElement))
 		else:
 			code.extend(self.getModuleVanillaPrefix(moduleElement))
+		code.extend(self._runtimePreamble())
 		# --- VERSION ---------------------------------------------------------
 		version = moduleElement.getAnnotation("version")
 		if version:
@@ -630,7 +634,7 @@ class Writer(AbstractWriter):
 					"\tif (true) {var __super__=",
 					# FIXME: Make sure that that the module name is not shadowed
 					# by something else
-					"%s.getSuper(%s.getParent());" % (self.jsSelf, self.getSafeSuperName(classElement)),
+					"%s.getSuper(%s.getParent());" % (self._runtimeSelfReference(classElement), self.getSafeSuperName(classElement)),
 					"__super__.initialize.apply(__super__, arguments);}"
 				])
 			for a in classElement.getAttributes():
@@ -640,8 +644,8 @@ class Writer(AbstractWriter):
 				)
 				constructor_attributes.append(
 					"if (typeof(%s.%s)=='undefined') {%s.%s = %s;};" % (
-						self.jsSelf, self._rewriteSymbol(a.getName()),
-						self.jsSelf, self._rewriteSymbol(a.getName()),
+						self._runtimeSelfReference(classElement), self._rewriteSymbol(a.getName()),
+						self._runtimeSelfReference(classElement), self._rewriteSymbol(a.getName()),
 						self.write(a.getDefaultValue())
 				))
 			# We only need a default constructor when we have class attributes
@@ -651,7 +655,7 @@ class Writer(AbstractWriter):
 					self.options["ENABLE_METADATA"] and "initialize: __def(function(){" \
 					or "initialize: function(){"
 				),
-				["var %s = this;" % (self.jsSelf)],
+				["var %s = this;" % (self._runtimeSelfReference(classElement))],
 				constructor_attributes or None,
 				invoke_parent_constructor,
 				(
@@ -731,7 +735,7 @@ class Writer(AbstractWriter):
 				method_name,
 				", ".join(map(self.write, methodElement.getParameters()))
 			),
-			["var %s = this;" % (self.jsSelf)],
+			["var %s = this;" % (self._runtimeSelfReference(methodElement))],
 			self._writeClosureArguments(methodElement),
 			self.writeFunctionWhen(methodElement),
 			self.writeFunctionPre(methodElement),
@@ -794,7 +798,7 @@ class Writer(AbstractWriter):
 				self.options["ENABLE_METADATA"] and "%s:__def(function(%s){" \
 				or "%s: function( %s ){"
 			) % (method_name, ", ".join(map(self.write, args))),
-			["var %s = this;" % (self.jsSelf)], #, self.getAbsoluteName(methodElement.getParent()))],
+			["var %s = this;" % (self._runtimeSelfReference(methodElement))], #, self.getAbsoluteName(methodElement.getParent()))],
 			self._writeClosureArguments(methodElement),
 			self.writeFunctionWhen(methodElement),
 			list(map(self.write, methodElement.getOperations())),
@@ -840,8 +844,8 @@ class Writer(AbstractWriter):
 			name = self._rewriteSymbol(a.getName())
 			attributes.append("// Default initialization of property `{0}`".format(name))
 			attributes.append("if (typeof(%s.%s)=='undefined') {%s.%s = %s;};" % (
-				self.jsSelf, name,
-				self.jsSelf, name,
+				self._runtimeSelfReference(element), name,
+				self._runtimeSelfReference(element), name,
 				self.write(a.getDefaultValue()))
 			)
 		res = self._format(
@@ -852,7 +856,7 @@ class Writer(AbstractWriter):
 			)  % (
 				", ".join(map(self.write, element.getParameters()))
 			),
-			["var %s = this;" % (self.jsSelf)],
+			["var %s = this;" % (self._runtimeSelfReference(element))],
 			self._writeClosureArguments(element),
 			attributes or None,
 			list(map(self.write, element.getOperations())),
@@ -896,7 +900,7 @@ class Writer(AbstractWriter):
 				)  % (
 					", ".join(map(self.write, function.getParameters()))
 				),
-				['var %s = %s;' % (self.jsSelf, self.getResolvedName(function.parent))],
+				['var %s = %s;' % (self._runtimeSelfReference(function), self.getResolvedName(function.parent))],
 				self._writeClosureArguments(function),
 				self.writeFunctionWhen(function),
 				list(map(self.write, function.getOperations())),
@@ -924,8 +928,8 @@ class Writer(AbstractWriter):
 		if function.getAnnotations(withName="post"):
 			res[0] = "var __wrapped__ = " + res[0] + ";"
 			if parent and isinstance(parent, interfaces.IModule):
-				res.insert(0, 'var %s=%s;' % (self.jsSelf, self.getAbsoluteName(parent)))
-			res.append("var result = __wrapped__.apply(%s, arguments);" % (self.jsSelf))
+				res.insert(0, 'var %s=%s;' % (self._runtimeSelfReference(function), self.getAbsoluteName(parent)))
+			res.append("var result = __wrapped__.apply(%s, arguments);" % (self._runtimeSelfReference(function)))
 			res.append(self.writeFunctionPost(function))
 			res.append("return result;")
 		res = self.writeDecorators(function, res)
@@ -958,16 +962,18 @@ class Writer(AbstractWriter):
 		an iteration loop.
 		"""
 		operations = closure.getOperations()
+		implicits  = [_ for _ in self._writeImplicitAllocations(closure)]
 		if bodyOnly:
-			result = [self.write(_) + ";" for _ in operations]
+			result = implicits + [self.write(_) + ";" for _ in operations]
 		else:
-			result   = [
+			result = [
 				self._document(closure),
 				(
 					self.options["ENABLE_METADATA"] and "__def(function(%s) {" \
 					or "function(%s) {"
 				) % ( ", ".join(map(self.write, closure.getArguments()))),
 				self._writeClosureArguments(closure),
+				implicits,
 				list(map(self.write, operations)),
 				(
 					(not self.options["ENABLE_METADATA"] and "}") or \
@@ -1022,7 +1028,7 @@ class Writer(AbstractWriter):
 				assert i >= l - 2
 				result.append("%s = %s(arguments,%d)" % (
 					arg_name,
-					self.jsPrefix + self.jsCore + "sliceArguments",
+					self.runtimePrefix + self.jsCore + "sliceArguments",
 					i
 				))
 			if not (param.getDefaultValue() is None):
@@ -1091,7 +1097,7 @@ class Writer(AbstractWriter):
 
 		# If there is no scope, then the symmbol is undefined
 		if not scope:
-			if symbol_name == "print": return self.jsPrefix + self.jsCore + "print"
+			if symbol_name == "print": return self.runtimePrefix + self.jsCore + "print"
 			else: return symbol_name
 		# If the slot is imported
 		elif slot.isImported():
@@ -1103,21 +1109,21 @@ class Writer(AbstractWriter):
 				# that means used outside of direct invocations), because when
 				# giving a method as a callback, the 'this' pointer is not carried.
 				if self.inInvocation:
-					return "%s.%s" % (self.jsSelf, symbol_name)
+					return "%s.%s" % (self._runtimeSelfReference(value), symbol_name)
 				else:
-					return self._runtimeGetMethodByName(symbol_name)
+					return self._runtimeGetMethodByName(symbol_name, value)
 			elif isinstance(value, interfaces.IClassMethod):
 				if self.isIn(interfaces.IInstanceMethod):
 					return self._runtimeGetClass() + ".getOperation('%s')" % (symbol_name)
 				else:
-					return "%s.%s" % (self.jsSelf, symbol_name)
+					return "%s.%s" % (self._runtimeSelfReference(value), symbol_name)
 			elif isinstance(value, interfaces.IClassAttribute):
 				if self.isIn(interfaces.IClassMethod):
-					return "%s.%s" % (self.jsSelf, symbol_name)
+					return "%s.%s" % (self._runtimeSelfReference(value), symbol_name)
 				else:
 					return self._runtimeGetClass() + "." + symbol_name
 			else:
-				return self.jsSelf + "." + symbol_name
+				return self._runtimeSelfReference(value) + "." + symbol_name
 		# It is a local variable
 		elif self.getCurrentFunction() == scope:
 			return symbol_name
@@ -1137,7 +1143,7 @@ class Writer(AbstractWriter):
 		elif isinstance(scope, interfaces.IClass):
 			# And the class is one of the parent class
 			if scope in self.getCurrentClassAncestors():
-				return self.jsSelf + "." + symbol_name
+				return self._runtimeSelfReference(value) + "." + symbol_name
 			# Otherwise it is an outside class, and we have to check that the
 			# value is not an instance slot
 			else:
@@ -1223,7 +1229,7 @@ class Writer(AbstractWriter):
 		# Otherwise we'll use extend.createMapFromItems method
 		else:
 			return "%s%screateMapFromItems(%s)" % (
-				self.jsPrefix,
+				self.runtimePrefix,
 				self.jsCore,
 				",".join("[%s,%s]" % ( self.write(k),self.write(v)) for k,v in element.getItems())
 			)
@@ -1261,15 +1267,19 @@ class Writer(AbstractWriter):
 		r = []
 		# NOTE: The parsing could be done at the compiler level, but for now
 		# the semantics are left to the backend.
+		is_multiple = False
+		occ         = []
 		for m in RE_STRING_FORMAT.finditer(s):
 			r.append(json.dumps(s[o:m.start()]))
-			ki = m.group(2)
+			ki = m.group(2) # Index
 			ks = m.group(3)
-			f  = m.group(4)
-			v  = json.dumps(ks) if ks else ki
+			f  = m.group(4) # Formatter
+			v  = json.dumps(ks) if ks else ki # Value
 			r.append("extend.sprintf(_[{0}],{1})".format(v, json.dumps(f)) if f else "_[{0}]".format(v))
 			o = m.end()
 		r.append(json.dumps(s[o:]))
+		# FIXME: Optimize so that no function has to be called if the arguments
+		# are not repeated, or use implicits.
 		return r[0] if len(r) == 1 else "(function(_){return " + "+".join(r) + "})(" + self.write(c) + ")"
 
 	def onEnumeration( self, operation ):
@@ -1280,7 +1290,7 @@ class Writer(AbstractWriter):
 		else: start = "(%s)" % (self.write(start))
 		if isinstance(end, interfaces.ILiteral): end = self.write(end)
 		else: end = "(%s)" % (self.write(end))
-		res = self.jsPrefix + self.jsCore + "range(%s,%s)" % (start, end)
+		res = self.runtimePrefix + self.jsCore + "range(%s,%s)" % (start, end)
 		step = operation.getStep()
 		if step: res += " step " + self.write(step)
 		return res
@@ -1322,17 +1332,9 @@ class Writer(AbstractWriter):
 					self.write(operands[1])
 				)
 			elif operator.getReferenceName() == "in":
-				res = '(%sisIn(%s,%s))' % (
-					self.jsPrefix + self.jsCore,
-					self.write(operands[0]),
-					self.write(operands[1])
-				)
+				res = self._runtimeOp("isIn", operands[0], operands[1])
 			elif operator.getReferenceName() == "not in":
-				res = '(!(%sisIn(%s,%s)))' % (
-					self.jsPrefix + self.jsCore,
-					self.write(operands[0]),
-					self.write(operands[1])
-				)
+				res = "!(" + self._runtimeOp("isIn", operands[0], operands[1]) + ")"
 			else:
 				res = "%s %s %s" % (
 					self.write(operands[0]),
@@ -1405,6 +1407,7 @@ class Writer(AbstractWriter):
 			return self._rewriteInvocation(invocation, concrete_type, "\n".join([r.getCode() for r in rewrite]))
 		else:
 			self.inInvocation = False
+			# FIXME: Special handling of assert
 			if t == "extend.assert":
 				args      = invocation.getArguments()
 				predicate = self.write(args[0])
@@ -1443,7 +1446,7 @@ class Writer(AbstractWriter):
 				normal_str = "[%s]" % (",".join(normal_arguments))
 				extra_str  = "{%s}" % (",".join("%s:%s" % (k,v) for k,v in list(extra_arguments.items())))
 				return "extend.invoke(%s,%s,%s,%s)%s" % (
-					self.jsSelf,
+					self._runtimeSelfReference(invocation),
 					t,
 					normal_str,
 					extra_str,
@@ -1464,8 +1467,12 @@ class Writer(AbstractWriter):
 
 	def onInstanciation( self, operation ):
 		"""Writes an invocation operation."""
+		i = operation.getInstanciable()
+		t = self.write(i)
+		# Invocation targets can be expressions
+		if not isinstance(i, interfaces.IReference): t = "(" + t + ")"
 		return "new %s(%s)" % (
-			self.write(operation.getInstanciable()),
+			t,
 			", ".join(map(self.write, operation.getArguments()))
 		)
 
@@ -1473,6 +1480,7 @@ class Writer(AbstractWriter):
 		target = self.write(chain.getTarget())
 		v      = self._getRandomVariable()
 		groups = chain.getGroups() or None
+		# FIXME: What do we do with groups here?
 		return [
 			"var {0}={1};".format(v, target),
 		]
@@ -1482,9 +1490,10 @@ class Writer(AbstractWriter):
 		in_process = isinstance(self.context[-2], interfaces.IProcess) or isinstance(self.context[-2], interfaces.IBlock)
 		if not in_process and selection.hasAnnotation("if-expression"):
 			return self._writeSelectionInExpression(selection)
-		rules = selection.getRules()
-		result = []
-		last   = len(rules) - 1
+		rules     = selection.getRules()
+		implicits = [_ for _ in self._writeImplicitAllocations(selection)]
+		result    = []
+		last      = len(rules) - 1
 		for i in range(0,len(rules)):
 			rule = rules[i]
 			if isinstance(rule, interfaces.IMatchProcessOperation):
@@ -1532,6 +1541,7 @@ class Writer(AbstractWriter):
 				result = rule_code
 			else:
 				result = result[:-1] + rule_code
+		result = implicits + result
 		if selection.hasAnnotation("assignment"):
 			result = ["// This is a conditional assignment (default value)"] + result
 		return self._format(*result)
@@ -1573,11 +1583,18 @@ class Writer(AbstractWriter):
 
 	def onIteration( self, iteration ):
 		"""Writes a iteration operation."""
-		iterator    = iteration.getIterator()
-		if iteration.isRangeIteration():
-			return self._writeRangeIteration(iteration)
+		if isinstance(iteration.parent, interfaces.IOperation):
+			return self._runtimeIterate(
+				iteration.getIterator(),
+				iteration.getClosure(),
+				iteration,
+			)
 		else:
-			return self._writeObjectIteration(iteration)
+			iterator    = iteration.getIterator()
+			if iteration.isRangeIteration():
+				return self._writeRangeIteration(iteration)
+			else:
+				return self._writeObjectIteration(iteration)
 
 	def onMapIteration( self, iteration ):
 		return self._runtimeMap(
@@ -1598,6 +1615,14 @@ class Writer(AbstractWriter):
 			return self._runtimeMap(i,c)
 		else:
 			return self._runtimeFilter(i,p)
+
+
+	def onReduceIteration( self, iteration ):
+		return self._runtimeReduce(
+			iteration.getIterator(),
+			iteration.getClosure(),
+			iteration.getInitialValue()
+		)
 
 	def _writeRangeIteration( self, iteration ):
 		iterator = iteration.getIterator()
@@ -1645,12 +1670,14 @@ class Writer(AbstractWriter):
 		if self._withExtendIterate:
 			return self._runtimeIterate(
 				iteration.getIterator(),
-				iteration.getClosure()
+				iteration.getClosure(),
+				iteration,
 			)
 		# Now, this requires some explanation. If the iteration is annotated
 		# as `force-scope`, this means that there is a nested closure that references
 		# some variable that is going to be re-assigned here
 		closure = iteration.getClosure()
+		closure.addAnnotation("direct-iteration")
 		# We ensure there's no clash with the radom variables
 		# FIXME: Sometimes the dataflow is empty, which seems odd
 		dataflow            = (closure and closure.dataflow or iteration.dataflow)
@@ -1724,9 +1751,9 @@ class Writer(AbstractWriter):
 				"%s[%s]" % (self.write(target), self.write(index))
 			)
 		else:
-			return self._format(
-				"%s%saccess(%s,%s)" % (self.jsPrefix, self.jsCore, self.write(target), self.write(index))
-			)
+			return self._format(self._runtimeAccess(
+				self.write(target), self.write(index)
+			))
 
 	def onSliceOperation( self, operation ):
 		start = operation.getSliceStart()
@@ -1739,14 +1766,12 @@ class Writer(AbstractWriter):
 			end = self.write(end)
 		else:
 			end = "undefined"
-		return self._format(
-			"%s%sslice(%s,%s,%s)" % (
-				self.jsPrefix,
-				self.jsCore,
-				self.write(operation.getTarget()),
-				start,
-				end
+		return self._format(self._runtimeSlice(
+			self.write(operation.getTarget()),
+			start,
+			end
 		))
+
 
 	def onTypeIdentification( self, element ):
 		lvalue = self.write(element.getTarget())
@@ -1755,13 +1780,13 @@ class Writer(AbstractWriter):
 		rvalue = t.getName()
 		# TODO: We should resolve the type in the namespace
 		if not t.parameters or len(t.parameters) == 0:
-			if t.name == "String":
+			if rvalue == "String":
 				return "(typeof {0} === 'string')".format(lvalue)
-			elif t.name == "Number":
+			elif rvalue == "Number":
 				return "(!isNaN({0}))".format(lvalue)
-			elif t.name == "Undefined":
+			elif rvalue == "Undefined":
 				return "(typeof {0} === 'undefined')".format(lvalue)
-			elif t.name == "None":
+			elif rvalue == "None":
 				return "({0} === null)".format(lvalue)
 		return ("({0} instanceof {1})".format(lvalue, rvalue))
 
@@ -1771,15 +1796,22 @@ class Writer(AbstractWriter):
 
 	def onTermination( self, termination ):
 		"""Writes a termination operation."""
-		closure = self.context[self.lastIndexInContext(interfaces.IClosure)]
-		prefix  = "&&".join(
-			self.write(_.content) for _ in closure.getAnnotations("post")
-		)
+		# If we're in a closure, we look for post-conditions and store
+		# them in a prefix
+		i       = self.lastIndexInContext(interfaces.IClosure)
+		closure = self.context[i] if i >= 0 else None
+		prefix  = "&&".join(self.write(_.content) for _ in
+				closure.getAnnotations("post")) if closure else None
+		# We format the result
 		result = self.write(termination.getReturnedEvaluable())
 		if prefix:
-			return "return ({0} || true) ? {1} : undefined;".format(prefix, result)
+			result = "({0} || true) ? {1} : undefined".format(prefix, result)
 		else:
-			return "return {0};".format(result)
+			result = "{0}".format(result)
+		if termination.hasAnnotation("in-iteration"):
+			return self._runtimeReturnValue(result)
+		else:
+			return "return " + result
 
 	def onBreaking( self, breaking ):
 		"""Writes a break operation."""
@@ -1807,7 +1839,13 @@ class Writer(AbstractWriter):
 
 	def onExcept( self, exception ):
 		"""Writes a except operation."""
-		return "throw " + self.write(exception.getValue()) + ";"
+		res = "throw " + self.write(exception.getValue())
+		if isinstance(exception, interfaces.IOperation):
+			# We can throw in an exception
+			return "(function(){" + res +"}())"
+		else:
+			return res + ";"
+
 
 	def onInterception( self, interception ):
 		"""Writes an interception operation."""
@@ -1842,21 +1880,19 @@ class Writer(AbstractWriter):
 	# =========================================================================
 
 	def onType( self, element ):
-		pass
 		parents = [self.getSafeName(_) for _ in element.parents]
 		if element.isConcrete():
 			slots = [_ for _ in element.constraints if isinstance(_, interfaces.ISlotConstraint)]
 			args  = ", ".join(_.getName() for _ in slots)
 			yield "class (" + args + "){"
 			yield "}"
-		yield "FFFU"
 
 	def onEnumerationType( self, element ):
 		symbols = [_.getName() for _ in element.getSymbols()]
 		m = self._runtimeModuleName(element)
-		yield "function(){"
-		yield "\treturn " + " || ".join("(_==={0}.{1})".format(m,_) for _ in symbols)
-		yield "}(_);"
+		yield "function(_){"
+		yield "\treturn " + " || ".join("(_==={0}.{1})".format(m,_) for _ in symbols) + ";"
+		yield "};"
 		for _ in symbols:
 			# NOTE: Symbol is not supported yet, but would be preferrable
 			yield "{0}.{1} = new String(\"{2}\");".format(m, _, _)
@@ -1963,9 +1999,12 @@ class Writer(AbstractWriter):
 		return res
 
 	def _writeImplicitAllocations( self, element ):
-		l = [_.getName() for _ in element.dataflow.slots if _.isImplicit()]
-		if l:
-			yield "var {0}; /* implicits */".format(", ".join(l))
+		# FIXME: assert(element.dataflow) fails sometimes
+		if element and element.dataflow:
+			# NOTE: Implicits can sometimes be declared twice
+			l = [_.getName() for _ in element.dataflow.slots if _.isImplicit()]
+			if l:
+				yield "var {0}; /* implicits */".format(", ".join(l))
 
 	# =========================================================================
 	# RUNTIME
@@ -1985,15 +2024,15 @@ class Writer(AbstractWriter):
 			# FIXME: Should check that the element has a method in parent scope
 			# FIXME: Submodule support
 			return "%s.getSuper(%s.getParent())" % (
-				self.jsSelf,
+				self._runtimeSelfReference(element),
 				self.getSafeSuperName(self.getCurrentClass())
 			)
 
-	def _runtimeGetMethodByName(self, name):
-		return self.jsSelf + ".getMethod('%s') " % (name)
+	def _runtimeGetMethodByName(self, name, value=None):
+		return self._runtimeSelfReference(value) + ".getMethod('%s') " % (name)
 
 	def _runtimeGetClass(self, variable=None):
-		return "%s.getClass()" % (variable or self.jsSelf)
+		return "%s.getClass()" % (variable or self._runtimeSelfReference())
 
 	def _runtimeOp( self, name, *args ):
 		args = [self.write(_) if isinstance(_,interfaces.IElement) else _ for _ in args]
@@ -2005,23 +2044,57 @@ class Writer(AbstractWriter):
 	def _runtimeMap( self, lvalue, rvalue ):
 		return self._runtimeOp("map", lvalue, rvalue)
 
+	def _runtimeReduce( self, lvalue, rvalue, initial=None ):
+		if initial is None:
+			return self._runtimeOp("reduce", lvalue, rvalue)
+		else:
+			return self._runtimeOp("reduce", lvalue, rvalue, initial)
+
 	def _runtimeFilter( self, lvalue, rvalue ):
 		return self._runtimeOp("filter", lvalue, rvalue)
 
-	def _runtimeIterate( self, lvalue, rvalue ):
-		return self._runtimeOp("iterate", lvalue, rvalue)
+	def _runtimeIterate( self, lvalue, rvalue, iteration=None ):
+		result =  self._runtimeOp("iterate", lvalue, rvalue)
+		if iteration and iteration.hasAnnotation("terminates"):
+			return "var {0}={1};if ({0} instanceof FLOW_RETURN) {{return {0}.value;}};".format(
+				self._getRandomVariable(),
+				result
+			)
+		else:
+			return result
 
 	def _runtimeReturnBreak( self ):
-		return "return extend.FLOW_BREAK;"
+		return "return " + self.runtimePrefix + "FLOW_BREAK;"
 
 	def _runtimeReturnContinue( self ):
-		return "return extend.FLOW_CONTINUE;"
+		return "return " + self.runtimePrefix + "FLOW_CONTINUE;"
+
+	def _runtimeReturnValue( self, value ):
+		return "return new " + self.runtimePrefix + "FLOW_RETURN" + "(" + value + ");"
 
 	def _runtimeSelfReference( self, element=None ):
 		return self.jsSelf
 
 	def _runtimeSelfBinding( self, element=None ):
 		return "var self = this;"
+
+	def _runtimePreamble( self ):
+		return []
+
+	def _runtimeAccess( self, target, index ):
+		return "%s%saccess(%s,%s)" % (
+			self.runtimePrefix, self.jsCore,
+			target, index
+		)
+
+	def _runtimeSlice( self, target, start, end ):
+		return "%s%sslice(%s,%s,%s)" % (
+			self.runtimePrefix,
+			self.jsCore,
+			target,
+			start,
+			end
+		)
 
 MAIN_CLASS = Writer
 

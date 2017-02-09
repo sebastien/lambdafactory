@@ -1364,11 +1364,29 @@ class Iteration(Operation, IIteration):
 			return False
 	
 
-class MapIteration(Operation, IMapIteration):
+class MapIteration(Iteration, IMapIteration):
 	pass
 
-class FilterIteration(Operation, IFilterIteration):
+class FilterIteration(Iteration, IFilterIteration):
 	pass
+
+class ReduceIteration(Iteration, IReduceIteration):
+	def __init__ (self, *arguments):
+		self.direction = 1
+		Operation.__init__(self)
+		self.setOpArguments(arguments)
+	
+	def setFromLeft(self):
+		self.direction = 1
+		return self
+	
+	def setFromRight(self):
+		self.direction = -1
+		return self
+	
+	def getDirection(self):
+		return self.direction
+	
 
 class Interpolation(Operation, IInterpolation):
 	pass

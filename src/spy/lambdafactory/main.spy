@@ -321,6 +321,7 @@
 				environment addPass ( new passes ExtendJSRuntime() )
 			end
 			environment addPass ( new passes Importation         ())
+			environment addPass ( new passes ControlFlow         ())
 			environment addPass ( new resolution BasicDataFlow   ())
 			environment addPass ( new resolution DataFlowBinding ())
 		else

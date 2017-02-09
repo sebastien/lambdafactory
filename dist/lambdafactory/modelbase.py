@@ -236,6 +236,9 @@ class Factory:
 	def filter( self, evaluable, condition, process=None ):
 		return self._getImplementation("FilterIteration")(evaluable, condition, process)
 
+	def reduce( self, evaluable, condition, process=None ):
+		return self._getImplementation("ReduceIteration")(evaluable, condition, process)
+
 	def repeat( self, condition, process ):
 		return self._getImplementation("Repetition")(condition, process)
 

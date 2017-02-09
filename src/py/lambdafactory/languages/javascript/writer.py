@@ -1332,17 +1332,9 @@ class Writer(AbstractWriter):
 					self.write(operands[1])
 				)
 			elif operator.getReferenceName() == "in":
-				res = '(%sisIn(%s,%s))' % (
-					self.runtimePrefix + self.jsCore,
-					self.write(operands[0]),
-					self.write(operands[1])
-				)
+				res = self._runtimeOp("isIn", operands[0], operands[1])
 			elif operator.getReferenceName() == "not in":
-				res = '(!(%sisIn(%s,%s)))' % (
-					self.runtimePrefix + self.jsCore,
-					self.write(operands[0]),
-					self.write(operands[1])
-				)
+				res = "!(" + self._runtimeOp("isIn", operands[0], operands[1]) + ")"
 			else:
 				res = "%s %s %s" % (
 					self.write(operands[0]),
@@ -1415,6 +1407,7 @@ class Writer(AbstractWriter):
 			return self._rewriteInvocation(invocation, concrete_type, "\n".join([r.getCode() for r in rewrite]))
 		else:
 			self.inInvocation = False
+			# FIXME: Special handling of assert
 			if t == "extend.assert":
 				args      = invocation.getArguments()
 				predicate = self.write(args[0])
@@ -1594,6 +1587,7 @@ class Writer(AbstractWriter):
 			return self._runtimeIterate(
 				iteration.getIterator(),
 				iteration.getClosure(),
+				iteration,
 			)
 		else:
 			iterator    = iteration.getIterator()
@@ -1676,12 +1670,14 @@ class Writer(AbstractWriter):
 		if self._withExtendIterate:
 			return self._runtimeIterate(
 				iteration.getIterator(),
-				iteration.getClosure()
+				iteration.getClosure(),
+				iteration,
 			)
 		# Now, this requires some explanation. If the iteration is annotated
 		# as `force-scope`, this means that there is a nested closure that references
 		# some variable that is going to be re-assigned here
 		closure = iteration.getClosure()
+		closure.addAnnotation("direct-iteration")
 		# We ensure there's no clash with the radom variables
 		# FIXME: Sometimes the dataflow is empty, which seems odd
 		dataflow            = (closure and closure.dataflow or iteration.dataflow)
@@ -1800,15 +1796,22 @@ class Writer(AbstractWriter):
 
 	def onTermination( self, termination ):
 		"""Writes a termination operation."""
-		closure = self.context[self.lastIndexInContext(interfaces.IClosure)]
-		prefix  = "&&".join(
-			self.write(_.content) for _ in closure.getAnnotations("post")
-		)
+		# If we're in a closure, we look for post-conditions and store
+		# them in a prefix
+		i       = self.lastIndexInContext(interfaces.IClosure)
+		closure = self.context[i] if i >= 0 else None
+		prefix  = "&&".join(self.write(_.content) for _ in
+				closure.getAnnotations("post")) if closure else None
+		# We format the result
 		result = self.write(termination.getReturnedEvaluable())
 		if prefix:
-			return "return ({0} || true) ? {1} : undefined;".format(prefix, result)
+			result = "({0} || true) ? {1} : undefined".format(prefix, result)
 		else:
-			return "return {0};".format(result)
+			result = "{0}".format(result)
+		if termination.hasAnnotation("in-iteration"):
+			return self._runtimeReturnValue(result)
+		else:
+			return "return " + result
 
 	def onBreaking( self, breaking ):
 		"""Writes a break operation."""
@@ -2050,14 +2053,24 @@ class Writer(AbstractWriter):
 	def _runtimeFilter( self, lvalue, rvalue ):
 		return self._runtimeOp("filter", lvalue, rvalue)
 
-	def _runtimeIterate( self, lvalue, rvalue ):
-		return self._runtimeOp("iterate", lvalue, rvalue)
+	def _runtimeIterate( self, lvalue, rvalue, iteration=None ):
+		result =  self._runtimeOp("iterate", lvalue, rvalue)
+		if iteration and iteration.hasAnnotation("terminates"):
+			return "var {0}={1};if ({0} instanceof FLOW_RETURN) {{return {0}.value;}};".format(
+				self._getRandomVariable(),
+				result
+			)
+		else:
+			return result
 
 	def _runtimeReturnBreak( self ):
 		return "return " + self.runtimePrefix + "FLOW_BREAK;"
 
 	def _runtimeReturnContinue( self ):
 		return "return " + self.runtimePrefix + "FLOW_CONTINUE;"
+
+	def _runtimeReturnValue( self, value ):
+		return "return new " + self.runtimePrefix + "FLOW_RETURN" + "(" + value + ");"
 
 	def _runtimeSelfReference( self, element=None ):
 		return self.jsSelf

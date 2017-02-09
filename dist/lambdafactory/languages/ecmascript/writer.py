@@ -20,6 +20,14 @@ A specialization of the JavaScript writer to output runtime-free ECMAScript
 code.
 """
 
+RUNTIME_OPS = {
+	"isIn":"__in__",
+	"map":"__map__",
+	"filter":"__filter__",
+	"reduce":"__reduce__",
+	"iterate":"__iterate__"
+}
+
 #------------------------------------------------------------------------------
 #
 #  WRITER
@@ -34,6 +42,21 @@ class Writer(JavaScriptWriter):
 
 	# -------------------------------------------------------------------------
 	#
+	# OPERATION
+	#
+	# -------------------------------------------------------------------------
+
+	def onEnumeration( self, operation ):
+		"""Writes an enumeration operation."""
+		start = self.write(operation.getStart())
+		end   = self.write(operation.getEnd())
+		step  = operation.getStep()
+		step  = self.write(step) if step else 1
+		# NOTE: This is a safe, runtime-free enumeration
+		return "__range__({0},{1},{2})".format(start,end,step)
+
+	# -------------------------------------------------------------------------
+	#
 	# CONSTRUCTS
 	#
 	# -------------------------------------------------------------------------
@@ -41,11 +64,16 @@ class Writer(JavaScriptWriter):
 	def onClass( self, element, anonymous=False ):
 		"""Writes a class element."""
 		self.pushContext (element)
+		safe_name = self.getSafeName(element)
+		abs_name  = element.getAbsoluteName()
 		name = "" if anonymous else ((element.getName() or "") + " ")
 		parent = self._onClassParents(element, self.getClassParents(element))
 		yield "class " + name + ("extends " + parent if parent else "") + " {"
 		yield self._onClassBody(element)
 		yield "}"
+		yield "Object.defineProperty({0}, \"__name__\", {{value:\"{1}\",writable:false}});".format(safe_name, abs_name)
+		for _ in element.getClassAttributes():
+			yield "Object.defineProperty({0}, \"{1}\", {{value:{2},writable:true}});".format(safe_name, _.getName(), self.write(_))
 		self.popContext ()
 
 	def onType( self, element, anonymous=False ):
@@ -66,9 +94,13 @@ class Writer(JavaScriptWriter):
 
 	def onTrait( self, element ):
 		self.pushContext (element)
-		yield "function(_) { return class extends " + self._onClassParents(element, self.getClassParents(element), base="_") + " {"
-		yield self._onClassBody(element, withConstructors=False)
-		yield "};}"
+		yield "function(_) {"
+		yield "\tvar res = class extends " + self._onClassParents(element, self.getClassParents(element), base="_") + " {"
+		yield [self._onClassBody(element, withConstructors=False)]
+		yield "\t}"
+		yield "\tObject.defineProperty({0}, \"__name__\", {{value:\"{1}\",writable:false}});".format("res", element.getAbsoluteName())
+		yield "\treturn res;"
+		yield "}"
 		self.popContext()
 
 	def onSingleton( self, element ):
@@ -115,8 +147,12 @@ class Writer(JavaScriptWriter):
 		"""Iterates through the slots in a context, writing their name and value"""
 		slots = element.getSlots()
 		for e in element.getConstructors() or ([None] if withConstructors else ()):
-			self.pushContext(e)
+			self.pushContext(e or interfaces.IConstructor)
 			yield self.onConstructor(e)
+			self.popContext()
+		for e in element.getClassMethods():
+			self.pushContext(e)
+			yield self.onClassMethod(e)
 			self.popContext()
 		for e in element.getInstanceMethods():
 			self.pushContext(e)
@@ -143,26 +179,40 @@ class Writer(JavaScriptWriter):
 		return self.onFunction( element, modifier="static" )
 
 	def onConstructor( self, element ):
-		if not element: return None
 		r = []
 		has_constructor = False
-		for op in element.operations:
-			if self.isSuperInvocation(op):
-				has_constructor = op
-				break
+		if element:
+			for op in element.operations:
+				if self.isSuperInvocation(op):
+					has_constructor = op
+					break
 		c = self.getCurrentClass()
 		if c:
-			for a in c.getAttributes():
-				n = a.getName()
-				v = a.getDefaultValue()
-				if v:
-					r.append(
-						"if (typeof {0}.{1} === typeof undefined) {{{0}.{1} = {2};}}".format(
-						"this", a.getName(), self.write(v))
-					)
+			traits = [_ for _ in self.getClassParents(c) if isinstance(_, interfaces.ITrait)]
+			attrs  = []
+			# We merge in attributes from the current class and then the traits
+			# if they do not override
+			for p in [c] + traits:
+				for a in p.getAttributes():
+					n = a.getName()
+					if n not in attrs:
+						attrs.append(n)
+						v = a.getDefaultValue()
+						if v:
+							r.append(
+								"if (typeof {0}.{1} === typeof undefined) {{{0}.{1} = {2};}}".format(
+								"this", a.getName(), self.write(v))
+							)
+		# We only use super if the clas has parents and ther is no explicit
+		# constructor
 		if not has_constructor:
-			r.insert(0,"super();")
-		return self.onFunction( element, modifier="constructor", anonymous=True, body=r, bindSelf=False)
+			if self.getClassParents(c):
+				r.insert(0,"super();")
+			has_constructor = True
+		# If there is no constructor or body, then we don't need to return
+		# anything.
+		if has_constructor and r:
+			return self.onFunction( element, modifier="constructor", anonymous=True, body=r, bindSelf=False)
 
 	def onInitializer( self, element ):
 		return self.onFunction( element,  anonymous=True )
@@ -230,6 +280,18 @@ class Writer(JavaScriptWriter):
 	# UTILITIES
 	# =========================================================================
 
+	def _runtimeOp( self, name, *args ):
+		return "{0}({1})".format(
+			RUNTIME_OPS.get(name) or name,
+			", ".join(self.write(_) for _ in args)
+		)
+
+	def _runtimeReturnBreak( self ):
+		return "return __BREAK__;"
+
+	def _runtimeReturnContinue( self ):
+		return "return __CONTINUE__;"
+
 	def _runtimeRestArguments( self, i ):
 		return "Array.prototype.slice.call(arguments," + str(i) + ")"
 
@@ -251,6 +313,9 @@ class Writer(JavaScriptWriter):
 			t = "__module__"
 		elif isinstance(c, interfaces.ISingleton):
 			return None
+		elif isinstance(c, interfaces.IClassMethod):
+			t = "this"
+			#t = self.getSafeName(self.getCurrentClass())
 		return "let {0} = {1};".format(self.jsSelf, t)
 
 	def _runtimeSuper( self, element ):
@@ -267,10 +332,19 @@ class Writer(JavaScriptWriter):
 	def _runtimeGetClass(self, variable=None):
 		return (variable or self.jsSelf) + ".prototype"
 
-	def _runtimeGetMethodByName(self, name):
+	def _runtimeGetMethodByName(self, name, element=None):
 		m = self.jsSelf + ".__method__" + name
 		n = self.jsSelf + "." + name
 		return "(typeof {0} === typeof undefined ? {0} = function(){{return {1}.apply(self,arguments);}} : {0})".format(m, n)
+
+	def _runtimePreamble( self ):
+		return []
+
+	def _runtimeAccess( self, target, index ):
+		return "__access__({0},{1})".format(target, index)
+
+	def _runtimeSlice( self, target, start, end ):
+		return "__slice__({0},{1},{2})".format(target, start, end)
 
 MAIN_CLASS = Writer
 
