@@ -1332,9 +1332,9 @@ class Writer(AbstractWriter):
 					self.write(operands[1])
 				)
 			elif operator.getReferenceName() == "in":
-				res = self._runtimeOp("isIn", operands[0], operands[1])
+				res = self._runtimeIsIn(operands[0], operands[1])
 			elif operator.getReferenceName() == "not in":
-				res = "!(" + self._runtimeOp("isIn", operands[0], operands[1]) + ")"
+				res = "!(" + self._runtimeIsIn(operands[0], operands[1]) + ")"
 			else:
 				res = "%s %s %s" % (
 					self.write(operands[0]),
@@ -1788,6 +1788,10 @@ class Writer(AbstractWriter):
 				return "(typeof {0} === 'undefined')".format(lvalue)
 			elif rvalue == "None":
 				return "({0} === null)".format(lvalue)
+			else:
+				slot, value = self.resolve(t.getReferenceName())
+				if value:
+					rvalue = self.getSafeName(value)
 		return ("({0} instanceof {1})".format(lvalue, rvalue))
 
 	def onEvaluation( self, operation ):
@@ -2038,6 +2042,9 @@ class Writer(AbstractWriter):
 		args = [self.write(_) if isinstance(_,interfaces.IElement) else _ for _ in args]
 		return "extend." + name + "(" + ", ".join(args) + ")"
 
+	def _runtimeIsIn( self, element, collection ):
+		return self._runtimeOp("isIn", element, collection)
+
 	def _runtimeModuleName( self, element=None ):
 		return "__module__"
 
@@ -2056,12 +2063,16 @@ class Writer(AbstractWriter):
 	def _runtimeIterate( self, lvalue, rvalue, iteration=None ):
 		result =  self._runtimeOp("iterate", lvalue, rvalue)
 		if iteration and iteration.hasAnnotation("terminates"):
-			return "var {0}={1};if ({0} instanceof FLOW_RETURN) {{return {0}.value;}};".format(
+			return "var {0}={1};if ({0} instanceof {2}) {{return {0}.value;}};".format(
 				self._getRandomVariable(),
-				result
+				result,
+				self._runtimeReturnType(),
 			)
 		else:
 			return result
+
+	def _runtimeReturnType( self ):
+		return self.runtimePrefix + "FLOW_RETURN"
 
 	def _runtimeReturnBreak( self ):
 		return "return " + self.runtimePrefix + "FLOW_BREAK;"
@@ -2070,7 +2081,7 @@ class Writer(AbstractWriter):
 		return "return " + self.runtimePrefix + "FLOW_CONTINUE;"
 
 	def _runtimeReturnValue( self, value ):
-		return "return new " + self.runtimePrefix + "FLOW_RETURN" + "(" + value + ");"
+		return "return new " + self._runtimeReturnType() + "(" + value + ");"
 
 	def _runtimeSelfReference( self, element=None ):
 		return self.jsSelf

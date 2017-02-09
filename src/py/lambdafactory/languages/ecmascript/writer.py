@@ -79,6 +79,8 @@ class Writer(JavaScriptWriter):
 	def onType( self, element, anonymous=False ):
 		assert element.isConcrete()
 		self.pushContext (element)
+		safe_name = self.getSafeName(element)
+		abs_name  = element.getAbsoluteName()
 		name   = "" if anonymous else ((element.getName() or "") + " ")
 		parent = self._onClassParents(element, element.getParents())
 		slots  = [_ for _ in element.constraints if isinstance(_, interfaces.ISlotConstraint)]
@@ -90,6 +92,7 @@ class Writer(JavaScriptWriter):
 			yield "\t\tif (typeof {0} != \"undefined\") {{this.{0} = {0};}}".format(s.getName())
 		yield "\t}"
 		yield "}"
+		yield "Object.defineProperty({0}, \"__name__\", {{value:\"{1}\",writable:false}});".format(safe_name, abs_name)
 		self.popContext ()
 
 	def onTrait( self, element ):
@@ -120,6 +123,7 @@ class Writer(JavaScriptWriter):
 			l[-1] += ";"
 			yield [l]
 			self.popContext()
+		yield "\tself.__name__ = \"{0}\"".format(self.getAbsoluteName(element))
 		yield "\treturn self;"
 		yield "}();"
 		self.popContext()
@@ -292,11 +296,18 @@ class Writer(JavaScriptWriter):
 	def _runtimeReturnContinue( self ):
 		return "return __CONTINUE__;"
 
+	def _runtimeReturnType( self ):
+		return "__RETURN__"
+
 	def _runtimeRestArguments( self, i ):
 		return "Array.prototype.slice.call(arguments," + str(i) + ")"
 
 	def _runtimeDefaultValue( self, name, value ):
 		return name + " === undefined ? " + value + " : " + name
+
+	def _runtimeIsIn( self, element, collection ):
+		# NOTE: The is in is reversed in the ES runtime
+		return self._runtimeOp("isIn", collection, element)
 
 	def _runtimeSelfReference( self, element ):
 		if self.isIn(interfaces.IConstructor):
