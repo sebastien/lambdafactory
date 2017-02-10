@@ -55,6 +55,7 @@ class Writer(JavaScriptWriter):
 		# NOTE: This is a safe, runtime-free enumeration
 		return "__range__({0},{1},{2})".format(start,end,step)
 
+
 	# -------------------------------------------------------------------------
 	#
 	# CONSTRUCTS
@@ -340,10 +341,32 @@ class Writer(JavaScriptWriter):
 		else:
 			return "super"
 
+	def _runtimeSuperResolution( self, resolution ):
+		# We need to check wether we're in a closure or not. If we are,
+		# then we can't user `super`
+		closure = self.lastIndexInContext(interfaces.IClosure)
+		method  = self.lastIndexInContext(interfaces.IMethod)
+		name    = self._rewriteSymbol(resolution.getReference().getReferenceName())
+		if method >= closure:
+			return "super.{0}".format(name)
+		else:
+			invocation = self.findInContext(interfaces.IInvocation)
+			if invocation and invocation.getTarget() == resolution:
+				return "self.prototype.{0}".format(name)
+			else:
+				m = "self.__super_method__" + name
+				n = "self.prototype." + name
+				return "(typeof {0} === typeof undefined ? {0} = function(){{return {1}.apply(self,arguments);}} : {0})".format(m, n)
+		# Now we need to know if we need to preserve the `this` pointer
+
+
 	def _runtimeGetClass(self, variable=None):
 		return (variable or self.jsSelf) + ".prototype"
 
 	def _runtimeGetMethodByName(self, name, element=None):
+		return self.jsSelf + "." + name
+
+	def _runtimeWrapMethodByName(self, name, value=None):
 		m = self.jsSelf + ".__method__" + name
 		n = self.jsSelf + "." + name
 		return "(typeof {0} === typeof undefined ? {0} = function(){{return {1}.apply(self,arguments);}} : {0})".format(m, n)

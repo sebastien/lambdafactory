@@ -188,6 +188,7 @@ class Factory:
 	# parameters that can be named.
 	# FIXME: RENAME ARGS (for invoke) and PARAMS (for functions)
 	def invoke( self, evaluable, *arguments ):
+		evaluable.addAnnotation("target")
 		return self.invoke_args(evaluable, arguments)
 
 	def invoke_args( self, evaluable, arguments ):

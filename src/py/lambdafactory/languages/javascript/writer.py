@@ -94,7 +94,6 @@ class Writer(AbstractWriter):
 		self.jsInit                  = "__init__"
 		self._moduleType             = None
 		self.supportedEmbedLanguages = ["ecmascript", "js", "javascript"]
-		self.inInvocation            = False
 		self.options                 = {} ; self.options.update(OPTIONS)
 		self._generatedVars          = [0]
 		self._isNice                  = False
@@ -142,6 +141,14 @@ class Writer(AbstractWriter):
 
 	def _isSymbolKeyword( self, string ):
 		return string in KEYWORDS
+
+	def _isSuperInvocation( self, element ):
+		target = element.getTarget()
+		return (
+			isinstance(target,              interfaces.IResolution) and
+			isinstance(target.getContext(), interfaces.IReference)  and
+			target.getContext().getReferenceName() == "super"
+		)
 
 	def _rewriteSymbol( self, string ):
 		"""Rewrites the given symbol so that it can be expressed in the target language."""
@@ -1094,7 +1101,6 @@ class Writer(AbstractWriter):
 			# FIXME: This is temporary, we should have an AbsoluteReference
 			# operation that uses symbols as content
 			symbol_name = ".".join(map(self._rewriteSymbol, symbol_name.split(".")))
-
 		# If there is no scope, then the symmbol is undefined
 		if not scope:
 			if symbol_name == "print": return self.runtimePrefix + self.jsCore + "print"
@@ -1108,16 +1114,19 @@ class Writer(AbstractWriter):
 				# Here we need to wrap the method if they are given as values (
 				# that means used outside of direct invocations), because when
 				# giving a method as a callback, the 'this' pointer is not carried.
-				if self.inInvocation:
-					return "%s.%s" % (self._runtimeSelfReference(value), symbol_name)
-				else:
+				invocation = self.findInContext(interfaces.IInvocation)
+				if invocation and invocation.getTarget() == element:
 					return self._runtimeGetMethodByName(symbol_name, value)
+				else:
+					return self._runtimeWrapMethodByName(symbol_name, value)
 			elif isinstance(value, interfaces.IClassMethod):
+				# FIXME: Same as above
 				if self.isIn(interfaces.IInstanceMethod):
 					return self._runtimeGetClass() + ".getOperation('%s')" % (symbol_name)
 				else:
 					return "%s.%s" % (self._runtimeSelfReference(value), symbol_name)
 			elif isinstance(value, interfaces.IClassAttribute):
+				# FIXME: Same as above
 				if self.isIn(interfaces.IClassMethod):
 					return "%s.%s" % (self._runtimeSelfReference(value), symbol_name)
 				else:
@@ -1299,20 +1308,18 @@ class Writer(AbstractWriter):
 		"""Writes a resolution operation."""
 		# We just want the raw reference name here, if we use _write() instead,
 		# we'll have improper scoping.
-		ref = resolution.getReference()
-		if isinstance(ref, interfaces.IAbsoluteReference):
-			return self.onReference(ref)
+		reference    = resolution.getReference()
+		context      = resolution.getContext()
+		context_name = context.getReferenceName() if isinstance(context, interfaces.IReference) else None
+		if isinstance(reference, interfaces.IAbsoluteReference):
+			return self.onReference(reference)
+		elif not context:
+			# NOTE: Not sure why it is not reference
+			return self._rewriteSymbol(reference.getReferenceName())
+		elif context_name == "super":
+			return self._runtimeSuperResolution(resolution)
 		else:
-			resolved_name = resolution.getReference().getReferenceName()
-			if not self._isSymbolValid(resolved_name):
-				resolved_name = self._rewriteSymbol(resolved_name)
-			if resolution.getContext():
-				if resolved_name == "super":
-					return "%s.getSuper()" % (self.write(resolution.getContext()))
-				else:
-					return "%s.%s" % (self.write(resolution.getContext()), resolved_name)
-			else:
-				return "%s" % (resolved_name)
+			return self.write(context) + "." + self._rewriteSymbol(reference.getReferenceName())
 
 	def onComputation( self, computation ):
 		"""Writes a computation operation."""
@@ -1346,112 +1353,22 @@ class Writer(AbstractWriter):
 			res = "(%s)" % (res)
 		return res
 
-	def _closureIsRewrite(self, closure):
-		"""Some invocations/closures are going to be rewritten based on the
-		backend"""
-		embed_templates_for_backend = []
-		others = []
-		if not isinstance(closure, interfaces.IClosure):
-			return False
-		for op in closure.getOperations():
-			if isinstance(op, interfaces.IEmbedTemplate):
-				lang = op.getLanguage().lower()
-				if lang == "javascript":
-					embed_templates_for_backend.append(op)
-				continue
-		if embed_templates_for_backend and not others:
-			return embed_templates_for_backend
-		else:
-			return ()
-
-	def _rewriteInvocation(self, invocation, closure, template):
-		"""Rewrites an invocation based on an embedding template."""
-		arguments  = tuple([self.write(a) for a in invocation.getArguments()])
-		parameters = tuple([self._rewriteSymbol(a.getName()) for a  in closure.getParameters()])
-		args = {}
-		for i in range(len(arguments)):
-			args[parameters[i]] = arguments[i]
-		target = invocation.getTarget()
-		# To have the 'self', the invocation target must be a resolution on an
-		# object
-		assert isinstance(target, interfaces.IResolution)
-		args["self"] = "self_" + str(time.time()).replace(".","_") + str(random.randint(0,100))
-		args["self_once"] = self.write(target.getContext())
-		vars = []
-		for var in self.RE_TEMPLATE.findall(template):
-			var = var[2:-1]
-			vars.append(var)
-			if var[0] == "_":
-				if var not in args:
-					args[var] = "var_" + str(time.time()).replace(".","_") + str(random.randint(0,100))
-		return "%s%s" % (
-			"self" in vars and "%s=%s\n" % (args["self"],self.write(args["self_once"])) or "",
-			string.Template(template).substitute(args)
-		)
-
 	def onInvocation( self, invocation ):
 		"""Writes an invocation operation."""
-		self.inInvocation = True
-		# FIXME: Target may not be a reference
-		t = self.write(invocation.getTarget())
-		target_type = invocation.getTarget().getResultAbstractType()
-		if target_type:
-			concrete_type = target_type.concreteType()
-			rewrite        = self._closureIsRewrite(concrete_type)
-		else:
-			rewrite = ""
-		parent = self.context[-2]
-		suffix = ";" if isinstance(parent, interfaces.IBlock) or isinstance(parent, interfaces.IProcess) else ""
-		res = None
-		if rewrite:
-			return self._rewriteInvocation(invocation, concrete_type, "\n".join([r.getCode() for r in rewrite]))
-		else:
-			self.inInvocation = False
-			# FIXME: Special handling of assert
-			if t == "extend.assert":
-				args      = invocation.getArguments()
-				predicate = self.write(args[0])
-				rest      = args[1:]
-				# TODO: We should include the offsets
-				return "!({0}) && extend.assert(false, {1}, {2}, {3}){4}".format(
-					predicate,
-					json.dumps(self.getScopeName() + ":"),
-					", ".join(self.write(_) for _ in rest) or '""',
-					json.dumps("(failed `" + predicate + "`)"),
-					suffix
-				)
-			elif invocation.isByPositionOnly():
-				return "%s(%s)%s" % (
-					t,
-					", ".join(map(self.write, invocation.getArguments())),
-					suffix
-					)
+		parent            = self.context[-2]
+		suffix            = ";" if isinstance(parent, interfaces.IBlock) or isinstance(parent, interfaces.IProcess) else ""
+		# FIXME: Special handling of assert
+		if False and "extend.assert":
+			return self._runtimeAssert(invocation) + suffix
+		elif invocation.isByPositionOnly():
+			if self._isSuperInvocation(invocation):
+				return self._runtimeSuperInvocation(invocation) + suffix
 			else:
-				normal_arguments = []
-				extra_arguments  = {}
-				current          = normal_arguments
-				for param in invocation.getArguments():
-					if  param.isAsMap():
-						current = extra_arguments
-						current["**"] = self.write(param.getValue())
-					elif param.isAsList():
-						current = extra_arguments
-						current["*"] = self.write(param.getValue())
-					elif param.isByName():
-						current = extra_arguments
-						current[self._rewriteSymbol(param.getName())] = self.write(param.getValue())
-					else:
-						assert current == normal_arguments
-						current.append(self.write(param.getValue()))
-				normal_str = "[%s]" % (",".join(normal_arguments))
-				extra_str  = "{%s}" % (",".join("%s:%s" % (k,v) for k,v in list(extra_arguments.items())))
-				return "extend.invoke(%s,%s,%s,%s)%s" % (
-					self._runtimeSelfReference(invocation),
-					t,
-					normal_str,
-					extra_str,
-					suffix
-				)
+				return self._runtimeInvocation(invocation) + suffix
+
+		else:
+			raise NotImplementedError
+
 
 	def onArgument( self, argument ):
 		r = self.write(argument.getValue())
@@ -1513,7 +1430,7 @@ class Writer(AbstractWriter):
 			if i==0:
 				if selection.getImplicitValue():
 					implicit_slot = selection.dataflow.getImplicitSlotFor(selection)
-					condition = "(({0}={1} || true) && ({2}))".format(
+					condition = "((({0}={1}) || true) && ({2}))".format(
 						implicit_slot.getName(),
 						self.write(selection.getImplicitValue()),
 						condition
@@ -1809,11 +1726,18 @@ class Writer(AbstractWriter):
 		# We format the result
 		result = self.write(termination.getReturnedEvaluable())
 		if prefix:
-			result = "({0} || true) ? {1} : undefined".format(prefix, result)
+			result = "(({0}) || true) ? {1} : undefined".format(prefix, result)
 		else:
 			result = "{0}".format(result)
 		if termination.hasAnnotation("in-iteration"):
-			return self._runtimeReturnValue(result)
+			# If the termination is in an iteration, and that the
+			# iteration is in an expression, then we need to wrap the
+			# return value so that the iteration function can unwrap the result.
+			iteration = self.findInContext(interfaces.IIteration)
+			if isinstance(iteration.parent, interfaces.IOperation):
+				return self._runtimeReturnValue(result)
+			else:
+				return "return " + result
 		else:
 			return "return " + result
 
@@ -2032,8 +1956,17 @@ class Writer(AbstractWriter):
 				self.getSafeSuperName(self.getCurrentClass())
 			)
 
+	def _runtimeSuperResolution( self, relement, reference ):
+		return "{0}.getSuper().{1}".format(
+			self.runtimePrefix,
+			self._rewriteSymbol(resolution.getReference().getReferenceName())
+		)
+
 	def _runtimeGetMethodByName(self, name, value=None):
-		return self._runtimeSelfReference(value) + ".getMethod('%s') " % (name)
+		return self._runtimeSelfReference(value) + "." + name
+
+	def _runtimeWrapMethodByName(self, name, value=None):
+		return self._runtimeSelfReference(value) + ".getMethod(" + name + ")"
 
 	def _runtimeGetClass(self, variable=None):
 		return "%s.getClass()" % (variable or self._runtimeSelfReference())
@@ -2071,6 +2004,19 @@ class Writer(AbstractWriter):
 		else:
 			return result
 
+	def _runtimeAssert( self, invocation ):
+		args      = invocation.getArguments()
+		predicate = self.write(args[0])
+		rest      = args[1:]
+		# TODO: We should include the offsets
+		return "!({0}) && extend.assert(false, {1}, {2}, {3}){4}".format(
+			predicate,
+			json.dumps(self.getScopeName() + ":"),
+			", ".join(self.write(_) for _ in rest) or '""',
+			json.dumps("(failed `" + predicate + "`)"),
+			suffix
+		)
+
 	def _runtimeReturnType( self ):
 		return self.runtimePrefix + "FLOW_RETURN"
 
@@ -2088,6 +2034,18 @@ class Writer(AbstractWriter):
 
 	def _runtimeSelfBinding( self, element=None ):
 		return "var self = this;"
+
+	def _runtimeInvocation( self, element ):
+		return "{0}({1})".format(
+			self.write(element.getTarget()),
+			", ".join(map(self.write, element.getArguments())),
+		)
+
+	def _runtimeSuperInvocation( self, element ):
+		return "{0}({1})".format(
+			self.write(element.getTarget()),
+			", ".join(map(self.write, element.getArguments())),
+		)
 
 	def _runtimePreamble( self ):
 		return []
