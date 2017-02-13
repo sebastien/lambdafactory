@@ -306,7 +306,7 @@ class Writer(AbstractWriter):
 		if version:
 			code.append("%s.__VERSION__='%s';" % (module_name, version.getContent()))
 		# --- SLOTS -----------------------------------------------------------
-		for name, value in moduleElement.getSlots():
+		for name, value, accessor, mutator in moduleElement.getSlots():
 			if isinstance(value, interfaces.IModuleAttribute):
 				declaration = u"{0}.{1};".format(module_name, self.write(value))
 			else:
@@ -1406,7 +1406,7 @@ class Writer(AbstractWriter):
 		# If-expressions are not going to be with a process or block as parent.
 		in_process = isinstance(self.context[-2], interfaces.IProcess) or isinstance(self.context[-2], interfaces.IBlock)
 		if not in_process and selection.hasAnnotation("if-expression"):
-			return self._writeSelectionInExpression(selection)
+			return self._format(self._writeSelectionInExpression(selection))
 		rules     = selection.getRules()
 		implicits = [_ for _ in self._writeImplicitAllocations(selection)]
 		result    = []
@@ -1465,8 +1465,8 @@ class Writer(AbstractWriter):
 
 	def _writeSelectionInExpression( self, selection ):
 		"""Writes an embedded if expression"""
+		# TODO: This should be re-written to have a more elegant output
 		rules  = selection.getRules()
-		result = []
 		text   = ""
 		has_else = False
 		for i, rule in enumerate(rules):
@@ -1482,11 +1482,11 @@ class Writer(AbstractWriter):
 				prefix = ""
 				if i==0 and selection.getImplicitValue():
 					implicit_slot = selection.dataflow.getImplicitSlotFor(selection)
-					prefix = "(({0}={1}) || true) && ".format(
+					prefix = "(\n\t({0}={1}) || true) && ".format(
 						implicit_slot.getName(),
 						self.write(selection.getImplicitValue()),
 					)
-				text += "(%s%s ? %s : " % (
+				text += "(%s%s ?\n\t%s :\n\t" % (
 					prefix,
 					self.write(rule.getPredicate()),
 					self.write(expression)

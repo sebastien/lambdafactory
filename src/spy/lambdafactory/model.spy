@@ -938,15 +938,37 @@
 		return abstract
 	@end
 
+	@method getAccessors
+		let res = []
+		for slot in getSlots ()
+			var a = slot[2]
+			if a
+				res append (a)
+			end
+		end
+		return res
+	@end
+
+	@method getMutators
+		let res = []
+		for slot in getSlots ()
+			var m = slot[3]
+			if m
+				res append (m)
+			end
+		end
+		return res
+	@end
+
 	@method setSlot name, evaluable, assignParent=True
-		if not isinstance(evaluable, IAssignable)
+		if evaluable and (not isinstance(evaluable, IAssignable))
 			raise ERR_SLOT_VALUE_NOT_ASSIGNABLE
 		end
 		if assignParent and isinstance(evaluable, IContext) or hasattr(evaluable,"setParent")
 			evaluable setParent ( self )
 		end
 		if slotIndex get (name) is Undefined
-			slots append [name, evaluable]
+			slots append [name, evaluable, Undefined, Undefined]
 			slotIndex [name] = len(slots) - 1
 		else
 			var slot = slots [slotIndex[name]]
@@ -962,6 +984,40 @@
 		end
 	@end
 
+	@method setAccessor name, accessor
+		ensureSlot (name)
+		_getRawSlot (name) [2] = accessor
+	@end
+
+	@method setMutator name, accessor
+		ensureSlot (name)
+		_getRawSlot (name) [3] = accessor
+	@end
+
+	@method getAccessor name
+		let s = _getRawSlot (name)
+		if s
+			return s[2]
+		else
+			return None
+		end
+	@end
+
+	@method getMutator name
+		let s = _getRawSlot (name)
+		if s
+			return s[3]
+		else
+			return None
+		end
+	@end
+
+	@method ensureSlot name
+		if not hasSlot (name)
+			setSlot (name, None)
+		end
+	@end
+
 	@method hasSlot name
 		for slot in slots
 			if slot[0] == name
@@ -972,11 +1028,15 @@
 	@end
 
 	@method getSlot name
+		return _getRawSlot ()[1]
+	@end
+
+	@method _getRawSlot name
 		# We get the last slot instead of the first one
 		var i = len(slots) - 1
 		for slot in slots
 			if slot[0] == name
-				return slot[1]
+				return slot
 			end
 		end
 		raise ERR_SLOT_NOT_FOUND
@@ -1058,14 +1118,6 @@
 
 	@method getAttributeMethods
 		return slotValuesImplementing(IAttributeMethod)
-	@end
-
-	@method getAccessors
-		return slotValuesImplementing(IAccessor)
-	@end
-
-	@method getMutator
-		return slotValuesImplementing(IMutator)
 	@end
 
 	@method getClassAttributes

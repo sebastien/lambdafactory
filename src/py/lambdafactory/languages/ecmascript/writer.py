@@ -39,6 +39,7 @@ class Writer(JavaScriptWriter):
 	def __init__( self ):
 		JavaScriptWriter.__init__(self)
 		self.jsInit = "__init__"
+		self.jsSelf = "self"
 
 	# -------------------------------------------------------------------------
 	#
@@ -54,7 +55,6 @@ class Writer(JavaScriptWriter):
 		step  = self.write(step) if step else 1
 		# NOTE: This is a safe, runtime-free enumeration
 		return "__range__({0},{1},{2})".format(start,end,step)
-
 
 	# -------------------------------------------------------------------------
 	#
@@ -117,9 +117,14 @@ class Writer(JavaScriptWriter):
 			self.pushContext(e)
 			yield [self._onFunctionBody(e)]
 			self.popContext()
-		for e in element.getInstanceMethods():
+		methods = (
+			("get", element.getAccessors()),
+			("set", element.getMutators()),
+			("function", element.getInstanceMethods())
+		)
+		for m,e in methods:
 			self.pushContext(e)
-			l = [_ for _ in self.onFunction(e, modifier="function")]
+			l = [_ for _ in self.onFunction(e, modifier=m)]
 			l[0]   = "self." + e.getName() + " = " + l[0]
 			l[-1] += ";"
 			yield [l]
@@ -159,6 +164,14 @@ class Writer(JavaScriptWriter):
 			self.pushContext(e)
 			yield self.onClassMethod(e)
 			self.popContext()
+		for e in element.getAccessors():
+			self.pushContext(e)
+			yield self.onAccesor(e)
+			self.popContext()
+		for e in element.getMutators():
+			self.pushContext(e)
+			yield self.onMutator(e)
+			self.popContext()
 		for e in element.getInstanceMethods():
 			self.pushContext(e)
 			yield self.onMethod(e)
@@ -177,6 +190,12 @@ class Writer(JavaScriptWriter):
 		yield self._onFunctionBody(element, body, bindSelf=bindSelf)
 		yield "}"
 
+	def onAccesor( self, element ):
+		return self.onFunction( element, modifier="get" )
+
+	def onMutator( self, element ):
+		return self.onFunction( element, modifier="set" )
+
 	def onMethod( self, element ):
 		return self.onFunction( element, modifier="" )
 
@@ -186,6 +205,7 @@ class Writer(JavaScriptWriter):
 	def onConstructor( self, element ):
 		r = []
 		has_constructor = False
+		self.jsSelf = "this"
 		if element:
 			for op in element.operations:
 				if self.isSuperInvocation(op):
@@ -215,6 +235,7 @@ class Writer(JavaScriptWriter):
 				r.insert(0,"super();")
 			has_constructor = True
 		r.append("let self = this;")
+		self.jsSelf = "self"
 		# If there is no constructor or body, then we don't need to return
 		# anything.
 		if has_constructor and r:
@@ -312,14 +333,7 @@ class Writer(JavaScriptWriter):
 		return self._runtimeOp("isIn", collection, element)
 
 	def _runtimeSelfReference( self, element ):
-		i = self.lastIndexInContext(interfaces.IConstructor)
-		j = self.lastIndexInContext(interfaces.IClosure)
-		if i >= 0 and i >= j:
-			# We cannot pre-bind the `self` in constructors before  the
-			# super() is called
-			return "this"
-		else:
-			return "self"
+		return self.jsSelf
 
 	def _runtimeSelfBinding( self, element ):
 		c = self.getCurrentContext()
@@ -360,9 +374,10 @@ class Writer(JavaScriptWriter):
 			else:
 				m = s + ".__super_method__" + name
 				n = "self.prototype." + name
-				return "(typeof {0} === typeof undefined ? {0} = function(){{return {1}.apply(self,arguments);}} : {0})".format(m, n)
-		# Now we need to know if we need to preserve the `this` pointer
-
+				# NOTE: The commented line is a relatively bad way to do the
+				# binding
+				#return "(typeof {0} === typeof undefined ? {0} = function(){{return {1}.apply(self,arguments);}} : {0})".format(m, n)
+				return n + ".bind(" + s + ")"
 
 	def _runtimeGetClass(self, variable=None):
 		return (variable or self.jsSelf) + ".prototype"
@@ -373,10 +388,11 @@ class Writer(JavaScriptWriter):
 	def _runtimeWrapMethodByName(self, name, value=None, element=None):
 		# FIXME: Not sure that we catually need to preserve the this at all
 		s = self._runtimeSelfReference(element)
-		return s + "." + name
-		# m = s + ".__method__" + name
-		# n = s + "." + name
-		# return "(typeof {0} === typeof undefined ? {0} = function(){{return {1}.apply(self,arguments);}} : {0})".format(m, n)
+		m = s + ".__method__" + name
+		n = s + "." + name
+		# NOTE: The commented line is a relatively bad way to do the binding
+		#return "(typeof {0} === typeof undefined ? {0} = function(){{return {1}.apply(self,arguments);}} : {0})".format(m, n)
+		return n + ".bind(" + s + ")"
 
 	def _runtimePreamble( self ):
 		return []
