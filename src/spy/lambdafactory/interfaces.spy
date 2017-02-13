@@ -144,6 +144,12 @@
 
 	@abstract @method getSlot:<IDataFlowSlot> name:String
 	| Returns the slot with the given name, if any.
+
+	@abstract @method hasTransientScope
+	| Tells if this element should be ignored in the naming of its children.
+	| For instance an enumeration of values would be transient, as the
+	| values are directly resolvabel in the context.
+
 @end
 
 @protocol IDataFlowSlot

@@ -193,6 +193,9 @@ class Writer(AbstractWriter):
 			return self.write(element)
 		while element.getParent():
 			element = element.getParent()
+			# Transient scope elements do not participate in the naming
+			if element.hasTransientScope():
+				continue
 			# FIXME: Some elements may not have a name
 			if isinstance(element, interfaces.IModule):
 				# TODO: Should be able to detect a reference to the current module
@@ -1122,7 +1125,7 @@ class Writer(AbstractWriter):
 			elif isinstance(value, interfaces.IClassMethod):
 				# FIXME: Same as above
 				if self.isIn(interfaces.IInstanceMethod):
-					return self._runtimeGetClass() + ".getOperation('%s')" % (symbol_name)
+					return self._runtimeWrapMethodByName(symbol_name, value, element)
 				else:
 					return "%s.%s" % (self._runtimeSelfReference(value), symbol_name)
 			elif isinstance(value, interfaces.IClassAttribute):
@@ -1130,7 +1133,7 @@ class Writer(AbstractWriter):
 				if self.isIn(interfaces.IClassMethod):
 					return "%s.%s" % (self._runtimeSelfReference(value), symbol_name)
 				else:
-					return self._runtimeGetClass() + "." + symbol_name
+					return self._runtimeCurrentGetClass() + "." + symbol_name
 			else:
 				return self._runtimeSelfReference(value) + "." + symbol_name
 		# It is a local variable
@@ -1697,6 +1700,7 @@ class Writer(AbstractWriter):
 		t      = element.getType()
 		# FIXME: We should probably resolve the name, or try at least..
 		rvalue = t.getName()
+		operation = "instanceof"
 		# TODO: We should resolve the type in the namespace
 		if not t.parameters or len(t.parameters) == 0:
 			if rvalue == "String":
@@ -1711,7 +1715,9 @@ class Writer(AbstractWriter):
 				slot, value = self.resolve(t.getReferenceName())
 				if value:
 					rvalue = self.getSafeName(value)
-		return ("({0} instanceof {1})".format(lvalue, rvalue))
+					if isinstance(value, interfaces.ISymbolType):
+						operation = "==="
+		return ("({0} {2} {1})".format(lvalue, rvalue, operation))
 
 	def onEvaluation( self, operation ):
 		"""Writes an evaluation operation."""
@@ -1973,10 +1979,10 @@ class Writer(AbstractWriter):
 		return self._runtimeSelfReference(value) + "." + name
 
 	def _runtimeWrapMethodByName(self, name, value=None, element=None):
-		return self._runtimeSelfReference(value) + ".getMethod(" + name + ")"
-
-	def _runtimeGetClass(self, variable=None):
-		return "%s.getClass()" % (variable or self._runtimeSelfReference())
+		if isinstance(value, interfaces.IClassMethod):
+			return self._runtimeCurrentGetClass() + ".getOperation('%s')" % (symbol_name)
+		else:
+			return self._runtimeSelfReference(value) + ".getMethod(" + name + ")"
 
 	def _runtimeOp( self, name, *args ):
 		args = [self.write(_) if isinstance(_,interfaces.IElement) else _ for _ in args]

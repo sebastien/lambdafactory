@@ -709,6 +709,10 @@
 		resultAbtractType = abstractType
 	@end
 
+	@method hasTransientScope
+		return False
+	@end
+
 	@method prettyList
 		return pprint pprint(asList())
 	@end
@@ -822,6 +826,7 @@
 	@end
 
 @end
+
 @class EnumerationType: Type, IEnumerationType
 
 	@property parameters=None
@@ -841,9 +846,13 @@
 
 	@method addSymbol symbol
 		symbols append (symbol)
+		symbol setParent (self)
 		return self
 	@end
 
+	@method hasTransientScope
+		return True
+	@end
 
 	@method getSymbols
 		return symbols
@@ -1064,13 +1073,19 @@
 
 	@method getAbsoluteName
 		if name
-			if parent
-				var parent_name =  parent getAbsoluteName ()
+			var p = parent
+			while p and p hasTransientScope ()
+				p = p parent
+			end
+			if p
+				var parent_name = p getAbsoluteName ()
 				if parent_name
 					return parent_name + "." + name
 				else
 					return name
 				end
+			else
+				return name
 			end
 		else
 			return Undefined

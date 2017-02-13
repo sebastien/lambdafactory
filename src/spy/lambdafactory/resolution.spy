@@ -122,7 +122,11 @@
 	@end
 
 	@method onEnumerationType element
-		pass
+		ensureDataFlow (element)
+		for _ in element getSymbols ()
+			var df = ensureDataFlow (_)
+			df declareLocal (_ getName (), _)
+		end
 	@end
 
 	@method onClass element
