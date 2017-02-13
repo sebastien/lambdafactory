@@ -214,6 +214,7 @@ class Writer(JavaScriptWriter):
 			if self.getClassParents(c):
 				r.insert(0,"super();")
 			has_constructor = True
+		r.append("let self = this;")
 		# If there is no constructor or body, then we don't need to return
 		# anything.
 		if has_constructor and r:
@@ -311,7 +312,9 @@ class Writer(JavaScriptWriter):
 		return self._runtimeOp("isIn", collection, element)
 
 	def _runtimeSelfReference( self, element ):
-		if self.isIn(interfaces.IConstructor):
+		i = self.lastIndexInContext(interfaces.IConstructor)
+		j = self.lastIndexInContext(interfaces.IClosure)
+		if i >= 0 and i >= j:
 			# We cannot pre-bind the `self` in constructors before  the
 			# super() is called
 			return "this"
@@ -350,11 +353,12 @@ class Writer(JavaScriptWriter):
 		if method >= closure:
 			return "super.{0}".format(name)
 		else:
+			s = self._runtimeSelfReference(resolution)
 			invocation = self.findInContext(interfaces.IInvocation)
 			if invocation and invocation.getTarget() == resolution:
-				return "self.prototype.{0}".format(name)
+				return s + ".prototype.{0}".format(name)
 			else:
-				m = "self.__super_method__" + name
+				m = s + ".__super_method__" + name
 				n = "self.prototype." + name
 				return "(typeof {0} === typeof undefined ? {0} = function(){{return {1}.apply(self,arguments);}} : {0})".format(m, n)
 		# Now we need to know if we need to preserve the `this` pointer
@@ -363,13 +367,16 @@ class Writer(JavaScriptWriter):
 	def _runtimeGetClass(self, variable=None):
 		return (variable or self.jsSelf) + ".prototype"
 
-	def _runtimeGetMethodByName(self, name, element=None):
-		return self.jsSelf + "." + name
+	def _runtimeGetMethodByName(self, name, value=None, element=None):
+		return self._runtimeSelfReference(element) + "." + name
 
-	def _runtimeWrapMethodByName(self, name, value=None):
-		m = self.jsSelf + ".__method__" + name
-		n = self.jsSelf + "." + name
-		return "(typeof {0} === typeof undefined ? {0} = function(){{return {1}.apply(self,arguments);}} : {0})".format(m, n)
+	def _runtimeWrapMethodByName(self, name, value=None, element=None):
+		# FIXME: Not sure that we catually need to preserve the this at all
+		s = self._runtimeSelfReference(element)
+		return s + "." + name
+		# m = s + ".__method__" + name
+		# n = s + "." + name
+		# return "(typeof {0} === typeof undefined ? {0} = function(){{return {1}.apply(self,arguments);}} : {0})".format(m, n)
 
 	def _runtimePreamble( self ):
 		return []

@@ -1116,9 +1116,9 @@ class Writer(AbstractWriter):
 				# giving a method as a callback, the 'this' pointer is not carried.
 				invocation = self.findInContext(interfaces.IInvocation)
 				if invocation and invocation.getTarget() == element:
-					return self._runtimeGetMethodByName(symbol_name, value)
+					return self._runtimeGetMethodByName(symbol_name, value, element)
 				else:
-					return self._runtimeWrapMethodByName(symbol_name, value)
+					return self._runtimeWrapMethodByName(symbol_name, value, element)
 			elif isinstance(value, interfaces.IClassMethod):
 				# FIXME: Same as above
 				if self.isIn(interfaces.IInstanceMethod):
@@ -1310,7 +1310,7 @@ class Writer(AbstractWriter):
 		# we'll have improper scoping.
 		reference    = resolution.getReference()
 		context      = resolution.getContext()
-		context_name = context.getReferenceName() if isinstance(context, interfaces.IReference) else None
+		context_name = self.write(context) if isinstance(context, interfaces.IReference) else None
 		if isinstance(reference, interfaces.IAbsoluteReference):
 			return self.onReference(reference)
 		elif not context:
@@ -1547,6 +1547,7 @@ class Writer(AbstractWriter):
 		start    = self.write(iterator.getStart())
 		end      = self.write(iterator.getEnd())
 		step     = self.write(iterator.getStep()) or "1"
+		iteration.addAnnotation("direct-iteration")
 		# We ensure there's no clash with the radom variables
 		# FIXME: Sometimes the dataflow is empty, which seems odd
 		dataflow            = (closure and closure.dataflow or iteration.dataflow)
@@ -1594,6 +1595,7 @@ class Writer(AbstractWriter):
 		# as `force-scope`, this means that there is a nested closure that references
 		# some variable that is going to be re-assigned here
 		closure = iteration.getClosure()
+		iteration.addAnnotation("direct-iteration")
 		closure.addAnnotation("direct-iteration")
 		# We ensure there's no clash with the radom variables
 		# FIXME: Sometimes the dataflow is empty, which seems odd
@@ -1729,15 +1731,20 @@ class Writer(AbstractWriter):
 			result = "(({0}) || true) ? {1} : undefined".format(prefix, result)
 		else:
 			result = "{0}".format(result)
-		if termination.hasAnnotation("in-iteration"):
+
+		iteration = self.findInContext(interfaces.IIteration)
+		if termination.hasAnnotation("in-iteration") and not iteration.hasAnnotation("direct-iteration"):
 			# If the termination is in an iteration, and that the
 			# iteration is in an expression, then we need to wrap the
 			# return value so that the iteration function can unwrap the result.
 			iteration = self.findInContext(interfaces.IIteration)
-			if isinstance(iteration.parent, interfaces.IOperation):
-				return self._runtimeReturnValue(result)
-			else:
+			# We only do it for iteration, not for map/filter/reduce
+			if (isinstance(iteration, interfaces.IFilterIteration)
+			or isinstance(iteration, interfaces.IMapIteration)
+			or isinstance(iteration, interfaces.IReduceIteration)):
 				return "return " + result
+			else:
+				return self._runtimeReturnValue(result)
 		else:
 			return "return " + result
 
@@ -1962,10 +1969,10 @@ class Writer(AbstractWriter):
 			self._rewriteSymbol(resolution.getReference().getReferenceName())
 		)
 
-	def _runtimeGetMethodByName(self, name, value=None):
+	def _runtimeGetMethodByName(self, name, value=None, element=None):
 		return self._runtimeSelfReference(value) + "." + name
 
-	def _runtimeWrapMethodByName(self, name, value=None):
+	def _runtimeWrapMethodByName(self, name, value=None, element=None):
 		return self._runtimeSelfReference(value) + ".getMethod(" + name + ")"
 
 	def _runtimeGetClass(self, variable=None):

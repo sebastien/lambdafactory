@@ -1896,9 +1896,19 @@
 @end
 
 @class MapIteration: Iteration, IMapIteration
+
+	@method getIterationType
+		return 1
+	@end
+
 @end
 
 @class FilterIteration: Iteration, IFilterIteration
+
+	@method getIterationType
+		return 2
+	@end
+
 @end
 
 @class ReduceIteration: Iteration, IReduceIteration
@@ -1922,6 +1932,10 @@
 
 	@method getDirection
 		return direction
+	@end
+
+	@method getIterationType
+		return 3
 	@end
 
 @end
