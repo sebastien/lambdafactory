@@ -1399,10 +1399,17 @@ class Writer(AbstractWriter):
 	def onChain( self, chain ):
 		target = self.write(chain.getTarget())
 		v      = self._getRandomVariable()
-		groups = chain.getGroups() or None
-		# FIXME: What do we do with groups here?
+		groups = chain.getGroups()
+		implicit_slot = chain.dataflow.getImplicitSlotFor(chain)
+		prefix        = ""
+		op            = self.write(chain.getOperator())
+		if op == ":":
+			prefix = implicit_slot.getName() + "="
 		return [
-			"var {0}={1};".format(v, target),
+			"// Chain on " + implicit_slot.getName(),
+			implicit_slot.getName() + "=" + self.write(chain.getTarget()) + ";",
+		] + [
+			prefix + self._format(self.write(g)) for g in groups
 		]
 
 	def onSelection( self, selection ):
@@ -2077,6 +2084,16 @@ class Writer(AbstractWriter):
 			start,
 			end
 		)
+
+	def _ensureSemicolon( self, block ):
+		if isinstance(block, tuple) or isinstance(block, list):
+			if block:
+				block = list(block)
+				block[-1] = self._ensureSemicolon(block[-1])
+		elif isinstance(block, str) or isinstance(block, unicode):
+			if not block.endswith(";"):
+				block += ";"
+		return block
 
 MAIN_CLASS = Writer
 

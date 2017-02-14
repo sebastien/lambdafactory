@@ -50,6 +50,7 @@
 		interfaces IAllocation
 		interfaces IAssignment
 		interfaces IIteration
+		interfaces IChain
 		interfaces ISelection
 		interfaces IOperation
 		interfaces IAnonymousReference
@@ -249,6 +250,14 @@
 	@end
 
 	@method onSelection element
+		onOperation (element)
+		let implicit = element getImplicitValue ()
+		if implicit
+			let slot = element dataflow declareImplicit (implicit, element)
+		end
+	@end
+
+	@method onChain element
 		onOperation (element)
 		let implicit = element getImplicitValue ()
 		if implicit

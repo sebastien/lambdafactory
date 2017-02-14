@@ -210,8 +210,10 @@ class Factory:
 		if rules: list(map(s.addRule, rules))
 		return s
 
-	def chain( self, *groups ):
+	def chain( self, operator, target, *groups ):
 		s = self._getImplementation("Chain")()
+		s.setOperator(operator)
+		s.setTarget(target)
 		if groups: list(map(s.addGroup, groups))
 		return s
 

@@ -1201,12 +1201,15 @@
 
 @class IChain: IOperation
 
-	@shared ARGS = [ IEvaluable, [IOperation] ]
+	@shared ARGS = [ IOperator, IEvaluable, [IOperation] ]
 
+	@abstract @method setOperator value
+	@abstract @method getOperator
 	@abstract @method setTarget value
-	@abstract @method getTarget value
+	@abstract @method getTarget
 	@abstract @method addGroup evaluable
 	@abstract @method getGroups
+	@abstract @method getImplicitValue
 
 @end
 

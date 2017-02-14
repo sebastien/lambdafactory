@@ -1874,35 +1874,49 @@
 	@method _ensureOpArguments
 		let a = self getOpArguments ()
 		if not a
-			opArguments = [None, []]
+			opArguments = [None, None, []]
 		end
 		return opArguments
 	@end
 
-	@method setTarget value
+	@method setOperator value
 		_ensureOpArguments ()
 		setOpArgument (0, value)
+	@end
+
+	@method getOperator
+		_ensureOpArguments ()
+		return getOpArgument 0
+	@end
+
+	@method setTarget value
+		_ensureOpArguments ()
+		setOpArgument (1, value)
 		return self
 	@end
 
 	@method addGroup group
 		_ensureOpArguments ()
-		let res = getOpArgument 1
+		let res = getOpArgument 2
 		if not res
 			res = [group]
 		else
 			res append (group)
 		end
-		setOpArgument (1, res)
+		setOpArgument (2, res)
 		return self
 	@end
 
 	@method getGroups
-		return getOpArgument 1
+		return getOpArgument 2
 	@end
 
 	@method getTarget
-		return getOpArgument 0
+		return getOpArgument 1
+	@end
+
+	@method getImplicitValue
+		return getTarget ()
 	@end
 
 @end

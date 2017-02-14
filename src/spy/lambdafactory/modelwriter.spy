@@ -137,6 +137,23 @@
 		return self
 	@end
 
+	@method _prepend element, value
+	| Takes care of prepending value to element, managing both
+	| string and arrays
+		if isinstance(element, list) or isinstance(element, tuple)
+			element = list(element)
+			element insert (0, value)
+		else
+			if isinstance(value, list) or isinstance(value, tuple)
+				value = list(value)
+				value append (element)
+				return value
+			else
+				return value + element
+			end
+		end
+	@end
+
 	@method write element
 		var res = None
 		if element is None
@@ -144,6 +161,10 @@
 		else
 			if isString(element)
 				return element
+			elif type(element) is list
+				@embed Python
+				|return u"\n".join(self.write(_) for _ in element)
+				@end
 			elif element hasAnnotation "shadow"
 				# We do not write out shadow elements (like automatic import
 				# operations added)
