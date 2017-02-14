@@ -1403,10 +1403,9 @@ class Writer(AbstractWriter):
 		implicit_slot = chain.dataflow.getImplicitSlotFor(chain)
 		prefix        = ""
 		op            = self.write(chain.getOperator())
-		if op == ":":
+		if op == "...":
 			prefix = implicit_slot.getName() + "="
 		return [
-			"// Chain on " + implicit_slot.getName(),
 			implicit_slot.getName() + "=" + self.write(chain.getTarget()) + ";",
 		] + [
 			prefix + self._format(self.write(g)) for g in groups
