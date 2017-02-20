@@ -57,6 +57,7 @@ OPTION_EXTERNS        = "externs"
 OPTION_NICE           = "nice"
 OPTION_NOPARENS       = "noparens"
 OPTION_EXTEND_ITERATE = "iterate"
+OPTION_TESTS          = "tests"
 
 OPTIONS = {
 	"ENABLE_METADATA" : False,
@@ -71,6 +72,18 @@ JS_OPERATORS = {
 	"or"    :"||"
 }
 
+UNIT_OPERATORS = {
+	"=="     : "equals",
+	"!="     : "different",
+	">"      : "greater",
+	"<"      : "smaller",
+	"<="     : "smallerOrEqual",
+	">="     : "greaterOrEqual",
+	"is"     : "same",
+	"is not" : "notSame",
+	"is?"    : "ofType",
+}
+
 RE_STRING_FORMAT = re.compile("\{((\d+)|([\w_]+))\s*(:\s*(\w+))?\}")
 
 #------------------------------------------------------------------------------
@@ -83,7 +96,8 @@ class Writer(AbstractWriter):
 
 	# The following generates short random variables. Note that it's not thread
 	# safe.
-	RNDVARLETTERS = "ijklmonpqrstuvwxyzabcdefgh"
+	RNDVARLETTERS  = "ijklmonpqrstuvwxyzabcdefgh"
+	UNIT_OPERATORS = UNIT_OPERATORS
 
 	def __init__( self ):
 		AbstractWriter.__init__(self)
@@ -96,7 +110,8 @@ class Writer(AbstractWriter):
 		self.supportedEmbedLanguages = ["ecmascript", "js", "javascript"]
 		self.options                 = {} ; self.options.update(OPTIONS)
 		self._generatedVars          = [0]
-		self._isNice                  = False
+		self._isNice                 = False
+		self._withUnits              = False
 
 	def _getRandomVariable( self ):
 		s = "__"
@@ -280,6 +295,7 @@ class Writer(AbstractWriter):
 		self._withExterns = self.environment.options.get(OPTION_EXTERNS) and True or False
 		self._isNice      = self.environment.options.get(OPTION_NICE)
 		self._isUnambiguous = not self.environment.options.get(OPTION_NOPARENS)
+		self._withUnits     = self.environment.options.get(OPTION_TESTS)
 		if self.environment.options.get(MODULE_UMD):
 			self._moduleType = MODULE_UMD
 		elif self.environment.options.get(MODULE_GOOGLE):
@@ -346,6 +362,8 @@ class Writer(AbstractWriter):
 			module_name, self.jsInit,
 			module_name, self.jsInit
 		))
+		for _ in self._writeUnitTests(moduleElement):
+			code.append(_)
 		# --- SOURCE ----------------------------------------------------------
 		# We append the source code
 		if self.options.get("INCLUDE_SOURCE"):
@@ -1240,11 +1258,7 @@ class Writer(AbstractWriter):
 			)
 		# Otherwise we'll use extend.createMapFromItems method
 		else:
-			return "%s%screateMapFromItems(%s)" % (
-				self.runtimePrefix,
-				self.jsCore,
-				",".join("[%s,%s]" % ( self.write(k),self.write(v)) for k,v in element.getItems())
-			)
+			return self._runtimeMapFromItems(element.getItems())
 
 	# =========================================================================
 	# OPERATIONS
@@ -1255,7 +1269,7 @@ class Writer(AbstractWriter):
 		s = allocation.getSlotToAllocate()
 		v = allocation.getDefaultValue()
 		if v:
-			return "var %s = %s;" % (self._rewriteSymbol(s.getName()), self.write(v))
+			return "var %s = %s;" % (self._rewriteSymbol(s.getName()), self._format(self.write(v)))
 		else:
 			return "var %s;" % (self._rewriteSymbol(s.getName()))
 
@@ -1532,15 +1546,18 @@ class Writer(AbstractWriter):
 		i= iteration.getIterator()
 		c = iteration.getClosure()
 		p = iteration.getPredicate()
-		if c and p:
-			return self._runtimeMap(
-				self._runtimeFilter(i, p),
-				c
-			)
-		elif c:
-			return self._runtimeMap(i,c)
-		else:
-			return self._runtimeFilter(i,p)
+		return self._runtimeFilter(i,p)
+		# FIXME: We used to have extra closure/predicate for the
+		# filter, but Sugar2 outputs a different model.
+		# if c and p and (c is not p):
+		# 	return self._runtimeMap(
+		# 		self._runtimeFilter(i, p),
+		# 		c
+		# 	)
+		# elif c:
+		# 	return self._runtimeMap(i,c)
+		# else:
+		# 	return self._runtimeFilter(i,p)
 
 
 	def onReduceIteration( self, iteration ):
@@ -1822,6 +1839,9 @@ class Writer(AbstractWriter):
 		else:
 			return embed.getCode()
 
+	def onWhere( self, eleent ):
+		import ipdb ; ipdb.set_trace()
+
 	# =========================================================================
 	# TYPES
 	# =========================================================================
@@ -1953,6 +1973,41 @@ class Writer(AbstractWriter):
 			if l:
 				yield "var {0}; /* implicits */".format(", ".join(l))
 
+	def _writeUnitTests( self, element ):
+		"""Writes the unit tests for this element and all its descendants,
+		depth-first."""
+		if self._withUnits:
+			if isinstance(element, interfaces.IContext):
+				for s,v,a,m in element.getSlots( ):
+					for _ in self._writeUnitTests(v):
+						yield _
+			for where in element.getAnnotations("where"):
+				yield self.onWhereAnnotation(where)
+
+
+	def onWhereAnnotation( self, element ):
+		"""Formats a "where" annotation, which stands for a unit test."""
+		if self._withUnits:
+			yield self._runtimeUnitTestPreamble(element)
+			for op in element.getContent().getOperations():
+				if isinstance(op, interfaces.IComputation):
+					yield self._writeUnitComputation(op)
+				else:
+					yield self.write(op)
+			yield self._runtimeUnitTestPostamble(element)
+
+	def _writeUnitComputation( self, element ):
+		op = element.getOperator().getName()
+		l  = element.getLeftOperand  ()
+		r  = element.getRightOperand ()
+		uop = self.UNIT_OPERATORS.get(op)
+		if element.isUnary():
+			yield ("__test__.{0}({1});".format("assert", self.write(element)))
+		elif uop:
+			yield ("__test__.{0}({1}, {2});".format(uop, self.write(l), self.write(r)))
+		else:
+			yield ("__test__.{0}({1}, {2});".format("assert", self.write(element)))
+
 	# =========================================================================
 	# RUNTIME
 	# =========================================================================
@@ -2083,6 +2138,19 @@ class Writer(AbstractWriter):
 			start,
 			end
 		)
+
+	def _runtimeMapFromItems( self, items ):
+		return "%s%screateMapFromItems(%s)" % (
+			self.runtimePrefix,
+			self.jsCore,
+			",".join("[%s,%s]" % ( self.write(k),self.write(v)) for k,v in items)
+		)
+
+	def _runtimeUnitTestPreamble( self, element ):
+		return "function(){{var __test__=ff.util.testing.Test('{0}');".format(self.getAbsoluteName(element))
+
+	def _runtimeUnitTestPostamble( self, element ):
+		return "__test__.end();}();"
 
 	def _ensureSemicolon( self, block ):
 		if isinstance(block, tuple) or isinstance(block, list):

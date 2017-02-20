@@ -100,6 +100,12 @@
 		return dataflow
 	@end
 
+	@method _ensureAnnotationsDataflow element
+		for _ in element getAnnotations "where"
+			ensureDataFlow (_ getContent ())
+		end
+	@end
+
 	@method onProgram element
 		# Programs have thir own dataflows
 		var dataflow = ensureDataFlow (element)
@@ -116,6 +122,7 @@
 		# Modules have thir own dataflows
 		var dataflow = ensureDataFlow (element)
 		onContext(element)
+		_ensureAnnotationsDataflow (element)
 	@end
 
 	@method onType element
@@ -151,9 +158,7 @@
 		for argument in element getArguments()
 			dataflow declareArgument(argument getName(), argument)
 		end
-		# @embed Python
-		# |import ipdb;ipdb.set_trace()
-		# @end
+		_ensureAnnotationsDataflow (element)
 	@end
 
 	@method onBlock element
@@ -169,6 +174,7 @@
 	@method onProcess element
 		# Processes have their own dataflows
 		var dataflow = ensureDataFlow (element)
+		_ensureAnnotationsDataflow (element)
 	@end
 
 	@method onContext element
@@ -411,14 +417,17 @@
 
 	@method onModule element
 		clearDataFlow (element)
+		_clearAnnotationsDataFlow (element)
 	@end
 
 	@method onClass element
 		clearDataFlow (element)
+		_clearAnnotationsDataFlow (element)
 	@end
 
 	@method onMethod element
 		clearDataFlow (element)
+		_clearAnnotationsDataFlow (element)
 	@end
 
 	@method onClosure element
@@ -427,10 +436,12 @@
 
 	@method onProcess element
 		clearDataFlow (element)
+		_clearAnnotationsDataFlow (element)
 	@end
 
 	@method onContext element
 		clearDataFlow (element)
+		_clearAnnotationsDataFlow (element)
 	@end
 
 	@method onAllocation element
@@ -446,6 +457,12 @@
 
 	@method onValue element
 		clearDataFlow (element)
+	@end
+
+	@method _clearAnnotationsDataFlow element
+		for _ in element getAnnotation "where"
+			clearDataFlow (_)
+		end
 	@end
 
 @end

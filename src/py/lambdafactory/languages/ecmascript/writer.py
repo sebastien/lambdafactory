@@ -75,7 +75,10 @@ class Writer(JavaScriptWriter):
 		yield "}"
 		yield "Object.defineProperty({0}, \"__name__\", {{value:\"{1}\",writable:false}});".format(safe_name, abs_name)
 		for _ in element.getClassAttributes():
-			yield "Object.defineProperty({0}, \"{1}\", {{value:{2},writable:true}});".format(safe_name, _.getName(), self.write(_))
+			yield "Object.defineProperty({0}, \"{1}\", {{value:{2},writable:true}});".format(
+				safe_name,
+				_.getName(),
+				self.write(_.getDefaultValue()) or "undefined")
 		self.popContext ()
 
 	def onType( self, element, anonymous=False ):
@@ -408,6 +411,11 @@ class Writer(JavaScriptWriter):
 
 	def _runtimeSlice( self, target, start, end ):
 		return "__slice__({0},{1},{2})".format(target, start, end)
+
+	def _runtimeMapFromItems( self, items ):
+		return "[{0}].reduce(function(r,v,k){{r[v[0]]=v[1];return r;}},{{}})".format(
+			",".join("[{0},{1}]".format(self.write(k),self.write(v)) for k,v in items)
+		)
 
 MAIN_CLASS = Writer
 

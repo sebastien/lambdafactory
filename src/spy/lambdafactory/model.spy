@@ -616,6 +616,7 @@
 		else
 			assert (isinstance(annotation, IAnnotation))
 			annotations append (annotation)
+			annotation setParent (self)
 		end
 		return self
 	@end
