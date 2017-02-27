@@ -258,7 +258,6 @@
 	@method onSelection element
 		onOperation (element)
 		let implicit = element getImplicitValue ()
-		print ("SELECTION", element)
 		if implicit
 			let slot = element dataflow declareImplicit (implicit, element)
 		end
@@ -601,7 +600,7 @@
 		# FIXME: This seems redundant with getClassParents()
 		for parent_class in getClassParents (element)
 			assert (parent_class != element)
-			if isinstance(parent_class, interfaces IClass)
+			if isinstance(parent_class, interfaces IConstruct)
 				assert (parent_class getDataFlow ())
 				element getDataFlow () addSource (parent_class getDataFlow())
 			elif isinstance(parent_class, interfaces IReference)

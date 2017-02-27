@@ -161,7 +161,7 @@ class Writer(JavaScriptWriter):
 			yield self.onConstructor(e)
 			self.popContext()
 		for e in element.getEvents():
-			yield "\tget {0} {{return {1}; }}".format(e.getName(), self.write(e.getDefaultValue()))
+			yield "\tget {0} () {{return {1}; }}".format(e.getName(), self.write(e.getDefaultValue()))
 		for e in element.getClassMethods():
 			self.pushContext(e)
 			yield self.onClassMethod(e)

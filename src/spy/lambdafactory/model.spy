@@ -360,11 +360,11 @@
 		if sources
 			for source in getSources ()
 				var slot_and_value = source resolveLocally (name)
-				if slot_and_value[1] != None
+				if _isSlotDefined (slot_and_value)
 					return slot_and_value
 				end
 				slot_and_value = source resolveInSources (name)
-				if slot_and_value[1] != None
+				if _isSlotDefined (slot_and_value)
 					return slot_and_value
 				end
 			end
@@ -381,6 +381,11 @@
 		else
 			return tuple([None, None])
 		end
+	@end
+
+	@method _isSlotDefined slotAndValue
+		# As soon as the slot is defined, we can return it
+		return slotAndValue[0]
 	@end
 
 	@method resolve name

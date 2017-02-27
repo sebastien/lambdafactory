@@ -1864,12 +1864,10 @@ class Writer(AbstractWriter):
 	def onEnumerationType( self, element ):
 		symbols = [_.getName() for _ in element.getSymbols()]
 		m = self._runtimeModuleName(element)
-		yield "function(_){"
-		yield "\treturn " + " || ".join("(_==={0}.{1})".format(m,_) for _ in symbols) + ";"
-		yield "};"
+		yield "{};"
 		for i,_ in enumerate(symbols):
 			# NOTE: Symbol is not supported yet, but would be preferrable
-			yield "{0}.{1} = new Number(\"{2}\");".format(m, _, i)
+			yield "{0}.{1} = {0}.{3}.{1} = new Number(\"{2}\");".format(m, _, i, element.getName())
 
 	# =========================================================================
 	# NICE HELPERS
