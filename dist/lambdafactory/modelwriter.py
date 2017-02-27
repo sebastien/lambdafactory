@@ -59,7 +59,7 @@ def notEmpty (p):
 
 
 class AbstractWriter(Pass):
-	HANDLES = [interfaces.IProgram, interfaces.ISingleton, interfaces.ITrait, interfaces.IClass, interfaces.IModule, interfaces.IAccessor, interfaces.IMutator, interfaces.IDestructor, interfaces.IConstructor, interfaces.IClassMethod, interfaces.IMethod, interfaces.IInitializer, interfaces.IFunction, interfaces.IClosure, interfaces.IWithBlock, interfaces.IBlock, interfaces.IModuleAttribute, interfaces.IClassAttribute, interfaces.IEnumerationType, interfaces.IType, interfaces.IAttribute, interfaces.IArgument, interfaces.IParameter, interfaces.IOperator, interfaces.IImplicitReference, interfaces.IReference, interfaces.INumber, interfaces.IString, interfaces.IList, interfaces.IDict, interfaces.IInterpolation, interfaces.IEnumeration, interfaces.IAllocation, interfaces.IAssignment, interfaces.IComputation, interfaces.IInvocation, interfaces.IInstanciation, interfaces.IResolution, interfaces.IChain, interfaces.ISelection, interfaces.IRepetition, interfaces.IFilterIteration, interfaces.IMapIteration, interfaces.IReduceIteration, interfaces.IIteration, interfaces.IAccessOperation, interfaces.ISliceOperation, interfaces.ITypeIdentification, interfaces.IEvaluation, interfaces.ITermination, interfaces.INOP, interfaces.IBreaking, interfaces.IContinue, interfaces.IExcept, interfaces.IInterception, interfaces.IImportSymbolOperation, interfaces.IImportSymbolsOperation, interfaces.IImportModuleOperation, interfaces.IImportModulesOperation, interfaces.IEmbed]
+	HANDLES = [interfaces.IProgram, interfaces.ISingleton, interfaces.ITrait, interfaces.IClass, interfaces.IModule, interfaces.IAccessor, interfaces.IMutator, interfaces.IDestructor, interfaces.IConstructor, interfaces.IClassMethod, interfaces.IMethod, interfaces.IInitializer, interfaces.IFunction, interfaces.IClosure, interfaces.IWithBlock, interfaces.IBlock, interfaces.IModuleAttribute, interfaces.IClassAttribute, interfaces.IEnumerationType, interfaces.IType, interfaces.IEvent, interfaces.IAttribute, interfaces.IArgument, interfaces.IParameter, interfaces.IOperator, interfaces.IImplicitReference, interfaces.IReference, interfaces.INumber, interfaces.IString, interfaces.IList, interfaces.IDict, interfaces.IInterpolation, interfaces.IEnumeration, interfaces.IAllocation, interfaces.IAssignment, interfaces.IComputation, interfaces.ITrigger, interfaces.IInvocation, interfaces.IInstanciation, interfaces.IResolution, interfaces.IChain, interfaces.ISelection, interfaces.IRepetition, interfaces.IFilterIteration, interfaces.IMapIteration, interfaces.IReduceIteration, interfaces.IIteration, interfaces.IAccessOperation, interfaces.ISliceOperation, interfaces.ITypeIdentification, interfaces.IEvaluation, interfaces.ITermination, interfaces.INOP, interfaces.IBreaking, interfaces.IContinue, interfaces.IExcept, interfaces.IInterception, interfaces.IImportSymbolOperation, interfaces.IImportSymbolsOperation, interfaces.IImportModuleOperation, interfaces.IImportModulesOperation, interfaces.IEmbed]
 	def __init__ (self):
 		self._generatedSymbols = {}
 		Pass.__init__(self)
@@ -68,6 +68,20 @@ class AbstractWriter(Pass):
 		self.options[name] = value
 		return self
 	
+	def _prepend(self, element, value):
+		"""Takes care of prepending value to element, managing both
+		string and arrays"""
+		if (isinstance(element, list) or isinstance(element, tuple)):
+			element = list(element)
+			element.insert(0, value)
+		elif True:
+			if (isinstance(value, list) or isinstance(value, tuple)):
+				value = list(value)
+				value.append(element)
+				return value
+			elif True:
+				return (value + element)
+	
 	def write(self, element):
 		res=None
 		if (element is None):
@@ -75,6 +89,9 @@ class AbstractWriter(Pass):
 		elif True:
 			if isString(element):
 				return element
+			elif (type(element) is list):
+				return u"\n".join(self.write(_) for _ in element)
+				
 			elif element.hasAnnotation('shadow'):
 				return ''
 			elif True:

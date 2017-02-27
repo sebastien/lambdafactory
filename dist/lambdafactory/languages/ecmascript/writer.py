@@ -12,6 +12,7 @@
 import lambdafactory.interfaces as interfaces
 import lambdafactory.reporter   as reporter
 from   lambdafactory.languages.javascript.writer import Writer as JavaScriptWriter
+import types
 
 # FIXME: It's kind of odd to have to do push/pop context
 
@@ -39,6 +40,7 @@ class Writer(JavaScriptWriter):
 	def __init__( self ):
 		JavaScriptWriter.__init__(self)
 		self.jsInit = "__init__"
+		self.jsSelf = "self"
 
 	# -------------------------------------------------------------------------
 	#
@@ -73,12 +75,17 @@ class Writer(JavaScriptWriter):
 		yield "}"
 		yield "Object.defineProperty({0}, \"__name__\", {{value:\"{1}\",writable:false}});".format(safe_name, abs_name)
 		for _ in element.getClassAttributes():
-			yield "Object.defineProperty({0}, \"{1}\", {{value:{2},writable:true}});".format(safe_name, _.getName(), self.write(_))
+			yield "Object.defineProperty({0}, \"{1}\", {{value:{2},writable:true}});".format(
+				safe_name,
+				_.getName(),
+				self.write(_.getDefaultValue()) or "undefined")
 		self.popContext ()
 
 	def onType( self, element, anonymous=False ):
 		assert element.isConcrete()
 		self.pushContext (element)
+		safe_name = self.getSafeName(element)
+		abs_name  = element.getAbsoluteName()
 		name   = "" if anonymous else ((element.getName() or "") + " ")
 		parent = self._onClassParents(element, element.getParents())
 		slots  = [_ for _ in element.constraints if isinstance(_, interfaces.ISlotConstraint)]
@@ -90,6 +97,7 @@ class Writer(JavaScriptWriter):
 			yield "\t\tif (typeof {0} != \"undefined\") {{this.{0} = {0};}}".format(s.getName())
 		yield "\t}"
 		yield "}"
+		yield "Object.defineProperty({0}, \"__name__\", {{value:\"{1}\",writable:false}});".format(safe_name, abs_name)
 		self.popContext ()
 
 	def onTrait( self, element ):
@@ -113,6 +121,7 @@ class Writer(JavaScriptWriter):
 			self.pushContext(e)
 			yield [self._onFunctionBody(e)]
 			self.popContext()
+		# TODO: Support getters & setters?
 		for e in element.getInstanceMethods():
 			self.pushContext(e)
 			l = [_ for _ in self.onFunction(e, modifier="function")]
@@ -120,6 +129,7 @@ class Writer(JavaScriptWriter):
 			l[-1] += ";"
 			yield [l]
 			self.popContext()
+		yield "\tself.__name__ = \"{0}\"".format(self.getAbsoluteName(element))
 		yield "\treturn self;"
 		yield "}();"
 		self.popContext()
@@ -150,9 +160,19 @@ class Writer(JavaScriptWriter):
 			self.pushContext(e or interfaces.IConstructor)
 			yield self.onConstructor(e)
 			self.popContext()
+		for e in element.getEvents():
+			yield "\tget {0} () {{return {1}; }}".format(e.getName(), self.write(e.getDefaultValue()))
 		for e in element.getClassMethods():
 			self.pushContext(e)
 			yield self.onClassMethod(e)
+			self.popContext()
+		for e in element.getAccessors():
+			self.pushContext(e)
+			yield self.onAccesor(e)
+			self.popContext()
+		for e in element.getMutators():
+			self.pushContext(e)
+			yield self.onMutator(e)
 			self.popContext()
 		for e in element.getInstanceMethods():
 			self.pushContext(e)
@@ -165,12 +185,18 @@ class Writer(JavaScriptWriter):
 	#
 	# -------------------------------------------------------------------------
 
-	def onFunction( self, element, anonymous=False, modifier="function", name=None, body=None, bindSelf=True ):
+	def onFunction( self, element, anonymous=False, modifier="function", name=None, body=None, bindSelf=True, operations=None ):
 		name   = name or element.getName() if element else None
 		params = self._onParametersList(element) if element else ""
 		yield (modifier + " " if modifier else "") + (name if name and not anonymous else "") + "(" + params + ") {"
-		yield self._onFunctionBody(element, body, bindSelf=bindSelf)
+		yield self._onFunctionBody(element, body, bindSelf=bindSelf, operations=operations)
 		yield "}"
+
+	def onAccesor( self, element ):
+		return self.onFunction( element, modifier="get" )
+
+	def onMutator( self, element ):
+		return self.onFunction( element, modifier="set" )
 
 	def onMethod( self, element ):
 		return self.onFunction( element, modifier="" )
@@ -179,13 +205,15 @@ class Writer(JavaScriptWriter):
 		return self.onFunction( element, modifier="static" )
 
 	def onConstructor( self, element ):
-		r = []
-		has_constructor = False
+		call_super = None
+		init       = ["let self=this;"]
+		ops        = []
 		if element:
 			for op in element.operations:
 				if self.isSuperInvocation(op):
-					has_constructor = op
-					break
+					call_super = op
+				else:
+					ops.append(op)
 		c = self.getCurrentClass()
 		if c:
 			traits = [_ for _ in self.getClassParents(c) if isinstance(_, interfaces.ITrait)]
@@ -199,20 +227,22 @@ class Writer(JavaScriptWriter):
 						attrs.append(n)
 						v = a.getDefaultValue()
 						if v:
-							r.append(
+							init.append(
 								"if (typeof {0}.{1} === typeof undefined) {{{0}.{1} = {2};}}".format(
-								"this", a.getName(), self.write(v))
+								"self", a.getName(), self.write(v))
 							)
 		# We only use super if the clas has parents and ther is no explicit
 		# constructor
-		if not has_constructor:
+		if not call_super:
 			if self.getClassParents(c):
-				r.insert(0,"super();")
-			has_constructor = True
-		# If there is no constructor or body, then we don't need to return
-		# anything.
-		if has_constructor and r:
-			return self.onFunction( element, modifier="constructor", anonymous=True, body=r, bindSelf=False)
+				# We need to pass teh argumetns as-is
+				init.insert(0,"super(...arguments);")
+		else:
+			self.jsSelf = "this"
+			init.insert(0, self.write(call_super))
+			self.jsSelf = "self"
+
+		return self.onFunction( element, modifier="constructor", anonymous=True, body=init, bindSelf=False, operations=ops)
 
 	def onInitializer( self, element ):
 		return self.onFunction( element,  anonymous=True )
@@ -221,7 +251,7 @@ class Writer(JavaScriptWriter):
 	# CALLBABLE-SPECIFIC RULES
 	# =========================================================================
 
-	def _onFunctionBody( self, element, body=None, bindSelf=True ):
+	def _onFunctionBody( self, element, body=None, bindSelf=True, operations=None ):
 		"""Writes the body of a function."""
 		# Adds the `var self = this`
 		if bindSelf: yield self._runtimeSelfBinding(element)
@@ -233,8 +263,16 @@ class Writer(JavaScriptWriter):
 		for _ in body or []:
 			yield _
 		if element:
-			for _ in element.getOperations():
-				yield self.write(_)
+			event = element.getAnnotation("event")
+			if event:
+				yield self._runtimeBindEvent(event.getContent())
+			for _ in operations or element.getOperations():
+				if isinstance(_, types.LambdaType):
+					_()
+				elif isinstance(_, interfaces.IElement):
+					yield self.write(_)
+				else:
+					yield _
 			for _ in self._onPostCondition(element):
 				yield _
 
@@ -274,7 +312,11 @@ class Writer(JavaScriptWriter):
 	# =========================================================================
 
 	def isSuperInvocation( self, element ):
-		return element and isinstance(element, interfaces.IInvocation) and element.getTarget().getReferenceName() == "super"
+		if element and isinstance(element, interfaces.IInvocation):
+			target = element.getTarget()
+			return isinstance(target, interfaces.IReference) and target.getReferenceName() == "super"
+		else:
+			return False
 
 	# =========================================================================
 	# UTILITIES
@@ -292,19 +334,21 @@ class Writer(JavaScriptWriter):
 	def _runtimeReturnContinue( self ):
 		return "return __CONTINUE__;"
 
+	def _runtimeReturnType( self ):
+		return "__RETURN__"
+
 	def _runtimeRestArguments( self, i ):
 		return "Array.prototype.slice.call(arguments," + str(i) + ")"
 
 	def _runtimeDefaultValue( self, name, value ):
 		return name + " === undefined ? " + value + " : " + name
 
+	def _runtimeIsIn( self, element, collection ):
+		# NOTE: The is in is reversed in the ES runtime
+		return self._runtimeOp("isIn", collection, element)
+
 	def _runtimeSelfReference( self, element ):
-		if self.isIn(interfaces.IConstructor):
-			# We cannot pre-bind the `self` in constructors before  the
-			# super() is called
-			return "this"
-		else:
-			return "self"
+		return self.jsSelf
 
 	def _runtimeSelfBinding( self, element ):
 		c = self.getCurrentContext()
@@ -329,13 +373,41 @@ class Writer(JavaScriptWriter):
 		else:
 			return "super"
 
-	def _runtimeGetClass(self, variable=None):
-		return (variable or self.jsSelf) + ".prototype"
+	def _runtimeSuperResolution( self, resolution ):
+		# We need to check wether we're in a closure or not. If we are,
+		# then we can't user `super`
+		closure = self.lastIndexInContext(interfaces.IClosure)
+		method  = self.lastIndexInContext(interfaces.IMethod)
+		name    = self._rewriteSymbol(resolution.getReference().getReferenceName())
+		if method >= closure:
+			return "super.{0}".format(name)
+		else:
+			s = self._runtimeSelfReference(resolution)
+			invocation = self.findInContext(interfaces.IInvocation)
+			if invocation and invocation.getTarget() == resolution:
+				# This is awkward, but that's how you emulate a super invocation
+				return "Object.getPrototypeOf(Object.getPrototypeOf({0})).{1}.bind({0})".format(s, name)
+			else:
+				m = s + ".__super_method__" + name
+				n = "self.prototype." + name
+				# NOTE: The commented line is a relatively bad way to do the
+				# binding
+				#return "(typeof {0} === typeof undefined ? {0} = function(){{return {1}.apply(self,arguments);}} : {0})".format(m, n)
+				return n + ".bind(" + s + ")"
 
-	def _runtimeGetMethodByName(self, name, element=None):
-		m = self.jsSelf + ".__method__" + name
-		n = self.jsSelf + "." + name
-		return "(typeof {0} === typeof undefined ? {0} = function(){{return {1}.apply(self,arguments);}} : {0})".format(m, n)
+
+	def _runtimeGetMethodByName(self, name, value=None, element=None):
+		return self._runtimeSelfReference(element) + "." + name
+
+	def _runtimeWrapMethodByName(self, name, value=None, element=None):
+		s = self._runtimeSelfReference(element)
+		if isinstance(value, interfaces.IClassMethod):
+			return "Object.getPrototypeOf({0}).constructor.{1}.bind(Object.getPrototypeOf({0}).constructor)".format(s, name)
+		else:
+			return "{0}.{1}.bind({0})".format(s, name)
+
+	def _runtimeBindEvent( self, event ):
+		return "return __bind__( self, \"{0}\", arguments[0], arguments[1] );".format(event)
 
 	def _runtimePreamble( self ):
 		return []
@@ -345,6 +417,11 @@ class Writer(JavaScriptWriter):
 
 	def _runtimeSlice( self, target, start, end ):
 		return "__slice__({0},{1},{2})".format(target, start, end)
+
+	def _runtimeMapFromItems( self, items ):
+		return "[{0}].reduce(function(r,v,k){{r[v[0]]=v[1];return r;}},{{}})".format(
+			",".join("[{0},{1}]".format(self.write(k),self.write(v)) for k,v in items)
+		)
 
 MAIN_CLASS = Writer
 

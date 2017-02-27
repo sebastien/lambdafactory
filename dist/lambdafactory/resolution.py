@@ -33,7 +33,7 @@ class BasicDataFlow(Pass):
 	3) Attaches operations that reference a value to the original slot (this
 	prepares the path for the typing pass)"""
 	RE_IMPLICIT = re.compile('^_[0-9]?$')
-	HANDLES = [interfaces.IProgram, interfaces.IModule, interfaces.IClass, interfaces.IMethod, interfaces.IClosure, interfaces.IProcess, interfaces.IContext, interfaces.IAllocation, interfaces.IAssignment, interfaces.IIteration, interfaces.ISelection, interfaces.IOperation, interfaces.IAnonymousReference, interfaces.IImplicitReference, interfaces.IReference, interfaces.IValue]
+	HANDLES = [interfaces.IProgram, interfaces.IModule, interfaces.IClass, interfaces.IMethod, interfaces.IClosure, interfaces.IBlock, interfaces.IProcess, interfaces.IContext, interfaces.IAllocation, interfaces.IAssignment, interfaces.IIteration, interfaces.IChain, interfaces.ISelection, interfaces.IOperation, interfaces.IAnonymousReference, interfaces.IImplicitReference, interfaces.IReference, interfaces.IValue]
 	NAME = 'Resolution'
 	def __init__ (self):
 		Pass.__init__(self)
@@ -64,6 +64,10 @@ class BasicDataFlow(Pass):
 			element.setDataFlow(dataflow)
 		return dataflow
 	
+	def _ensureAnnotationsDataflow(self, element):
+		for _ in element.getAnnotations('where'):
+			self.ensureDataFlow(_.getContent())
+	
 	def onProgram(self, element):
 		dataflow=self.ensureDataFlow(element)
 		dataflow.declareEnvironment('Undefined', None)
@@ -74,12 +78,16 @@ class BasicDataFlow(Pass):
 	def onModule(self, element):
 		dataflow=self.ensureDataFlow(element)
 		self.onContext(element)
+		self._ensureAnnotationsDataflow(element)
 	
 	def onType(self, element):
 		pass
 	
 	def onEnumerationType(self, element):
-		pass
+		self.ensureDataFlow(element)
+		for _ in element.getSymbols():
+			df=self.ensureDataFlow(_)
+			df.declareLocal(_.getName(), _)
 	
 	def onClass(self, element):
 		dataflow=self.ensureDataFlow(element)
@@ -97,9 +105,17 @@ class BasicDataFlow(Pass):
 		dataflow=self.ensureDataFlow(element)
 		for argument in element.getArguments():
 			dataflow.declareArgument(argument.getName(), argument)
+		self._ensureAnnotationsDataflow(element)
+	
+	def onBlock(self, element):
+		if isinstance(element.parent, interfaces.IMatchOperation):
+			element.setDataFlow(element.parent.dataflow)
+		elif True:
+			dataflow=self.ensureDataFlow(element)
 	
 	def onProcess(self, element):
 		dataflow=self.ensureDataFlow(element)
+		self._ensureAnnotationsDataflow(element)
 	
 	def onContext(self, element):
 		dataflow=self.ensureDataFlow(element)
@@ -155,6 +171,12 @@ class BasicDataFlow(Pass):
 					closure.declareEnclosure(name, slots[0])
 	
 	def onSelection(self, element):
+		self.onOperation(element)
+		implicit=element.getImplicitValue()
+		if implicit:
+			slot=element.dataflow.declareImplicit(implicit, element)
+	
+	def onChain(self, element):
 		self.onOperation(element)
 		implicit=element.getImplicitValue()
 		if implicit:
@@ -247,21 +269,26 @@ class ClearDataFlow(Pass):
 	
 	def onModule(self, element):
 		self.clearDataFlow(element)
+		self._clearAnnotationsDataFlow(element)
 	
 	def onClass(self, element):
 		self.clearDataFlow(element)
+		self._clearAnnotationsDataFlow(element)
 	
 	def onMethod(self, element):
 		self.clearDataFlow(element)
+		self._clearAnnotationsDataFlow(element)
 	
 	def onClosure(self, element):
 		self.clearDataFlow(element)
 	
 	def onProcess(self, element):
 		self.clearDataFlow(element)
+		self._clearAnnotationsDataFlow(element)
 	
 	def onContext(self, element):
 		self.clearDataFlow(element)
+		self._clearAnnotationsDataFlow(element)
 	
 	def onAllocation(self, element):
 		self.clearDataFlow(element)
@@ -274,6 +301,10 @@ class ClearDataFlow(Pass):
 	
 	def onValue(self, element):
 		self.clearDataFlow(element)
+	
+	def _clearAnnotationsDataFlow(self, element):
+		for _ in element.getAnnotation('where'):
+			self.clearDataFlow(_)
 	
 
 class DataFlowBinding(Pass):
@@ -370,7 +401,7 @@ class DataFlowBinding(Pass):
 	def onClass(self, element):
 		for parent_class in self.getClassParents(element):
 			assert((parent_class != element))
-			if isinstance(parent_class, interfaces.IClass):
+			if isinstance(parent_class, interfaces.IConstruct):
 				assert(parent_class.getDataFlow())
 				element.getDataFlow().addSource(parent_class.getDataFlow())
 			elif isinstance(parent_class, interfaces.IReference):

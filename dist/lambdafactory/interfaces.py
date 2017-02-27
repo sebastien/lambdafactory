@@ -138,6 +138,12 @@ class IDataFlow:
 		"""Returns the slot with the given name, if any."""
 		raise Exception("Abstract method IDataFlow.getSlot not implemented in: " + str(self))
 	
+	def hasTransientScope(self):
+		"""Tells if this element should be ignored in the naming of its children.
+		For instance an enumeration of values would be transient, as the
+		values are directly resolvabel in the context."""
+		raise Exception("Abstract method IDataFlow.hasTransientScope not implemented in: " + str(self))
+	
 
 class IDataFlowSlot:
 	def addOperation(self):
@@ -569,6 +575,9 @@ class IAttribute(ISlot):
 		raise Exception("Abstract method IAttribute.getDefaultValue not implemented in: " + str(self))
 	
 
+class IEvent(IAttribute):
+	pass
+
 class IModuleAttribute(IAttribute):
 	pass
 
@@ -632,6 +641,9 @@ class IClass(IContext, IReferencable, IConstruct):
 	def getClassAttributes(self):
 		"""Returns the class attributes defined within this class."""
 		raise Exception("Abstract method IClass.getClassAttributes not implemented in: " + str(self))
+	
+	def getEvents(self):
+		raise Exception("Abstract method IClass.getEvents not implemented in: " + str(self))
 	
 	def getOperations(self):
 		"""Returns the operations (methods and class methods) defined within this class."""
@@ -1041,6 +1053,9 @@ class IInvocation(IOperation, IEvaluable):
 		return self.getOpArgument(1)
 	
 
+class ITrigger(IInvocation):
+	pass
+
 class IInstanciation(IOperation, IEvaluable):
 	ARGS = [IEvaluable, [IEvaluable]]
 	def getInstanciable(self):
@@ -1127,11 +1142,17 @@ class ISelection(IOperation, IImplicitAllocation):
 	
 
 class IChain(IOperation):
-	ARGS = [IEvaluable, [IOperation]]
+	ARGS = [IOperator, IEvaluable, [IOperation]]
+	def setOperator(self, value):
+		raise Exception("Abstract method IChain.setOperator not implemented in: " + str(self))
+	
+	def getOperator(self):
+		raise Exception("Abstract method IChain.getOperator not implemented in: " + str(self))
+	
 	def setTarget(self, value):
 		raise Exception("Abstract method IChain.setTarget not implemented in: " + str(self))
 	
-	def getTarget(self, value):
+	def getTarget(self):
 		raise Exception("Abstract method IChain.getTarget not implemented in: " + str(self))
 	
 	def addGroup(self, evaluable):
@@ -1139,6 +1160,9 @@ class IChain(IOperation):
 	
 	def getGroups(self):
 		raise Exception("Abstract method IChain.getGroups not implemented in: " + str(self))
+	
+	def getImplicitValue(self):
+		raise Exception("Abstract method IChain.getImplicitValue not implemented in: " + str(self))
 	
 
 class ITypeIdentification(IOperation):
@@ -1168,10 +1192,15 @@ class IIteration(IBinaryOperation):
 		"""Returns the closure that will be applied to the iterator."""
 		return self.getOpArgument(1)
 	
+	def getIterationType(self):
+		return 0
+	
 
 class IMapIteration(IIteration):
 	"""An iteration that is evaluable and that will produce a map of the iterator"""
-	pass
+	def getIterationType(self):
+		return 1
+	
 
 class IFilterIteration(IIteration):
 	"""An iteration that is evaluable and that will produce a filtered map of the iterator"""
@@ -1181,6 +1210,9 @@ class IFilterIteration(IIteration):
 	
 	def getClosure(self):
 		return self.getOpArgument(2)
+	
+	def getIterationType(self):
+		return 2
 	
 
 class IReduceIteration(IIteration):
@@ -1192,6 +1224,9 @@ class IReduceIteration(IIteration):
 	def setImplicitValue(self, value):
 		self.setOpArgument(2, value)
 		return self
+	
+	def getIterationType(self):
+		return 3
 	
 
 class IEnumeration(IBinaryOperation):

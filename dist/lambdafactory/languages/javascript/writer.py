@@ -57,6 +57,7 @@ OPTION_EXTERNS        = "externs"
 OPTION_NICE           = "nice"
 OPTION_NOPARENS       = "noparens"
 OPTION_EXTEND_ITERATE = "iterate"
+OPTION_TESTS          = "tests"
 
 OPTIONS = {
 	"ENABLE_METADATA" : False,
@@ -71,6 +72,18 @@ JS_OPERATORS = {
 	"or"    :"||"
 }
 
+UNIT_OPERATORS = {
+	"=="     : "equals",
+	"!="     : "different",
+	">"      : "greater",
+	"<"      : "smaller",
+	"<="     : "smallerOrEqual",
+	">="     : "greaterOrEqual",
+	"is"     : "same",
+	"is not" : "notSame",
+	"is?"    : "ofType",
+}
+
 RE_STRING_FORMAT = re.compile("\{((\d+)|([\w_]+))\s*(:\s*(\w+))?\}")
 
 #------------------------------------------------------------------------------
@@ -83,7 +96,8 @@ class Writer(AbstractWriter):
 
 	# The following generates short random variables. Note that it's not thread
 	# safe.
-	RNDVARLETTERS = "ijklmonpqrstuvwxyzabcdefgh"
+	RNDVARLETTERS  = "ijklmonpqrstuvwxyzabcdefgh"
+	UNIT_OPERATORS = UNIT_OPERATORS
 
 	def __init__( self ):
 		AbstractWriter.__init__(self)
@@ -94,10 +108,10 @@ class Writer(AbstractWriter):
 		self.jsInit                  = "__init__"
 		self._moduleType             = None
 		self.supportedEmbedLanguages = ["ecmascript", "js", "javascript"]
-		self.inInvocation            = False
 		self.options                 = {} ; self.options.update(OPTIONS)
 		self._generatedVars          = [0]
-		self._isNice                  = False
+		self._isNice                 = False
+		self._withUnits              = False
 
 	def _getRandomVariable( self ):
 		s = "__"
@@ -143,6 +157,14 @@ class Writer(AbstractWriter):
 	def _isSymbolKeyword( self, string ):
 		return string in KEYWORDS
 
+	def _isSuperInvocation( self, element ):
+		target = element.getTarget()
+		return (
+			isinstance(target,              interfaces.IResolution) and
+			isinstance(target.getContext(), interfaces.IReference)  and
+			target.getContext().getReferenceName() == "super"
+		)
+
 	def _rewriteSymbol( self, string ):
 		"""Rewrites the given symbol so that it can be expressed in the target language."""
 		# FIXME: This is used by the hack in writeReference
@@ -186,6 +208,9 @@ class Writer(AbstractWriter):
 			return self.write(element)
 		while element.getParent():
 			element = element.getParent()
+			# Transient scope elements do not participate in the naming
+			if element.hasTransientScope():
+				continue
 			# FIXME: Some elements may not have a name
 			if isinstance(element, interfaces.IModule):
 				# TODO: Should be able to detect a reference to the current module
@@ -270,6 +295,7 @@ class Writer(AbstractWriter):
 		self._withExterns = self.environment.options.get(OPTION_EXTERNS) and True or False
 		self._isNice      = self.environment.options.get(OPTION_NICE)
 		self._isUnambiguous = not self.environment.options.get(OPTION_NOPARENS)
+		self._withUnits     = self.environment.options.get(OPTION_TESTS)
 		if self.environment.options.get(MODULE_UMD):
 			self._moduleType = MODULE_UMD
 		elif self.environment.options.get(MODULE_GOOGLE):
@@ -299,7 +325,7 @@ class Writer(AbstractWriter):
 		if version:
 			code.append("%s.__VERSION__='%s';" % (module_name, version.getContent()))
 		# --- SLOTS -----------------------------------------------------------
-		for name, value in moduleElement.getSlots():
+		for name, value, accessor, mutator in moduleElement.getSlots():
 			if isinstance(value, interfaces.IModuleAttribute):
 				declaration = u"{0}.{1};".format(module_name, self.write(value))
 			else:
@@ -336,6 +362,8 @@ class Writer(AbstractWriter):
 			module_name, self.jsInit,
 			module_name, self.jsInit
 		))
+		for _ in self._writeUnitTests(moduleElement):
+			code.append(_)
 		# --- SOURCE ----------------------------------------------------------
 		# We append the source code
 		if self.options.get("INCLUDE_SOURCE"):
@@ -1094,7 +1122,6 @@ class Writer(AbstractWriter):
 			# FIXME: This is temporary, we should have an AbsoluteReference
 			# operation that uses symbols as content
 			symbol_name = ".".join(map(self._rewriteSymbol, symbol_name.split(".")))
-
 		# If there is no scope, then the symmbol is undefined
 		if not scope:
 			if symbol_name == "print": return self.runtimePrefix + self.jsCore + "print"
@@ -1108,20 +1135,23 @@ class Writer(AbstractWriter):
 				# Here we need to wrap the method if they are given as values (
 				# that means used outside of direct invocations), because when
 				# giving a method as a callback, the 'this' pointer is not carried.
-				if self.inInvocation:
-					return "%s.%s" % (self._runtimeSelfReference(value), symbol_name)
+				invocation = self.findInContext(interfaces.IInvocation)
+				if invocation and invocation.getTarget() == element:
+					return self._runtimeGetMethodByName(symbol_name, value, element)
 				else:
-					return self._runtimeGetMethodByName(symbol_name, value)
+					return self._runtimeWrapMethodByName(symbol_name, value, element)
 			elif isinstance(value, interfaces.IClassMethod):
-				if self.isIn(interfaces.IInstanceMethod):
-					return self._runtimeGetClass() + ".getOperation('%s')" % (symbol_name)
+				# FIXME: Same as above
+				if self.isIn(interfaces.IInstanceMethod) or self.isIn(interfaces.IConstructor) or self.isIn(interfaces.IDestructor):
+					return self._runtimeWrapMethodByName(symbol_name, value, element)
 				else:
 					return "%s.%s" % (self._runtimeSelfReference(value), symbol_name)
 			elif isinstance(value, interfaces.IClassAttribute):
+				# FIXME: Same as above
 				if self.isIn(interfaces.IClassMethod):
 					return "%s.%s" % (self._runtimeSelfReference(value), symbol_name)
 				else:
-					return self._runtimeGetClass() + "." + symbol_name
+					return self._runtimeGetCurrentClass() + "." + symbol_name
 			else:
 				return self._runtimeSelfReference(value) + "." + symbol_name
 		# It is a local variable
@@ -1228,11 +1258,7 @@ class Writer(AbstractWriter):
 			)
 		# Otherwise we'll use extend.createMapFromItems method
 		else:
-			return "%s%screateMapFromItems(%s)" % (
-				self.runtimePrefix,
-				self.jsCore,
-				",".join("[%s,%s]" % ( self.write(k),self.write(v)) for k,v in element.getItems())
-			)
+			return self._runtimeMapFromItems(element.getItems())
 
 	# =========================================================================
 	# OPERATIONS
@@ -1243,7 +1269,7 @@ class Writer(AbstractWriter):
 		s = allocation.getSlotToAllocate()
 		v = allocation.getDefaultValue()
 		if v:
-			return "var %s = %s;" % (self._rewriteSymbol(s.getName()), self.write(v))
+			return "var %s = %s;" % (self._rewriteSymbol(s.getName()), self._format(self.write(v)))
 		else:
 			return "var %s;" % (self._rewriteSymbol(s.getName()))
 
@@ -1299,26 +1325,25 @@ class Writer(AbstractWriter):
 		"""Writes a resolution operation."""
 		# We just want the raw reference name here, if we use _write() instead,
 		# we'll have improper scoping.
-		ref = resolution.getReference()
-		if isinstance(ref, interfaces.IAbsoluteReference):
-			return self.onReference(ref)
+		reference    = resolution.getReference()
+		context      = resolution.getContext()
+		context_name = self.write(context) if isinstance(context, interfaces.IReference) else None
+		if isinstance(reference, interfaces.IAbsoluteReference):
+			return self.onReference(reference)
+		elif not context:
+			# NOTE: Not sure why it is not reference
+			return self._rewriteSymbol(reference.getReferenceName())
+		elif context_name == "super":
+			return self._runtimeSuperResolution(resolution)
 		else:
-			resolved_name = resolution.getReference().getReferenceName()
-			if not self._isSymbolValid(resolved_name):
-				resolved_name = self._rewriteSymbol(resolved_name)
-			if resolution.getContext():
-				if resolved_name == "super":
-					return "%s.getSuper()" % (self.write(resolution.getContext()))
-				else:
-					return "%s.%s" % (self.write(resolution.getContext()), resolved_name)
-			else:
-				return "%s" % (resolved_name)
+			return self.write(context) + "." + self._rewriteSymbol(reference.getReferenceName())
 
 	def onComputation( self, computation ):
 		"""Writes a computation operation."""
 		# FIXME: For now, we supposed operator is prefix or infix
 		operands = [x for x in computation.getOperands() if x!=None]
 		operator = computation.getOperator()
+		name     = operator.getReferenceName()
 		# FIXME: Add rules to remove unnecessary parens
 		if len(operands) == 1:
 			res = "%s%s" % (
@@ -1326,15 +1351,19 @@ class Writer(AbstractWriter):
 				self.write(operands[0])
 			)
 		else:
-			if operator.getReferenceName() == "has":
+			if name == "has":
 				res = '(!(%s.%s===undefined))' % (
 					self.write(operands[0]),
 					self.write(operands[1])
 				)
-			elif operator.getReferenceName() == "in":
-				res = self._runtimeOp("isIn", operands[0], operands[1])
-			elif operator.getReferenceName() == "not in":
-				res = "!(" + self._runtimeOp("isIn", operands[0], operands[1]) + ")"
+			elif name == "in":
+				res = self._runtimeIsIn(operands[0], operands[1])
+			elif name == "not in":
+				res = "!(" + self._runtimeIsIn(operands[0], operands[1]) + ")"
+			elif name == "!+":
+				res = self._runtimeEventBind(computation)
+			elif name == "!-":
+				res = self._runtimeEventUnbind(computation)
 			else:
 				res = "%s %s %s" % (
 					self.write(operands[0]),
@@ -1346,112 +1375,24 @@ class Writer(AbstractWriter):
 			res = "(%s)" % (res)
 		return res
 
-	def _closureIsRewrite(self, closure):
-		"""Some invocations/closures are going to be rewritten based on the
-		backend"""
-		embed_templates_for_backend = []
-		others = []
-		if not isinstance(closure, interfaces.IClosure):
-			return False
-		for op in closure.getOperations():
-			if isinstance(op, interfaces.IEmbedTemplate):
-				lang = op.getLanguage().lower()
-				if lang == "javascript":
-					embed_templates_for_backend.append(op)
-				continue
-		if embed_templates_for_backend and not others:
-			return embed_templates_for_backend
-		else:
-			return ()
-
-	def _rewriteInvocation(self, invocation, closure, template):
-		"""Rewrites an invocation based on an embedding template."""
-		arguments  = tuple([self.write(a) for a in invocation.getArguments()])
-		parameters = tuple([self._rewriteSymbol(a.getName()) for a  in closure.getParameters()])
-		args = {}
-		for i in range(len(arguments)):
-			args[parameters[i]] = arguments[i]
-		target = invocation.getTarget()
-		# To have the 'self', the invocation target must be a resolution on an
-		# object
-		assert isinstance(target, interfaces.IResolution)
-		args["self"] = "self_" + str(time.time()).replace(".","_") + str(random.randint(0,100))
-		args["self_once"] = self.write(target.getContext())
-		vars = []
-		for var in self.RE_TEMPLATE.findall(template):
-			var = var[2:-1]
-			vars.append(var)
-			if var[0] == "_":
-				if var not in args:
-					args[var] = "var_" + str(time.time()).replace(".","_") + str(random.randint(0,100))
-		return "%s%s" % (
-			"self" in vars and "%s=%s\n" % (args["self"],self.write(args["self_once"])) or "",
-			string.Template(template).substitute(args)
-		)
-
 	def onInvocation( self, invocation ):
 		"""Writes an invocation operation."""
-		self.inInvocation = True
-		# FIXME: Target may not be a reference
-		t = self.write(invocation.getTarget())
-		target_type = invocation.getTarget().getResultAbstractType()
-		if target_type:
-			concrete_type = target_type.concreteType()
-			rewrite        = self._closureIsRewrite(concrete_type)
-		else:
-			rewrite = ""
-		parent = self.context[-2]
-		suffix = ";" if isinstance(parent, interfaces.IBlock) or isinstance(parent, interfaces.IProcess) else ""
-		res = None
-		if rewrite:
-			return self._rewriteInvocation(invocation, concrete_type, "\n".join([r.getCode() for r in rewrite]))
-		else:
-			self.inInvocation = False
-			# FIXME: Special handling of assert
-			if t == "extend.assert":
-				args      = invocation.getArguments()
-				predicate = self.write(args[0])
-				rest      = args[1:]
-				# TODO: We should include the offsets
-				return "!({0}) && extend.assert(false, {1}, {2}, {3}){4}".format(
-					predicate,
-					json.dumps(self.getScopeName() + ":"),
-					", ".join(self.write(_) for _ in rest) or '""',
-					json.dumps("(failed `" + predicate + "`)"),
-					suffix
-				)
-			elif invocation.isByPositionOnly():
-				return "%s(%s)%s" % (
-					t,
-					", ".join(map(self.write, invocation.getArguments())),
-					suffix
-					)
+		parent            = self.context[-2]
+		suffix            = ";" if isinstance(parent, interfaces.IBlock) or isinstance(parent, interfaces.IProcess) else ""
+		# FIXME: Special handling of assert
+		if False and "extend.assert":
+			return self._runtimeAssert(invocation) + suffix
+		elif invocation.isByPositionOnly():
+			if self._isSuperInvocation(invocation):
+				return self._runtimeSuperInvocation(invocation) + suffix
 			else:
-				normal_arguments = []
-				extra_arguments  = {}
-				current          = normal_arguments
-				for param in invocation.getArguments():
-					if  param.isAsMap():
-						current = extra_arguments
-						current["**"] = self.write(param.getValue())
-					elif param.isAsList():
-						current = extra_arguments
-						current["*"] = self.write(param.getValue())
-					elif param.isByName():
-						current = extra_arguments
-						current[self._rewriteSymbol(param.getName())] = self.write(param.getValue())
-					else:
-						assert current == normal_arguments
-						current.append(self.write(param.getValue()))
-				normal_str = "[%s]" % (",".join(normal_arguments))
-				extra_str  = "{%s}" % (",".join("%s:%s" % (k,v) for k,v in list(extra_arguments.items())))
-				return "extend.invoke(%s,%s,%s,%s)%s" % (
-					self._runtimeSelfReference(invocation),
-					t,
-					normal_str,
-					extra_str,
-					suffix
-				)
+				return self._runtimeInvocation(invocation) + suffix
+
+		else:
+			raise NotImplementedError
+
+	def onTrigger( self, element ):
+		yield self._runtimeEventTrigger(element)
 
 	def onArgument( self, argument ):
 		r = self.write(argument.getValue())
@@ -1479,17 +1420,23 @@ class Writer(AbstractWriter):
 	def onChain( self, chain ):
 		target = self.write(chain.getTarget())
 		v      = self._getRandomVariable()
-		groups = chain.getGroups() or None
-		# FIXME: What do we do with groups here?
+		groups = chain.getGroups()
+		implicit_slot = chain.dataflow.getImplicitSlotFor(chain)
+		prefix        = ""
+		op            = self.write(chain.getOperator())
+		if op == "...":
+			prefix = implicit_slot.getName() + "="
 		return [
-			"var {0}={1};".format(v, target),
+			implicit_slot.getName() + "=" + self.write(chain.getTarget()) + ";",
+		] + [
+			prefix + self._format(self.write(g)) for g in groups
 		]
 
 	def onSelection( self, selection ):
 		# If-expressions are not going to be with a process or block as parent.
 		in_process = isinstance(self.context[-2], interfaces.IProcess) or isinstance(self.context[-2], interfaces.IBlock)
 		if not in_process and selection.hasAnnotation("if-expression"):
-			return self._writeSelectionInExpression(selection)
+			return self._format(self._writeSelectionInExpression(selection))
 		rules     = selection.getRules()
 		implicits = [_ for _ in self._writeImplicitAllocations(selection)]
 		result    = []
@@ -1513,7 +1460,7 @@ class Writer(AbstractWriter):
 			if i==0:
 				if selection.getImplicitValue():
 					implicit_slot = selection.dataflow.getImplicitSlotFor(selection)
-					condition = "(({0}={1} || true) && ({2}))".format(
+					condition = "((({0}={1}) || true) && ({2}))".format(
 						implicit_slot.getName(),
 						self.write(selection.getImplicitValue()),
 						condition
@@ -1548,8 +1495,8 @@ class Writer(AbstractWriter):
 
 	def _writeSelectionInExpression( self, selection ):
 		"""Writes an embedded if expression"""
+		# TODO: This should be re-written to have a more elegant output
 		rules  = selection.getRules()
-		result = []
 		text   = ""
 		has_else = False
 		for i, rule in enumerate(rules):
@@ -1565,11 +1512,11 @@ class Writer(AbstractWriter):
 				prefix = ""
 				if i==0 and selection.getImplicitValue():
 					implicit_slot = selection.dataflow.getImplicitSlotFor(selection)
-					prefix = "(({0}={1}) || true) && ".format(
+					prefix = "(\n\t({0}={1}) || true) && ".format(
 						implicit_slot.getName(),
 						self.write(selection.getImplicitValue()),
 					)
-				text += "(%s%s ? %s : " % (
+				text += "(%s%s ?\n\t%s :\n\t" % (
 					prefix,
 					self.write(rule.getPredicate()),
 					self.write(expression)
@@ -1606,15 +1553,18 @@ class Writer(AbstractWriter):
 		i= iteration.getIterator()
 		c = iteration.getClosure()
 		p = iteration.getPredicate()
-		if c and p:
-			return self._runtimeMap(
-				self._runtimeFilter(i, p),
-				c
-			)
-		elif c:
-			return self._runtimeMap(i,c)
-		else:
-			return self._runtimeFilter(i,p)
+		return self._runtimeFilter(i,p)
+		# FIXME: We used to have extra closure/predicate for the
+		# filter, but Sugar2 outputs a different model.
+		# if c and p and (c is not p):
+		# 	return self._runtimeMap(
+		# 		self._runtimeFilter(i, p),
+		# 		c
+		# 	)
+		# elif c:
+		# 	return self._runtimeMap(i,c)
+		# else:
+		# 	return self._runtimeFilter(i,p)
 
 
 	def onReduceIteration( self, iteration ):
@@ -1630,6 +1580,7 @@ class Writer(AbstractWriter):
 		start    = self.write(iterator.getStart())
 		end      = self.write(iterator.getEnd())
 		step     = self.write(iterator.getStep()) or "1"
+		iteration.addAnnotation("direct-iteration")
 		# We ensure there's no clash with the radom variables
 		# FIXME: Sometimes the dataflow is empty, which seems odd
 		dataflow            = (closure and closure.dataflow or iteration.dataflow)
@@ -1677,6 +1628,7 @@ class Writer(AbstractWriter):
 		# as `force-scope`, this means that there is a nested closure that references
 		# some variable that is going to be re-assigned here
 		closure = iteration.getClosure()
+		iteration.addAnnotation("direct-iteration")
 		closure.addAnnotation("direct-iteration")
 		# We ensure there's no clash with the radom variables
 		# FIXME: Sometimes the dataflow is empty, which seems odd
@@ -1778,17 +1730,24 @@ class Writer(AbstractWriter):
 		t      = element.getType()
 		# FIXME: We should probably resolve the name, or try at least..
 		rvalue = t.getName()
+		operation = "instanceof"
 		# TODO: We should resolve the type in the namespace
 		if not t.parameters or len(t.parameters) == 0:
 			if rvalue == "String":
 				return "(typeof {0} === 'string')".format(lvalue)
 			elif rvalue == "Number":
-				return "(!isNaN({0}))".format(lvalue)
+				return "(typeof {0} === 'number')".format(lvalue)
 			elif rvalue == "Undefined":
 				return "(typeof {0} === 'undefined')".format(lvalue)
 			elif rvalue == "None":
 				return "({0} === null)".format(lvalue)
-		return ("({0} instanceof {1})".format(lvalue, rvalue))
+			else:
+				slot, value = self.resolve(t.getReferenceName())
+				if value:
+					rvalue = self.getSafeName(value)
+					if isinstance(value, interfaces.ISymbolType):
+						operation = "==="
+		return ("({0} {2} {1})".format(lvalue, rvalue, operation))
 
 	def onEvaluation( self, operation ):
 		"""Writes an evaluation operation."""
@@ -1805,11 +1764,23 @@ class Writer(AbstractWriter):
 		# We format the result
 		result = self.write(termination.getReturnedEvaluable())
 		if prefix:
-			result = "({0} || true) ? {1} : undefined".format(prefix, result)
+			result = "(({0}) || true) ? {1} : undefined".format(prefix, result)
 		else:
 			result = "{0}".format(result)
-		if termination.hasAnnotation("in-iteration"):
-			return self._runtimeReturnValue(result)
+
+		iteration = self.findInContext(interfaces.IIteration)
+		if termination.hasAnnotation("in-iteration") and not iteration.hasAnnotation("direct-iteration"):
+			# If the termination is in an iteration, and that the
+			# iteration is in an expression, then we need to wrap the
+			# return value so that the iteration function can unwrap the result.
+			iteration = self.findInContext(interfaces.IIteration)
+			# We only do it for iteration, not for map/filter/reduce
+			if (isinstance(iteration, interfaces.IFilterIteration)
+			or isinstance(iteration, interfaces.IMapIteration)
+			or isinstance(iteration, interfaces.IReduceIteration)):
+				return "return " + result
+			else:
+				return self._runtimeReturnValue(result)
 		else:
 			return "return " + result
 
@@ -1875,6 +1846,9 @@ class Writer(AbstractWriter):
 		else:
 			return embed.getCode()
 
+	def onWhere( self, eleent ):
+		import ipdb ; ipdb.set_trace()
+
 	# =========================================================================
 	# TYPES
 	# =========================================================================
@@ -1890,12 +1864,10 @@ class Writer(AbstractWriter):
 	def onEnumerationType( self, element ):
 		symbols = [_.getName() for _ in element.getSymbols()]
 		m = self._runtimeModuleName(element)
-		yield "function(_){"
-		yield "\treturn " + " || ".join("(_==={0}.{1})".format(m,_) for _ in symbols) + ";"
-		yield "};"
-		for _ in symbols:
+		yield "{};"
+		for i,_ in enumerate(symbols):
 			# NOTE: Symbol is not supported yet, but would be preferrable
-			yield "{0}.{1} = new String(\"{2}\");".format(m, _, _)
+			yield "{0}.{1} = {0}.{3}.{1} = new Number(\"{2}\");".format(m, _, i, element.getName())
 
 	# =========================================================================
 	# NICE HELPERS
@@ -2006,6 +1978,42 @@ class Writer(AbstractWriter):
 			if l:
 				yield "var {0}; /* implicits */".format(", ".join(l))
 
+	def _writeUnitTests( self, element ):
+		"""Writes the unit tests for this element and all its descendants,
+		depth-first."""
+		if self._withUnits:
+			if isinstance(element, interfaces.IContext):
+				for s,v,a,m in element.getSlots( ):
+					for _ in self._writeUnitTests(v):
+						yield _
+			for where in element.getAnnotations("where"):
+				yield self.onWhereAnnotation(where)
+
+
+	def onWhereAnnotation( self, element ):
+		"""Formats a "where" annotation, which stands for a unit test."""
+		if self._withUnits:
+			yield self._runtimeUnitTestPreamble(element)
+			for op in element.getContent().getOperations():
+				if isinstance(op, interfaces.IComputation):
+					yield self._writeUnitComputation(op)
+				else:
+					yield self.write(op)
+			yield self._runtimeUnitTestPostamble(element)
+
+	def _writeUnitComputation( self, element ):
+		op = element.getOperator().getName()
+		l  = element.getLeftOperand  ()
+		r  = element.getRightOperand ()
+		uop = self.UNIT_OPERATORS.get(op)
+		t   = self.write(element)
+		if element.isUnary():
+			yield ("__test__.{0}({1}).setCode({2});".format("assert", t, json.dumps(t)))
+		elif uop:
+			yield ("__test__.{0}({1}, {2}).setCode({3});".format(uop, self.write(l), self.write(r), json.dumps(t)))
+		else:
+			yield ("__test__.{0}({1}, {2}).setCode({4});".format("assert", t, json.dumps(t)))
+
 	# =========================================================================
 	# RUNTIME
 	# =========================================================================
@@ -2028,15 +2036,30 @@ class Writer(AbstractWriter):
 				self.getSafeSuperName(self.getCurrentClass())
 			)
 
-	def _runtimeGetMethodByName(self, name, value=None):
-		return self._runtimeSelfReference(value) + ".getMethod('%s') " % (name)
+	def _runtimeSuperResolution( self, relement, reference ):
+		return "{0}.getSuper().{1}".format(
+			self.runtimePrefix,
+			self._rewriteSymbol(resolution.getReference().getReferenceName())
+		)
 
-	def _runtimeGetClass(self, variable=None):
-		return "%s.getClass()" % (variable or self._runtimeSelfReference())
+	def _runtimeGetMethodByName(self, name, value=None, element=None):
+		return self._runtimeSelfReference(value) + "." + name
+
+	def _runtimeWrapMethodByName(self, name, value=None, element=None):
+		if isinstance(value, interfaces.IClassMethod):
+			return self._runtimeGetCurrentClass() + ".getOperation('%s')" % (name)
+		else:
+			return self._runtimeSelfReference(value) + ".getMethod(" + name + ")"
+
+	def _runtimeGetCurrentClass(self, variable=None):
+		return "Object.getPrototypeOf(" + (variable or self.jsSelf) + ").constructor"
 
 	def _runtimeOp( self, name, *args ):
 		args = [self.write(_) if isinstance(_,interfaces.IElement) else _ for _ in args]
 		return "extend." + name + "(" + ", ".join(args) + ")"
+
+	def _runtimeIsIn( self, element, collection ):
+		return self._runtimeOp("isIn", element, collection)
 
 	def _runtimeModuleName( self, element=None ):
 		return "__module__"
@@ -2056,12 +2079,29 @@ class Writer(AbstractWriter):
 	def _runtimeIterate( self, lvalue, rvalue, iteration=None ):
 		result =  self._runtimeOp("iterate", lvalue, rvalue)
 		if iteration and iteration.hasAnnotation("terminates"):
-			return "var {0}={1};if ({0} instanceof FLOW_RETURN) {{return {0}.value;}};".format(
+			return "var {0}={1};if ({0} instanceof {2}) {{return {0}.value;}};".format(
 				self._getRandomVariable(),
-				result
+				result,
+				self._runtimeReturnType(),
 			)
 		else:
 			return result
+
+	def _runtimeAssert( self, invocation ):
+		args      = invocation.getArguments()
+		predicate = self.write(args[0])
+		rest      = args[1:]
+		# TODO: We should include the offsets
+		return "!({0}) && extend.assert(false, {1}, {2}, {3}){4}".format(
+			predicate,
+			json.dumps(self.getScopeName() + ":"),
+			", ".join(self.write(_) for _ in rest) or '""',
+			json.dumps("(failed `" + predicate + "`)"),
+			suffix
+		)
+
+	def _runtimeReturnType( self ):
+		return self.runtimePrefix + "FLOW_RETURN"
 
 	def _runtimeReturnBreak( self ):
 		return "return " + self.runtimePrefix + "FLOW_BREAK;"
@@ -2070,13 +2110,25 @@ class Writer(AbstractWriter):
 		return "return " + self.runtimePrefix + "FLOW_CONTINUE;"
 
 	def _runtimeReturnValue( self, value ):
-		return "return new " + self.runtimePrefix + "FLOW_RETURN" + "(" + value + ");"
+		return "return new " + self._runtimeReturnType() + "(" + value + ");"
 
 	def _runtimeSelfReference( self, element=None ):
 		return self.jsSelf
 
 	def _runtimeSelfBinding( self, element=None ):
 		return "var self = this;"
+
+	def _runtimeInvocation( self, element ):
+		return "{0}({1})".format(
+			self.write(element.getTarget()),
+			", ".join(map(self.write, element.getArguments())),
+		)
+
+	def _runtimeSuperInvocation( self, element ):
+		return "{0}({1})".format(
+			self.write(element.getTarget()),
+			", ".join(map(self.write, element.getArguments())),
+		)
 
 	def _runtimePreamble( self ):
 		return []
@@ -2095,6 +2147,42 @@ class Writer(AbstractWriter):
 			start,
 			end
 		)
+
+	def _runtimeEventTrigger( self, element ):
+		# target = element.getTarget()
+		# value  = self.resolve(target)[1]
+		# if not value or not value.hasAnnotation("event"):
+		# 	self.environment.error("Event target cannot be resolved: {0}".format(self.write(target)))
+		return "__send__({2}, {0}, {1}, {2})".format(self.write(element.getTarget()),self.write(element.getArguments()) or "null", self._runtimeSelfReference(element))
+
+	def _runtimeEventBind( self, element ):
+		return "__bind__({2}, {0}, {1})".format(self.write(element.getLeftOperand()),self.write(element.getRightOperand()) or "null", self._runtimeSelfReference(element))
+
+	def _runtimeEventUnbind( self, element ):
+		return "__unbind__({2}, {0}, {1})".format(self.write(element.getLeftOperand()),self.write(element.getRightOperand()) or "null", self._runtimeSelfReference(element))
+
+	def _runtimeMapFromItems( self, items ):
+		return "%s%screateMapFromItems(%s)" % (
+			self.runtimePrefix,
+			self.jsCore,
+			",".join("[%s,%s]" % ( self.write(k),self.write(v)) for k,v in items)
+		)
+
+	def _runtimeUnitTestPreamble( self, element ):
+		return "(function(){{var __test__=new ff.util.testing.Test('{0}');".format(self.getAbsoluteName(element))
+
+	def _runtimeUnitTestPostamble( self, element ):
+		return "__test__.end();}());"
+
+	def _ensureSemicolon( self, block ):
+		if isinstance(block, tuple) or isinstance(block, list):
+			if block:
+				block = list(block)
+				block[-1] = self._ensureSemicolon(block[-1])
+		elif isinstance(block, str) or isinstance(block, unicode):
+			if not block.endswith(";"):
+				block += ";"
+		return block
 
 MAIN_CLASS = Writer
 

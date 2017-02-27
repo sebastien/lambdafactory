@@ -8,13 +8,13 @@ from lambdafactory.environment import Environment
 from lambdafactory.splitter import FileSplitter
 import lambdafactory.passes as passes
 import lambdafactory.resolution as resolution
-from io import BytesIO
+from io import StringIO
 import sys
 __module_name__ = 'lambdafactory.main'
 def ensureOutput (value):
 	self=__module__
 	if sys.version_info.major >= 3:
-		return value.encode("utf8") if isinstance(value, str) else value
+		return value.decode("utf8") if not isinstance(value, str) else value
 	else:
 		return value.encode("utf8") if isinstance(value, unicode) else value
 	
@@ -53,7 +53,7 @@ class Command:
 		"""Runs Sugar, but instead of printing the result to the given
 		output, it returns a Python string with the result. It is very useful
 		when embedding LambdaFactory somewhere."""
-		output=BytesIO()
+		output=StringIO()
 		self.run(args, output)
 		return ('' + output.getvalue())
 	

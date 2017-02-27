@@ -267,10 +267,10 @@ class DataFlow(IDataFlow):
 		if self.sources:
 			for source in self.getSources():
 				slot_and_value=source.resolveLocally(name)
-				if (slot_and_value[1] != None):
+				if self._isSlotDefined(slot_and_value):
 					return slot_and_value
 				slot_and_value = source.resolveInSources(name)
-				if (slot_and_value[1] != None):
+				if self._isSlotDefined(slot_and_value):
 					return slot_and_value
 			return tuple([None, None])
 		elif True:
@@ -282,6 +282,9 @@ class DataFlow(IDataFlow):
 			return tuple([slot, slot.getValue()])
 		elif True:
 			return tuple([None, None])
+	
+	def _isSlotDefined(self, slotAndValue):
+		return slotAndValue[0]
 	
 	def resolve(self, name):
 		"""Returns a couple '(DataFlow slot, IElement)' or '(None,None)'
@@ -462,6 +465,7 @@ class Element:
 		elif True:
 			assert(isinstance(annotation, IAnnotation))
 			self.annotations.append(annotation)
+			annotation.setParent(self)
 		return self
 	
 	def getAnnotations(self, withName=None):
@@ -528,6 +532,9 @@ class Element:
 	
 	def setResultAbstractType(self, abstractType):
 		self.resultAbtractType = abstractType
+	
+	def hasTransientScope(self):
+		return False
 	
 	def prettyList(self):
 		return pprint.pprint(self.asList())
@@ -626,7 +633,11 @@ class EnumerationType(Type, IEnumerationType):
 	
 	def addSymbol(self, symbol):
 		self.symbols.append(symbol)
+		symbol.setParent(self)
 		return self
+	
+	def hasTransientScope(self):
+		return True
 	
 	def getSymbols(self):
 		return self.symbols
@@ -696,14 +707,30 @@ class Context(Element, IContext):
 	def isAbstract(self):
 		return self.abstract
 	
+	def getAccessors(self):
+		res=[]
+		for slot in self.getSlots():
+			a=slot[2]
+			if a:
+				res.append(a)
+		return res
+	
+	def getMutators(self):
+		res=[]
+		for slot in self.getSlots():
+			m=slot[3]
+			if m:
+				res.append(m)
+		return res
+	
 	def setSlot(self, name, evaluable, assignParent=None):
 		if assignParent is None: assignParent = True
-		if (not isinstance(evaluable, IAssignable)):
+		if (evaluable and (not isinstance(evaluable, IAssignable))):
 			raise ERR_SLOT_VALUE_NOT_ASSIGNABLE
 		if ((assignParent and isinstance(evaluable, IContext)) or hasattr(evaluable, 'setParent')):
 			evaluable.setParent(self)
 		if (self.slotIndex.get(name) is None):
-			self.slots.append([name, evaluable])
+			self.slots.append([name, evaluable, None, None])
 			self.slotIndex[name] = (len(self.slots) - 1)
 		elif True:
 			slot=self.slots[self.slotIndex[name]]
@@ -715,6 +742,32 @@ class Context(Element, IContext):
 				self.slotIndex[self.slots[i][0]] = i
 				i = (i + 1)
 	
+	def setAccessor(self, name, accessor):
+		self.ensureSlot(name)
+		self._getRawSlot(name)[2] = accessor
+	
+	def setMutator(self, name, accessor):
+		self.ensureSlot(name)
+		self._getRawSlot(name)[3] = accessor
+	
+	def getAccessor(self, name):
+		s=self._getRawSlot(name)
+		if s:
+			return s[2]
+		elif True:
+			return None
+	
+	def getMutator(self, name):
+		s=self._getRawSlot(name)
+		if s:
+			return s[3]
+		elif True:
+			return None
+	
+	def ensureSlot(self, name):
+		if (not self.hasSlot(name)):
+			self.setSlot(name, None)
+	
 	def hasSlot(self, name):
 		for slot in self.slots:
 			if (slot[0] == name):
@@ -722,10 +775,13 @@ class Context(Element, IContext):
 		return False
 	
 	def getSlot(self, name):
+		return self._getRawSlot()[1]
+	
+	def _getRawSlot(self, name):
 		i=(len(self.slots) - 1)
 		for slot in self.slots:
 			if (slot[0] == name):
-				return slot[1]
+				return slot
 		raise ERR_SLOT_NOT_FOUND
 	
 	def getSlots(self):
@@ -745,12 +801,17 @@ class Context(Element, IContext):
 	
 	def getAbsoluteName(self):
 		if self.name:
-			if self.parent:
-				parent_name=self.parent.getAbsoluteName()
+			p=self.parent
+			while (p and p.hasTransientScope()):
+				p = p.parent
+			if p:
+				parent_name=p.getAbsoluteName()
 				if parent_name:
 					return ((parent_name + '.') + self.name)
 				elif True:
 					return self.name
+			elif True:
+				return self.name
 		elif True:
 			return None
 	
@@ -780,14 +841,11 @@ class Class(Context, IClass, IReferencable, IAssignable):
 	def getAttributeMethods(self):
 		return self.slotValuesImplementing(IAttributeMethod)
 	
-	def getAccessors(self):
-		return self.slotValuesImplementing(IAccessor)
-	
-	def getMutator(self):
-		return self.slotValuesImplementing(IMutator)
-	
 	def getClassAttributes(self):
 		return self.slotValuesImplementing(IClassAttribute)
+	
+	def getEvents(self):
+		return self.slotValuesImplementing(IEvent)
 	
 	def getOperations(self):
 		return self.slotValuesImplementing(IInvocable)
@@ -1255,6 +1313,9 @@ class Invocation(Operation, IInvocation):
 		return True
 	
 
+class Trigger(Invocation, ITrigger):
+	pass
+
 class Instanciation(Operation, IInstanciation):
 	pass
 
@@ -1297,29 +1358,40 @@ class Chain(Operation, IChain):
 	def _ensureOpArguments(self):
 		a=self.getOpArguments()
 		if (not a):
-			self.opArguments = [None, []]
+			self.opArguments = [None, None, []]
 		return self.opArguments
+	
+	def setOperator(self, value):
+		self._ensureOpArguments()
+		self.setOpArgument(0, value)
+	
+	def getOperator(self):
+		self._ensureOpArguments()
+		return self.getOpArgument(0)
 	
 	def setTarget(self, value):
 		self._ensureOpArguments()
-		self.setOpArgument(0, value)
+		self.setOpArgument(1, value)
 		return self
 	
 	def addGroup(self, group):
 		self._ensureOpArguments()
-		res=self.getOpArgument(1)
+		res=self.getOpArgument(2)
 		if (not res):
 			res = [group]
 		elif True:
 			res.append(group)
-		self.setOpArgument(1, res)
+		self.setOpArgument(2, res)
 		return self
 	
 	def getGroups(self):
-		return self.getOpArgument(1)
+		return self.getOpArgument(2)
 	
 	def getTarget(self):
-		return self.getOpArgument(0)
+		return self.getOpArgument(1)
+	
+	def getImplicitValue(self):
+		return self.getTarget()
 	
 
 class TypeIdentification(Operation, ITypeIdentification):
@@ -1365,10 +1437,14 @@ class Iteration(Operation, IIteration):
 	
 
 class MapIteration(Iteration, IMapIteration):
-	pass
+	def getIterationType(self):
+		return 1
+	
 
 class FilterIteration(Iteration, IFilterIteration):
-	pass
+	def getIterationType(self):
+		return 2
+	
 
 class ReduceIteration(Iteration, IReduceIteration):
 	def __init__ (self, *arguments):
@@ -1386,6 +1462,9 @@ class ReduceIteration(Iteration, IReduceIteration):
 	
 	def getDirection(self):
 		return self.direction
+	
+	def getIterationType(self):
+		return 3
 	
 
 class Interpolation(Operation, IInterpolation):
@@ -1749,6 +1828,9 @@ class Attribute(Slot, IAttribute):
 		Slot.__init__(self, name, typeDescription)
 		self.setDefaultValue(value)
 	
+	pass
+
+class Event(Attribute, IEvent):
 	pass
 
 class ClassAttribute(Attribute, IClassAttribute):

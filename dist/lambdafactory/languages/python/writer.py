@@ -83,7 +83,7 @@ class Writer(AbstractWriter):
 		module_init = []
 		imports     = []
 		imports.extend(moduleElement.getImportOperations())
-		for name, value in moduleElement.getSlots():
+		for name, value, accessor, mutator in moduleElement.getSlots():
 			# TODO: Sort values according to their dependencies
 			if name == interfaces.Constants.ModuleInit:
 				module_init = value.getOperations()

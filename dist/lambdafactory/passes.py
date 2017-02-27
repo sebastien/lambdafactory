@@ -70,6 +70,8 @@ class PassContext:
 		if isinstance(element, interfaces.IContext):
 			for name_and_value in element.getSlots():
 				self.walk(name_and_value[1])
+				self.walk(name_and_value[2])
+				self.walk(name_and_value[3])
 		if isinstance(element, interfaces.IProcess):
 			for operation in element.getOperations():
 				self.walk(operation)
