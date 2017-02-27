@@ -191,11 +191,21 @@ class Factory:
 		evaluable.addAnnotation("target")
 		return self.invoke_args(evaluable, arguments)
 
+	def trigger( self, evaluable, *arguments ):
+		evaluable.addAnnotation("event-target")
+		return self.trigger_args(evaluable, arguments)
+
 	def invoke_args( self, evaluable, arguments ):
 		arguments = list(map(self._ensureArg,arguments))
 		# FIXME: Arguments should not be a list, they should be wrapped in an
 		# arguments object that supports copy () and detach () properly
 		return self._getImplementation("Invocation")(evaluable, arguments)
+
+	def trigger_args( self, evaluable, arguments ):
+		arguments = list(map(self._ensureArg,arguments))
+		# FIXME: Arguments should not be a list, they should be wrapped in an
+		# arguments object that supports copy () and detach () properly
+		return self._getImplementation("Trigger")(evaluable, arguments)
 
 	def instanciate( self, evaluable, *arguments ):
 		# FIXME: Same remark as for invoke_args?
@@ -343,6 +353,9 @@ class Factory:
 
 	def _attr( self, name, typeinfo=None, value=None):
 		return self._getImplementation("Attribute")(name, typeinfo, value)
+
+	def _event( self, name, typeinfo=None, value=None):
+		return self._getImplementation("Event")(name, typeinfo, value)
 
 	def _classattr( self, name, typeinfo=None, value=None):
 		return self._getImplementation("ClassAttribute")(name, typeinfo, value)

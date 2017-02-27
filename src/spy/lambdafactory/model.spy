@@ -1140,6 +1140,10 @@
 		return slotValuesImplementing(IClassAttribute)
 	@end
 
+	@method getEvents
+		return slotValuesImplementing(IEvent)
+	@end
+
 	@method getOperations
 		return slotValuesImplementing(IInvocable)
 	@end
@@ -1818,6 +1822,9 @@
 		return True
 	@end
 
+@end
+
+@class Trigger: Invocation, ITrigger
 @end
 
 @class Instanciation: Operation, IInstanciation
@@ -2509,6 +2516,9 @@
 		setDefaultValue ( value )
 	@end
 
+@end
+
+@class Event: Attribute, IEvent
 @end
 
 @class ClassAttribute: Attribute, IClassAttribute

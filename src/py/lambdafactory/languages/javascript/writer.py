@@ -1142,7 +1142,7 @@ class Writer(AbstractWriter):
 					return self._runtimeWrapMethodByName(symbol_name, value, element)
 			elif isinstance(value, interfaces.IClassMethod):
 				# FIXME: Same as above
-				if self.isIn(interfaces.IInstanceMethod):
+				if self.isIn(interfaces.IInstanceMethod) or self.isIn(interfaces.IConstructor) or self.isIn(interfaces.IDestructor):
 					return self._runtimeWrapMethodByName(symbol_name, value, element)
 				else:
 					return "%s.%s" % (self._runtimeSelfReference(value), symbol_name)
@@ -1151,7 +1151,7 @@ class Writer(AbstractWriter):
 				if self.isIn(interfaces.IClassMethod):
 					return "%s.%s" % (self._runtimeSelfReference(value), symbol_name)
 				else:
-					return self._runtimeCurrentGetClass() + "." + symbol_name
+					return self._runtimeGetCurrentClass() + "." + symbol_name
 			else:
 				return self._runtimeSelfReference(value) + "." + symbol_name
 		# It is a local variable
@@ -1343,6 +1343,7 @@ class Writer(AbstractWriter):
 		# FIXME: For now, we supposed operator is prefix or infix
 		operands = [x for x in computation.getOperands() if x!=None]
 		operator = computation.getOperator()
+		name     = operator.getReferenceName()
 		# FIXME: Add rules to remove unnecessary parens
 		if len(operands) == 1:
 			res = "%s%s" % (
@@ -1350,15 +1351,19 @@ class Writer(AbstractWriter):
 				self.write(operands[0])
 			)
 		else:
-			if operator.getReferenceName() == "has":
+			if name == "has":
 				res = '(!(%s.%s===undefined))' % (
 					self.write(operands[0]),
 					self.write(operands[1])
 				)
-			elif operator.getReferenceName() == "in":
+			elif name == "in":
 				res = self._runtimeIsIn(operands[0], operands[1])
-			elif operator.getReferenceName() == "not in":
+			elif name == "not in":
 				res = "!(" + self._runtimeIsIn(operands[0], operands[1]) + ")"
+			elif name == "!+":
+				res = self._runtimeEventBind(computation)
+			elif name == "!-":
+				res = self._runtimeEventUnbind(computation)
 			else:
 				res = "%s %s %s" % (
 					self.write(operands[0]),
@@ -1386,6 +1391,8 @@ class Writer(AbstractWriter):
 		else:
 			raise NotImplementedError
 
+	def onTrigger( self, element ):
+		yield self._runtimeEventTrigger(element)
 
 	def onArgument( self, argument ):
 		r = self.write(argument.getValue())
@@ -1729,7 +1736,7 @@ class Writer(AbstractWriter):
 			if rvalue == "String":
 				return "(typeof {0} === 'string')".format(lvalue)
 			elif rvalue == "Number":
-				return "(!isNaN({0}))".format(lvalue)
+				return "(typeof {0} === 'number')".format(lvalue)
 			elif rvalue == "Undefined":
 				return "(typeof {0} === 'undefined')".format(lvalue)
 			elif rvalue == "None":
@@ -1860,9 +1867,9 @@ class Writer(AbstractWriter):
 		yield "function(_){"
 		yield "\treturn " + " || ".join("(_==={0}.{1})".format(m,_) for _ in symbols) + ";"
 		yield "};"
-		for _ in symbols:
+		for i,_ in enumerate(symbols):
 			# NOTE: Symbol is not supported yet, but would be preferrable
-			yield "{0}.{1} = new String(\"{2}\");".format(m, _, _)
+			yield "{0}.{1} = new Number(\"{2}\");".format(m, _, i)
 
 	# =========================================================================
 	# NICE HELPERS
@@ -2001,12 +2008,13 @@ class Writer(AbstractWriter):
 		l  = element.getLeftOperand  ()
 		r  = element.getRightOperand ()
 		uop = self.UNIT_OPERATORS.get(op)
+		t   = self.write(element)
 		if element.isUnary():
-			yield ("__test__.{0}({1});".format("assert", self.write(element)))
+			yield ("__test__.{0}({1}).setCode({2});".format("assert", t, json.dumps(t)))
 		elif uop:
-			yield ("__test__.{0}({1}, {2});".format(uop, self.write(l), self.write(r)))
+			yield ("__test__.{0}({1}, {2}).setCode({3});".format(uop, self.write(l), self.write(r), json.dumps(t)))
 		else:
-			yield ("__test__.{0}({1}, {2});".format("assert", self.write(element)))
+			yield ("__test__.{0}({1}, {2}).setCode({4});".format("assert", t, json.dumps(t)))
 
 	# =========================================================================
 	# RUNTIME
@@ -2041,9 +2049,12 @@ class Writer(AbstractWriter):
 
 	def _runtimeWrapMethodByName(self, name, value=None, element=None):
 		if isinstance(value, interfaces.IClassMethod):
-			return self._runtimeCurrentGetClass() + ".getOperation('%s')" % (symbol_name)
+			return self._runtimeGetCurrentClass() + ".getOperation('%s')" % (name)
 		else:
 			return self._runtimeSelfReference(value) + ".getMethod(" + name + ")"
+
+	def _runtimeGetCurrentClass(self, variable=None):
+		return "Object.getPrototypeOf(" + (variable or self.jsSelf) + ").constructor"
 
 	def _runtimeOp( self, name, *args ):
 		args = [self.write(_) if isinstance(_,interfaces.IElement) else _ for _ in args]
@@ -2139,6 +2150,19 @@ class Writer(AbstractWriter):
 			end
 		)
 
+	def _runtimeEventTrigger( self, element ):
+		# target = element.getTarget()
+		# value  = self.resolve(target)[1]
+		# if not value or not value.hasAnnotation("event"):
+		# 	self.environment.error("Event target cannot be resolved: {0}".format(self.write(target)))
+		return "__send__({2}, {0}, {1}, {2})".format(self.write(element.getTarget()),self.write(element.getArguments()) or "null", self._runtimeSelfReference(element))
+
+	def _runtimeEventBind( self, element ):
+		return "__bind__({2}, {0}, {1})".format(self.write(element.getLeftOperand()),self.write(element.getRightOperand()) or "null", self._runtimeSelfReference(element))
+
+	def _runtimeEventUnbind( self, element ):
+		return "__unbind__({2}, {0}, {1})".format(self.write(element.getLeftOperand()),self.write(element.getRightOperand()) or "null", self._runtimeSelfReference(element))
+
 	def _runtimeMapFromItems( self, items ):
 		return "%s%screateMapFromItems(%s)" % (
 			self.runtimePrefix,
@@ -2147,10 +2171,10 @@ class Writer(AbstractWriter):
 		)
 
 	def _runtimeUnitTestPreamble( self, element ):
-		return "function(){{var __test__=ff.util.testing.Test('{0}');".format(self.getAbsoluteName(element))
+		return "(function(){{var __test__=new ff.util.testing.Test('{0}');".format(self.getAbsoluteName(element))
 
 	def _runtimeUnitTestPostamble( self, element ):
-		return "__test__.end();}();"
+		return "__test__.end();}());"
 
 	def _ensureSemicolon( self, block ):
 		if isinstance(block, tuple) or isinstance(block, list):

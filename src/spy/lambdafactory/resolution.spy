@@ -258,6 +258,7 @@
 	@method onSelection element
 		onOperation (element)
 		let implicit = element getImplicitValue ()
+		print ("SELECTION", element)
 		if implicit
 			let slot = element dataflow declareImplicit (implicit, element)
 		end

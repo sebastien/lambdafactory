@@ -160,6 +160,8 @@ class Writer(JavaScriptWriter):
 			self.pushContext(e or interfaces.IConstructor)
 			yield self.onConstructor(e)
 			self.popContext()
+		for e in element.getEvents():
+			yield "\tget {0} {{return {1}; }}".format(e.getName(), self.write(e.getDefaultValue()))
 		for e in element.getClassMethods():
 			self.pushContext(e)
 			yield self.onClassMethod(e)
@@ -261,6 +263,9 @@ class Writer(JavaScriptWriter):
 		for _ in body or []:
 			yield _
 		if element:
+			event = element.getAnnotation("event")
+			if event:
+				yield self._runtimeBindEvent(event.getContent())
 			for _ in operations or element.getOperations():
 				if isinstance(_, types.LambdaType):
 					_()
@@ -390,8 +395,6 @@ class Writer(JavaScriptWriter):
 				#return "(typeof {0} === typeof undefined ? {0} = function(){{return {1}.apply(self,arguments);}} : {0})".format(m, n)
 				return n + ".bind(" + s + ")"
 
-	def _runtimeGetCurrentClass(self, variable=None):
-		return "Object.getPrototypeOf(" + (variable or self.jsSelf) + ").constructor"
 
 	def _runtimeGetMethodByName(self, name, value=None, element=None):
 		return self._runtimeSelfReference(element) + "." + name
@@ -402,6 +405,9 @@ class Writer(JavaScriptWriter):
 			return "Object.getPrototypeOf({0}).constructor.{1}.bind(Object.getPrototypeOf({0}).constructor)".format(s, name)
 		else:
 			return "{0}.{1}.bind({0})".format(s, name)
+
+	def _runtimeBindEvent( self, event ):
+		return "return __bind__( self, \"{0}\", arguments[0], arguments[1] );".format(event)
 
 	def _runtimePreamble( self ):
 		return []

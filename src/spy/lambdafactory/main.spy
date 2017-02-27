@@ -5,13 +5,13 @@
 @import FileSplitter from lambdafactory.splitter
 @import lambdafactory.passes as passes
 @import lambdafactory.resolution as resolution
-@import BytesIO from io
+@import StringIO from io
 @import sys
 
 @function ensureOutput value
 	@embed Python
 	|if sys.version_info.major >= 3:
-	|	return value.encode("utf8") if isinstance(value, str) else value
+	|	return value.decode("utf8") if not isinstance(value, str) else value
 	|else:
 	|	return value.encode("utf8") if isinstance(value, unicode) else value
 	@end
@@ -59,7 +59,7 @@
 	| Runs Sugar, but instead of printing the result to the given
 	| output, it returns a Python string with the result. It is very useful
 	| when embedding LambdaFactory somewhere.
-		var output = new BytesIO()
+		var output = new StringIO ()
 		run (args, output)
 		return "" + output getvalue()
 	@end

@@ -83,6 +83,7 @@
 		interfaces IClassAttribute
 		interfaces IEnumerationType
 		interfaces IType
+		interfaces IEvent
 		interfaces IAttribute
 		interfaces IArgument
 		interfaces IParameter
@@ -98,6 +99,7 @@
 		interfaces IAllocation
 		interfaces IAssignment
 		interfaces IComputation
+		interfaces ITrigger
 		interfaces IInvocation
 		interfaces IInstanciation
 		interfaces IResolution

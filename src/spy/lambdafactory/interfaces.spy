@@ -565,6 +565,9 @@
 	|	Gets the @methodault value for this attribute
 @end
 
+@protocol IEvent: IAttribute
+@end
+
 @protocol IModuleAttribute: IAttribute
 @end
 
@@ -628,6 +631,8 @@
 
 	@abstract @method getClassAttributes
 	|	Returns the class attributes defined within this class.
+
+	@abstract @method getEvents
 
 	@abstract @method getOperations
 	|	Returns the operations (methods and class methods) defined within this class.
@@ -1082,6 +1087,9 @@
 		return getOpArgument(1)
 	@end
 
+@end
+
+@class ITrigger: IInvocation
 @end
 
 @class IInstanciation: IOperation, IEvaluable
