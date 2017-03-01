@@ -1336,6 +1336,9 @@ class Writer(AbstractWriter):
 		if step: res += " step " + self.write(step)
 		return res
 
+	def onDecomposition( self, element ):
+		return self.onResolution(element)
+
 	def onResolution( self, resolution ):
 		"""Writes a resolution operation."""
 		# We just want the raw reference name here, if we use _write() instead,
@@ -1350,6 +1353,8 @@ class Writer(AbstractWriter):
 			return self._rewriteSymbol(reference.getReferenceName())
 		elif context_name == "super":
 			return self._runtimeSuperResolution(resolution)
+		elif isinstance(resolution, interfaces.IDecomposition):
+			return self._runtimeDecompose(context, reference)
 		else:
 			return self.write(context) + "." + self._rewriteSymbol(reference.getReferenceName())
 
@@ -2164,6 +2169,12 @@ class Writer(AbstractWriter):
 			target,
 			start,
 			end
+		)
+
+	def _runtimeDecompose( self, context, element ):
+		return "__decompose__({0}, \"{1}\")".format(
+			self.write(context),
+			element.getReferenceName()
 		)
 
 	def _runtimeEventTrigger( self, element ):

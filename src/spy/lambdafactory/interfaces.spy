@@ -1015,6 +1015,9 @@
 
 @end
 
+@protocol IDecomposition: IResolution
+@end
+
 @class IBinaryOperation: IOperation, IEvaluable
 
 	@method getOperand

@@ -750,7 +750,13 @@
 		@embed Python
 		|assert self.runtime, "No runtime defined in ExtendJSRuntime pass"
 		@end
-		module addImportOperation (environment factory importSymbols (runtime getSlotNames(), runtime getAbsoluteName ()), 0)
+		var f =  environment factory
+		var s = []
+		var o = runtime getAbsoluteName ()
+		for _ in runtime getSlotNames ()
+			s append (f importSymbol (_, o, None))
+		end
+		module addImportOperation (environment factory importSymbols (s, o), 0)
 		return False
 	@end
 

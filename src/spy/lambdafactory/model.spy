@@ -1806,6 +1806,16 @@
 	@end
 @end
 
+@class Decomposition: Resolution, IDecomposition
+
+	@constructor arguments...
+		@embed Python
+		|Resolution.__init__(self, *arguments)
+		@end
+	@end
+
+@end
+
 @class Computation: Operation, IComputation
 
 	@constructor arguments...

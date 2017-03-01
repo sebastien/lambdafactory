@@ -102,6 +102,7 @@
 		interfaces ITrigger
 		interfaces IInvocation
 		interfaces IInstanciation
+		interfaces IDecomposition
 		interfaces IResolution
 		interfaces IChain
 		interfaces ISelection
@@ -178,6 +179,7 @@
 				|	name = the_interface.__name__[1:]
 				|	if isinstance(element, the_interface):
 				|		if not hasattr(self, "on" + name ):
+				|			import ipdb;ipdb.set_trace()
 				|			raise Exception("Writer does not define write method for: " + name + " in " + str(self))
 				|		else:
 				|			self.context.append(element)

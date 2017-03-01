@@ -587,6 +587,9 @@ class Writer(AbstractWriter):
 			res = "range(%s,%s)" % (start, end)
 		return res
 
+	def onDecomposition( self, element ):
+		return self.onResolution(element)
+
 	def onResolution( self, resolution ):
 		"""Writes a resolution operation."""
 		resolved_name = resolution.getReference().getReferenceName()

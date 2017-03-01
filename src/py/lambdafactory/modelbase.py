@@ -216,6 +216,10 @@ class Factory:
 		if type(reference) in (str, str): reference = self._ref(reference)
 		return self._getImplementation("Resolution")(reference, context)
 
+	def decompose( self, reference, context=None ):
+		if type(reference) in (str, str): reference = self._ref(reference)
+		return self._getImplementation("Decomposition")(reference, context)
+
 	def select( self, *rules ):
 		s = self._getImplementation("Selection")()
 		if rules: list(map(s.addRule, rules))
