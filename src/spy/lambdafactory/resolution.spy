@@ -580,9 +580,8 @@
 				imported update (_importSymbol (i, symbol_name, module_name, element, alias))
 			elif isinstance(i, interfaces IImportSymbolsOperation)
 				var module_name = i getImportOrigin()
-				for symbol_name in i getOpArgument 0
-					# FIXME: Arguments are messy
-					imported update (_importSymbol (i, symbol_name, module_name, element, None))
+				for s in i getOpArgument 0
+					imported update (_importSymbol (i, s getImportedElement (), s getImportOrigin (), element, s getAlias ()))
 				end
 			else
 				# TEST: When resolution works well, self should not be necessary

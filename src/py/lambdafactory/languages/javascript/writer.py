@@ -1212,7 +1212,17 @@ class Writer(AbstractWriter):
 			return self.getSafeName(self.getProgram().getModule(module_name)) + "." + symbol_name
 		elif isinstance(o, interfaces.IImportSymbolsOperation):
 			module_name = o.getImportOrigin()
-			return self.getSafeName(self.getProgram().getModule(module_name)) + "." + symbol_name
+			match       = None
+			for _ in o.getImportedElements():
+				if _.getImportedName() == name:
+					match = _
+			if match:
+				# NOTE: We don't use the alias here but the actual symbol
+				# because we're doing a fully prefixed resolution because we're
+				# doing a fully prefixed resolution.
+				return self.getSafeName(self.getProgram().getModule(module_name)) + "." + match.getImportedElement()
+			else:
+				raise Exception("Could not find imported symbol: {0} in parent operation {1}".format(name, op))
 		else:
 			raise Exception("Import operation not supported yet: {0}".format(o))
 

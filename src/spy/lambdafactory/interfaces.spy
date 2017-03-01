@@ -875,6 +875,19 @@
 		return getOpArgument(2)
 	@end
 
+	@method getImportedName
+		let alias = getAlias ()
+		let e    = getImportedElement ()
+		if alias
+			return alias
+		elif isinstance(e, IReference)
+			return e getReferenceName ()
+		elif isinstance(e, IResolution)
+			return e getReference () getReferenceName ()
+		else
+			return e
+		end
+	@end
 @end
 
 @class IImportSymbolsOperation: IImportOperation
@@ -916,7 +929,14 @@
 
 	@method getImportedModuleNames
 	| Returns the list of names representing the modules to load
-		return getOpArgument(0)
+		@embed Python
+		|return [_.getImportedModuleName() for _ in self.getOpArgument(0)]
+		@end
+	@end
+
+	@method getImportedModules
+	| Returns the list of names representing the modules to load
+		return getOpArgument 0
 	@end
 
 @end

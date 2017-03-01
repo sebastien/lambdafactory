@@ -464,7 +464,7 @@
 			|				o
 			|			])
 			|	elif isinstance(o, interfaces.IImportModulesOperation):
-			|		for s in o.getImportedModuleNames():
+			|		for s in o.getImportedModules():
 			|			res.append([
 			|				s.getAlias(),
 			|				s.getImportedModuleName(),
@@ -520,6 +520,8 @@
 			end
 			if isinstance(referenceOrName, interfaces IReference)
 				referenceOrName = referenceOrName getReferenceName()
+			elif isinstance(referenceOrName, interfaces IReferencable)
+				referenceOrName = referenceOrName getName()
 			end
 			# We get the module with the name that matches most of the reference
 			# name. This allows for absolute module names like (a.b.c) even if

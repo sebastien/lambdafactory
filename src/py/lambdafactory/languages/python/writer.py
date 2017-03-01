@@ -877,7 +877,7 @@ class Writer(AbstractWriter):
 
 	def onImportSymbolsOperation( self, element ):
 		res = ["import"]
-		res.append(", ".join(element.getImportedElements()))
+		res.append(", ".join((_.getImportedName() for _ in element.getImportedElements())))
 		symbol_origin = element.getImportOrigin()
 		if symbol_origin:
 			vres = ["from", symbol_origin]
