@@ -143,14 +143,14 @@ class Writer(JavaScriptWriter):
 		if len(parents) == 0:
 			parent = base
 		elif len(parents) == 1:
-			parent = self.getAbsoluteName(parents[0])
+			parent = self.getSafeName(parents[0])
 		else:
-			parent = self.getAbsoluteName(parents[0])
-			reporter.warning(
+			parent = self.getSafeName(parents[0])
+			self.environment.report.error(
 				"Class has multiple class parents, ignoring the rest: {0}"
 				.format(self.getAbsoluteName(element)))
 		for t in traits:
-			parent = self.getAbsoluteName(t) + "(" + (parent or "Object") + ")"
+			parent = self.getSafeName(t) + "(" + (parent or "Object") + ")"
 		return parent
 
 	def _onClassBody( self, element, withConstructors=True ):

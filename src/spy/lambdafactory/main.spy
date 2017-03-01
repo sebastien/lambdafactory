@@ -8,6 +8,8 @@
 @import StringIO from io
 @import sys
 
+# TODO: languages should be backends
+
 @function ensureOutput value
 	@embed Python
 	|if sys.version_info.major >= 3:
@@ -120,9 +122,22 @@
 		var program  = environment program
 		# environment getFactory () createProgram ()
 		environment useCache = options cache
+		if os environ get "SUGAR_MODULES"
+			let m = os environ ["SUGAR_MODULES"]
+			environment options ["modules"] = m
+			environment options [m] = True
+		end
+		if os environ get "SUGAR_BACKEND"
+			environment options ["backend"] = os environ ["SUGAR_BACKEND"]
+		end
 		if options targets
 			for option_target in options targets
-				environment options [option_target] = True
+				var name_value = option_target split ("=", 1)
+				if len(name_value) == 1
+					environment options [option_target] = True
+				else
+					environment options [name_target[0]] = name_target[1]
+				end
 			end
 		end
 		# FIXME: This should be deprecated
@@ -165,7 +180,7 @@
 				if language == "none"
 					language = None
 				elif not language
-					language = guessLanguage (source_path)
+					language =  environment options get "backend" or guessLanguage (source_path)
 				else
 					language = environment normalizeLanguage (language)
 				end
