@@ -318,16 +318,16 @@ class PassContext:
 			elif isinstance(o, interfaces.IImportSymbolsOperation):
 				for s in o.getImportedElements():
 					res.append([
-						None,
+						s.getAlias(),
 						o.getImportOrigin(),
-						s,
+						s.getImportedElement(),
 						o
 					])
 			elif isinstance(o, interfaces.IImportModulesOperation):
-				for s in o.getImportedModuleNames():
+				for s in o.getImportedModules():
 					res.append([
-						None,
-						s,
+						s.getAlias(),
+						s.getImportedModuleName(),
 						None,
 						o
 					])
@@ -370,6 +370,8 @@ class PassContext:
 			raise ERR_NO_DATAFLOW_AVAILABLE
 		if isinstance(referenceOrName, interfaces.IReference):
 			referenceOrName = referenceOrName.getReferenceName()
+		elif isinstance(referenceOrName, interfaces.IReferencable):
+			referenceOrName = referenceOrName.getName()
 		for module in program.getModules():
 			mname=module.getName()
 			mname_len=len(mname)
@@ -460,7 +462,12 @@ class ExtendJSRuntime(Pass):
 		imports=module.getImportOperations()
 		assert self.runtime, "No runtime defined in ExtendJSRuntime pass"
 		
-		module.addImportOperation(self.environment.factory.importSymbols(self.runtime.getSlotNames(), self.runtime.getAbsoluteName()), 0)
+		f=self.environment.factory
+		s=[]
+		o=self.runtime.getAbsoluteName()
+		for _ in self.runtime.getSlotNames():
+			s.append(f.importSymbol(_, o, None))
+		module.addImportOperation(self.environment.factory.importSymbols(s, o), 0)
 		return False
 	
 

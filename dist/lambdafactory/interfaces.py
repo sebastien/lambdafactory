@@ -896,6 +896,18 @@ class IImportSymbolOperation(IImportOperation):
 		element."""
 		return self.getOpArgument(2)
 	
+	def getImportedName(self):
+		alias=self.getAlias()
+		e=self.getImportedElement()
+		if alias:
+			return alias
+		elif isinstance(e, IReference):
+			return e.getReferenceName()
+		elif isinstance(e, IResolution):
+			return e.getReference().getReferenceName()
+		elif True:
+			return e
+	
 
 class IImportSymbolsOperation(IImportOperation):
 	ARGS = [[IEvaluable], IEvaluable]
@@ -924,6 +936,11 @@ class IImportModulesOperation(IImportOperation):
 	ARGS = [[IEvaluable]]
 	ARG_NAMES = ['ImportedModuleNames']
 	def getImportedModuleNames(self):
+		"""Returns the list of names representing the modules to load"""
+		return [_.getImportedModuleName() for _ in self.getOpArgument(0)]
+		
+	
+	def getImportedModules(self):
 		"""Returns the list of names representing the modules to load"""
 		return self.getOpArgument(0)
 	
@@ -979,6 +996,9 @@ class IResolution(IOperation, IEvaluable, IReferencable):
 		"""Returns the (optional) context in which the resolution should occur."""
 		raise Exception("Abstract method IResolution.getContext not implemented in: " + str(self))
 	
+
+class IDecomposition(IResolution):
+	pass
 
 class IBinaryOperation(IOperation, IEvaluable):
 	def getOperand(self):

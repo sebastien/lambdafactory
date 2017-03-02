@@ -1298,6 +1298,13 @@ class Resolution(Operation, IResolution):
 		return self.getOpArgument(1)
 	
 
+class Decomposition(Resolution, IDecomposition):
+	def __init__ (self, *arguments):
+		Resolution.__init__(self, *arguments)
+		
+	
+	pass
+
 class Computation(Operation, IComputation):
 	def __init__ (self, *arguments):
 		Operation.__init__(self, *arguments)

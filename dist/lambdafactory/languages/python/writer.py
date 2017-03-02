@@ -587,6 +587,9 @@ class Writer(AbstractWriter):
 			res = "range(%s,%s)" % (start, end)
 		return res
 
+	def onDecomposition( self, element ):
+		return self.onResolution(element)
+
 	def onResolution( self, resolution ):
 		"""Writes a resolution operation."""
 		resolved_name = resolution.getReference().getReferenceName()
@@ -877,7 +880,7 @@ class Writer(AbstractWriter):
 
 	def onImportSymbolsOperation( self, element ):
 		res = ["import"]
-		res.append(", ".join(element.getImportedElements()))
+		res.append(", ".join((_.getImportedName() for _ in element.getImportedElements())))
 		symbol_origin = element.getImportOrigin()
 		if symbol_origin:
 			vres = ["from", symbol_origin]
@@ -917,8 +920,6 @@ class Writer(AbstractWriter):
 			return None
 
 	def write( self, element ):
-		#if isinstance(element, interfaces.IOperation):
-		#	print "OPERATION", element.__class__
 		return AbstractWriter.write(self, element)
 
 MAIN_CLASS = Writer

@@ -224,11 +224,17 @@ class Writer(AbstractWriter):
 		if self._moduleType == MODULE_VANILLA:
 			return self.getAbsoluteName(element)
 		else:
-			return "_".join(self.getAbsoluteName(element, asList=True))
+			if isinstance(element, interfaces.IProgram) or isinstance(element, interfaces.IModule):
+				return self.getAbsoluteName(element).replace(".", "_")
+			else:
+				name = self.getName()
+				return self.getSafeSuperName(element) + ("." + name if name else "")
 
 	def getSafeSuperName( self, element ):
 		parent = element.getParent()
 		name   = element.getName()
+		if not parent:
+			return name
 		if parent == self.getCurrentModule():
 			if self.resolve(self.getLocalName(parent))[1] == parent:
 				return self.getLocalName(parent) + "." + name
@@ -307,7 +313,6 @@ class Writer(AbstractWriter):
 		full_name               = self.getAbsoluteName(moduleElement)
 		code = [
 			"// " + SNIP % ("%s.js" % (self.getAbsoluteName(moduleElement).replace(".", "/"))),
-			'"use strict";'
 		] + self._header() + [
 			self._document(moduleElement),
 			self.options["ENABLE_METADATA"] and "function __def(v,m){var ms=v['__def__']||{};for(var k in m){ms[k]=m[k]};v['__def__']=ms;return v}" or None,
@@ -473,6 +478,7 @@ class Writer(AbstractWriter):
 			"IMPORTS", imports
 		).replace("\n\t\t", "\n")
 		module_declaration = [
+			"\"use strict\";",
 			"var __module__ = typeof(exports)==='undefined' ? {} : exports;",
 			"var {0} = __module__;".format(module_name),
 		]
@@ -1196,18 +1202,27 @@ class Writer(AbstractWriter):
 		# We proces the importation to convert the slot to an absolute name
 		symbol_name = name
 		o = slot.origin[0]
-		# FIXME: Get the output proper
 		if isinstance(o, interfaces.IImportModuleOperation):
-			return o.getImportedModuleName()
+			return self.getSafeName(self.getProgram().getModule(o.getImportedModuleName()))
 		elif isinstance(o, interfaces.IImportModulesOperation):
-			return name
+			return self.getSafeName(self.getProgram().getModule(name))
 		elif isinstance(o, interfaces.IImportSymbolOperation):
 			module_name = o.getImportOrigin()
 			symbol_name = o.getImportedElement()
-			return module_name + "." + symbol_name
+			return self.getSafeName(self.getProgram().getModule(module_name)) + "." + symbol_name
 		elif isinstance(o, interfaces.IImportSymbolsOperation):
 			module_name = o.getImportOrigin()
-			return module_name + "." + symbol_name
+			match       = None
+			for _ in o.getImportedElements():
+				if _.getImportedName() == name:
+					match = _
+			if match:
+				# NOTE: We don't use the alias here but the actual symbol
+				# because we're doing a fully prefixed resolution because we're
+				# doing a fully prefixed resolution.
+				return self.getSafeName(self.getProgram().getModule(module_name)) + "." + match.getImportedElement()
+			else:
+				raise Exception("Could not find imported symbol: {0} in parent operation {1}".format(name, op))
 		else:
 			raise Exception("Import operation not supported yet: {0}".format(o))
 
@@ -1321,6 +1336,9 @@ class Writer(AbstractWriter):
 		if step: res += " step " + self.write(step)
 		return res
 
+	def onDecomposition( self, element ):
+		return self.onResolution(element)
+
 	def onResolution( self, resolution ):
 		"""Writes a resolution operation."""
 		# We just want the raw reference name here, if we use _write() instead,
@@ -1335,6 +1353,8 @@ class Writer(AbstractWriter):
 			return self._rewriteSymbol(reference.getReferenceName())
 		elif context_name == "super":
 			return self._runtimeSuperResolution(resolution)
+		elif isinstance(resolution, interfaces.IDecomposition):
+			return self._runtimeDecompose(context, reference)
 		else:
 			return self.write(context) + "." + self._rewriteSymbol(reference.getReferenceName())
 
@@ -1394,15 +1414,17 @@ class Writer(AbstractWriter):
 	def onTrigger( self, element ):
 		yield self._runtimeEventTrigger(element)
 
-	def onArgument( self, argument ):
-		r = self.write(argument.getValue())
-		if argument.isAsMap():
+	def onArgument( self, element ):
+		r = self.write(element.getValue())
+		if element.getValue().hasAnnotation("ellipsis"):
+			return "..." + r
+		elif element.isAsMap():
 			return "{'**':(%s)}" % (r)
-		elif argument.isAsList():
+		elif element.isAsList():
 			return "{'*':(%s)}" % (r)
-		elif argument.isByName():
+		elif element.isByName():
 			# FIXME: Maybe rewrite name
-			return "{'^':%s,'=':(%s)}" % (repr(self._rewriteSymbol(argument.getName())), r)
+			return "{'^':%s,'=':(%s)}" % (repr(self._rewriteSymbol(element.getName())), r)
 		else:
 			return r
 
@@ -1412,9 +1434,10 @@ class Writer(AbstractWriter):
 		t = self.write(i)
 		# Invocation targets can be expressions
 		if not isinstance(i, interfaces.IReference): t = "(" + t + ")"
+		a = self.write(operation.getArguments())
 		return "new %s(%s)" % (
 			t,
-			", ".join(map(self.write, operation.getArguments()))
+			", ".join(self.write(_) for _ in operation.getArguments())
 		)
 
 	def onChain( self, chain ):
@@ -2146,6 +2169,12 @@ class Writer(AbstractWriter):
 			target,
 			start,
 			end
+		)
+
+	def _runtimeDecompose( self, context, element ):
+		return "__decompose__({0}, \"{1}\")".format(
+			self.write(context),
+			element.getReferenceName()
 		)
 
 	def _runtimeEventTrigger( self, element ):

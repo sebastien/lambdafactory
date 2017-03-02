@@ -108,9 +108,19 @@ class Command:
 		language=options.lang
 		program=self.environment.program
 		self.environment.useCache = options.cache
+		if os.environ.get('SUGAR_MODULES'):
+			m=os.environ['SUGAR_MODULES']
+			self.environment.options['modules'] = m
+			self.environment.options[m] = True
+		if os.environ.get('SUGAR_BACKEND'):
+			self.environment.options['backend'] = os.environ['SUGAR_BACKEND']
 		if options.targets:
 			for option_target in options.targets:
-				self.environment.options[option_target] = True
+				name_value=option_target.split('=', 1)
+				if (len(name_value) == 1):
+					self.environment.options[option_target] = True
+				elif True:
+					self.environment.options[name_target[0]] = name_target[1]
 		if options.api:
 			self.environment.addPass(passes.DocumentationPass())
 		if options.includes:
@@ -132,7 +142,7 @@ class Command:
 				if (language == 'none'):
 					language = None
 				elif (not language):
-					language = self.guessLanguage(source_path)
+					language = (self.environment.options.get('backend') or self.guessLanguage(source_path))
 				elif True:
 					language = self.environment.normalizeLanguage(language)
 		if options.libraries:

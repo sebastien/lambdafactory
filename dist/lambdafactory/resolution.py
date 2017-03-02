@@ -226,7 +226,7 @@ class BasicDataFlow(Pass):
 				parameters=closure.parameters
 				while (len(parameters) <= n):
 					l=len(parameters)
-					p=self.environment.factory._param(('_' + str(n)))
+					p=self.environment.factory._param(('_' + str(l)))
 					parameters.append(p)
 					if dataflow:
 						dataflow.declareArgument(p.getName(), p)
@@ -389,8 +389,8 @@ class DataFlowBinding(Pass):
 				imported.update(self._importSymbol(i, symbol_name, module_name, element, alias))
 			elif isinstance(i, interfaces.IImportSymbolsOperation):
 				module_name=i.getImportOrigin()
-				for symbol_name in i.getOpArgument(0):
-					imported.update(self._importSymbol(i, symbol_name, module_name, element, None))
+				for s in i.getOpArgument(0):
+					imported.update(self._importSymbol(i, s.getImportedElement(), s.getImportOrigin(), element, s.getAlias()))
 			elif True:
 				self.environment.report.error(('DataFlowBinding: operation not implemented ' + repr(i)))
 		if element.hasAnnotation('imported'):
