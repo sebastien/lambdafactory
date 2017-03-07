@@ -402,7 +402,12 @@ class Writer(JavaScriptWriter):
 	def _runtimeWrapMethodByName(self, name, value=None, element=None):
 		s = self._runtimeSelfReference(element)
 		if isinstance(value, interfaces.IClassMethod):
-			return "Object.getPrototypeOf({0}).constructor.{1}.bind(Object.getPrototypeOf({0}).constructor)".format(s, name)
+			if self.findInContext(interfaces.IClassMethod):
+				# In ES, we need to re-bind static methods when we're calling
+				# them back, otherwise the reference will be lost.
+				return "{0}.{1}.bind({0})".format(s, name)
+			else:
+				return "Object.getPrototypeOf({0}).constructor.{1}.bind(Object.getPrototypeOf({0}).constructor)".format(s, name)
 		else:
 			return "{0}.{1}.bind({0})".format(s, name)
 

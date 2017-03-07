@@ -36,7 +36,7 @@ VALID_SYMBOL_CHARS = "_0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTU
 # NOTE: removed catch, as it clashes with the Promise
 KEYWORDS = """abstract break
 case class let
-continue const debugger default
+continue const default
 enum export extends
 final finally for
 function goto if implements
@@ -1148,7 +1148,7 @@ class Writer(AbstractWriter):
 					return self._runtimeWrapMethodByName(symbol_name, value, element)
 			elif isinstance(value, interfaces.IClassMethod):
 				# FIXME: Same as above
-				if self.isIn(interfaces.IInstanceMethod) or self.isIn(interfaces.IConstructor) or self.isIn(interfaces.IDestructor):
+				if self.isIn(interfaces.IMethod) or self.isIn(interfaces.IConstructor) or self.isIn(interfaces.IDestructor):
 					return self._runtimeWrapMethodByName(symbol_name, value, element)
 				else:
 					return "%s.%s" % (self._runtimeSelfReference(value), symbol_name)
@@ -1890,7 +1890,10 @@ class Writer(AbstractWriter):
 		yield "{};"
 		for i,_ in enumerate(symbols):
 			# NOTE: Symbol is not supported yet, but would be preferrable
-			yield "{0}.{1} = {0}.{3}.{1} = new Number(\"{2}\");".format(m, _, i, element.getName())
+			yield "{0}.{1} = {0}.{3}.{1} = {4}(new Number({2}), \"{1}\");".format(m, _, i, element.getName(), "__set_name__")
+			# FIXME: This has unexpected side effects
+			# yield "{0}.{1}.__name__ = \"{2}.{1}\";".format(m, _, element.getName())
+
 
 	# =========================================================================
 	# NICE HELPERS
