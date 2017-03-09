@@ -108,6 +108,11 @@
 				walk (operation)
 			end
 		end
+		# Is the element a Process ? -> walk operations
+		if isinstance(element, interfaces IAttribute)
+			walk (element getDefaultValue ())
+		end
+		# Is the element an Ope
 		# Is the element an Operation ? -> walk arguments
 		if isinstance(element, interfaces IOperation)
 			for op_arg in element getOpArguments()
@@ -214,7 +219,7 @@
 			var i = len(context) - 1
 			while i >= 0
 				var v = context[i]
-				if v hasAnnotation (name)
+				if isinstance (v, interfaces IElement) and v hasAnnotation (name)
 					return i
 				end
 				i -= 1
