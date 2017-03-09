@@ -110,9 +110,12 @@ class Writer(JavaScriptWriter):
 		yield "\treturn res;"
 		yield "};"
 		yield "Object.defineProperty({0}, \"initialize\", {{writable:false,value:".format(self.getSafeName(element))
+		# NOTE: Here we're moving the constructors to a static initialize
+		# function, as there's some issues having a constructor super in traits when the
+		# trait has no parent (ie. this is undefined).
 		yield "\tfunction(self){"
 		for a in element.getAttributes():
-			yield "\t\tif (typeof self.{0} != \"undefined\") {{self.{0} = {0};}}".format(a.getName(), self.write(a.getDefaultValue()))
+			yield "\t\tif (typeof (self.{0}) == \"undefined\") {{self.{0} = {1};}}".format(a.getName(), self.write(a.getDefaultValue()))
 		for _ in self.getClassParents(element):
 			if isinstance(_, interfaces.ITrait):
 				yield "\t\t{0}.initialize(self);".format(self.getSafeName(_))

@@ -75,6 +75,8 @@ class PassContext:
 		if isinstance(element, interfaces.IProcess):
 			for operation in element.getOperations():
 				self.walk(operation)
+		if isinstance(element, interfaces.IAttribute):
+			self.walk(element.getDefaultValue())
 		if isinstance(element, interfaces.IOperation):
 			for op_arg in element.getOpArguments():
 				if (type(op_arg) in [tuple, list]):
@@ -140,7 +142,7 @@ class PassContext:
 		i=(len(self.context) - 1)
 		while (i >= 0):
 			v=self.context[i]
-			if v.hasAnnotation(name):
+			if (isinstance(v, interfaces.IElement) and v.hasAnnotation(name)):
 				return i
 			i = (i - 1)
 		return -1
