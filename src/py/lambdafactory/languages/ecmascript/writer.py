@@ -108,7 +108,18 @@ class Writer(JavaScriptWriter):
 		yield "\t}"
 		yield "\tObject.defineProperty({0}, \"__name__\", {{value:\"{1}\",writable:false}});".format("res", element.getAbsoluteName())
 		yield "\treturn res;"
-		yield "}"
+		yield "};"
+		yield "Object.defineProperty({0}, \"initialize\", {{writable:false,value:".format(self.getSafeName(element))
+		yield "\tfunction(self){"
+		for a in element.getAttributes():
+			yield "\t\tif (typeof self.{0} != \"undefined\") {{self.{0} = {0};}}".format(a.getName(), self.write(a.getDefaultValue()))
+		for _ in self.getClassParents(element):
+			if isinstance(_, interfaces.ITrait):
+				yield "\t\t{0}.initialize(self);".format(self.getSafeName(_))
+		# for c in element.getConstructors():
+		# 	yield self._onFunctionBody(c)
+		yield "\t}"
+		yield "});"
 		self.popContext()
 
 	def onSingleton( self, element ):
@@ -121,6 +132,30 @@ class Writer(JavaScriptWriter):
 			self.pushContext(e)
 			yield [self._onFunctionBody(e)]
 			self.popContext()
+		l = {}
+		for e in element.getAccessors():
+			self.pushContext(e)
+			n = e.getName()
+			if n not in l: l[n] = {"getter":None,"setter":None}
+			l[n]["getter"] = list(self.onFunction(e))
+			self.popContext()
+		for e in element.getMutators():
+			self.pushContext(e)
+			n = e.getName()
+			if n not in l: l[n] = {"getter":None,"setter":None}
+			l[n]["setter"] = list(self.onFunction(e))
+			self.popContext()
+		for k,p in l.items():
+			yield "Object.defineProperty(self, '{0}', {{".format(k)
+			if p.get("getter"):
+				yield "\tget:("
+				for _ in p["getter"]: yield [[_]]
+				yield "\t)," if p.get("setter") in p else ")"
+			if p.get("setter"):
+				yield "\tset:("
+				for _ in p["setter"]: yield [[_]]
+				yield "\t)"
+			yield "});"
 		# TODO: Support getters & setters?
 		for e in element.getInstanceMethods():
 			self.pushContext(e)
@@ -156,10 +191,11 @@ class Writer(JavaScriptWriter):
 	def _onClassBody( self, element, withConstructors=True ):
 		"""Iterates through the slots in a context, writing their name and value"""
 		slots = element.getSlots()
-		for e in element.getConstructors() or ([None] if withConstructors else ()):
-			self.pushContext(e or interfaces.IConstructor)
-			yield self.onConstructor(e)
-			self.popContext()
+		if withConstructors:
+			for e in element.getConstructors() or [None]:
+				self.pushContext(e or interfaces.IConstructor)
+				yield self.onConstructor(e)
+				self.popContext()
 		for e in element.getEvents():
 			yield "\tget {0} () {{return {1}; }}".format(e.getName(), self.write(e.getDefaultValue()))
 		for e in element.getClassMethods():
@@ -220,7 +256,7 @@ class Writer(JavaScriptWriter):
 			attrs  = []
 			# We merge in attributes from the current class and then the traits
 			# if they do not override
-			for p in [c] + traits:
+			for p in [c]:
 				for a in p.getAttributes():
 					n = a.getName()
 					if n not in attrs:
@@ -231,6 +267,8 @@ class Writer(JavaScriptWriter):
 								"if (typeof {0}.{1} === typeof undefined) {{{0}.{1} = {2};}}".format(
 								"self", a.getName(), self.write(v))
 							)
+			for t in traits:
+				init.append(self.getSafeName(t) + ".initialize(self);")
 		# We only use super if the clas has parents and ther is no explicit
 		# constructor
 		if not call_super:
