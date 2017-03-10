@@ -157,6 +157,21 @@
 		end
 	@end
 
+	@method lines value, prefix=""
+		@embed Python
+		|if isString(value):
+		|	yield prefix + value
+		|elif type(value) in (tuple, list, types.GeneratorType):
+		|	for _ in value:
+		|		for l in self.lines(_, prefix + "\t"):
+		|			yield l
+		|elif type(value) is types.GeneratorType:
+		|	for _ in value:
+		|		for l in self.lines(_, prefix):
+		|			yield l
+		@end
+	@end
+
 	@method write element
 		var res = None
 		if element is None
