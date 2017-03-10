@@ -304,6 +304,8 @@ class Writer(JavaScriptWriter):
 			for _ in element.getOperations() if operations is None else operations:
 				if isinstance(_, types.LambdaType):
 					_()
+				elif isinstance(_, interfaces.IEvaluable):
+					yield self.write(_) + ";"
 				elif isinstance(_, interfaces.IElement):
 					yield self.write(_)
 				else:

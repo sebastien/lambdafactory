@@ -1026,7 +1026,7 @@ class IBinaryOperation(IOperation, IEvaluable):
 		return self.setOpArgument(1, operand)
 	
 
-class IComputation(IBinaryOperation):
+class IComputation(IBinaryOperation, IEvaluable):
 	ARGS = [IOperator, IEvaluable, IEvaluable]
 	def getOperator(self):
 		"""Gets the operator for this computation"""

@@ -1052,7 +1052,7 @@
 
 @end
 
-@class IComputation: IBinaryOperation
+@class IComputation: IBinaryOperation, IEvaluable
 
 	@shared ARGS = [ IOperator, IEvaluable, IEvaluable ]
 

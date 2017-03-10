@@ -63,10 +63,10 @@ class Writer(JavaScriptWriter):
 	#
 	# -------------------------------------------------------------------------
 
-	def onClass( self, element, anonymous=False ):
+	def onClass( self, element, anonymous=False, slotName=None ):
 		"""Writes a class element."""
 		self.pushContext (element)
-		safe_name = self.getSafeName(element)
+		safe_name = slotName or self.getSafeName(element)
 		abs_name  = element.getAbsoluteName()
 		name = "" if anonymous else ((element.getName() or "") + " ")
 		parent = self._onClassParents(element, self.getClassParents(element))
@@ -104,11 +104,36 @@ class Writer(JavaScriptWriter):
 		self.pushContext (element)
 		yield "function(_) {"
 		yield "\tvar res = class extends " + self._onClassParents(element, self.getClassParents(element), base="_") + " {"
-		yield [self._onClassBody(element, withConstructors=False)]
+		yield [self._onClassBody(element, withConstructors=False, withAccessors=False)]
 		yield "\t}"
 		yield "\tObject.defineProperty({0}, \"__name__\", {{value:\"{1}\",writable:false}});".format("res", element.getAbsoluteName())
+		# Now we take care of accessors. Somehow they don't seem to work
+		# when declared in get/set and then mixed in.
+		acc = {}
+		for a in element.getAccessors():
+			n = a.getName()
+			if n not in acc: acc[n] = dict(get=None, set=None)
+			acc[n]["get"] = self.onFunction(a, anonymous=True)
+		for a in element.getMutators():
+			n = a.getName()
+			if n not in acc: acc[n] = dict(get=None, set=None)
+			acc[n]["set"] = self.onFunction(a, anonymous=True)
+		for k in acc:
+			g = acc[k]["get"]
+			s = acc[k]["set"]
+			yield "\tObject.defineProperty(res.prototype, \"{0}\", {{".format(k,)
+			if g:
+				yield "\t\tget:"
+				yield [[g]]
+			if s:
+				if g: yield "\t,"
+				yield "\t\tset:"
+				yield [[s]]
+			yield "\t});"
+
 		yield "\treturn res;"
 		yield "};"
+
 		yield "Object.defineProperty({0}, \"initialize\", {{writable:false,value:".format(self.getSafeName(element))
 		# NOTE: Here we're moving the constructors to a static initialize
 		# function, as there's some issues having a constructor super in traits when the
@@ -128,45 +153,12 @@ class Writer(JavaScriptWriter):
 	def onSingleton( self, element ):
 		self.pushContext (element)
 		yield "function() {"
-		yield "\tvar self = new " + self._onClassParents(element, self.getClassParents(element), base="Object") + "();"
-		for e in element.getAttributes():
-			yield "\tself." + e.getName() + " = " + self.write(e.getDefaultValue()) + ";"
-		for e in element.getConstructors():
-			self.pushContext(e)
-			yield [self._onFunctionBody(e)]
-			self.popContext()
-		l = {}
-		for e in element.getAccessors():
-			self.pushContext(e)
-			n = e.getName()
-			if n not in l: l[n] = {"getter":None,"setter":None}
-			l[n]["getter"] = list(self.onFunction(e))
-			self.popContext()
-		for e in element.getMutators():
-			self.pushContext(e)
-			n = e.getName()
-			if n not in l: l[n] = {"getter":None,"setter":None}
-			l[n]["setter"] = list(self.onFunction(e))
-			self.popContext()
-		for k,p in l.items():
-			yield "Object.defineProperty(self, '{0}', {{".format(k)
-			if p.get("getter"):
-				yield "\tget:("
-				for _ in p["getter"]: yield [[_]]
-				yield "\t)," if p.get("setter") in p else ")"
-			if p.get("setter"):
-				yield "\tset:("
-				for _ in p["setter"]: yield [[_]]
-				yield "\t)"
-			yield "});"
-		# TODO: Support getters & setters?
-		for e in element.getInstanceMethods():
-			self.pushContext(e)
-			l = [_ for _ in self.onFunction(e, modifier="function")]
-			l[0]   = "self." + e.getName() + " = " + l[0]
-			l[-1] += ";"
-			yield [l]
-			self.popContext()
+		for i,line in enumerate(self.lines(self.onClass(element, anonymous=True, slotName=element.getName()))):
+			if i == 0:
+				yield "\tvar {0} = {1}".format(element.getName(), line[1:])
+			else:
+				yield line
+		yield "\tvar self=new {0}();".format(element.getName())
 		yield "\tself.__name__ = \"{0}\"".format(self.getAbsoluteName(element))
 		yield "\treturn self;"
 		yield "}();"
@@ -191,7 +183,7 @@ class Writer(JavaScriptWriter):
 			parent = self.getSafeName(t) + "(" + (parent or "Object") + ")"
 		return parent
 
-	def _onClassBody( self, element, withConstructors=True ):
+	def _onClassBody( self, element, withConstructors=True, withAccessors=True ):
 		"""Iterates through the slots in a context, writing their name and value"""
 		slots = element.getSlots()
 		if withConstructors:
@@ -205,14 +197,15 @@ class Writer(JavaScriptWriter):
 			self.pushContext(e)
 			yield self.onClassMethod(e)
 			self.popContext()
-		for e in element.getAccessors():
-			self.pushContext(e)
-			yield self.onAccesor(e)
-			self.popContext()
-		for e in element.getMutators():
-			self.pushContext(e)
-			yield self.onMutator(e)
-			self.popContext()
+		if withAccessors:
+			for e in element.getAccessors():
+				self.pushContext(e)
+				yield self.onAccesor(e)
+				self.popContext()
+			for e in element.getMutators():
+				self.pushContext(e)
+				yield self.onMutator(e)
+				self.popContext()
 		for e in element.getInstanceMethods():
 			self.pushContext(e)
 			yield self.onMethod(e)
@@ -253,9 +246,9 @@ class Writer(JavaScriptWriter):
 					call_super = op
 				else:
 					ops.append(op)
+		# Initializes teh attributes
 		c = self.getCurrentClass()
 		if c:
-			traits = [_ for _ in self.getClassParents(c) if isinstance(_, interfaces.ITrait)]
 			attrs  = []
 			# We merge in attributes from the current class and then the traits
 			# if they do not override
@@ -270,6 +263,8 @@ class Writer(JavaScriptWriter):
 								"if (typeof {0}.{1} === typeof undefined) {{{0}.{1} = {2};}}".format(
 								"self", a.getName(), self.write(v))
 							)
+			# Initializes the inherited traits
+			traits = [_ for _ in self.getClassParents(c) if isinstance(_, interfaces.ITrait)]
 			for t in traits:
 				init.append(self.getSafeName(t) + ".initialize(self);")
 		# We only use super if the clas has parents and ther is no explicit
@@ -282,7 +277,6 @@ class Writer(JavaScriptWriter):
 			self.jsSelf = "this"
 			init.insert(0, self.write(call_super))
 			self.jsSelf = "self"
-
 		return self.onFunction( element, modifier="constructor", anonymous=True, body=init, bindSelf=False, operations=ops)
 
 	def onInitializer( self, element ):
@@ -307,9 +301,11 @@ class Writer(JavaScriptWriter):
 			event = element.getAnnotation("event")
 			if event:
 				yield self._runtimeBindEvent(event.getContent())
-			for _ in operations or element.getOperations():
+			for _ in element.getOperations() if operations is None else operations:
 				if isinstance(_, types.LambdaType):
 					_()
+				elif isinstance(_, interfaces.IEvaluable):
+					yield self.write(_) + ";"
 				elif isinstance(_, interfaces.IElement):
 					yield self.write(_)
 				else:

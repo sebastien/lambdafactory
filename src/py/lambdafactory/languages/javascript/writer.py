@@ -1080,6 +1080,7 @@ class Writer(AbstractWriter):
 
 	def onBlock( self, block ):
 		"""Writes a block element."""
+		# FIXME: Use yield?
 		return self._format(list(map(self.write, block.getOperations())))
 
 	def onParameter( self, param ):

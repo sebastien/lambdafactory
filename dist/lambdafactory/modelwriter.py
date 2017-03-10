@@ -82,6 +82,20 @@ class AbstractWriter(Pass):
 			elif True:
 				return (value + element)
 	
+	def lines(self, value, prefix=None):
+		if prefix is None: prefix = ''
+		if isString(value):
+			yield prefix + value
+		elif type(value) in (tuple, list, types.GeneratorType):
+			for _ in value:
+				for l in self.lines(_, prefix + "\t"):
+					yield l
+		elif type(value) is types.GeneratorType:
+			for _ in value:
+				for l in self.lines(_, prefix):
+					yield l
+		
+	
 	def write(self, element):
 		res=None
 		if (element is None):
