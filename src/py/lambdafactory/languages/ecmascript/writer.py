@@ -159,45 +159,6 @@ class Writer(JavaScriptWriter):
 			else:
 				yield line
 		yield "\tvar self=new {0}();".format(element.getName())
-		# yield "\tvar self = new " + self._onClassParents(element, self.getClassParents(element), base="Object") + "();"
-		# for e in element.getAttributes():
-		# 	yield "\tself." + e.getName() + " = " + self.write(e.getDefaultValue()) + ";"
-		# for e in element.getConstructors():
-		# 	self.pushContext(e)
-		# 	yield [self._onFunctionBody(e)]
-		# 	self.popContext()
-		# l = {}
-		# for e in element.getAccessors():
-		# 	self.pushContext(e)
-		# 	n = e.getName()
-		# 	if n not in l: l[n] = {"getter":None,"setter":None}
-		# 	l[n]["getter"] = list(self.onFunction(e))
-		# 	self.popContext()
-		# for e in element.getMutators():
-		# 	self.pushContext(e)
-		# 	n = e.getName()
-		# 	if n not in l: l[n] = {"getter":None,"setter":None}
-		# 	l[n]["setter"] = list(self.onFunction(e))
-		# 	self.popContext()
-		# for k,p in l.items():
-		# 	yield "Object.defineProperty(self, '{0}', {{".format(k)
-		# 	if p.get("getter"):
-		# 		yield "\tget:("
-		# 		for _ in p["getter"]: yield [[_]]
-		# 		yield "\t)," if p.get("setter") in p else ")"
-		# 	if p.get("setter"):
-		# 		yield "\tset:("
-		# 		for _ in p["setter"]: yield [[_]]
-		# 		yield "\t)"
-		# 	yield "});"
-		# # TODO: Support getters & setters?
-		# for e in element.getInstanceMethods():
-		# 	self.pushContext(e)
-		# 	l = [_ for _ in self.onFunction(e, modifier="function")]
-		# 	l[0]   = "self." + e.getName() + " = " + l[0]
-		# 	l[-1] += ";"
-		# 	yield [l]
-		# 	self.popContext()
 		yield "\tself.__name__ = \"{0}\"".format(self.getAbsoluteName(element))
 		yield "\treturn self;"
 		yield "}();"
@@ -285,9 +246,9 @@ class Writer(JavaScriptWriter):
 					call_super = op
 				else:
 					ops.append(op)
+		# Initializes teh attributes
 		c = self.getCurrentClass()
 		if c:
-			traits = [_ for _ in self.getClassParents(c) if isinstance(_, interfaces.ITrait)]
 			attrs  = []
 			# We merge in attributes from the current class and then the traits
 			# if they do not override
@@ -302,6 +263,8 @@ class Writer(JavaScriptWriter):
 								"if (typeof {0}.{1} === typeof undefined) {{{0}.{1} = {2};}}".format(
 								"self", a.getName(), self.write(v))
 							)
+			# Initializes the inherited traits
+			traits = [_ for _ in self.getClassParents(c) if isinstance(_, interfaces.ITrait)]
 			for t in traits:
 				init.append(self.getSafeName(t) + ".initialize(self);")
 		# We only use super if the clas has parents and ther is no explicit
@@ -314,7 +277,6 @@ class Writer(JavaScriptWriter):
 			self.jsSelf = "this"
 			init.insert(0, self.write(call_super))
 			self.jsSelf = "self"
-
 		return self.onFunction( element, modifier="constructor", anonymous=True, body=init, bindSelf=False, operations=ops)
 
 	def onInitializer( self, element ):
@@ -339,7 +301,7 @@ class Writer(JavaScriptWriter):
 			event = element.getAnnotation("event")
 			if event:
 				yield self._runtimeBindEvent(event.getContent())
-			for _ in operations or element.getOperations():
+			for _ in element.getOperations() if operations is None else operations:
 				if isinstance(_, types.LambdaType):
 					_()
 				elif isinstance(_, interfaces.IElement):
