@@ -144,8 +144,8 @@ class Writer(JavaScriptWriter):
 		for _ in self.getClassParents(element):
 			if isinstance(_, interfaces.ITrait):
 				yield "\t\t{0}.initialize(self);".format(self.getSafeName(_))
-		# for c in element.getConstructors():
-		# 	yield self._onFunctionBody(c)
+		for c in element.getConstructors():
+			yield [[self._onFunctionBody(c, bindSelf=False)]]
 		yield "\t}"
 		yield "});"
 		self.popContext()

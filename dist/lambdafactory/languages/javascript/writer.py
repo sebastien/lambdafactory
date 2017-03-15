@@ -798,21 +798,6 @@ class Writer(AbstractWriter):
 			arguments.append(a)
 		return "{arguments:%s}" % (arguments)
 
-	def _writeLValue( self, lvalue ):
-		if isinstance(lvalue, interfaces.IAccessOperation):
-			target = lvalue.getOpArgument(0)
-			index  = lvalue.getIndex()
-			if isinstance(index, interfaces.IString) or (isinstance(index, interfaces.INumber) and index.getActualValue() >= 0):
-				return "{0}[{1}]".format(self.write(target), self.write(index))
-			elif isinstance(index, interfaces.INumber):
-				return "{0}[extend.len({0}) {1}]".format(self.write(lvalue.getOpArgument(0)), self.write(index))
-			else:
-				# FIXME: This does not work all the time
-				# return "var __lf_a={0};__lf_a[extend.offset(__lf_a,{1})]".format(self.write(lvalue.getOpArgument(0)), self.write(index))
-				return self.write(lvalue)
-		else:
-			return self.write(lvalue)
-
 	def writeFunctionWhen(self, methodElement):
 		return [self.write(
 			"if (!({0})) {{return undefined}};".format(self.write(_.content))
@@ -1296,7 +1281,7 @@ class Writer(AbstractWriter):
 		parent = self.context[-2]
 		suffix = ";" if isinstance(parent, interfaces.IBlock) or isinstance(parent, interfaces.IProcess) else ""
 		return "%s = %s%s" % (
-			self._writeLValue(assignation.getTarget()),
+			self.write(assignation.getTarget()),
 			self.write(assignation.getAssignedValue()),
 			suffix
 		)
@@ -1721,8 +1706,8 @@ class Writer(AbstractWriter):
 		target = operation.getTarget()
 		index  = operation.getIndex()
 		is_direct = isinstance(index, interfaces.IString) or isinstance(index, interfaces.INumber) and index.getActualValue() >= 0
-		is_lvalue = operation.hasAnnotation("lvalue") or self.hasAnnotationInContext("lvalue") >= 0
-		if is_lvalue or is_direct:
+		is_lvalue = isinstance(operation.parent, interfaces.IAssignment) and operation.parent.getTarget() is operation
+		if is_direct or is_lvalue:
 			return self._format(
 				"%s[%s]" % (self.write(target), self.write(index))
 			)
