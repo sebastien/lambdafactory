@@ -2171,7 +2171,14 @@ class Writer(AbstractWriter):
 		# value  = self.resolve(target)[1]
 		# if not value or not value.hasAnnotation("event"):
 		# 	self.environment.error("Event target cannot be resolved: {0}".format(self.write(target)))
-		return "__send__({2}, {0}, {1}, {2})".format(self.write(element.getTarget()),self.write(element.getArguments()) or "null", self._runtimeSelfReference(element))
+		args = element.getArguments()
+		if len(args) == 0:
+			args = "null"
+		elif len(args) == 1:
+			args = self.write(args[0])
+		else:
+			args = "[" + ", ".join(self.write(_) for _ in args) + "]"
+		return "__send__({2}, {0}, {1}, {2})".format(self.write(element.getTarget()),args, self._runtimeSelfReference(element))
 
 	def _runtimeEventBind( self, element ):
 		return "__bind__({2}, {0}, {1})".format(self.write(element.getLeftOperand()),self.write(element.getRightOperand()) or "null", self._runtimeSelfReference(element))
@@ -2187,7 +2194,7 @@ class Writer(AbstractWriter):
 		)
 
 	def _runtimeUnitTestPreamble( self, element ):
-		return "(function(){{var __test__=new ff.util.testing.Test('{0}');".format(self.getAbsoluteName(element))
+		return "(function(){{var __test__=new ff.util.testing.Unit('{0}');".format(self.getAbsoluteName(element))
 
 	def _runtimeUnitTestPostamble( self, element ):
 		return "__test__.end();}());"
