@@ -2194,7 +2194,7 @@ class Writer(AbstractWriter):
 		)
 
 	def _runtimeUnitTestPreamble( self, element ):
-		return "(function(){{var __test__=new ff.util.testing.Unit('{0}');".format(self.getAbsoluteName(element))
+		return "(function(){{var __test__=new ff.util.testing.Unit('{0}');".format(self.getAbsoluteName(element.parent))
 
 	def _runtimeUnitTestPostamble( self, element ):
 		return "__test__.end();}());"

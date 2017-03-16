@@ -213,11 +213,11 @@ class Writer(JavaScriptWriter):
 			yield "\t__init_properties__() {"
 			yield "\t\tlet self=this;"
 			parents = self.getClassParents(element)
-			classes = [_ for _ in parents if isinstance(_, interfaces.IClass)]
 			traits  = [_ for _ in parents if isinstance(_, interfaces.ITrait)]
+			classes = [_ for _ in parents if _ not in traits]
 			yield [self._onAttributes(element)]
-			if len(parents) > 0:
-				yield "\t\tsuper.__init_properties__();"
+			if len(classes) > 0:
+				yield "\t\tif(super.__init_properties__) {super.__init_properties__();}"
 			for t in traits:
 				yield "\t\t{0}.__init_properties__(self);".format(self.getSafeName(t))
 			yield "\t}"
@@ -303,12 +303,17 @@ class Writer(JavaScriptWriter):
 		if c and not call_super:
 			parents = self.getClassParents(c)
 			traits  = [_ for _ in parents if isinstance(_, interfaces.ITrait)]
+			classes = [_ for _ in parents if _ not in traits]
 			for t in traits:
 				traits_super.append("{0}.__init__(self);".format(self.getSafeName(t)))
-			if parents:
-				# We need to pass teh argumetns as-is
+			if len(classes) > 0:
+				# We need to pass the arguments as-is
 				init = ["super(...arguments);"] + traits_super + init
+			elif traits:
+				# In this case the default parent is Object
+				init = ["super();this.__init_properties__();"] + traits_super + init
 			else:
+				# No parent or trait
 				init = ["this.__init_properties__();"] + traits_super + init
 		else:
 			self.jsSelf = "this"
