@@ -19,6 +19,15 @@ import types
 __doc__ = """
 A specialization of the JavaScript writer to output runtime-free ECMAScript
 code.
+
+There are a few specific workarounds the limitations of ECMAScript's objec
+model:
+
+
+1) Constructors do not directly initialize attributes/properties, but
+   instead defer the initialization to the `__init_properties__` method
+   defined in classes. This ensures that proerties initialization can
+   be overriden by subclasses.
 """
 
 RUNTIME_OPS = {
@@ -104,9 +113,8 @@ class Writer(JavaScriptWriter):
 		self.pushContext (element)
 		yield "function(_) {"
 		yield "\tvar res = class extends " + self._onClassParents(element, self.getClassParents(element), base="_") + " {"
-		yield [self._onClassBody(element, withConstructors=False, withAccessors=False)]
+		yield [self._onClassBody(element, withConstructors=False, withAccessors=False, withProperties=False)]
 		yield "\t}"
-		yield "\tObject.defineProperty({0}, \"__name__\", {{value:\"{1}\",writable:false}});".format("res", element.getAbsoluteName())
 		# Now we take care of accessors. Somehow they don't seem to work
 		# when declared in get/set and then mixed in.
 		acc = {}
@@ -133,19 +141,28 @@ class Writer(JavaScriptWriter):
 
 		yield "\treturn res;"
 		yield "};"
-
-		yield "Object.defineProperty({0}, \"initialize\", {{writable:false,value:".format(self.getSafeName(element))
+		yield "Object.defineProperty({0}, \"__name__\", {{value:\"{1}\",writable:false}});".format(self.getSafeName(element), element.getAbsoluteName())
+		# Constructor
+		yield "Object.defineProperty({0}, \"__init__\", {{writable:false,value:".format(self.getSafeName(element))
 		# NOTE: Here we're moving the constructors to a static initialize
 		# function, as there's some issues having a constructor super in traits when the
 		# trait has no parent (ie. this is undefined).
 		yield "\tfunction(self){"
-		for a in element.getAttributes():
-			yield "\t\tif (typeof (self.{0}) == \"undefined\") {{self.{0} = {1};}}".format(a.getName(), self.write(a.getDefaultValue()))
 		for _ in self.getClassParents(element):
 			if isinstance(_, interfaces.ITrait):
-				yield "\t\t{0}.initialize(self);".format(self.getSafeName(_))
+				yield "\t\t{0}.__init__(self);".format(self.getSafeName(_))
 		for c in element.getConstructors():
 			yield [[self._onFunctionBody(c, bindSelf=False)]]
+		yield "\t}"
+
+		yield "});"
+		# Properties init
+		yield "Object.defineProperty({0}, \"__init_properties__\", {{writable:false,value:".format(self.getSafeName(element))
+		yield "\tfunction(self) {"
+		traits = [_ for _ in self.getClassParents(element) if isinstance(_, interfaces.ITrait)]
+		yield [[self._onAttributes(element)]]
+		for t in traits:
+			yield "\t\t{0}.__init_properties__(self);".format(self.getSafeName(t))
 		yield "\t}"
 		yield "});"
 		self.popContext()
@@ -183,7 +200,7 @@ class Writer(JavaScriptWriter):
 			parent = self.getSafeName(t) + "(" + (parent or "Object") + ")"
 		return parent
 
-	def _onClassBody( self, element, withConstructors=True, withAccessors=True ):
+	def _onClassBody( self, element, withConstructors=True, withAccessors=True, withProperties=True):
 		"""Iterates through the slots in a context, writing their name and value"""
 		slots = element.getSlots()
 		if withConstructors:
@@ -191,6 +208,19 @@ class Writer(JavaScriptWriter):
 				self.pushContext(e or interfaces.IConstructor)
 				yield self.onConstructor(e)
 				self.popContext()
+		# Init method
+		if withProperties:
+			yield "\t__init_properties__() {"
+			yield "\t\tlet self=this;"
+			parents = self.getClassParents(element)
+			classes = [_ for _ in parents if isinstance(_, interfaces.IClass)]
+			traits  = [_ for _ in parents if isinstance(_, interfaces.ITrait)]
+			yield [self._onAttributes(element)]
+			if len(parents) > 0:
+				yield "\t\tsuper.__init_properties__();"
+			for t in traits:
+				yield "\t\t{0}.__init_properties__(self);".format(self.getSafeName(t))
+			yield "\t}"
 		for e in element.getEvents():
 			yield "\tget {0} () {{return {1}; }}".format(e.getName(), self.write(e.getDefaultValue()))
 		for e in element.getClassMethods():
@@ -210,6 +240,25 @@ class Writer(JavaScriptWriter):
 			self.pushContext(e)
 			yield self.onMethod(e)
 			self.popContext()
+
+	def _onAttributes( self, element ):
+		# Initializes the attributes
+		c = element
+		if c:
+			attrs = []
+			# We merge in attributes from the current class and then the traits
+			# if they do not override
+			for p in [c]:
+				for a in p.getAttributes():
+					n = a.getName()
+					if n not in attrs:
+						attrs.append(n)
+						v = a.getDefaultValue()
+						if v:
+							yield (
+								"if (typeof {0}.{1} === typeof undefined) {{{0}.{1} = {2};}}".format(
+								"self", a.getName(), self.write(v))
+							)
 
 	# -------------------------------------------------------------------------
 	#
@@ -237,45 +286,33 @@ class Writer(JavaScriptWriter):
 		return self.onFunction( element, modifier="static" )
 
 	def onConstructor( self, element ):
-		call_super = None
-		init       = ["let self=this;"]
-		ops        = []
+		call_super   = None
+		init         = []
+		traits_super = ["let self=this;"]
+		ops          = []
+		# Constructor can be none in some cases
+		c          = element.parent if element else self.getCurrentClass()
 		if element:
 			for op in element.operations:
 				if self.isSuperInvocation(op):
 					call_super = op
 				else:
 					ops.append(op)
-		# Initializes teh attributes
-		c = self.getCurrentClass()
-		if c:
-			attrs  = []
-			# We merge in attributes from the current class and then the traits
-			# if they do not override
-			for p in [c]:
-				for a in p.getAttributes():
-					n = a.getName()
-					if n not in attrs:
-						attrs.append(n)
-						v = a.getDefaultValue()
-						if v:
-							init.append(
-								"if (typeof {0}.{1} === typeof undefined) {{{0}.{1} = {2};}}".format(
-								"self", a.getName(), self.write(v))
-							)
-			# Initializes the inherited traits
-			traits = [_ for _ in self.getClassParents(c) if isinstance(_, interfaces.ITrait)]
-			for t in traits:
-				init.append(self.getSafeName(t) + ".initialize(self);")
 		# We only use super if the clas has parents and ther is no explicit
 		# constructor
-		if not call_super:
-			if self.getClassParents(c):
+		if c and not call_super:
+			parents = self.getClassParents(c)
+			traits  = [_ for _ in parents if isinstance(_, interfaces.ITrait)]
+			for t in traits:
+				traits_super.append("{0}.__init__(self);".format(self.getSafeName(t)))
+			if parents:
 				# We need to pass teh argumetns as-is
-				init.insert(0,"super(...arguments);")
+				init = ["super(...arguments);"] + traits_super + init
+			else:
+				init = ["this.__init_properties__();"] + traits_super + init
 		else:
 			self.jsSelf = "this"
-			init.insert(0, self.write(call_super))
+			init = [self.write(call_super)] + traits_super + init
 			self.jsSelf = "self"
 		return self.onFunction( element, modifier="constructor", anonymous=True, body=init, bindSelf=False, operations=ops)
 
