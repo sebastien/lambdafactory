@@ -192,15 +192,15 @@ class Factory:
 		return self.invoke_args(evaluable, arguments)
 
 	def triggerEvent( self, scope, name, arguments ):
-		arguments = list(map(self._ensureArg,arguments))
+		arguments = list(map(self._ensureArg,arguments or []))
 		return self._getImplementation("EventTrigger")(scope, name, arguments)
 
 	def bindEvent( self, scope, name, arguments ):
-		arguments = list(map(self._ensureArg,arguments))
+		arguments = list(map(self._ensureArg,arguments or []))
 		return self._getImplementation("EventBind")(scope, name, arguments)
 
 	def unbindEvent( self, scope, name, arguments ):
-		arguments = list(map(self._ensureArg,arguments))
+		arguments = list(map(self._ensureArg,arguments or []))
 		return self._getImplementation("EventUnbind")(scope, name, arguments)
 
 	def invoke_args( self, evaluable, arguments ):
