@@ -1320,7 +1320,20 @@ class Invocation(Operation, IInvocation):
 		return True
 	
 
-class Trigger(Invocation, ITrigger):
+class EventOperation(Operation, IEventOperation):
+	def __init__ (self, t, event, arguments):
+		Operation.__init__(self)
+		self.setOpArguments([t, event, arguments])
+	
+	pass
+
+class EventTrigger(EventOperation, IEventTrigger):
+	pass
+
+class EventBind(EventOperation, IEventBind):
+	pass
+
+class EventUnbind(EventOperation, IEventUnbind):
 	pass
 
 class Instanciation(Operation, IInstanciation):

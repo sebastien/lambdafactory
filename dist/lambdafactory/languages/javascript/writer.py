@@ -1397,8 +1397,14 @@ class Writer(AbstractWriter):
 		else:
 			raise NotImplementedError
 
-	def onTrigger( self, element ):
-		yield self._runtimeEventTrigger(element)
+	def onEventTrigger( self, element ):
+		return self._runtimeEventTrigger(element)
+
+	def onEventBind( self, element ):
+		return self._runtimeEventBind(element)
+
+	def onEventUnbind( self, element ):
+		return self._runtimeEventUnbind(element)
 
 	def onArgument( self, element ):
 		r = self.write(element.getValue())
@@ -2167,24 +2173,30 @@ class Writer(AbstractWriter):
 		)
 
 	def _runtimeEventTrigger( self, element ):
-		# target = element.getTarget()
-		# value  = self.resolve(target)[1]
-		# if not value or not value.hasAnnotation("event"):
-		# 	self.environment.error("Event target cannot be resolved: {0}".format(self.write(target)))
-		args = element.getArguments()
+		target = self.write(element.getTarget()) or "undefined"
+		event  = self.write(element.getEvent()) or "undefined"
+		args   = element.getArguments()
 		if len(args) == 0:
 			args = "null"
 		elif len(args) == 1:
 			args = self.write(args[0])
 		else:
 			args = "[" + ", ".join(self.write(_) for _ in args) + "]"
-		return "__send__({2}, {0}, {1}, {2})".format(self.write(element.getTarget()),args, self._runtimeSelfReference(element))
+		return "__send__({0}, {1}, {2}, {0})".format(target, event, args, target)
 
 	def _runtimeEventBind( self, element ):
-		return "__bind__({2}, {0}, {1})".format(self.write(element.getLeftOperand()),self.write(element.getRightOperand()) or "null", self._runtimeSelfReference(element))
+		return "__bind__({0}, {1}, {2})".format(
+			self.write(element.getTarget()) or "undefined",
+			self.write(element.getEvent()) or "undefined",
+			self.write(element.getArguments()) or "undefined",
+		)
 
 	def _runtimeEventUnbind( self, element ):
-		return "__unbind__({2}, {0}, {1})".format(self.write(element.getLeftOperand()),self.write(element.getRightOperand()) or "null", self._runtimeSelfReference(element))
+		return "__unbind__({0}, {1}, {2})".format(
+			self.write(element.getTarget()) or "undefined",
+			self.write(element.getEvent()) or "undefined",
+			self.write(element.getArguments()) or "undefined",
+		)
 
 	def _runtimeMapFromItems( self, items ):
 		return "%s%screateMapFromItems(%s)" % (

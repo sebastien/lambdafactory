@@ -1073,7 +1073,28 @@ class IInvocation(IOperation, IEvaluable):
 		return self.getOpArgument(1)
 	
 
-class ITrigger(IInvocation):
+class IEventOperation(IOperation, IEvaluable):
+	ARGS = [IEvaluable, IEvaluable, [IEvaluable]]
+	def getTarget(self):
+		"""Returns the invocation target reference."""
+		return self.getOpArgument(0)
+	
+	def getEvent(self):
+		"""Returns evaluable arguments."""
+		return self.getOpArgument(1)
+	
+	def getArguments(self):
+		"""Returns evaluable arguments."""
+		return self.getOpArgument(2)
+	
+
+class IEventTrigger(IEventOperation):
+	pass
+
+class IEventBind(IEventOperation):
+	pass
+
+class IEventUnbind(IEventOperation):
 	pass
 
 class IInstanciation(IOperation, IEvaluable):
