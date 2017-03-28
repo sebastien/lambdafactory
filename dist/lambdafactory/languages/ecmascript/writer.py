@@ -78,10 +78,12 @@ class Writer(JavaScriptWriter):
 		safe_name = slotName or self.getSafeName(element)
 		abs_name  = element.getAbsoluteName()
 		name = "" if anonymous else ((element.getName() or "") + " ")
-		parent = self._onClassParents(element, self.getClassParents(element))
+		parents = self.getClassParents(element)
+		parent = self._onClassParents(element, parents)
 		yield "class " + name + ("extends " + parent if parent else "") + " {"
 		yield self._onClassBody(element)
 		yield "}"
+		yield "Object.defineProperty({0}, \"__parents__\", {{writable:false,value:[{1}]}});".format(safe_name, ",".join(self.getSafeName(_) for _ in parents))
 		yield "Object.defineProperty({0}, \"__name__\", {{value:\"{1}\",writable:false}});".format(safe_name, abs_name)
 		for _ in element.getClassAttributes():
 			yield "Object.defineProperty({0}, \"{1}\", {{value:{2},writable:true}});".format(
@@ -148,6 +150,7 @@ class Writer(JavaScriptWriter):
 		# function, as there's some issues having a constructor super in traits when the
 		# trait has no parent (ie. this is undefined).
 		yield "\tfunction(self){"
+		parents = self.getClassParents(element)
 		for _ in self.getClassParents(element):
 			if isinstance(_, interfaces.ITrait):
 				yield "\t\t{0}.__init__(self);".format(self.getSafeName(_))
@@ -157,7 +160,9 @@ class Writer(JavaScriptWriter):
 
 		yield "});"
 		# Properties init
-		yield "Object.defineProperty({0}, \"__init_properties__\", {{writable:false,value:".format(self.getSafeName(element))
+		safe_name = self.getSafeName(element)
+		yield "Object.defineProperty({0}, \"__parents__\", {{writable:false,value:[{1}]}});".format(safe_name, ",".join(self.getSafeName(_) for _ in parents))
+		yield "Object.defineProperty({0}, \"__init_properties__\", {{writable:false,value:".format(safe_name)
 		yield "\tfunction(self) {"
 		traits = [_ for _ in self.getClassParents(element) if isinstance(_, interfaces.ITrait)]
 		yield [[self._onAttributes(element)]]
