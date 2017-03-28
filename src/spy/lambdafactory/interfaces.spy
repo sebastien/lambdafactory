@@ -1112,7 +1112,33 @@
 
 @end
 
-@class ITrigger: IInvocation
+@class IEventOperation: IOperation, IEvaluable
+
+	@shared ARGS = [ IEvaluable, IEvaluable, [IEvaluable] ]
+
+	@method getTarget
+	|	Returns the invocation target reference.
+		return getOpArgument(0)
+	@end
+
+	@method getEvent
+	|	Returns evaluable arguments.
+		return getOpArgument(1)
+	@end
+
+	@method getArguments
+	|	Returns evaluable arguments.
+		return getOpArgument(2)
+	@end
+@end
+
+@class IEventTrigger: IEventOperation
+@end
+
+@class IEventBind: IEventOperation
+@end
+
+@class IEventUnbind: IEventOperation
 @end
 
 @class IInstanciation: IOperation, IEvaluable

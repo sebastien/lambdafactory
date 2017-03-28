@@ -99,7 +99,9 @@
 		interfaces IAllocation
 		interfaces IAssignment
 		interfaces IComputation
-		interfaces ITrigger
+		interfaces IEventTrigger
+		interfaces IEventBind
+		interfaces IEventUnbind
 		interfaces IInvocation
 		interfaces IInstanciation
 		interfaces IDecomposition

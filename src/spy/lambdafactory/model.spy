@@ -1839,7 +1839,24 @@
 
 @end
 
-@class Trigger: Invocation, ITrigger
+@class EventOperation: Operation, IEventOperation
+
+	@constructor t, event, arguments
+		Operation __init__ (self)
+		setOpArguments ([t, event, arguments])
+	@end
+@end
+
+@class EventTrigger: EventOperation, IEventTrigger
+
+@end
+
+@class EventBind: EventOperation, IEventBind
+
+@end
+
+@class EventUnbind: EventOperation, IEventUnbind
+
 @end
 
 @class Instanciation: Operation, IInstanciation
