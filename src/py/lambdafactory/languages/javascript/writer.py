@@ -2197,17 +2197,17 @@ class Writer(AbstractWriter):
 		# FIXME: We should probably resolve the name, or try at least..
 		rvalue = t.getName()
 		# TODO: We should resolve the type in the namespace
-		if not t.parameters or len(t.parameters) == 0:
+		if (not t.parameters) or len(t.parameters) == 0:
 			if rvalue == "String":
 				rvalue = "'string'"
 			elif rvalue == "Boolean":
 				rvalue = "'boolean'"
 			elif rvalue == "Number":
-				rvalue == "'number'"
+				rvalue = "'number'"
 			elif rvalue == "Undefined":
-				rvalue == "'undefined'"
+				rvalue = "'undefined'"
 			elif rvalue == "None":
-				rvalue == "'null'"
+				rvalue = "'null'"
 			else:
 				slot, value = self.resolve(t.getReferenceName())
 				if value:
