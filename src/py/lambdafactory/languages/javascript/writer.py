@@ -1741,28 +1741,8 @@ class Writer(AbstractWriter):
 
 
 	def onTypeIdentification( self, element ):
-		lvalue = self.write(element.getTarget())
-		t      = element.getType()
-		# FIXME: We should probably resolve the name, or try at least..
-		rvalue = t.getName()
-		operation = "instanceof"
-		# TODO: We should resolve the type in the namespace
-		if not t.parameters or len(t.parameters) == 0:
-			if rvalue == "String":
-				return "(typeof {0} === 'string')".format(lvalue)
-			elif rvalue == "Number":
-				return "(typeof {0} === 'number')".format(lvalue)
-			elif rvalue == "Undefined":
-				return "(typeof {0} === 'undefined')".format(lvalue)
-			elif rvalue == "None":
-				return "({0} === null)".format(lvalue)
-			else:
-				slot, value = self.resolve(t.getReferenceName())
-				if value:
-					rvalue = self.getSafeName(value)
-					if isinstance(value, interfaces.ISymbolType):
-						operation = "==="
-		return ("({0} {2} {1})".format(lvalue, rvalue, operation))
+
+		return self._runtimeTypeIdentify(element)
 
 	def onEvaluation( self, operation ):
 		"""Writes an evaluation operation."""
@@ -2210,6 +2190,29 @@ class Writer(AbstractWriter):
 
 	def _runtimeUnitTestPostamble( self, element ):
 		return "__test__.end();}());"
+
+	def _runtimeTypeIdentify( self, element ):
+		lvalue = self.write(element.getTarget())
+		t      = element.getType()
+		# FIXME: We should probably resolve the name, or try at least..
+		rvalue = t.getName()
+		# TODO: We should resolve the type in the namespace
+		if not t.parameters or len(t.parameters) == 0:
+			if rvalue == "String":
+				rvalue = "'string'"
+			elif rvalue == "Boolean":
+				rvalue = "'boolean'"
+			elif rvalue == "Number":
+				rvalue == "'number'"
+			elif rvalue == "Undefined":
+				rvalue == "'undefined'"
+			elif rvalue == "None":
+				rvalue == "'null'"
+			else:
+				slot, value = self.resolve(t.getReferenceName())
+				if value:
+					rvalue = self.getSafeName(value)
+		return "__isa__({0}, {1})".format(lvalue, rvalue)
 
 	def _ensureSemicolon( self, block ):
 		if isinstance(block, tuple) or isinstance(block, list):
