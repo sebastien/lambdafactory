@@ -86,10 +86,12 @@ class Writer(JavaScriptWriter):
 		yield "Object.defineProperty({0}, \"__parents__\", {{writable:false,value:[{1}]}});".format(safe_name, ",".join(self.getSafeName(_) for _ in parents))
 		yield "Object.defineProperty({0}, \"__name__\", {{value:\"{1}\",writable:false}});".format(safe_name, abs_name)
 		for _ in element.getClassAttributes():
+			self.pushContext(_)
 			yield "Object.defineProperty({0}, \"{1}\", {{value:{2},writable:true}});".format(
 				safe_name,
 				_.getName(),
 				self.write(_.getDefaultValue()) or "undefined")
+			self.popContext()
 		self.popContext ()
 
 	def onType( self, element, anonymous=False ):
