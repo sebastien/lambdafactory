@@ -575,13 +575,13 @@ class IAttribute(ISlot):
 		raise Exception("Abstract method IAttribute.getDefaultValue not implemented in: " + str(self))
 	
 
-class IEvent(IAttribute):
-	pass
-
 class IModuleAttribute(IAttribute):
 	pass
 
 class IClassAttribute(IAttribute):
+	pass
+
+class IEvent(IClassAttribute):
 	pass
 
 class IContext(IElement, IDataFlowOwner):

@@ -565,13 +565,14 @@
 	|	Gets the @methodault value for this attribute
 @end
 
-@protocol IEvent: IAttribute
-@end
 
 @protocol IModuleAttribute: IAttribute
 @end
 
 @protocol IClassAttribute: IAttribute
+@end
+
+@protocol IEvent: IClassAttribute
 @end
 
 #------------------------------------------------------------------------------

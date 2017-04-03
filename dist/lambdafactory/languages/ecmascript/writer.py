@@ -226,8 +226,10 @@ class Writer(JavaScriptWriter):
 			for t in traits:
 				yield "\t\t{0}.__init_properties__(self);".format(self.getSafeName(t))
 			yield "\t}"
-		for e in element.getEvents():
-			yield "\tget {0} () {{return {1}; }}".format(e.getName(), self.write(e.getDefaultValue()))
+		# NOTE: Not sure why events were defined as `get` -- there's no point in
+		# that, they're immutable.
+		# for e in element.getEvents():
+		# 	yield "\tget {0} () {{return {1}; }}".format(e.getName(), self.write(e.getDefaultValue()))
 		for e in element.getClassMethods():
 			self.pushContext(e)
 			yield self.onClassMethod(e)

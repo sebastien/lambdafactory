@@ -2204,6 +2204,8 @@ class Writer(AbstractWriter):
 				rvalue = "'boolean'"
 			elif rvalue == "Number":
 				rvalue = "'number'"
+			elif rvalue == "Object":
+				rvalue = "'object'"
 			elif rvalue == "Undefined":
 				rvalue = "'undefined'"
 			elif rvalue == "None":

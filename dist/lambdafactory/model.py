@@ -1850,10 +1850,10 @@ class Attribute(Slot, IAttribute):
 	
 	pass
 
-class Event(Attribute, IEvent):
+class ClassAttribute(Attribute, IClassAttribute):
 	pass
 
-class ClassAttribute(Attribute, IClassAttribute):
+class Event(ClassAttribute, IEvent):
 	pass
 
 class ModuleAttribute(Attribute, IModuleAttribute):

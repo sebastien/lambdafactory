@@ -2550,10 +2550,11 @@
 
 @end
 
-@class Event: Attribute, IEvent
-@end
 
 @class ClassAttribute: Attribute, IClassAttribute
+@end
+
+@class Event: ClassAttribute, IEvent
 @end
 
 @class ModuleAttribute: Attribute, IModuleAttribute
