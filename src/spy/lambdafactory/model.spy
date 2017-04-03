@@ -2261,6 +2261,9 @@
 
 	@method addValue value:IElement, name:String=None
 		super addValue (value)
+		if value
+			value setParent (self)
+		end
 		names append (name)
 		return self
 	@end
@@ -2286,6 +2289,12 @@
 
 	@method setValue key:IElement, value:IElement
 		items append([key,value])
+		if key
+			key   setParent (self)
+		end
+		if value
+			value setParent (self)
+		end
 	@end
 
 	@method getItems
@@ -2411,6 +2420,9 @@
 	@constructor name, typeDescription
 		Element __init__ ( self, name )
 		self typeDescription = typeDescription
+		if typeDescription
+			typeDescription setParent (self)
+		end
 	@end
 
 	@method getTypeDescription
@@ -2419,13 +2431,14 @@
 
 	@method setDefaultValue value
 		defaultValue = value
+		if value
+			value setParent (self)
+		end
 	@end
 
 	@method getDefaultValue
 		return defaultValue
 	@end
-
-
 
 @end
 
@@ -2460,6 +2473,9 @@
 
 	@method setRest value
 		rest = value and value
+		if rest
+			reset setParent (self)
+		end
 	@end
 
 	@method isKeywordsRest
@@ -2468,6 +2484,9 @@
 
 	@method setKeywordsRest value
 		rest = value and value
+		if rest
+			reset setParent (self)
+		end
 	@end
 
 @end
@@ -2482,7 +2501,7 @@
 	@constructor name=None, value=None
 		Element __init__ ( self, name )
 		self name  = name
-		self value = value
+		setValue (value)
 	@end
 
 	@method isByName
@@ -2508,6 +2527,10 @@
 
 	@method setValue v
 		value = v
+		if value
+			value setParent (self)
+		end
+		return self
 	@end
 
 	@method isAsList
@@ -2533,7 +2556,7 @@
 		var ref_copy     = Element _copy ( self )
 		ref_copy name    = name
 		# FIXME: Should we copy the value as well ?
-		ref_copy value   = value
+		ref_copy setValue (value)
 		ref_copy _asList = _asList
 		ref_copy _asMap  = _asMap
 		return ref_copy

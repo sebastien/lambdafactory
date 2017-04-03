@@ -1143,7 +1143,7 @@ class Writer(AbstractWriter):
 				if self.isIn(interfaces.IClassMethod):
 					return "%s.%s" % (self._runtimeSelfReference(value), symbol_name)
 				else:
-					return self._runtimeGetCurrentClass() + "." + symbol_name
+					return self._runtimeGetCurrentClass(element) + "." + symbol_name
 			else:
 				return self._runtimeSelfReference(value) + "." + symbol_name
 		# It is a local variable
@@ -2045,12 +2045,15 @@ class Writer(AbstractWriter):
 
 	def _runtimeWrapMethodByName(self, name, value=None, element=None):
 		if isinstance(value, interfaces.IClassMethod):
-			return self._runtimeGetCurrentClass() + ".getOperation('%s')" % (name)
+			return self._runtimeGetCurrentClass(element) + ".getOperation('%s')" % (name)
 		else:
 			return self._runtimeSelfReference(value) + ".getMethod(" + name + ")"
 
-	def _runtimeGetCurrentClass(self, variable=None):
-		return "Object.getPrototypeOf(" + (variable or self.jsSelf) + ").constructor"
+	def _runtimeGetCurrentClass(self, element=None ):
+		if self.indexLikeInContext(interfaces.IClassAttribute) >= 0:
+			return self.getSafeName(self.findInContext(interfaces.IClass))
+		else:
+			return "Object.getPrototypeOf(" + (self.jsSelf) + ").constructor"
 
 	def _runtimeOp( self, name, *args ):
 		args = [self.write(_) if isinstance(_,interfaces.IElement) else _ for _ in args]

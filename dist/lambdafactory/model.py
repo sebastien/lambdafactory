@@ -1639,6 +1639,8 @@ class Tuple(List, ITuple):
 	def addValue(self, value, name=None):
 		if name is None: name = None
 		(lambda *a,**kw:List.addValue(self,*a,**kw))(value)
+		if value:
+			value.setParent(self)
 		self.names.append(name)
 		return self
 	
@@ -1657,6 +1659,10 @@ class Dict(Value, IDict):
 	
 	def setValue(self, key, value):
 		self.items.append([key, value])
+		if key:
+			key.setParent(self)
+		if value:
+			value.setParent(self)
 	
 	def getItems(self):
 		return self.items
@@ -1745,12 +1751,16 @@ class Slot(Element, ISlot):
 		self.typeDescription = None
 		Element.__init__(self, name)
 		self.typeDescription = typeDescription
+		if typeDescription:
+			typeDescription.setParent(self)
 	
 	def getTypeDescription(self):
 		return self.typeDescription
 	
 	def setDefaultValue(self, value):
 		self.defaultValue = value
+		if value:
+			value.setParent(self)
 	
 	def getDefaultValue(self):
 		return self.defaultValue
@@ -1778,12 +1788,16 @@ class Parameter(Slot, IParameter):
 	
 	def setRest(self, value):
 		self.rest = (value and value)
+		if self.rest:
+			reset.setParent(self)
 	
 	def isKeywordsRest(self):
 		return self.rest
 	
 	def setKeywordsRest(self, value):
 		self.rest = (value and value)
+		if self.rest:
+			reset.setParent(self)
 	
 
 class Argument(Element, IArgument):
@@ -1796,7 +1810,7 @@ class Argument(Element, IArgument):
 		if value is None: value = None
 		Element.__init__(self, name)
 		self.name = name
-		self.value = value
+		self.setValue(value)
 	
 	def isByName(self):
 		return (self.name != None)
@@ -1816,6 +1830,9 @@ class Argument(Element, IArgument):
 	
 	def setValue(self, v):
 		self.value = v
+		if self.value:
+			self.value.setParent(self)
+		return self
 	
 	def isAsList(self):
 		return self._asList
@@ -1836,7 +1853,7 @@ class Argument(Element, IArgument):
 	def copy(self):
 		ref_copy=Element._copy(self)
 		ref_copy.name = self.name
-		ref_copy.value = self.value
+		ref_copy.setValue(self.value)
 		ref_copy._asList = self._asList
 		ref_copy._asMap = self._asMap
 		return ref_copy
