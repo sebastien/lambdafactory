@@ -163,7 +163,7 @@ class Writer(AbstractWriter):
 			isinstance(target,              interfaces.IResolution) and
 			isinstance(target.getContext(), interfaces.IReference)  and
 			target.getContext().getReferenceName() == "super"
-		)
+		) or (isinstance(target, interfaces.IReference) and target.getReferenceName() == "super")
 
 	def _rewriteSymbol( self, string ):
 		"""Rewrites the given symbol so that it can be expressed in the target language."""

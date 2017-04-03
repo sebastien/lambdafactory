@@ -333,6 +333,19 @@ class Writer(JavaScriptWriter):
 	def onInitializer( self, element ):
 		return self.onFunction( element,  anonymous=True )
 
+	def onInvocation( self, element ):
+		res = JavaScriptWriter.onInvocation(self, element)
+		# In the edge case where super is invoked in class without parent class
+		# but traits, we need to explicitely init the properties.
+		# NOTE: This does not fix extending a foreign class.
+		if isinstance(element.getTarget(), interfaces.IReference) and element.getTarget().getReferenceName() == "super":
+			current = self.getCurrentClass()
+			parents = [_ for _ in self.getClassParents(current) if not isinstance(_, interfaces.ITrait)]
+			if not parents:
+				res += "this.__init_properties__(this);"
+		return res
+
+
 	# =========================================================================
 	# CALLBABLE-SPECIFIC RULES
 	# =========================================================================
