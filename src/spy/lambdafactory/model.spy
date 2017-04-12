@@ -1374,7 +1374,7 @@
 		for existing_module in modules
 			if module  == existing_module
 				return True
-			if module getAbsoluteName () == existing_module getAbsoluteName ()
+			elif module getAbsoluteName () == existing_module getAbsoluteName ()
 				return True
 			end
 		end
@@ -1676,7 +1676,7 @@
 					r append (e copy () detach ())
 				end
 				op_copy addOpArgument (r)
-			if isinstance(a, IElement)
+			elif isinstance(a, IElement)
 				op_copy addOpArgument (a copy() detach())
 			else
 				op_copy addOpArgument (a)
