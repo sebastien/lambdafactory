@@ -225,7 +225,7 @@
 			if options api == "-"
 				output write ( json_documentation )
 			else
-				var f = file(options api, mode = "w")
+				var f = open(options api, "w")
 				f write (json_documentation)
 				f close ()
 			end
@@ -234,12 +234,13 @@
 			if not options output
 				output write (ensureOutput(program_source))
 				output write ("\n" )
-			if os path isdir (options output)
+			elif os path isdir (options output)
 				var splitter = FileSplitter(options output)
 				splitter fromString (program_source)
 			else
-				var f = file(options output, mode = "a")
+				var f = open(options output, "a")
 				f write (ensureOutput (program_source))
+				f close ()
 			end
 		elif options run
 			var program_source = writeProgram (program, language, True, options includeSource)
@@ -346,7 +347,7 @@
 					var pass_class = None
 					if hasattr(passes, the_pass)
 						var pass_class = getattr(passes, the_pass)
-					if hasattr(resolution, the_pass)
+					elif hasattr(resolution, the_pass)
 						var pass_class = getattr(resolution, the_pass)
 					else
 						environment report error ("LambdaFactory standard pass not found:", the_pass)

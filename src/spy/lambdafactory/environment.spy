@@ -312,13 +312,21 @@
 		end
 	@end
 
-	@method addImporter importer
-		# TODO: Support for multiple importers
-		# self importer = importer
-	@end
+	# @method addImporter importer
+	# 	# TODO: Support for multiple importers
+	# 	# self importer = importer
+	# 	pass
+	# @end
+	# @method addPass programPass
+	# 	passes append (programPass)
+	# 	programPass setEnvironment (self)
+	# @end
+
 
 	@method addPass programPass
-		passes append (programPass)
+		@embed Python
+		|self.passes.append(programPass)
+		@end
 		programPass setEnvironment (self)
 	@end
 
@@ -431,7 +439,6 @@
 	@end
 
 	@method loadLanguage name
-	@as internal
 	| Loads the given language plug-in and returns a dictionary containing
 	| its features.
 		if name == "none" or (not name)

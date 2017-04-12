@@ -157,21 +157,18 @@
 		@end
 
 		@method filterContext interface
-		@as internal
 			@embed Python
 			|return [_ for _ in self.context if _ and (isinstance(_,interface) or _ is interface)]
 			@end
 		@end
 
 		@method filter list, interface
-		@as internal
 			@embed Python
 			|return [_ for _ in list if isinstance(_,interface)]
 			@end
 		@end
 
 		@method findInContext interface
-		@as internal
 			# FIXME: Should be findLikeInContext...
 			var res = filterContext(interface)
 			if res
@@ -228,7 +225,6 @@
 		@end
 
 		@method getParentElement
-		@as alias
 			return context[-2]
 		@end
 
@@ -237,12 +233,10 @@
 		@end
 
 		@method getCurrentElement
-		@as alias
 			return context[-1]
 		@end
 
 		@method getProgram
-		@as alias
 			return program
 		@end
 
@@ -255,7 +249,6 @@
 		@end
 
 		@method getFactory
-		@as alias
 			return environment getFactory()
 		@end
 
@@ -497,7 +490,7 @@
 		| 'lambdafactory.resolution.BasicDataFlow' pass).
 			if contextOrDataFlow is None
 				contextOrDataFlow = getCurrentDataFlow()
-			if isinstance( contextOrDataFlow, interfaces IElement )
+			elif isinstance( contextOrDataFlow, interfaces IElement )
 				contextOrDataFlow = contextOrDataFlow getDataFlow()
 			end
 			if isinstance(referenceOrName, interfaces IReference)

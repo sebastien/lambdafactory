@@ -286,7 +286,6 @@
 	| evaluable
 
 	@abstract @method setResultAbstractType abstractType
-	@as internal
 	| Sets the abstract type for this operation result. This is usually
 	| invoked in the typing phase.
 @end

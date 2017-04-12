@@ -49,7 +49,6 @@
 	@end
 
 	@method _getPythonFunctionArguments function
-	@as Utility
 		if hasattr(function, "im_func")
 			function = function im_func
 		end
@@ -110,11 +109,11 @@
 		# REWRITE: Match
 		if value_type == types ClassType
 			return importClass(value)
-		if value_type == types UnboundMethodType
+		elif value_type == types UnboundMethodType
 			return importInstanceMethod(value)
-		if value_type == types ListType
+		elif value_type == types ListType
 			return importList(value)
-		if value_type == types DictType
+		elif value_type == types DictType
 			return importDict(value)
 		else
 			# FIXME: Should issue a warning

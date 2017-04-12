@@ -544,7 +544,7 @@ class Writer(AbstractWriter):
 
 	def _writeDictKey( self, key ):
 		if isinstance(key, interfaces.IString):
-			return self.write(key)
+			return self.write(repr(key.getActualValue().encode("utf8")))
 		else:
 			# FIXME: Raise an error, because JavaScript only allow strings as keys
 			return "(%s)" % (self.write(key))

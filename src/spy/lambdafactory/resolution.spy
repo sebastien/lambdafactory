@@ -84,7 +84,6 @@
 	@end
 
 	@method ensureDataFlow element
-	@as internal
 	| Ensures that the given element has an attached DataFlow
 		var dataflow = element getDataFlow()
 		if not dataflow
@@ -406,7 +405,6 @@
 	@end
 
 	@method clearDataFlow element
-	@as internal
 	| Ensures that the given element has an attached DataFlow
 		element setDataFlow (None)
 	@end

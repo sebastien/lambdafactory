@@ -220,7 +220,6 @@
 	@end
 
 	@method addDestination dataflow
-	@as internal
 		if not (dataflow in destinations)
 			destinations append (dataflow)
 			dataflow addSource( self )
@@ -2227,7 +2226,9 @@
 
 	@method addValue value:IElement
 		values append (value)
-		value setParent(self)
+		if isinstance (value, IElement)
+			value setParent(self)
+		end
 		return self
 	@end
 
@@ -2261,7 +2262,7 @@
 
 	@method addValue value:IElement, name:String=None
 		super addValue (value)
-		if value
+		if value and isinstance (value, IElement)
 			value setParent (self)
 		end
 		names append (name)
@@ -2292,7 +2293,7 @@
 		if key
 			key   setParent (self)
 		end
-		if value
+		if value and isinstance(value, IElement)
 			value setParent (self)
 		end
 	@end
@@ -2420,7 +2421,7 @@
 	@constructor name, typeDescription
 		Element __init__ ( self, name )
 		self typeDescription = typeDescription
-		if typeDescription
+		if typeDescription and isinstance(typeDescription, IElement)
 			typeDescription setParent (self)
 		end
 	@end
@@ -2431,7 +2432,7 @@
 
 	@method setDefaultValue value
 		defaultValue = value
-		if value
+		if value and isinstance(value, IElement)
 			value setParent (self)
 		end
 	@end
@@ -2527,7 +2528,7 @@
 
 	@method setValue v
 		value = v
-		if value
+		if value and isinstance(value, IElement)
 			value setParent (self)
 		end
 		return self
