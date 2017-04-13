@@ -543,7 +543,7 @@
 				if match_index == 0 and referenceOrName startswith (mname) and referenceOrName[mname_len] == "."
 					if not matching_module
 						matching_module = module
-					if len(module getName()) > len(matching_module getName())
+					elif len(module getName()) > len(matching_module getName())
 						matching_module = module
 					end
 				end

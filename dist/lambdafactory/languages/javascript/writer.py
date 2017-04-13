@@ -1384,7 +1384,9 @@ class Writer(AbstractWriter):
 	def onInvocation( self, invocation ):
 		"""Writes an invocation operation."""
 		parent            = self.context[-2]
-		suffix            = ";" if isinstance(parent, interfaces.IBlock) or isinstance(parent, interfaces.IProcess) else ""
+		# NOTE: We don't have a ';' suffix in parameters
+		# suffix            = ";" if (not isinstance(invocation.parent, interfaces.IParameter)) and (isinstance(parent, interfaces.IBlock) or isinstance(parent, interfaces.IProcess)) else ""
+		suffix = ""
 		# FIXME: Special handling of assert
 		if False and "extend.assert":
 			return self._runtimeAssert(invocation) + suffix

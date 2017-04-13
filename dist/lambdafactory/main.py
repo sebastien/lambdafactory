@@ -172,7 +172,7 @@ class Command:
 			if (options.api == '-'):
 				output.write(json_documentation)
 			elif True:
-				f=file(options.api, mode=('w'))
+				f=open(options.api, 'w')
 				f.write(json_documentation)
 				f.close()
 		elif options.compile:
@@ -184,8 +184,9 @@ class Command:
 				splitter=FileSplitter(options.output)
 				splitter.fromString(program_source)
 			elif True:
-				f=file(options.output, mode=('a'))
+				f=open(options.output, 'a')
 				f.write(ensureOutput(program_source))
+				f.close()
 		elif options.run:
 			program_source=self.writeProgram(program, language, True, options.includeSource)
 			file_and_path=tempfile.mkstemp()

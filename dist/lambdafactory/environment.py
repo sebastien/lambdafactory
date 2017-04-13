@@ -231,11 +231,9 @@ class Environment:
 		for ext in extensions:
 			self.parsers[ext.lower()] = parser
 	
-	def addImporter(self, importer):
-		pass
-	
 	def addPass(self, programPass):
 		self.passes.append(programPass)
+		
 		programPass.setEnvironment(self)
 	
 	def getPass(self, name):

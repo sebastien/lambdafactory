@@ -544,7 +544,7 @@ class Writer(AbstractWriter):
 
 	def _writeDictKey( self, key ):
 		if isinstance(key, interfaces.IString):
-			return self.write(key)
+			return self.write("'" + (key.getActualValue()) + "'")
 		else:
 			# FIXME: Raise an error, because JavaScript only allow strings as keys
 			return "(%s)" % (self.write(key))
