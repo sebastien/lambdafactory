@@ -382,7 +382,6 @@ class Element:
 		self.name = name
 	
 	def getName(self):
-		assert((isinstance(self, IReferencable) or isinstance(self, IAnnotation)))
 		return self.name
 	
 	def getAbsoluteName(self):
