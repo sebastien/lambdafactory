@@ -401,7 +401,7 @@
 					# IF we have a reference
 					#self environment report error ("Cannot resolve reference to class", parent getReferenceName () )
 					pass
-				if not (parent in ancestors)
+				elif not (parent in ancestors)
 					for ancestor in getClassAncestors(parent)
 						if not (ancestor in ancestors)
 							ancestors append(ancestor)

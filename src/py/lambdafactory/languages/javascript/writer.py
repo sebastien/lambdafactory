@@ -198,6 +198,7 @@ class Writer(AbstractWriter):
 	def getAbsoluteName( self, element, asList=False ):
 		"""Returns the absolute name for the given element. This is the '.'
 		concatenation of the individual names of the parents."""
+		if not element or not element.getName(): return None
 		names = element.getName().split(".")
 		if len(names) > 1: return names if asList else ".".join(names)
 		# TODO: We should have a special handling for the current module
@@ -216,7 +217,9 @@ class Writer(AbstractWriter):
 				# TODO: Should be able to detect a reference to the current module
 				names = element.getName().split(".") + names
 			elif not isinstance(element, interfaces.IProgram):
-				names.insert(0, element.getName())
+				n = element.getName()
+				if n:
+					names.insert(0, n)
 		return names if asList else ".".join(names)
 
 	def getSafeName( self, element ):
@@ -773,7 +776,7 @@ class Writer(AbstractWriter):
 			self._writeClosureArguments(methodElement),
 			self.writeFunctionWhen(methodElement),
 			self.writeFunctionPre(methodElement),
-			list(map(self.write, methodElement.getOperations())),
+			list(map(self._writeStatement, methodElement.getOperations())),
 			(
 				(not self.options["ENABLE_METADATA"] and "}") or \
 				"}, %s)" % ( self._writeFunctionMeta(methodElement))
@@ -820,7 +823,7 @@ class Writer(AbstractWriter):
 			["var %s = this;" % (self._runtimeSelfReference(methodElement))], #, self.getAbsoluteName(methodElement.getParent()))],
 			self._writeClosureArguments(methodElement),
 			self.writeFunctionWhen(methodElement),
-			list(map(self.write, methodElement.getOperations())),
+			list(map(self._writeStatement, methodElement.getOperations())),
 			(
 				(not self.options["ENABLE_METADATA"] and "}") or \
 				"},%s)" % ( self._writeFunctionMeta(methodElement))
@@ -878,7 +881,7 @@ class Writer(AbstractWriter):
 			["var %s = this;" % (self._runtimeSelfReference(element))],
 			self._writeClosureArguments(element),
 			attributes or None,
-			list(map(self.write, element.getOperations())),
+			list(map(self._writeStatement, element.getOperations())),
 			(
 				(not self.options["ENABLE_METADATA"] and "}") or \
 				"}, %s)" % ( self._writeFunctionMeta(element))
@@ -922,7 +925,7 @@ class Writer(AbstractWriter):
 				['var %s = %s;' % (self._runtimeSelfReference(function), self.getResolvedName(function.parent))],
 				self._writeClosureArguments(function),
 				self.writeFunctionWhen(function),
-				list(map(self.write, function.getOperations())),
+				list(map(self._writeStatement, function.getOperations())),
 				(
 					(not self.options["ENABLE_METADATA"] and "}") or \
 					"}, %s)" % ( self._writeFunctionMeta(function))
@@ -938,7 +941,7 @@ class Writer(AbstractWriter):
 				),
 				self._writeClosureArguments(function),
 				self.writeFunctionWhen(function),
-				list(map(self.write, function.getOperations())),
+				list(map(self._writeStatement, function.getOperations())),
 				(
 					(not self.options["ENABLE_METADATA"] and "}") or \
 					"}, %s)" % ( self._writeFunctionMeta(closure))
@@ -993,7 +996,7 @@ class Writer(AbstractWriter):
 				) % ( ", ".join(map(self.write, closure.getArguments()))),
 				self._writeClosureArguments(closure),
 				implicits,
-				list(map(self.write, operations)),
+				list(map(self._writeStatement, operations)),
 				(
 					(not self.options["ENABLE_METADATA"] and "}") or \
 					"}, %s)" % ( self._writeFunctionMeta(closure))
@@ -1033,7 +1036,7 @@ class Writer(AbstractWriter):
 		return result
 
 	def onClosureBody(self, closure):
-		return self._format('{', list(map(self.write, closure.getOperations())), '}')
+		return self._format('{', list(map(self._writeStatement, closure.getOperations())), '}')
 
 	# FIXME: Deprecate
 	def _writeClosureArguments(self, closure):
@@ -1066,7 +1069,7 @@ class Writer(AbstractWriter):
 	def onBlock( self, block ):
 		"""Writes a block element."""
 		# FIXME: Use yield?
-		return self._format(list(map(self.write, block.getOperations())))
+		return self._format(list(map(self._writeStatement, block.getOperations())))
 
 	def onParameter( self, param ):
 		"""Writes a parameter element."""
@@ -1270,20 +1273,18 @@ class Writer(AbstractWriter):
 		s = allocation.getSlotToAllocate()
 		v = allocation.getDefaultValue()
 		if v:
-			return "var %s = %s;" % (self._rewriteSymbol(s.getName()), self._format(self.write(v)))
+			return "var %s = %s" % (self._rewriteSymbol(s.getName()), self._format(self.write(v)))
 		else:
-			return "var %s;" % (self._rewriteSymbol(s.getName()))
+			return "var %s" % (self._rewriteSymbol(s.getName()))
 
 	def onAssignment( self, assignation ):
 		"""Writes an assignation operation."""
 		# TODO: If assignment target is an  access, we should rewrite it with
 		# explicit length
 		parent = self.context[-2]
-		suffix = ";" if isinstance(parent, interfaces.IBlock) or isinstance(parent, interfaces.IProcess) else ""
-		return "%s = %s%s" % (
+		return "%s = %s" % (
 			self.write(assignation.getTarget()),
-			self.write(assignation.getAssignedValue()),
-			suffix
+			self.write(assignation.getAssignedValue())
 		)
 
 	def onInterpolation( self, operation ):
@@ -1342,7 +1343,8 @@ class Writer(AbstractWriter):
 		elif isinstance(resolution, interfaces.IDecomposition):
 			return self._runtimeDecompose(context, reference)
 		else:
-			return self.write(context) + "." + self._rewriteSymbol(reference.getReferenceName())
+			# NOTE: We don't need to rewrite symbols in decompositions
+			return self.write(context) + "." + reference.getReferenceName()
 
 	def onComputation( self, computation ):
 		"""Writes a computation operation."""
@@ -1384,17 +1386,20 @@ class Writer(AbstractWriter):
 	def onInvocation( self, invocation ):
 		"""Writes an invocation operation."""
 		parent            = self.context[-2]
-		# NOTE: We don't have a ';' suffix in parameters
-		# suffix            = ";" if (not isinstance(invocation.parent, interfaces.IParameter)) and (isinstance(parent, interfaces.IBlock) or isinstance(parent, interfaces.IProcess)) else ""
-		suffix = ""
 		# FIXME: Special handling of assert
-		if False and "extend.assert":
-			return self._runtimeAssert(invocation) + suffix
+		target = invocation.getTarget()
+		target_name = None
+		if isinstance(target, interfaces.IReference):
+			s, e = self.resolve(target)
+			target_name = self.getAbsoluteName(e) if e else target.getReferenceName()
+		# FIXME: This should be defined as options
+		if target_name in ("extend.assert", "__assert__", "ff.errors.assert"):
+			return self._runtimeAssert(invocation)
 		elif invocation.isByPositionOnly():
 			if self._isSuperInvocation(invocation):
-				return self._runtimeSuperInvocation(invocation) + suffix
+				return self._runtimeSuperInvocation(invocation)
 			else:
-				return self._runtimeInvocation(invocation) + suffix
+				return self._runtimeInvocation(invocation)
 
 		else:
 			raise NotImplementedError
@@ -1467,7 +1472,10 @@ class Writer(AbstractWriter):
 				assert isinstance(rule, interfaces.IMatchExpressionOperation)
 				process  = rule.getExpression()
 				is_expression = True
-			body      = ("\t" if is_expression else "") + self.write(process) + (";" if is_expression else "")
+			if is_expression:
+				body = "\t" + self.write(process)
+			else:
+				body = self._writeStatement(process)
 			predicate = rule.getPredicate()
 			# An else has to be last, and never the first
 			is_last   = i == last and i > 0
@@ -1820,16 +1828,16 @@ class Writer(AbstractWriter):
 		try_block   = interception.getProcess()
 		try_catch   = interception.getIntercept()
 		try_finally = interception.getConclusion()
-		res         = ["try {", list(map(self.write, try_block.getOperations())), "}"]
+		res         = ["try {", list(map(self._writeStatement, try_block.getOperations())), "}"]
 		if try_catch:
 			res[-1] += " catch(%s) {" % ( self.write(try_catch.getArguments()[0]))
 			res.extend([
-				list(map(self.write, try_catch.getOperations())),
+				list(map(self._writeStatement, try_catch.getOperations())),
 				"}"
 			])
 		if try_finally:
 			res[-1] += " finally {"
-			res.extend([list(map(self.write, try_finally.getOperations())), "}"])
+			res.extend([list(map(self._writeStatement, try_finally.getOperations())), "}"])
 		return self._format(*res)
 
 	def onEmbed( self, embed ):
@@ -1998,7 +2006,7 @@ class Writer(AbstractWriter):
 				if isinstance(op, interfaces.IComputation):
 					yield self._writeUnitComputation(op)
 				else:
-					yield self.write(op)
+					yield self._writeStatement(op)
 			yield self._runtimeUnitTestPostamble(element)
 
 	def _writeUnitComputation( self, element ):
@@ -2013,6 +2021,15 @@ class Writer(AbstractWriter):
 			yield ("__test__.{0}({1}, {2}).setCode({3});".format(uop, self.write(l), self.write(r), json.dumps(t)))
 		else:
 			yield ("__test__.{0}({1}, {2}).setCode({4});".format("assert", t, json.dumps(t)))
+
+	def _writeStatement( self, element ):
+		r = self.write(element)
+		if isinstance( element, interfaces.IContext):
+			return r
+		elif isinstance(r, str) or isinstance(r, unicode):
+			return r + ";"
+		else:
+			return r
 
 	# =========================================================================
 	# RUNTIME
@@ -2047,15 +2064,18 @@ class Writer(AbstractWriter):
 
 	def _runtimeWrapMethodByName(self, name, value=None, element=None):
 		if isinstance(value, interfaces.IClassMethod):
-			return self._runtimeGetCurrentClass(element) + ".getOperation('%s')" % (name)
+			if value.parent == self.getCurrentClass():
+				return "{0}.{1}".format(self.jsSelf, name)
+			else:
+				return self._runtimeGetCurrentClass() + ".getOperation('%s')" % (name)
 		else:
-			return self._runtimeSelfReference(value) + ".getMethod(" + name + ")"
+			return self._runtimeSelfReference(value) + ".getMethod('" + name + "')"
 
 	def _runtimeGetCurrentClass(self, element=None ):
 		if self.indexLikeInContext(interfaces.IClassAttribute) >= 0:
 			return self.getSafeName(self.findInContext(interfaces.IClass))
 		else:
-			return "Object.getPrototypeOf(" + (self.jsSelf) + ").constructor"
+			return "({0}.getClass ? {0}.getClass() : Object.getPrototypeOf({0}).constructor)".format(self.jsSelf)
 
 	def _runtimeOp( self, name, *args ):
 		args = [self.write(_) if isinstance(_,interfaces.IElement) else _ for _ in args]
@@ -2095,12 +2115,11 @@ class Writer(AbstractWriter):
 		predicate = self.write(args[0])
 		rest      = args[1:]
 		# TODO: We should include the offsets
-		return "!({0}) && extend.assert(false, {1}, {2}, {3}){4}".format(
+		return "!({0}) && extend.assert(false, {1}, {2}, {3})".format(
 			predicate,
 			json.dumps(self.getScopeName() + ":"),
 			", ".join(self.write(_) for _ in rest) or '""',
 			json.dumps("(failed `" + predicate + "`)"),
-			suffix
 		)
 
 	def _runtimeReturnType( self ):
@@ -2220,16 +2239,6 @@ class Writer(AbstractWriter):
 				if value:
 					rvalue = self.getSafeName(value)
 		return "__isa__({0}, {1})".format(lvalue, rvalue)
-
-	def _ensureSemicolon( self, block ):
-		if isinstance(block, tuple) or isinstance(block, list):
-			if block:
-				block = list(block)
-				block[-1] = self._ensureSemicolon(block[-1])
-		elif isinstance(block, str) or isinstance(block, unicode):
-			if not block.endswith(";"):
-				block += ";"
-		return block
 
 MAIN_CLASS = Writer
 

@@ -512,7 +512,6 @@
 	@end
 
 	@method getName
-		assert (isinstance(self,IReferencable) or isinstance(self,IAnnotation))
 		return self name
 	@end
 
