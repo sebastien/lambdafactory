@@ -1794,8 +1794,15 @@ class Writer(AbstractWriter):
 		if self._withExtendIterate:
 			closure_index   = self.indexLikeInContext(interfaces.IClosure)
 			iteration_index = self.indexLikeInContext(interfaces.IIteration)
-			if iteration_index >= 0 and iteration_index > closure_index and not self.context[iteration_index].isRangeIteration():
-				return self._runtimeReturnBreak()
+			if closure_index >= 0 and iteration_index >= 0:
+				closure   = self.context[closure_index]
+				iteration = self.context[iteration_index]
+				if closure == iteration.getClosure():
+					return self._runtimeReturnBreak()
+				elif iteration_index >= 0 and iteration_index > closure_index and not self.context[iteration_index].isRangeIteration():
+					return self._runtimeReturnBreak()
+				else:
+					return "break"
 			else:
 				return "break"
 		else:
