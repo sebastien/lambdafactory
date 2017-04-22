@@ -323,7 +323,7 @@ class Writer(JavaScriptWriter):
 				init = ["super();this.__init_properties__();"] + traits_super + init
 			else:
 				# No parent or trait
-				init = ["this.__init_properties__();"] + traits_super + init
+				init = [";this.__init_properties__();"] + traits_super + init
 		else:
 			self.jsSelf = "this"
 			init = [self.write(call_super)] + traits_super + init
@@ -342,7 +342,7 @@ class Writer(JavaScriptWriter):
 			current = self.getCurrentClass()
 			parents = [_ for _ in self.getClassParents(current) if not isinstance(_, interfaces.ITrait)]
 			if not parents:
-				res += "this.__init_properties__(this);"
+				res += ";this.__init_properties__(this);"
 		return res
 
 
