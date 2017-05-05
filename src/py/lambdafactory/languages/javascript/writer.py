@@ -1282,10 +1282,16 @@ class Writer(AbstractWriter):
 		# TODO: If assignment target is an  access, we should rewrite it with
 		# explicit length
 		parent = self.context[-2]
-		return "%s = %s" % (
-			self.write(assignation.getTarget()),
-			self.write(assignation.getAssignedValue())
-		)
+		rvalue = assignation.getAssignedValue()
+		if isinstance(rvalue, interfaces.IChain):
+			for _ in self.write(rvalue):
+				yield _
+			yield "{0} = {1}".format(self.write(assignation.getTarget()), rvalue.dataflow.getImplicitSlotFor(rvalue).getName())
+		else:
+			yield "%s = %s" % (
+				self.write(assignation.getTarget()),
+				self.write(rvalue)
+			)
 
 	def onInterpolation( self, operation ):
 		"""Writes an interpolation operation."""
@@ -1451,7 +1457,7 @@ class Writer(AbstractWriter):
 		return [
 			implicit_slot.getName() + "=" + self.write(chain.getTarget()) + ";",
 		] + [
-			prefix + self._format(self.write(g)) for g in groups
+			prefix + self._format(self.write(g) + ";") for g in groups
 		]
 
 	def onSelection( self, selection ):
