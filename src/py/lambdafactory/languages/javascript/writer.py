@@ -1284,11 +1284,9 @@ class Writer(AbstractWriter):
 		parent = self.context[-2]
 		rvalue = assignation.getAssignedValue()
 		if isinstance(rvalue, interfaces.IChain):
-			for _ in self.write(rvalue):
-				yield _
-			yield "{0} = {1}".format(self.write(assignation.getTarget()), rvalue.dataflow.getImplicitSlotFor(rvalue).getName())
+			return "{0}{1} = {2}".format("".join(self.write(rvalue)), self.write(assignation.getTarget()), rvalue.dataflow.getImplicitSlotFor(rvalue).getName())
 		else:
-			yield "%s = %s" % (
+			return "%s = %s" % (
 				self.write(assignation.getTarget()),
 				self.write(rvalue)
 			)
