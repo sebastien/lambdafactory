@@ -1460,7 +1460,8 @@ class Writer(AbstractWriter):
 		return [
 			implicit_slot.getName() + "=" + self.write(chain.getTarget()) + ";",
 		] + [
-			prefix + self._format(self.write(g) + ";") for g in groups
+			# We filter out the implict reference
+			prefix + self._format(self.write(g) + ";" for g in groups if not isinstance(g, interfaces.IImplicitReference))
 		]
 
 	def onSelection( self, selection ):

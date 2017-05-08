@@ -458,6 +458,7 @@ class Writer(AbstractWriter):
 		imported    = self.getImportedModules(moduleElement)
 		imports     = (", " + ", ".join(['"' + _ + '"' for _ in imported])) if imported else ""
 		preamble = """// START:UMD_PREAMBLE
+		\"use strict\";
 		(function (global, factory) {
 			if (typeof define === "function" && define.amd) {
 				return define(["require", "exports" IMPORTS], factory);
@@ -481,7 +482,6 @@ class Writer(AbstractWriter):
 			"IMPORTS", imports
 		).replace("\n\t\t", "\n")
 		module_declaration = [
-			"\"use strict\";",
 			"var __module__ = typeof(exports)==='undefined' ? {} : exports;",
 			"var {0} = __module__;".format(module_name),
 		]
@@ -562,7 +562,6 @@ class Writer(AbstractWriter):
 			"return __module__;})",
 			"// END:GOOGLE_POSTAMBLE"
 		]
-
 
 	def registerModuleInWindow( self, moduleElement ):
 		safe_name = self.getSafeName(moduleElement)
@@ -1461,7 +1460,8 @@ class Writer(AbstractWriter):
 		return [
 			implicit_slot.getName() + "=" + self.write(chain.getTarget()) + ";",
 		] + [
-			prefix + self._format(self.write(g) + ";") for g in groups
+			# We filter out the implict reference
+			prefix + self._format(self.write(g) + ";" for g in groups if not isinstance(g, interfaces.IImplicitReference))
 		]
 
 	def onSelection( self, selection ):

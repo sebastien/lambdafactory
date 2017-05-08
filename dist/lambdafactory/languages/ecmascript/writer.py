@@ -12,7 +12,7 @@
 import lambdafactory.interfaces as interfaces
 import lambdafactory.reporter   as reporter
 from   lambdafactory.languages.javascript.writer import Writer as JavaScriptWriter
-import types
+import types, json
 
 # FIXME: It's kind of odd to have to do push/pop context
 
@@ -183,7 +183,7 @@ class Writer(JavaScriptWriter):
 			else:
 				yield line
 		yield "\tvar self=new {0}();".format(element.getName())
-		yield "\tself.__name__ = \"{0}\"".format(self.getAbsoluteName(element))
+		yield "\tObject.defineProperty(self, '__name__', {{value:\"{0}\",writable:false}});".format(self.getAbsoluteName(element))
 		yield "\treturn self;"
 		yield "}();"
 		self.popContext()
@@ -526,6 +526,23 @@ class Writer(JavaScriptWriter):
 
 	def _runtimeSlice( self, target, start, end ):
 		return "__slice__({0},{1},{2})".format(target, start, end)
+
+	def _runtimeAssert( self, invocation ):
+		args      = invocation.getArguments()
+		predicate = self.write(args[0])
+		rest      = args[1:]
+		if self.resolve("assert"):
+			assert_symbol = "assert"
+		else:
+			assert_symbol = "__assert__"
+		# TODO: We should include the offsets
+		return "!({0}) && {1}(false, {2}, {3}, {4})".format(
+			assert_symbol,
+			predicate,
+			json.dumps(self.getScopeName() + ":"),
+			", ".join(self.write(_) for _ in rest) or '""',
+			json.dumps("(failed `" + predicate + "`)"),
+		)
 
 	def _runtimeMapFromItems( self, items ):
 		return "[{0}].reduce(function(r,v,k){{r[v[0]]=v[1];return r;}},{{}})".format(
