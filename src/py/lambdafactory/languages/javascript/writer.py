@@ -493,9 +493,11 @@ class Writer(AbstractWriter):
 				if alias:
 					symbols.append("var {0} = {1};".format(alias or safe_module, safe_module))
 			else:
+				pass
+				# NOTE: Disabled 2017-05-08
 				# Extend gets a special treatment
-				if module != "extend" or alias:
-					symbols.append("var {0} = {1}.{2};".format(alias or slot, safe_module, slot))
+				# if module != "extend" or alias:
+				# 	symbols.append("var {0} = {1}.{2};".format(alias or slot, safe_module, slot))
 		return [
 			preamble.replace("MODULE", module_name).replace("IMPORT", imports),
 		] + [
@@ -528,9 +530,11 @@ class Writer(AbstractWriter):
 				if alias:
 					symbols.append("var {0} = {1};".format(alias or module.replace(".", "_"), module.replace(".", "_")))
 			else:
+				pass
+				# NOTE: Disabled 2017-05-08
 				# Extend gets a special treatment
-				if module != "extend" or alias:
-					symbols.append("var {0} = {1}.{2};".format(alias or slot, module.replace(".", "_"), slot))
+				#if module != "extend" or alias:
+				#	symbols.append("var {0} = {1}.{2};".format(alias or slot, module.replace(".", "_"), slot))
 		symbols = list(set(symbols))
 		prefix  = []
 		if self._isNice:
@@ -573,7 +577,7 @@ class Writer(AbstractWriter):
 			res.append(line)
 		return (self._section("Module registration") if self._isNice else []) + [
 			"// Registers the module in `extend`, if available" if self._isNice else None,
-			"if (typeof extend !== 'undefined') {{extend.module(\"{0}\", {1});}}".format(".".join(names), safe_name),
+			# "if (typeof extend !== 'undefined') {{extend.module(\"{0}\", {1});}}".format(".".join(names), safe_name),
 			"// Registers the module in the globals, creating any submodule if necessary" if self._isNice else None,
 			"if (typeof window !== 'undefined') {",
 			res,
