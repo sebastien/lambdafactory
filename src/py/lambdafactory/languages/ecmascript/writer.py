@@ -438,6 +438,9 @@ class Writer(JavaScriptWriter):
 	def _runtimeReturnType( self ):
 		return "__RETURN__"
 
+	def _runtimeNothing( self ):
+		return "__NOTHING__"
+
 	def _runtimeRestArguments( self, i ):
 		return "Array.prototype.slice.call(arguments," + str(i) + ")"
 

@@ -1109,6 +1109,8 @@ class Writer(AbstractWriter):
 			return "false"
 		elif symbol_name == "None":
 			return "null"
+		elif symbol_name == "Nothing":
+			return self._runtimeNothing()
 		elif symbol_name == "super":
 			return self._runtimeSuper(element)
 		elif value == self.getCurrentModule():
@@ -2166,6 +2168,10 @@ class Writer(AbstractWriter):
 	def _runtimePreamble( self ):
 		return []
 
+	def _runtimeNothing( self ):
+		return "%s%sNothing" % (
+			self.runtimePrefix, self.jsCore,
+		)
 	def _runtimeAccess( self, target, index ):
 		return "%s%saccess(%s,%s)" % (
 			self.runtimePrefix, self.jsCore,
