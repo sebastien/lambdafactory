@@ -183,7 +183,7 @@ class Writer(JavaScriptWriter):
 			else:
 				yield line
 		yield "\tvar self=new {0}();".format(element.getName())
-		yield "\tself.__name__ = \"{0}\"".format(self.getAbsoluteName(element))
+		yield "\tObject.defineProperty(self, '__name__', {{value:\"{0}\",writable:false}});".format(self.getAbsoluteName(element))
 		yield "\treturn self;"
 		yield "}();"
 		self.popContext()
