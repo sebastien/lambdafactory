@@ -531,17 +531,18 @@ class Writer(JavaScriptWriter):
 		args      = invocation.getArguments()
 		predicate = self.write(args[0])
 		rest      = args[1:]
-		if self.resolve("assert"):
-			assert_symbol = "assert"
+		resolved  = self.resolve("assert")
+		if resolved:
+			assert_symbol = self.getSafeName(resolved[1])
 		else:
 			assert_symbol = "__assert__"
 		# TODO: We should include the offsets
-		return "!({0}) && {1}(false, {2}, {3}, {4})".format(
+		return "!({1}) && {0}(false, {2}, {3}, {4})".format(
 			assert_symbol,
 			predicate,
 			json.dumps(self.getScopeName() + ":"),
-			", ".join(self.write(_) for _ in rest) or '""',
 			json.dumps("(failed `" + predicate + "`)"),
+			", ".join(self.write(_) for _ in rest) or '""',
 		)
 
 	def _runtimeMapFromItems( self, items ):
