@@ -2254,7 +2254,7 @@ class Writer(AbstractWriter):
 			elif rvalue == "Undefined":
 				rvalue = "'undefined'"
 			elif rvalue == "None":
-				rvalue = "'null'"
+				rvalue = "null"
 			else:
 				slot, value = self.resolve(t.getReferenceName())
 				if value:
