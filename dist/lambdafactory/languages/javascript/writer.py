@@ -989,7 +989,7 @@ class Writer(AbstractWriter):
 		operations = closure.getOperations()
 		implicits  = [_ for _ in self._writeImplicitAllocations(closure)]
 		if bodyOnly:
-			result = implicits + [self.write(_) + ";" for _ in operations]
+			result = implicits + [self._format(self.write(_)) + ";" for _ in operations]
 		else:
 			result = [
 				self._document(closure),
