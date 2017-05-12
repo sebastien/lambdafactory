@@ -167,10 +167,8 @@
 		|	for _ in value:
 		|		for l in self.lines(_, prefix + "\t"):
 		|			yield l
-		|elif type(value) is types.GeneratorType:
-		|	for _ in value:
-		|		for l in self.lines(_, prefix):
-		|			yield l
+		|else:
+		|	raise NotImplementedError
 		@end
 	@end
 
@@ -196,7 +194,6 @@
 				|	name = the_interface.__name__[1:]
 				|	if isinstance(element, the_interface):
 				|		if not hasattr(self, "on" + name ):
-				|			import ipdb;ipdb.set_trace()
 				|			raise Exception("Writer does not define write method for: " + name + " in " + str(self))
 				|		else:
 				|			self.context.append(element)

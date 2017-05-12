@@ -177,11 +177,12 @@ class Writer(JavaScriptWriter):
 	def onSingleton( self, element ):
 		self.pushContext (element)
 		yield "function() {"
-		for i,line in enumerate(self.lines(self.onClass(element, anonymous=True, slotName=element.getName()))):
+		body = self.onClass(element, anonymous=True, slotName=element.getName())
+		for i,line in enumerate(self.lines(body)):
 			if i == 0:
 				yield "\tvar {0} = {1}".format(element.getName(), line[1:])
 			else:
-				yield line
+				yield "\t" + line
 		yield "\tvar self=new {0}();".format(element.getName())
 		yield "\tObject.defineProperty(self, '__name__', {{value:\"{0}\",writable:false}});".format(self.getAbsoluteName(element))
 		yield "\treturn self;"

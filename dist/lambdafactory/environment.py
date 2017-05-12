@@ -19,16 +19,16 @@ def info (message):
 
 
 class Importer:
-	"""The Environment importer class acts like a "hub" for language-specific
-	importers. It will try, according to the current environment settings,
-	to resolve a module absolute name and return a program model object
-	corresponding to the given module."""
+	""" The Environment importer class acts like a "hub" for language-specific
+	 importers. It will try, according to the current environment settings,
+	 to resolve a module absolute name and return a program model object
+	 corresponding to the given module."""
 	def __init__ (self, environment):
 		self.environment = None
 		self.environment = environment
 	
 	def findSugarModule(self, moduleName, paths=None):
-		"""Finds the module with the given name in the given ppaths"""
+		""" Finds the module with the given name in the given ppaths"""
 		if paths is None: paths = None
 		exts=['.sg', '.sjs', '.sjava', '.spnuts', '.spy']
 		paths = ((paths or []) + self.environment.libraryPaths)
@@ -79,7 +79,6 @@ class Language:
 		self.environment = environment
 		self.name = name
 		assert name, "No language specified"
-		
 		self.basePath = self.basePath
 		self.runtime = self.loadModule('runtime')
 		self.importer = self.loadModule('importer')
@@ -95,13 +94,12 @@ class Language:
 		return (extension in self.readExtensions)
 	
 	def loadModule(self, moduleName):
-		"""Dynamically loads the language (sub) module"""
+		""" Dynamically loads the language (sub) module"""
 		try:
 			module=None
 			module_name = "lambdafactory.languages." + self.name + "." + moduleName
 			root_module = __import__(module_name)
 			module      = getattr(getattr(getattr(root_module, "languages"), self.name), moduleName)
-			
 			return getattr(module, 'MAIN_CLASS')
 		except Exception as e:
 			error=str(e)
@@ -111,11 +109,11 @@ class Language:
 	
 
 class Cache:
-	"""A cache that allows to store pre-compiled AST and modules.
-	Each compiled module is saved in two different locations:
+	""" A cache that allows to store pre-compiled AST and modules.
+	 Each compiled module is saved in two different locations:
 	
-	modules/<modulename>.model
-	content/<sig>.model"""
+	 modules/<modulename>.model
+	 content/<sig>.model"""
 	def __init__ (self):
 		self.root = '/tmp/lambdafactory-cache-{0}'.format(os.getuid())
 		for d in [self.root]:
@@ -198,13 +196,13 @@ class Cache:
 
 class Environment:
 	"""
-	Passes
-	======
+	 Passes
+	 ======
 	
-	Passes are lists of passes (see 'lambdafactory.passes') that transform the
-	program. The order of passe is important, as some passes depend on each other.
-	It is up to the 'lambdafactory.main.Command' subclass to set up the passes
-	appropriately."""
+	 Passes are lists of passes (see 'lambdafactory.passes') that transform the
+	 program. The order of passe is important, as some passes depend on each other.
+	 It is up to the 'lambdafactory.main.Command' subclass to set up the passes
+	 appropriately."""
 	ALIASES = {'javascript':['javascript', 'js', 'jscript'], 'ecmascript':['ecmascript', 'es', 'escript'], 'python':['python', 'py']}
 	def __init__ (self):
 		self.factory = None
@@ -233,7 +231,6 @@ class Environment:
 	
 	def addPass(self, programPass):
 		self.passes.append(programPass)
-		
 		programPass.setEnvironment(self)
 	
 	def getPass(self, name):
@@ -295,7 +292,7 @@ class Environment:
 		return source_and_module[1]
 	
 	def listAvailableLanguages(self):
-		"""Returns a list of available languages by introspecting the modules"""
+		""" Returns a list of available languages by introspecting the modules"""
 		base_dir=os.path.join(os.path.dirname(os.path.abspath(__file__)), 'languages')
 		languages=[]
 		for name in os.listdir(base_dir):
@@ -320,8 +317,8 @@ class Environment:
 		return name
 	
 	def loadLanguage(self, name):
-		"""Loads the given language plug-in and returns a dictionary containing
-		its features."""
+		""" Loads the given language plug-in and returns a dictionary containing
+		 its features."""
 		if ((name == 'none') or (not name)):
 			return None
 		name = self.normalizeLanguage(name)

@@ -690,7 +690,7 @@ class Writer(AbstractWriter):
 				))
 			# We only need a default constructor when we have class attributes
 			# declared and no constructor declared
-			default_constructor = self._format(
+			default_constructor = (
 				(
 					self.options["ENABLE_METADATA"] and "initialize: __def(function(){" \
 					or "initialize: function(){"
@@ -723,7 +723,7 @@ class Writer(AbstractWriter):
 			result.append([written_ops])
 			result.append("},")
 		if result[-1][-1] == ",":result[-1] =result[-1][:-1]
-		return self._format(
+		return (
 			"extend.Class({",
 			result,
 			"})"
@@ -733,7 +733,7 @@ class Writer(AbstractWriter):
 		default_value = element.getDefaultValue()
 		if default_value: default_value = self.write(default_value)
 		else: default_value="undefined"
-		return self._format(
+		return (
 			self._document(element),
 			"%s: %s" % (self._rewriteSymbol(element.getName()), default_value)
 		)
@@ -745,18 +745,18 @@ class Writer(AbstractWriter):
 			res = "%s: %s" % (self._rewriteSymbol(element.getName()), self.write(default_value))
 		else:
 			res = "%s: undefined" % (self._rewriteSymbol(element.getName()))
-		return self._format(self._document(element), res)
+		return (self._document(element), res)
 
 	def onModuleAttribute( self, element ):
 		"""Writes an argument element."""
 		default_value = element.getDefaultValue()
 		if default_value:
 			default_value = self.write(default_value)
-			return self._format(
+			return (
 				"%s = %s" % (self._rewriteSymbol(element.getName()), default_value)
 			)
 		else:
-			return self._format(
+			return (
 				"%s;" % (self._rewriteSymbol(element.getName()))
 			)
 
@@ -766,7 +766,7 @@ class Writer(AbstractWriter):
 		method_name = self._rewriteSymbol(methodElement.getName())
 		if method_name == interfaces.Constants.Constructor: method_name = "init"
 		if method_name == interfaces.Constants.Destructor:  method_name = "cleanup"
-		res = self._format(
+		res = (
 			self._document(methodElement),
 			(
 				self.options["ENABLE_METADATA"] and "%s:__def(function(%s) {" \
@@ -817,7 +817,7 @@ class Writer(AbstractWriter):
 		self.pushVarContext(methodElement)
 		method_name = self._rewriteSymbol(methodElement.getName())
 		args        = methodElement.getParameters()
-		res = self._format(
+		res = (
 			self._document(methodElement),
 			(
 				self.options["ENABLE_METADATA"] and "%s:__def(function(%s){" \
@@ -842,7 +842,7 @@ class Writer(AbstractWriter):
 		implement this properly"""
 		method_name = self._rewriteSymbol(inheritedMethodElement.getName())
 		method_args = inheritedMethodElement.getParameters()
-		return self._format(
+		return (
 			(
 				self.options["ENABLE_METADATA"] and "%s:__def(function(%s){" \
 				or "%s: function( %s ){"
@@ -873,7 +873,7 @@ class Writer(AbstractWriter):
 				self._runtimeSelfReference(element), name,
 				self.write(a.getDefaultValue()))
 			)
-		res = self._format(
+		res = (
 			self._document(element),
 			(
 				self.options["ENABLE_METADATA"] and "initialize: __def(function( %s ){" \
@@ -901,13 +901,13 @@ class Writer(AbstractWriter):
 		res = []
 		for a in function.getAnnotations(withName="when"):
 			res.append("if (!(%s)) {return}" % (self.write(a.getContent())))
-		return self._format(res) or None
+		return (res) or None
 
 	def onFunctionPost(self, function ):
 		res = []
 		for a in function.getAnnotations(withName="post"):
 			res.append("if (!(%s)) {throw new Exception('Assertion failed')}" % (self.write(a.getContent())))
-		return self._format(res) or None
+		return (res) or None
 
 	def onInitializer( self, element ):
 		return self.onFunction(element)
@@ -959,7 +959,7 @@ class Writer(AbstractWriter):
 			res.append("return result;")
 		res = self.writeDecorators(function, res)
 		self.popVarContext()
-		return self._format(*res)
+		return res
 
 	def writeDecorators( self, element, lines ):
 		d = []
@@ -1006,6 +1006,7 @@ class Writer(AbstractWriter):
 				)
 			]
 		# We format the result as a string
+		# FIXME: Should not do that
 		result = self._format(*result)
 		# If the closure has `encloses` annotation, it means that we need
 		# to capture its environment, because JS only has function-level
@@ -1039,7 +1040,7 @@ class Writer(AbstractWriter):
 		return result
 
 	def onClosureBody(self, closure):
-		return self._format('{', list(map(self._writeStatement, closure.getOperations())), '}')
+		return ('{', list(map(self._writeStatement, closure.getOperations())), '}')
 
 	# FIXME: Deprecate
 	def _writeClosureArguments(self, closure):
@@ -1071,8 +1072,7 @@ class Writer(AbstractWriter):
 
 	def onBlock( self, block ):
 		"""Writes a block element."""
-		# FIXME: Use yield?
-		return self._format(list(map(self._writeStatement, block.getOperations())))
+		return (self._writeStatement(_) for _ in block.getOperations())
 
 	def onParameter( self, param ):
 		"""Writes a parameter element."""
@@ -1526,7 +1526,7 @@ class Writer(AbstractWriter):
 		result = implicits + result
 		if selection.hasAnnotation("assignment"):
 			result = ["// This is a conditional assignment (default value)"] + result
-		return self._format(*result)
+		return result
 
 	def _writeSelectionInExpression( self, selection ):
 		"""Writes an embedded if expression"""

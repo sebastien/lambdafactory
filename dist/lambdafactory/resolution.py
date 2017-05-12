@@ -8,30 +8,30 @@ import re, math
 __module_name__ = 'lambdafactory.resolution'
 LETTERS = 'abcdefghijklmnopqrstuvwxyz'
 class BasicDataFlow(Pass):
-	"""The basic dataflow pass will associate DataFlow objects to elements which
-	don't have any already, and will make sure that Context slots are defined
-	in the dataflow, as well as allocations.
+	""" The basic dataflow pass will associate DataFlow objects to elements which
+	 don't have any already, and will make sure that Context slots are defined
+	 in the dataflow, as well as allocations.
 	
-	It is safe to apply this pass more than once on the program, but as it will
-	keep the existing dataflow information, you should make sure that if you
-	modified the program model in the meantime, you clear the dataflow out of the
-	elements that you changed.
+	 It is safe to apply this pass more than once on the program, but as it will
+	 keep the existing dataflow information, you should make sure that if you
+	 modified the program model in the meantime, you clear the dataflow out of the
+	 elements that you changed.
 	
-	TODO: Implement an 'invalidateDataFlow' when an operation is replaced/deleted,
-	so that we ensure that the DF remains consitent.
+	 TODO: Implement an 'invalidateDataFlow' when an operation is replaced/deleted,
+	 so that we ensure that the DF remains consitent.
 	
-	Rules:
+	 Rules:
 	
-	- DataFlows are created for Context and Processes
-	- DataFlowSlots begin with nothing or an allocation
-	- DataFlowSlots operations are the operations that reference the slot (stage 2)
+	 - DataFlows are created for Context and Processes
+	 - DataFlowSlots begin with nothing or an allocation
+	 - DataFlowSlots operations are the operations that reference the slot (stage 2)
 	
-	Stages:
+	 Stages:
 	
-	1) Create dataflows for Contexts, Processes, Importations and Allocations
-	2) Properly flow classes (so that resolution in parents can happen)
-	3) Attaches operations that reference a value to the original slot (this
-	prepares the path for the typing pass)"""
+	 1) Create dataflows for Contexts, Processes, Importations and Allocations
+	 2) Properly flow classes (so that resolution in parents can happen)
+	 3) Attaches operations that reference a value to the original slot (this
+	    prepares the path for the typing pass)"""
 	RE_IMPLICIT = re.compile('^_[0-9]?$')
 	HANDLES = [interfaces.IProgram, interfaces.IModule, interfaces.IClass, interfaces.IMethod, interfaces.IClosure, interfaces.IBlock, interfaces.IProcess, interfaces.IContext, interfaces.IAllocation, interfaces.IAssignment, interfaces.IIteration, interfaces.IChain, interfaces.ISelection, interfaces.IOperation, interfaces.IAnonymousReference, interfaces.IImplicitReference, interfaces.IReference, interfaces.IValue]
 	NAME = 'Resolution'
@@ -39,7 +39,7 @@ class BasicDataFlow(Pass):
 		Pass.__init__(self)
 	
 	def getParentDataFlow(self):
-		"""Returns the dataflow of the parent element. It is supposed to exist."""
+		""" Returns the dataflow of the parent element. It is supposed to exist."""
 		if self.hasParentElement():
 			i=(len(self.context) - 2)
 			while (i >= 0):
@@ -52,14 +52,13 @@ class BasicDataFlow(Pass):
 			return None
 	
 	def ensureDataFlow(self, element):
-		"""Ensures that the given element has an attached DataFlow"""
+		""" Ensures that the given element has an attached DataFlow"""
 		dataflow=element.getDataFlow()
 		if (not dataflow):
 			dataflow = self.getFactory().createDataFlow(element)
 			parent_df=self.getParentDataFlow()
 			if (self.hasParentElement()) and (not parent_df):
 				sys.stderr.write(" create dataflow for {0}:{1}\n".format(element,self.getParentDataFlow()))
-			
 			dataflow.setParent(parent_df)
 			element.setDataFlow(dataflow)
 		return dataflow
@@ -159,7 +158,7 @@ class BasicDataFlow(Pass):
 			element.setDataFlow(dataflow)
 	
 	def onIteration(self, element):
-		"""We make sure to add `encloses` annotation to closures in iterations"""
+		""" We make sure to add `encloses` annotation to closures in iterations"""
 		closure=element.getClosure()
 		self.onOperation(element)
 		if isinstance(closure, interfaces.IClosure):
@@ -190,7 +189,7 @@ class BasicDataFlow(Pass):
 			return (self.getAnonymousName((int((i / l)) - 1)) + self.getAnonymousName((i % l)))
 	
 	def getAnonymousReferenceName(self):
-		"""Gets the first anonymous reference name"""
+		""" Gets the first anonymous reference name"""
 		i = 0
 		while True:
 			n=self.getAnonymousName(i)
@@ -200,8 +199,8 @@ class BasicDataFlow(Pass):
 			i = (i + 1)
 	
 	def onAnonymousReference(self, element):
-		"""Finds a name for the anonymous reference that does not conflict with
-		anything in scope."""
+		""" Finds a name for the anonymous reference that does not conflict with
+		 anything in scope."""
 		dataflow=self.getCurrentDataFlow()
 		name=self.getAnonymousReferenceName()
 		dataflow.declareLocal(name, None, element)
@@ -247,21 +246,21 @@ class BasicDataFlow(Pass):
 	
 
 class ClearDataFlow(Pass):
-	"""Cleares the dataflows from the elements"""
+	""" Cleares the dataflows from the elements"""
 	HANDLES = [interfaces.IProgram, interfaces.IModule, interfaces.IClass, interfaces.IMethod, interfaces.IClosure, interfaces.IProcess, interfaces.IContext, interfaces.IAllocation, interfaces.IOperation, interfaces.IArgument, interfaces.IValue]
 	NAME = 'ClearDataflow'
 	def __init__ (self):
 		Pass.__init__(self)
 	
 	def getParentDataFlow(self):
-		"""Returns the dataflow of the parent element. It is supposed to exist."""
+		""" Returns the dataflow of the parent element. It is supposed to exist."""
 		if self.hasParentElement():
 			return self.getParentElement().getDataFlow()
 		elif True:
 			return None
 	
 	def clearDataFlow(self, element):
-		"""Ensures that the given element has an attached DataFlow"""
+		""" Ensures that the given element has an attached DataFlow"""
 		element.setDataFlow(None)
 	
 	def onProgram(self, element):
@@ -308,10 +307,10 @@ class ClearDataFlow(Pass):
 	
 
 class DataFlowBinding(Pass):
-	"""This pass will target classes, resolving their parent classes and binding the
-	dataflow slot to the proper value. If the binding fails, an exception will be
-	raised, meaning that either the passes were not set up properly, or that the
-	resolution has failed (and there is an inconsistency in the program model)."""
+	""" This pass will target classes, resolving their parent classes and binding the
+	 dataflow slot to the proper value. If the binding fails, an exception will be
+	 raised, meaning that either the passes were not set up properly, or that the
+	 resolution has failed (and there is an inconsistency in the program model)."""
 	FAILED = tuple([None, None])
 	HANDLES = [interfaces.IModule, interfaces.IClass, interfaces.IContext, interfaces.IEnumerationType]
 	NAME = 'ClassParentsResolution'
@@ -372,8 +371,8 @@ class DataFlowBinding(Pass):
 			df.declareLocal(_.getName(), _, element)
 	
 	def onModule(self, element):
-		"""Processes the module import operations and adds them to the module
-		dataflow"""
+		""" Processes the module import operations and adds them to the module
+		 dataflow"""
 		imports=element.getImportOperations()
 		imported={}
 		for i in imports:

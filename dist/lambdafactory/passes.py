@@ -9,13 +9,13 @@ __module_name__ = 'lambdafactory.passes'
 ERR_NO_DATAFLOW_AVAILABLE = 'ERR_NO_DATAFLOW_AVAILABLE'
 ERR_PASS_HANDLER_NOT_DEFINED = 'ERR_PASS_HANDLER_NOT_DEFINED'
 class PassContext:
-	"""The 'PassContext' represents the current state of one or more passes when
-	walking the program. It offers access to the 'environment' (gives access
-	to the program and various passes) but more importantly gives access
-	to _dataflow-related primitives_ which allow you to resolve symbols
-	an interrogate contexts.
+	""" The 'PassContext' represents the current state of one or more passes when
+	 walking the program. It offers access to the 'environment' (gives access
+	 to the program and various passes) but more importantly gives access
+	 to _dataflow-related primitives_ which allow you to resolve symbols
+	 an interrogate contexts.
 	
-	NOTE that a single pass context can be shared among various passes."""
+	 NOTE that a single pass context can be shared among various passes."""
 	def __init__ (self, environment=None, programPass=None):
 		self.environment = None
 		self.context = []
@@ -42,7 +42,7 @@ class PassContext:
 		self.program = None
 	
 	def handle(self, element):
-		"""Handles a sungle element, without recursing through its children"""
+		""" Handles a sungle element, without recursing through its children"""
 		handle=self.programPass.getHandler(element)
 		if handle:
 			return handle(element)
@@ -50,8 +50,8 @@ class PassContext:
 			return None
 	
 	def walk(self, element):
-		"""Walks the given element, recursively walking the child elements when the
-		handler does not return False"""
+		""" Walks the given element, recursively walking the child elements when the
+		 handler does not return False"""
 		self.pushContext(element)
 		continue_walking=True
 		handle=self.programPass.getHandler(element)
@@ -63,7 +63,7 @@ class PassContext:
 		self.popContext()
 	
 	def walkChildren(self, element):
-		"""Walks the children of the given element"""
+		""" Walks the children of the given element"""
 		if isinstance(element, interfaces.IProgram):
 			for module in element.getModules():
 				self.walk(module)
@@ -102,11 +102,9 @@ class PassContext:
 	
 	def filterContext(self, interface):
 		return [_ for _ in self.context if _ and (isinstance(_,interface) or _ is interface)]
-		
 	
 	def filter(self, list, interface):
 		return [_ for _ in list if isinstance(_,interface)]
-		
 	
 	def findInContext(self, interface):
 		res=self.filterContext(interface)
@@ -119,14 +117,12 @@ class PassContext:
 		for i,e in enumerate(self.context):
 			if e is value:
 				return i
-		
 		return -1
 	
 	def indexLikeInContext(self, interface):
 		for i,e in enumerate(self.context):
 			if isinstance(e,interface):
 				return i
-		
 		return -1
 	
 	def lastIndexInContext(self, interface):
@@ -172,9 +168,9 @@ class PassContext:
 		return (self.findInContext(interface) != None)
 	
 	def isShadowed(self, name, element):
-		"""Tells if the element with the given (local) name is shadowed
-		by another declaration. Basically, this means that
-		the name is resolved to a different element."""
+		""" Tells if the element with the given (local) name is shadowed
+		 by another declaration. Basically, this means that
+		 the name is resolved to a different element."""
 		value=self.resolve(name)[1]
 		return (value and (value != element))
 	
@@ -298,7 +294,6 @@ class PassContext:
 			if _ not in n:
 				n.append(_)
 		return n
-		
 	
 	def getImportedSymbols(self, moduleElement):
 		res = []
@@ -336,17 +331,16 @@ class PassContext:
 			else:
 				raise NotImplementedError
 		return res
-		
 	
 	def annotate(self, value, name, content=None):
 		if content is None: content = None
 		value.addAnnotation(self.environment.factory.annotation(name, content))
 	
 	def resolve(self, referenceOrName, contextOrDataFlow=None):
-		"""Resolves the given 'IReference' or String sing the given context
-		('IContext') or dataflow ('IDataFlow'). This usually requires that
-		you've applied a pass to create the dataflow (see the
-		'lambdafactory.resolution.BasicDataFlow' pass)."""
+		""" Resolves the given 'IReference' or String sing the given context
+		 ('IContext') or dataflow ('IDataFlow'). This usually requires that
+		 you've applied a pass to create the dataflow (see the
+		 'lambdafactory.resolution.BasicDataFlow' pass)."""
 		if contextOrDataFlow is None: contextOrDataFlow = None
 		if (contextOrDataFlow is None):
 			contextOrDataFlow = self.getCurrentDataFlow()
@@ -360,9 +354,9 @@ class PassContext:
 			return [None, None]
 	
 	def resolveAbsolute(self, referenceOrName):
-		"""Resolves the given reference or string expressed in absolute style
+		""" Resolves the given reference or string expressed in absolute style
 		('.'-separated list of names), starting from the root dataflow (the program
-		dataflow)."""
+		 dataflow)."""
 		program=self.getProgram()
 		assert(program)
 		program_dataflow=program.getDataFlow()
@@ -394,8 +388,8 @@ class PassContext:
 			return slot_and_value
 	
 	def resolveAbsoluteOrLocal(self, referenceOrName, contextOrDataFlow=None):
-		"""Tries an absolute resolution first, then will look in the local scope if
-		it fails."""
+		""" Tries an absolute resolution first, then will look in the local scope if
+		 it fails."""
 		if contextOrDataFlow is None: contextOrDataFlow = None
 		slot_and_value=self.resolveAbsolute(referenceOrName)
 		if (not slot_and_value[0]):
@@ -404,8 +398,8 @@ class PassContext:
 			return slot_and_value
 	
 	def resolveLocalOrAbsolute(self, referenceOrName, contextOrDataFlow=None):
-		"""Tries a local resolution first, then will look in the program scope if
-		it fails."""
+		""" Tries a local resolution first, then will look in the program scope if
+		 it fails."""
 		if contextOrDataFlow is None: contextOrDataFlow = None
 		slot_and_value=self.resolve(referenceOrName, contextOrDataFlow)
 		if (not slot_and_value[0]):
@@ -423,11 +417,11 @@ class Pass(PassContext):
 		self.setPass(self)
 	
 	def getHandler(self, element):
-		"""Tells if the pass handles the given element. This basically iterates
-		on the 'handles' property values (which are interfaces), when one
-		interface matches the given 'element', then the corresponding 'onXXX'
-		method is invoked, where 'XXX' is the interface
-		name (without the leading 'I')."""
+		""" Tells if the pass handles the given element. This basically iterates
+		 on the 'handles' property values (which are interfaces), when one
+		 interface matches the given 'element', then the corresponding 'onXXX'
+		 method is invoked, where 'XXX' is the interface
+		 name (without the leading 'I')."""
 		for interface in self.__class__.HANDLES:
 			if isinstance(element, interface):
 				handler_name=('on' + interface.__name__[1:])
@@ -438,12 +432,12 @@ class Pass(PassContext):
 		return None
 	
 	def getName(self):
-		"""Returns the name of this pass"""
+		""" Returns the name of this pass"""
 		return self.__class__.NAME
 	
 
 class ExtendJSRuntime(Pass):
-	"""This pass is like an importation and will simply bind the symbols"""
+	""" This pass is like an importation and will simply bind the symbols"""
 	HANDLES = [interfaces.IProgram, interfaces.IModule]
 	NAME = 'GlobalRuntime'
 	FUNCTIONS = ['access', 'add', 'asMap', 'assert', 'bool', 'capitalize', 'car', 'cdr', 'cmp', 'copy', 'debug', 'difference', 'equals', 'equals', 'error', 'exception', 'fail', 'filter', 'find', 'findLike', 'findOneOf', 'first', 'foldl', 'greater', 'insert', 'intersection', 'isDefined', 'isFunction', 'isIn', 'isInstance', 'isIterable', 'isList', 'isMap', 'isNumber', 'isObject', 'isString', 'isUndefined', 'items', 'itemsAsMap', 'iterate', 'json', 'keys', 'last', 'list', 'len', 'lower', 'map', 'map0', 'map1', 'map2', 'map3', 'merge', 'module', 'offset', 'pairs', 'print', 'range', 'reduce', 'remove', 'removeAt', 'replace', 'require', 'reverse', 'slice', 'smaller', 'sorted', 'sprintf', 'str', 'strip', 'type', 'union', 'unjson', 'upper', 'values', 'warning', 'words', 'xor']
@@ -463,7 +457,6 @@ class ExtendJSRuntime(Pass):
 	def onModule(self, module):
 		imports=module.getImportOperations()
 		assert self.runtime, "No runtime defined in ExtendJSRuntime pass"
-		
 		f=self.environment.factory
 		s=[]
 		o=self.runtime.getAbsoluteName()
@@ -489,10 +482,10 @@ class ControlFlow(Pass):
 	
 
 class Importation(Pass):
-	"""The importation pass will look for importation operations ('IImportation'),
-	will try to resolve the importations (according to the current environment)
-	and will trigger the loading and parsing of each module into the current
-	program."""
+	""" The importation pass will look for importation operations ('IImportation'),
+	 will try to resolve the importations (according to the current environment)
+	 and will trigger the loading and parsing of each module into the current
+	 program."""
 	HANDLES = [interfaces.IModule]
 	NAME = 'Importation'
 	def __init__ (self):
@@ -528,8 +521,8 @@ class Importation(Pass):
 	
 
 class DocumentationPass(Pass):
-	"""The documentation pass will run SDoc on all the modules declared in this
-	program, creating an HTML file."""
+	""" The documentation pass will run SDoc on all the modules declared in this
+	 program, creating an HTML file."""
 	HANDLES = [interfaces.IModule, interfaces.IModuleAttribute, interfaces.IClass, interfaces.IClassAttribute, interfaces.IClassMethod, interfaces.IAttribute, interfaces.IMethod, interfaces.IFunction]
 	NAME = 'Documentation'
 	def __init__ (self, args=None):
@@ -542,7 +535,6 @@ class DocumentationPass(Pass):
 		Pass.__init__(self)
 		import texto.main
 		self.texto = lambda _:texto.main.text2htmlbody(_.decode("utf-8"))
-		
 	
 	def setWriter(self, writer):
 		self.writer = writer
@@ -623,7 +615,7 @@ class DocumentationPass(Pass):
 			return None
 	
 	def asJSON(self, title=None):
-		"""Returns the HTML document generated by this pass"""
+		""" Returns the HTML document generated by this pass"""
 		if title is None: title = None
 		return json.dumps(self.doc)
 	
@@ -633,11 +625,11 @@ class TransformAsynchronousInvocations(Pass):
 	NAME = 'AsynchronousInvocationsExpansion'
 
 class CountReferences(Pass):
-	"""This pass adds "refcount" and "referers" annotations to all the referenced
-	elements by handling every 'IReference' element.
+	""" This pass adds "refcount" and "referers" annotations to all the referenced
+	 elements by handling every 'IReference' element.
 	
-	This is the first pass to be applied before actually removing the dead
-	code."""
+	 This is the first pass to be applied before actually removing the dead
+	 code."""
 	HANDLES = [interfaces.IReference, interfaces.IFunction, interfaces.IElement]
 	NAME = 'CountReferences'
 	def addReferer(self, element, context=None):
@@ -670,9 +662,9 @@ class RemoveDeadCode(Pass):
 	HANDLES = [interfaces.IConstruct, interfaces.IElement]
 	NAME = 'RemoveDeadCode'
 	def onConstruct(self, value):
-		"""For every construct, we see if there is a refcount or not, and we
-		see if at least one referer has a refcount. If it's not the case,
-		then the value will be shadowed, and its refcount set to 0."""
+		""" For every construct, we see if there is a refcount or not, and we
+		 see if at least one referer has a refcount. If it's not the case,
+		 then the value will be shadowed, and its refcount set to 0."""
 		actual_count=0
 		refcount=value.getAnnotation('refcount')
 		referers=value.getAnnotation('referers')

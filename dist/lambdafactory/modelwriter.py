@@ -10,7 +10,7 @@ import string, types
 __module_name__ = 'lambdafactory.modelwriter'
 PREFIX = '\t'
 def _format (value, level=None):
-	"""Format helper operation. See @format"""
+	""" Format helper operation. See @format"""
 	self=__module__
 	if level is None: level = -1
 	if type(value) in (list, tuple, types.GeneratorType):
@@ -23,19 +23,17 @@ def _format (value, level=None):
 		if value is None: return u""
 		assert isString(value), "Type not suitable for formatting: %s" % (value)
 		return [u"\n".join((max(0,level)*PREFIX)+ensureUnicode(v) for v in value.split("\n"))]
-	
 
 
 def format (*values):
-	"""Formats a combination of string ang tuples. Strings are joined by
-	newlines, and the content of the inner tuples gets indented"""
+	""" Formats a combination of string ang tuples. Strings are joined by
+	 newlines, and the content of the inner tuples gets indented"""
 	self=__module__
 	return u"\n".join(_format(values))
-	
 
 
 def _flatten (value, res):
-	"""Flatten helper operation. See 'flatten'"""
+	""" Flatten helper operation. See 'flatten'"""
 	self=__module__
 	if (type(value) in [tuple, list]):
 		for v in value:
@@ -45,7 +43,7 @@ def _flatten (value, res):
 
 
 def flatten (*lists):
-	"""Flattens the given lists in a single list"""
+	""" Flattens the given lists in a single list"""
 	self=__module__
 	res=[]
 	_flatten(lists, res)
@@ -53,7 +51,7 @@ def flatten (*lists):
 
 
 def notEmpty (p):
-	"""Returns None if the given parameter is empty."""
+	""" Returns None if the given parameter is empty."""
 	self=__module__
 	return ((p and p) or None)
 
@@ -69,8 +67,8 @@ class AbstractWriter(Pass):
 		return self
 	
 	def _prepend(self, element, value):
-		"""Takes care of prepending value to element, managing both
-		string and arrays"""
+		""" Takes care of prepending value to element, managing both
+		 string and arrays"""
 		if (isinstance(element, list) or isinstance(element, tuple)):
 			element = list(element)
 			element.insert(0, value)
@@ -90,11 +88,8 @@ class AbstractWriter(Pass):
 			for _ in value:
 				for l in self.lines(_, prefix + "\t"):
 					yield l
-		elif type(value) is types.GeneratorType:
-			for _ in value:
-				for l in self.lines(_, prefix):
-					yield l
-		
+		else:
+			raise NotImplementedError
 	
 	def write(self, element):
 		res=None
@@ -105,7 +100,6 @@ class AbstractWriter(Pass):
 				return element
 			elif (type(element) is list):
 				return u"\n".join(self.write(_) for _ in element)
-				
 			elif element.hasAnnotation('shadow'):
 				return ''
 			elif True:
@@ -114,7 +108,6 @@ class AbstractWriter(Pass):
 					name = the_interface.__name__[1:]
 					if isinstance(element, the_interface):
 						if not hasattr(self, "on" + name ):
-							import ipdb;ipdb.set_trace()
 							raise Exception("Writer does not define write method for: " + name + " in " + str(self))
 						else:
 							self.context.append(element)
@@ -125,14 +118,13 @@ class AbstractWriter(Pass):
 								result = u"\n".join(_format(result, -2))
 							return result
 				raise Exception("Element implements unsupported interface: " + str(element))
-				
 	
 	def run(self, program):
 		self.program = program
 		return self.write(program)
 	
 	def onProgram(self, element):
-		"""Writes a Program element"""
+		""" Writes a Program element"""
 		lines=[]
 		for module in element.getModules():
 			if (not module.isImported()):
@@ -143,11 +135,9 @@ class AbstractWriter(Pass):
 	
 	def _format(self, *values):
 		return format(*values)
-		
 	
 	def _expand(self, values, kw):
 		return [string.Template(_).substitute(**kw) for _ in values]
-		
 	
 	def _unique(self, name):
 		i=0

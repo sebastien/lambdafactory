@@ -1,6 +1,6 @@
 #8< ---[lambdafactory/main.py]---
 #!/usr/bin/env python
-"""Command-line interface and main module for LambdaFactory"""
+""" Command-line interface and main module for LambdaFactory"""
 import sys
 __module__ = sys.modules[__name__]
 import os, sys, optparse, tempfile
@@ -17,7 +17,6 @@ def ensureOutput (value):
 		return value.decode("utf8") if not isinstance(value, str) else value
 	else:
 		return value.encode("utf8") if isinstance(value, unicode) else value
-	
 
 
 class Command:
@@ -50,9 +49,9 @@ class Command:
 		self.setupEnvironment()
 	
 	def runAsString(self, args):
-		"""Runs Sugar, but instead of printing the result to the given
-		output, it returns a Python string with the result. It is very useful
-		when embedding LambdaFactory somewhere."""
+		""" Runs Sugar, but instead of printing the result to the given
+		 output, it returns a Python string with the result. It is very useful
+		 when embedding LambdaFactory somewhere."""
 		output=StringIO()
 		self.run(args, output)
 		return ('' + output.getvalue())
@@ -104,7 +103,6 @@ class Command:
 		option_parser.add_option("-V", None, action="store", dest="version",
 			help=self.OPT_VERSION)
 		options, args = option_parser.parse_args(args=arguments)
-		
 		language=options.lang
 		program=self.environment.program
 		self.environment.useCache = options.cache
@@ -130,11 +128,11 @@ class Command:
 					if parsed_module:
 						program.addModule(parsed_module)
 		if options.source:
-			throw.Exception('Not supported yet')
+			raise Exception('Not supported yet')
 		elif True:
 			if options.module:
 				if (len(args) > 1):
-					throw.Exception('Only one source file is accepted with the -m option')
+					raise Exception('Only one source file is accepted with the -m option')
 			for source_path in args:
 				result_module=self.parseFile(source_path, options.module)
 				if result_module:

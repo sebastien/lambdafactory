@@ -1,9 +1,9 @@
 #8< ---[lambdafactory/model.py]---
 #!/usr/bin/env python
-"""This module is the default implementation of the LambdaFactory interfaces.
-It defines objects that allow you to build a complete OO program model on
-which you can apply transformation passes, and from which you can generate
-code using the different back-ends."""
+""" This module is the default implementation of the LambdaFactory interfaces.
+ It defines objects that allow you to build a complete OO program model on
+ which you can apply transformation passes, and from which you can generate
+ code using the different back-ends."""
 import sys
 __module__ = sys.modules[__name__]
 from lambdafactory.interfaces import *
@@ -17,7 +17,6 @@ def isString (value):
 		return isinstance(value, str) or isinstance(value, bytes)
 	else:
 		return isinstance(value, str) or isinstance(value, unicode)
-	
 
 
 def ensureUnicode (value):
@@ -26,7 +25,6 @@ def ensureUnicode (value):
 		return value.decode("utf8") if isinstance(value, bytes) else value
 	else:
 		return value.decode("utf8") if isinstance(value, str) else value
-	
 
 
 ERR_SLOT_NOT_FOUND = 'ERR_SLOT_NOT_FOUND'
@@ -72,7 +70,7 @@ class DataFlowSlot(IDataFlowSlot):
 		return self.abstractType
 	
 	def addOperation(self, operation):
-		"""Adds an operation made to this dataflow slot."""
+		""" Adds an operation made to this dataflow slot."""
 		self.operations.append(operation)
 	
 	def isImported(self):
@@ -92,22 +90,21 @@ class DataFlowSlot(IDataFlowSlot):
 	
 	def __repr__(self):
 		return '<Slot("%s"=%s):%s@%s%s>' % (self.name, self.value, "TYPE", self.slotType, self.origin)
-		
 	
 
 class DataFlow(IDataFlow):
-	"""The DataFlow are ''dynamic contexts'' bound to the various program model
-	elements. DataFlows are typically owned by elements which implement
-	'IContext', and are linked together by rules defined in the 'Resolver'
-	class.
+	""" The DataFlow are ''dynamic contexts'' bound to the various program model
+	 elements. DataFlows are typically owned by elements which implement
+	 'IContext', and are linked together by rules defined in the 'Resolver'
+	 class.
 	
-	The dataflow bound to most expressions is the one of the enclosing closure
-	(wether it is a function, or method. The dataflow of a method is bound to
-	its parent class, which dataflow is also bound to the parent class dataflow.
+	 The dataflow bound to most expressions is the one of the enclosing closure
+	 (wether it is a function, or method. The dataflow of a method is bound to
+	 its parent class, which dataflow is also bound to the parent class dataflow.
 	
-	While 'DataFlow' and 'Context' may appear very similar, they are not the
-	same: contexts are elements that keep track of declared slots, while the
-	dataflow make use of the context to weave the elements togeher."""
+	 While 'DataFlow' and 'Context' may appear very similar, they are not the
+	 same: contexts are elements that keep track of declared slots, while the
+	 dataflow make use of the context to weave the elements togeher."""
 	ARGUMENT = 'argument'
 	ENVIRONMENT = 'environment'
 	LOCAL = 'local'
@@ -144,8 +141,8 @@ class DataFlow(IDataFlow):
 		return self._declare(None, value, origin, self.__class__.IMPLICIT)
 	
 	def _declare(self, name, value, origin, slotType):
-		"""Declares the given slot with the given name, value, origin
-		and type. This is used internaly by the other 'declare' methods."""
+		""" Declares the given slot with the given name, value, origin
+		 and type. This is used internaly by the other 'declare' methods."""
 		if name:
 			previous_slot=self.getSlot(name)
 			if previous_slot:
@@ -154,7 +151,6 @@ class DataFlow(IDataFlow):
 	
 	def addSource(self, dataflow):
 		assert dataflow != self, "DataFlow added as its own source"
-		
 		if ((dataflow != self) and (not (dataflow in self.sources))):
 			self.sources.append(dataflow)
 			dataflow.addDestination(self)
@@ -176,7 +172,7 @@ class DataFlow(IDataFlow):
 		return slot
 	
 	def getSlots(self):
-		"""Returns the slots defiend for this dataflow."""
+		""" Returns the slots defiend for this dataflow."""
 		return self.slots
 	
 	def _getAvailableSlots(self, slotList=None):
@@ -192,7 +188,7 @@ class DataFlow(IDataFlow):
 		return self._getAvailableSlots().values()
 	
 	def getSourcesSlots(self, slots=None, visited=None):
-		"""Returns the list of slots defined in the sources, using the sources axis."""
+		""" Returns the list of slots defined in the sources, using the sources axis."""
 		if slots is None: slots = None
 		if visited is None: visited = None
 		visited = (visited or [])
@@ -287,21 +283,21 @@ class DataFlow(IDataFlow):
 		return slotAndValue[0]
 	
 	def resolve(self, name):
-		"""Returns a couple '(DataFlow slot, IElement)' or '(None,None)'
-		corresponding to the resolution of the given 'name' in this dataflow. The
-		slot is the slot that holds the element, and the given element is the
-		element value bound to the slot.
+		""" Returns a couple '(DataFlow slot, IElement)' or '(None,None)'
+		 corresponding to the resolution of the given 'name' in this dataflow. The
+		 slot is the slot that holds the element, and the given element is the
+		 element value bound to the slot.
 		
-		The resolution scheme first looks into this datalfow, see if the slot
-		is defined. It then looks in the sources, sequentially and if this fails,
-		it will look into the parent.
+		 The resolution scheme first looks into this datalfow, see if the slot
+		 is defined. It then looks in the sources, sequentially and if this fails,
+		 it will look into the parent.
 		
-		Alternative resolution schemes can be implemented depending on the target
-		programming languages semantics, but this resolution operation should
-		always be implemented in the same way. If you wish to have another
-		way of doing resolution, you should provide a specific method in the
-		DataFlow implementation, and also maybe provide more specific resolution
-		operation in the 'PassContext' class."""
+		 Alternative resolution schemes can be implemented depending on the target
+		 programming languages semantics, but this resolution operation should
+		 always be implemented in the same way. If you wish to have another
+		 way of doing resolution, you should provide a specific method in the
+		 DataFlow implementation, and also maybe provide more specific resolution
+		 operation in the 'PassContext' class."""
 		slot=self.getSlot(name)
 		if slot:
 			return tuple([slot, slot.getValue()])
@@ -327,14 +323,14 @@ class DataFlow(IDataFlow):
 		return tuple([None, None])
 	
 	def ensureImplicitsNamed(self):
-		"""Ensures that the implicit slots all have a name."""
+		""" Ensures that the implicit slots all have a name."""
 		for slot in self.slots:
 			if (slot.isImplicit() and (not slot.getName())):
 				slot.setName(self.generateImplicitName())
 	
 	def generateImplicitName(self):
-		"""Finds the first generated name that is not already defined in this
-		scope or in a parent."""
+		""" Finds the first generated name that is not already defined in this
+		 scope or in a parent."""
 		i=0
 		prefix=''
 		n=(prefix + self._generateName(i))
@@ -344,7 +340,7 @@ class DataFlow(IDataFlow):
 		return n
 	
 	def _generateName(self, index):
-		"""A helper to generate a variable name from a number"""
+		""" A helper to generate a variable name from a number"""
 		l='abcdefghijklmnopqrstuvwxyz'
 		n=len(l)
 		if (index < n):
@@ -356,12 +352,12 @@ class DataFlow(IDataFlow):
 	
 
 class Element:
-	"""The Element class is a generic class that implements many of the
-	functionalities required to implement the full LambdaFactory program model.
+	""" The Element class is a generic class that implements many of the
+	 functionalities required to implement the full LambdaFactory program model.
 	
-	Property defined in this class may not be relevant to every subclass, but at
-	least they provide a common infrastructure and limit the number of
-	subclasses."""
+	 Property defined in this class may not be relevant to every subclass, but at
+	 least they provide a common infrastructure and limit the number of
+	 subclasses."""
 	COUNT = 0
 	def __init__ (self, name=None):
 		self.id = None
@@ -471,7 +467,6 @@ class Element:
 		if withName is None: withName = None
 		if not withName: return self.annotations
 		return [a for a in self.annotations if a.getName() == withName]
-		
 	
 	def hasAnnotation(self, withName):
 		annotations=self.getAnnotations(withName)
@@ -544,7 +539,6 @@ class Element:
 	def _copy(self, *arguments):
 		copy=None
 		copy = self.__class__(*arguments)
-		
 		copy.name = self.name
 		copy.source = self.source
 		for annotation in self.annotations:
@@ -892,7 +886,7 @@ class Class(Context, IClass, IReferencable, IAssignable):
 		return r
 	
 	def getInheritedClassMethods(self):
-		"""Returns the inherited class methods as a dict of slots"""
+		""" Returns the inherited class methods as a dict of slots"""
 		return self.getInheritedLike(IClassMethod)
 	
 	def getInheritedClassAttributes(self):
@@ -923,12 +917,12 @@ class Module(Context, IModule):
 		return res
 	
 	def getParentName(self):
-		"""Returns 'grandparentname.parentname'"""
+		""" Returns 'grandparentname.parentname'"""
 		return ('.'.join(self.name.split('.')[0:-1]) or None)
 	
 	def getAbsoluteName(self):
-		"""A module name is already absolute, so 'getAbsoluteName' is the same as
-		'getName'"""
+		""" A module name is already absolute, so 'getAbsoluteName' is the same as
+		 'getName'"""
 		return self.name
 	
 	def isImported(self):
@@ -965,7 +959,6 @@ class Module(Context, IModule):
 	
 	def getClasses(self):
 		 return [value for name, value in self.getSlots() if isinstance(value, IClass)]
-		
 	
 	def setSource(self, source):
 		self.source = source
@@ -1028,12 +1021,12 @@ class Program(Context, IProgram):
 		return res
 	
 	def setFactory(self, factory):
-		"""Sets the factory that was used to create this program"""
+		""" Sets the factory that was used to create this program"""
 		self.factory = factory
 	
 	def getFactory(self):
-		"""Gets the factory that was used to create this program. It can be
-		used to create more elements in the program."""
+		""" Gets the factory that was used to create this program. It can be
+		 used to create more elements in the program."""
 		return self.factory
 	
 
@@ -1094,8 +1087,8 @@ class Callable(Process):
 		self.setParameters(parameters)
 	
 	def declareMutation(self, name, slot=None):
-		"""Adds a `mutates` annotation to this closure saying that it mutates
-		the slot named `name` in its scope."""
+		""" Adds a `mutates` annotation to this closure saying that it mutates
+		 the slot named `name` in its scope."""
 		if slot is None: slot = None
 		a=self.getAnnotation('mutates')
 		if (not a):
@@ -1104,8 +1097,8 @@ class Callable(Process):
 			a.content[name] = slot
 	
 	def declareEnclosure(self, name, slot=None):
-		"""Adds a `encloses` annotation to this closure saying that it mutates
-		the slot named `name` in its scope."""
+		""" Adds a `encloses` annotation to this closure saying that it mutates
+		 the slot named `name` in its scope."""
 		if slot is None: slot = None
 		a=self.getAnnotation('encloses')
 		if (not a):
@@ -1114,7 +1107,7 @@ class Callable(Process):
 			a.content[name] = slot
 	
 	def hasMutation(self, name):
-		"""Tells if the closure has a `mutates` annotation of the given name"""
+		""" Tells if the closure has a `mutates` annotation of the given name"""
 		a=self.getAnnotation('mutates')
 		if a:
 			return (name in a.content)
@@ -1237,7 +1230,7 @@ class Operation(Element, IOperation):
 		self._setOpArgumentParent(argument)
 	
 	def _setOpArgumentParent(self, value):
-		"""Sets the value parent to this"""
+		""" Sets the value parent to this"""
 		if (type(value) in [tuple, list]):
 			map(self._setOpArgumentParent , value)
 		elif True:
@@ -1300,14 +1293,12 @@ class Resolution(Operation, IResolution):
 class Decomposition(Resolution, IDecomposition):
 	def __init__ (self, *arguments):
 		Resolution.__init__(self, *arguments)
-		
 	
 	pass
 
 class Computation(Operation, IComputation):
 	def __init__ (self, *arguments):
 		Operation.__init__(self, *arguments)
-		
 	
 	pass
 
@@ -1520,35 +1511,30 @@ class Interception(Operation, IInterception):
 class ImportOperation(Operation, IImportOperation):
 	def __init__ (self, *arguments):
 		Operation.__init__(self, *arguments)
-		
 	
 	pass
 
 class ImportSymbolOperation(Operation, IImportSymbolOperation):
 	def __init__ (self, *arguments):
 		Operation.__init__(self, *arguments)
-		
 	
 	pass
 
 class ImportSymbolsOperation(Operation, IImportSymbolsOperation):
 	def __init__ (self, *arguments):
 		Operation.__init__(self, *arguments)
-		
 	
 	pass
 
 class ImportModuleOperation(Operation, IImportModuleOperation):
 	def __init__ (self, *arguments):
 		Operation.__init__(self, *arguments)
-		
 	
 	pass
 
 class ImportModulesOperation(Operation, IImportModulesOperation):
 	def __init__ (self, *arguments):
 		Operation.__init__(self, *arguments)
-		
 	
 	pass
 
@@ -1825,7 +1811,7 @@ class Argument(Element, IArgument):
 		return self.value
 	
 	def getDefaultValue(self):
-		"""An alias for getValue()"""
+		""" An alias for getValue()"""
 		return self.value
 	
 	def setValue(self, v):

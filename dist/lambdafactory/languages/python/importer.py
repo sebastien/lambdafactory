@@ -5,7 +5,7 @@ __module__ = sys.modules[__name__]
 import types
 __module_name__ = 'lambdafactory.languages.python.importer'
 class Importer:
-	"""Imports Python module into the current environment."""
+	""" Imports Python module into the current environment."""
 	MODULE_IGNORES = ['__builtins__']
 	def __init__ (self, environment):
 		self.environment = None
@@ -14,7 +14,6 @@ class Importer:
 	def importModule(self, moduleName):
 		try:
 			__import__(moduleName)
-			
 		except Exception as e:
 			return False
 		python_module=eval(moduleName)
@@ -61,7 +60,6 @@ class Importer:
 			args.append('*'+code.co_varnames[len(args)])
 		if code.co_flags & 0x0008: # CO_VARKEYWORDS
 			args.append('**'+code.co_varnames[len(args)])
-		
 		arguments=[]
 		for arg in args:
 			arguments.append(f._arg(arg, None))
