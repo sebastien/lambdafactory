@@ -85,6 +85,8 @@ class Writer(JavaScriptWriter):
 		yield "}"
 		yield "Object.defineProperty({0}, \"__parents__\", {{writable:false,value:[{1}]}});".format(safe_name, ",".join(self.getSafeName(_) for _ in parents))
 		yield "Object.defineProperty({0}, \"__name__\", {{value:\"{1}\",writable:false}});".format(safe_name, abs_name)
+		# NOTE: Disabled for now, but might be useful for class method self reference
+		# yield "var self={0};".format(safe_name)
 		for _ in element.getClassAttributes():
 			self.pushContext(_)
 			yield "Object.defineProperty({0}, \"{1}\", {{value:{2},writable:true}});".format(
@@ -302,20 +304,23 @@ class Writer(JavaScriptWriter):
 		ops          = []
 		# Constructor can be none in some cases
 		c          = element.parent if element else self.getCurrentClass()
+		parents    = self.getClassParents(c) if c else []
+		traits     = [_ for _ in parents if isinstance(_, interfaces.ITrait)]
+		classes    = [_ for _ in parents if _ not in traits]
 		if element:
 			for op in element.operations:
 				if self.isSuperInvocation(op):
 					call_super = op
 				else:
 					ops.append(op)
+		# If the element has traits, we need to invoke their explicit constructors in
+		# order -- there are issues with the `this` reference in traits that
+		# pushed us to move to explicit constructors.
+		for t in traits:
+			traits_super.append("{0}.__init__(self);".format(self.getSafeName(t)))
 		# We only use super if the clas has parents and ther is no explicit
 		# constructor
 		if c and not call_super:
-			parents = self.getClassParents(c)
-			traits  = [_ for _ in parents if isinstance(_, interfaces.ITrait)]
-			classes = [_ for _ in parents if _ not in traits]
-			for t in traits:
-				traits_super.append("{0}.__init__(self);".format(self.getSafeName(t)))
 			if len(classes) > 0:
 				# We need to pass the arguments as-is
 				init = ["super(...arguments);"] + traits_super + init

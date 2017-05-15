@@ -1145,7 +1145,8 @@ class Writer(AbstractWriter):
 				if self.isIn(interfaces.IMethod) or self.isIn(interfaces.IConstructor) or self.isIn(interfaces.IDestructor):
 					return self._runtimeWrapMethodByName(symbol_name, value, element)
 				else:
-					return "%s.%s" % (self._runtimeSelfReference(value), symbol_name)
+					#return "%s.%s" % (self._runtimeSelfReference(value), symbol_name)
+					return "%s.%s" % (self.getSafeName(scope), symbol_name)
 			elif isinstance(value, interfaces.IClassAttribute):
 				# FIXME: Same as above
 				if self.isIn(interfaces.IClassMethod):
