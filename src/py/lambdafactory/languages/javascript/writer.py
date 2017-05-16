@@ -1346,8 +1346,8 @@ class Writer(AbstractWriter):
 		if isinstance(reference, interfaces.IAbsoluteReference):
 			return self.onReference(reference)
 		elif not context:
-			# NOTE: Not sure why it is not reference
-			return self._rewriteSymbol(reference.getReferenceName())
+			# If there is no context, we write the reference as-is
+			return self.write(reference)
 		elif context_name == "super":
 			return self._runtimeSuperResolution(resolution)
 		elif isinstance(resolution, interfaces.IDecomposition):
@@ -1399,7 +1399,9 @@ class Writer(AbstractWriter):
 		# FIXME: Special handling of assert
 		target = invocation.getTarget()
 		target_name = None
-		if isinstance(target, interfaces.IReference):
+		if isinstance(target, interfaces.IResolution):
+			target_name = self.write(target)
+		elif isinstance(target, interfaces.IReference):
 			s, e = self.resolve(target)
 			target_name = self.getAbsoluteName(e) if e else target.getReferenceName()
 		# FIXME: This should be defined as options
