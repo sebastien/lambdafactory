@@ -1,5 +1,5 @@
 @module lambdafactory.environment
-@import os, sys, pickle, hashlib, imp
+@import os, stat, sys, pickle, hashlib, imp
 @import DefaultReporter from lambdafactory.reporter
 @import Factory from lambdafactory.modelbase
 @import PassContext from lambdafactory.passes
@@ -57,7 +57,7 @@
 	@method importModule moduleName
 		# FIXME: Should use a module cache, same for parsefile so that we don't re-parse
 		# all the time
-		var module_path = findSugarModule(moduleName)
+		var module_path = findSugarModule (moduleName)
 		if module_path
 			environment report trace ("Importing module", moduleName, "from", module_path)
 			#, "from", module_path, "...")
@@ -158,44 +158,40 @@
 | modules/<modulename>.model
 | content/<sig>.model
 
-	@property root = "/tmp/lambdafactory-cache-{0}" format (os getuid ())
+	@property root
 
 	@constructor
-		for d in [root]
-			if not os path exists (d)
-				os makedirs (d)
-			end
+		var cache_path = os path expanduser "~/.cache/lambdafactory"
+		if "LF_CACHE" in os environ
+			cache_path = os environ ["LF_CACHE"]
 		end
+		setPath (cache_path)
 	@end
 
-	@method getKeyForContent content
+	@method setPath root
+		if not os path exists (root)
+			os makedirs (root)
+		end
+		self root = root
+		return self
+	@end
+
+	@method key content
 		return hashlib sha256 (content) hexdigest ()
 	@end
 
-	@method hasContent content
-		return hasSignature (getKeyForContent (content))
+	@method has sig
+		return _exists (_getPathForSignature(sig))
 	@end
 
-	@method hasModule name
-		return os path exist (_getPathForModuleName(name))
-	@end
-
-	@method hasSignature sig
-		return os path exist (_getPathForSignature(name))
-	@end
-
-	@method getFromContent content
-		return getFromSignature (getKeyForContent (content))
-	@end
-
-	@method getFromSignature sig
+	@method get sig
 		var p   = _getPathForSignature(sig)
 		if os path exists (p)
 			var f   = open (p)
 			try
 				var res = pickle load (f)
 			catch e
-				error ("Cache.getFromSignature {0}: {1}" format (sig, e))
+				error ("Cache. {0}: {1}" format (sig, e))
 				res = None
 			end
 			f close ()
@@ -205,30 +201,12 @@
 		end
 	@end
 
-	@method getFromModuleName name
-		var p   = _getPathForModuleName(name)
-		if os path exists (p)
-			var f   = open (p)
-			try
-				var res = pickle load (f)
-			catch e
-				error ("Cache.getFromModuleName {0}: {1}" format (sig, e))
-				res = None
-			end
-			f close ()
-			return res
-		else
-			return None
-		end
-	@end
-
-	@method set sourceAndModule
-		var content = sourceAndModule[0]
-		var k   = getKeyForContent     (content)
+	@method set key, module
+		var k   = key
 		var p   = _getPathForSignature (k)
 		var f   = open (p, "wb")
 		try
-			pickle dump (sourceAndModule, f)
+			pickle dump (module, f)
 			# SEE: http://stackoverflow.com/questions/2333872/atomic-writing-to-file-with-python
 			f flush () ; os fsync (f fileno ())
 			f close ()
@@ -238,7 +216,7 @@
 			error ("Cache.set {0}: {1}" format (k, e))
 			return None
 		end
-		var pm = _getPathForModuleName (sourceAndModule[1] getAbsoluteName ())
+		var pm = _getPathForModuleName (module getAbsoluteName ())
 		if os path exists (pm)
 			os unlink (pm)
 		end
@@ -256,6 +234,22 @@
 
 	@method _getPathForModuleName name
 		return  root + "/module-" + name + ".cache"
+	@end
+
+	@method _exists path
+	| Tests if the given path exists and has been created less than 24h ago.
+	| If it's too old, it will be removed.
+		if not os path exists (path)
+			return False
+		else
+			mtime = os stat (path) [stat ST_MTIME]
+			if time time () - mtime < 60 * 60 * 24
+				return True
+			else
+				os unlink (path)
+				return False
+			end
+		end
 	@end
 
 @end
@@ -293,7 +287,7 @@
 	@property libraryPaths = []
 	@property options      = {}
 	@property cache        = None
-	@property useCache     = False
+	@property useCache     = True
 
 	@constructor
 		importer = new Importer (self)
@@ -376,30 +370,32 @@
 	@end
 
 	@method parseString text, path, moduleName=None
-		var source_and_module = cache getFromContent (text)
-		if (not useCache) or (not source_and_module)
+		let cache_key = cache key (text)
+		var module    = cache get (cache_key)
+		if (not useCache) or (not module)
 			var extension           = path split "." [-1]
 			var parser              = parsers get (extension)
 			if not parser -> parser = parsers get "sg"
-			source_and_module       = parser parseString (text, moduleName, path)
+			# NOTE: This does not apply any pass
+			var source_and_module   = parser parseString (text, moduleName, path)
+			module = source_and_module[1]
+			assert (source_and_module[0] == text)
 			if source_and_module[1]
 				# assert (isinstance (source_and_module[1]), interfaces IElement)
-				var res                 = [source_and_module[0], source_and_module[1] copy () detach ()]
-				assert (res[0] == text)
-				res[1] setSource (res[0])
+				var res = source_and_module[1] copy () detach ()
+				res setSource (text)
 				if useCache
-					cache set (res)
+					cache set (cache_key, res)
 				end
 			else
 				error ("Could not parse file: " + path)
 			end
 		else
-			info ("Parsing from cache {0}: {1}" format (cache getKeyForContent (source_and_module[0]), path))
-			# We need to strip the dataflow from the module on importing (we actually should do it on save)
-			var clear_dataflow = new ClearDataFlow ()
-			clear_dataflow run (source_and_module[1])
+			assert (module getDataFlow () is None)
+			# NOTE: Before we were stripping the dataflow, but given that the module
+			# is cached BEFORE any pass is applied, this should be equivalent.
 		end
-		return source_and_module[1]
+		return module
 	@end
 
 	# FIXME: The language should be initialized for the environment

@@ -85,7 +85,7 @@
 		|	help=self.OPT_LANG)
 		|option_parser.add_option("-o", "--output", action="store", dest="output",
 		|	help=self.OPT_OUTPUT)
-		|option_parser.add_option("-C", "--cache", action="store_true", dest="cache", default=False,
+		|option_parser.add_option("-C", "--cache", action="store", dest="cache", default=True,
 		|	help=self.OPT_CACHE)
 		|option_parser.add_option("-v", "--verbose", action="store_true", dest="verbose",
 		|	help=self.OPT_VERBOSE)
@@ -121,7 +121,14 @@
 		# refactor the command methods to have env as parameter.
 		var program  = environment program
 		# environment getFactory () createProgram ()
-		environment useCache = options cache
+		if options cache in ["no", "none", "false", "/dev/null", False]
+			environment useCache = False
+		elif options cache in ["yes", "true", True]
+			environment useCache = True
+		else
+			environment useCache = True
+			environment cache setPath (options cache)
+		end
 		if os environ get "SUGAR_MODULES"
 			let m = os environ ["SUGAR_MODULES"]
 			environment options ["modules"] = m

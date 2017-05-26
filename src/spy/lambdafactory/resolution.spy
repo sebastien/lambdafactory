@@ -420,6 +420,9 @@
 
 	@method onClass element
 		clearDataFlow (element)
+		for _ in element parentClasses
+			clearDataFlow (element)
+		end
 		_clearAnnotationsDataFlow (element)
 	@end
 
@@ -458,7 +461,7 @@
 	@end
 
 	@method _clearAnnotationsDataFlow element
-		for _ in element getAnnotation "where"
+		for _ in (element getAnnotations "where" or [])
 			clearDataFlow (_)
 		end
 	@end
@@ -523,12 +526,13 @@
 			else
 				var value         = symbol_slot_and_value[1]
 				assert (df getElement() == element)
-				if not df hasSlot (imported_name)
-					# We only import the symbol if there is no slot defined
-					df declareImported (imported_name, value, operation)
-					assert (df resolve (imported_name)[0] getDataFlow() == df )
-					assert (df resolve (imported_name)[0] getDataFlow() getElement() == element)
-				end
+				# NOTE: I removed the guard that would prevent redeclaring the dataflow
+				# slot. Somehow when using the cache, some of the slots are already
+				# defined.
+				# We only import the symbol if there is no slot defined
+				df declareImported (imported_name, value, operation)
+				assert (df resolve (imported_name)[0] getDataFlow() == df )
+				assert (df resolve (imported_name)[0] getDataFlow() getElement() == element)
 				result[imported_name] = value
 			end
 		end
@@ -591,6 +595,7 @@
 		else
 			element setAnnotation ("imported", imported)
 		end
+		return imported
 	@end
 
 	@method onClass element
