@@ -206,7 +206,7 @@
 		var p   = _getPathForSignature (k)
 		var f   = open (p, "wb")
 		try
-			pickle dump (module, f)
+			pickle dump (module, f, pickle HIGHEST_PROTOCOL)
 			# SEE: http://stackoverflow.com/questions/2333872/atomic-writing-to-file-with-python
 			f flush () ; os fsync (f fileno ())
 			f close ()
