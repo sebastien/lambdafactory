@@ -240,6 +240,8 @@ class PassContext:
 		for parent_class_ref in current_class.getParentClassesRefs():
 			parent_class_name=parent_class_ref.getReferenceName()
 			resolution=self.resolve(parent_class_name, current_class.getDataFlow().parent)
+			if ((resolution[0] and resolution[0].overrides) and resolution[0].overrides.isImported()):
+				resolution = [resolution[0].overrides, resolution[0].overrides.getValue()]
 			if (resolution[1] == theClass):
 				module=theClass.getParent()
 				imported=module.getAnnotation('imported')

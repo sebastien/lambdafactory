@@ -345,9 +345,14 @@ class DataFlowBinding(Pass):
 			elif True:
 				value=symbol_slot_and_value[1]
 				assert((df.getElement() == element))
-				df.declareImported(imported_name, value, operation)
-				assert((df.resolve(imported_name)[0].getDataFlow() == df))
-				assert((df.resolve(imported_name)[0].getDataFlow().getElement() == element))
+				previous_slot=df.getSlot(imported_name)
+				if previous_slot:
+					assert((not previous_slot.overrides))
+					previous_slot.overrides = df._slot(imported_name, value, operation, 'imported')
+				elif True:
+					df.declareImported(imported_name, value, operation)
+					assert((df.resolve(imported_name)[0].getDataFlow() == df))
+					assert((df.resolve(imported_name)[0].getDataFlow().getElement() == element))
 				result[imported_name] = value
 		return result
 	

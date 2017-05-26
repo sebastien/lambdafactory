@@ -352,6 +352,12 @@
 				# NOTE: We resolve in the parent dataflow to avoid resovling the parent class name
 				# in case such as @class Application: Application with @import Application from app
 				var resolution = resolve ( parent_class_name, current_class getDataFlow () parent)
+				# NOTE: So this is an edge case where we have a local slot shadowing an import. We do
+				# want parents to resolve imported/shadowed first. Also, note that this does
+				# only happen with cached modules -- which is odd.
+				if resolution[0] and resolution[0] overrides and resolution[0] overrides isImported ()
+					resolution = [resolution[0] overrides, resolution[0] overrides getValue ()]
+				end
 				if resolution[1] == theClass
 					# If it's the same class, then it means the parent is one of the
 					# imported symbol and is being imported with the same name. That's OK

@@ -60,6 +60,7 @@
 	@property slotType
 	@property operations = []
 	@property dataflow
+	@property overrides  = None
 
  	@constructor name, value, origin, slotType
 		self name     = name
@@ -190,6 +191,10 @@
 		return self _declare (None, value, origin, IMPLICIT)
 	@end
 
+	@method _slot name, value, origin, slotType
+		return new DataFlowSlot(name, value, [origin], slotType)
+	@end
+
 	@method  _declare name, value, origin, slotType
 	| Declares the given slot with the given name, value, origin
 	| and type. This is used internaly by the other 'declare' methods.
@@ -202,7 +207,7 @@
 				slots remove(previous_slot)
 			end
 		end
-		return addSlot(new DataFlowSlot(name, value, [origin], slotType))
+		return addSlot(_slot(name, value, origin, slotType))
 	@end
 
 	@method addSource dataflow

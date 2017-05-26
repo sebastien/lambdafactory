@@ -530,9 +530,17 @@
 				# slot. Somehow when using the cache, some of the slots are already
 				# defined.
 				# We only import the symbol if there is no slot defined
-				df declareImported (imported_name, value, operation)
-				assert (df resolve (imported_name)[0] getDataFlow() == df )
-				assert (df resolve (imported_name)[0] getDataFlow() getElement() == element)
+				let previous_slot = df getSlot (imported_name)
+				if previous_slot
+					# We declare that the slot overrides the imported one
+					assert (not previous_slot overrides)
+					# NOTE: This is a bit of a hack to be able to still access that one
+					previous_slot overrides = df _slot (imported_name, value, operation, "imported")
+				else
+					df declareImported (imported_name, value, operation)
+					assert (df resolve (imported_name)[0] getDataFlow() == df )
+					assert (df resolve (imported_name)[0] getDataFlow() getElement() == element)
+				end
 				result[imported_name] = value
 			end
 		end

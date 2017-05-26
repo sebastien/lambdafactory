@@ -42,6 +42,7 @@ class DataFlowSlot(IDataFlowSlot):
 		self.slotType = None
 		self.operations = []
 		self.dataflow = None
+		self.overrides = None
 		self.name = name
 		self.value = value
 		self.origin = origin
@@ -140,6 +141,9 @@ class DataFlow(IDataFlow):
 	def declareImplicit(self, value, origin):
 		return self._declare(None, value, origin, self.__class__.IMPLICIT)
 	
+	def _slot(self, name, value, origin, slotType):
+		return DataFlowSlot(name, value, [origin], slotType)
+	
 	def _declare(self, name, value, origin, slotType):
 		""" Declares the given slot with the given name, value, origin
 		 and type. This is used internaly by the other 'declare' methods."""
@@ -147,7 +151,7 @@ class DataFlow(IDataFlow):
 			previous_slot=self.getSlot(name)
 			if previous_slot:
 				self.slots.remove(previous_slot)
-		return self.addSlot(DataFlowSlot(name, value, [origin], slotType))
+		return self.addSlot(self._slot(name, value, origin, slotType))
 	
 	def addSource(self, dataflow):
 		assert dataflow != self, "DataFlow added as its own source"
