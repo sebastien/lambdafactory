@@ -152,7 +152,7 @@ class Cache:
 		p=self._getPathForSignature(k)
 		f=open(p, 'wb')
 		try:
-			pickle.dump(module, f)
+			pickle.dump(module, f, pickle.HIGHEST_PROTOCOL)
 			f.flush()
 			os.fsync(f.fileno())
 			f.close()
