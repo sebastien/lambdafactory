@@ -74,7 +74,7 @@ class Command:
 			help=self.OPT_LANG)
 		option_parser.add_option("-o", "--output", action="store", dest="output",
 			help=self.OPT_OUTPUT)
-		option_parser.add_option("-C", "--cache", action="store_true", dest="cache", default=False,
+		option_parser.add_option("-C", "--cache", action="store", dest="cache", default=True,
 			help=self.OPT_CACHE)
 		option_parser.add_option("-v", "--verbose", action="store_true", dest="verbose",
 			help=self.OPT_VERBOSE)
@@ -105,7 +105,13 @@ class Command:
 		options, args = option_parser.parse_args(args=arguments)
 		language=options.lang
 		program=self.environment.program
-		self.environment.useCache = options.cache
+		if (options.cache in ['no', 'none', 'false', '/dev/null', False]):
+			self.environment.useCache = False
+		elif (options.cache in ['yes', 'true', True]):
+			self.environment.useCache = True
+		elif True:
+			self.environment.useCache = True
+			self.environment.cache.setPath(options.cache)
 		if os.environ.get('SUGAR_MODULES'):
 			m=os.environ['SUGAR_MODULES']
 			self.environment.options['modules'] = m

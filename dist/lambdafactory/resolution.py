@@ -272,6 +272,8 @@ class ClearDataFlow(Pass):
 	
 	def onClass(self, element):
 		self.clearDataFlow(element)
+		for _ in element.parentClasses:
+			self.clearDataFlow(element)
 		self._clearAnnotationsDataFlow(element)
 	
 	def onMethod(self, element):
@@ -302,7 +304,7 @@ class ClearDataFlow(Pass):
 		self.clearDataFlow(element)
 	
 	def _clearAnnotationsDataFlow(self, element):
-		for _ in element.getAnnotation('where'):
+		for _ in (element.getAnnotations('where') or []):
 			self.clearDataFlow(_)
 	
 
@@ -343,10 +345,9 @@ class DataFlowBinding(Pass):
 			elif True:
 				value=symbol_slot_and_value[1]
 				assert((df.getElement() == element))
-				if (not df.hasSlot(imported_name)):
-					df.declareImported(imported_name, value, operation)
-					assert((df.resolve(imported_name)[0].getDataFlow() == df))
-					assert((df.resolve(imported_name)[0].getDataFlow().getElement() == element))
+				df.declareImported(imported_name, value, operation)
+				assert((df.resolve(imported_name)[0].getDataFlow() == df))
+				assert((df.resolve(imported_name)[0].getDataFlow().getElement() == element))
 				result[imported_name] = value
 		return result
 	
@@ -396,6 +397,7 @@ class DataFlowBinding(Pass):
 			element.getAnnotation('imported').value.update(imported)
 		elif True:
 			element.setAnnotation('imported', imported)
+		return imported
 	
 	def onClass(self, element):
 		for parent_class in self.getClassParents(element):

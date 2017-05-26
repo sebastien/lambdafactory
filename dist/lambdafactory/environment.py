@@ -2,7 +2,7 @@
 #!/usr/bin/env python
 import sys
 __module__ = sys.modules[__name__]
-import os, sys, pickle, hashlib, imp
+import os, stat, sys, pickle, hashlib, imp
 from lambdafactory.reporter import DefaultReporter
 from lambdafactory.modelbase import Factory
 from lambdafactory.passes import PassContext
@@ -115,61 +115,44 @@ class Cache:
 	 modules/<modulename>.model
 	 content/<sig>.model"""
 	def __init__ (self):
-		self.root = '/tmp/lambdafactory-cache-{0}'.format(os.getuid())
-		for d in [self.root]:
-			if (not os.path.exists(d)):
-				os.makedirs(d)
+		self.root = None
+		cache_path=os.path.expanduser('~/.cache/lambdafactory')
+		if ('LF_CACHE' in os.environ):
+			cache_path = os.environ['LF_CACHE']
+		self.setPath(cache_path)
 	
-	def getKeyForContent(self, content):
+	def setPath(self, root):
+		if (not os.path.exists(root)):
+			os.makedirs(root)
+		self.root = root
+		return self
+	
+	def key(self, content):
 		return hashlib.sha256(content).hexdigest()
 	
-	def hasContent(self, content):
-		return self.hasSignature(self.getKeyForContent(content))
+	def has(self, sig):
+		return self._exists(self._getPathForSignature(sig))
 	
-	def hasModule(self, name):
-		return os.path.exist(self._getPathForModuleName(name))
-	
-	def hasSignature(self, sig):
-		return os.path.exist(self._getPathForSignature(name))
-	
-	def getFromContent(self, content):
-		return self.getFromSignature(self.getKeyForContent(content))
-	
-	def getFromSignature(self, sig):
+	def get(self, sig):
 		p=self._getPathForSignature(sig)
 		if os.path.exists(p):
 			f=open(p)
 			try:
 				res=pickle.load(f)
 			except Exception as e:
-				error('Cache.getFromSignature {0}: {1}'.format(sig, e))
+				error('Cache. {0}: {1}'.format(sig, e))
 				res = None
 			f.close()
 			return res
 		elif True:
 			return None
 	
-	def getFromModuleName(self, name):
-		p=self._getPathForModuleName(name)
-		if os.path.exists(p):
-			f=open(p)
-			try:
-				res=pickle.load(f)
-			except Exception as e:
-				error('Cache.getFromModuleName {0}: {1}'.format(sig, e))
-				res = None
-			f.close()
-			return res
-		elif True:
-			return None
-	
-	def set(self, sourceAndModule):
-		content=sourceAndModule[0]
-		k=self.getKeyForContent(content)
+	def set(self, key, module):
+		k=key
 		p=self._getPathForSignature(k)
 		f=open(p, 'wb')
 		try:
-			pickle.dump(sourceAndModule, f)
+			pickle.dump(module, f)
 			f.flush()
 			os.fsync(f.fileno())
 			f.close()
@@ -178,7 +161,7 @@ class Cache:
 			os.unlink(p)
 			error('Cache.set {0}: {1}'.format(k, e))
 			return None
-		pm=self._getPathForModuleName(sourceAndModule[1].getAbsoluteName())
+		pm=self._getPathForModuleName(module.getAbsoluteName())
 		if os.path.exists(pm):
 			os.unlink(pm)
 		os.symlink(p, pm)
@@ -192,6 +175,19 @@ class Cache:
 	
 	def _getPathForModuleName(self, name):
 		return (((self.root + '/module-') + name) + '.cache')
+	
+	def _exists(self, path):
+		""" Tests if the given path exists and has been created less than 24h ago.
+		 If it's too old, it will be removed."""
+		if (not os.path.exists(path)):
+			return False
+		elif True:
+			mtime = os.stat(path)[stat.ST_MTIME]
+			if ((time.time() - mtime) < ((60 * 60) * 24)):
+				return True
+			elif True:
+				os.unlink(path)
+				return False
 	
 
 class Environment:
@@ -216,7 +212,7 @@ class Environment:
 		self.libraryPaths = []
 		self.options = {}
 		self.cache = None
-		self.useCache = False
+		self.useCache = True
 		self.importer = Importer(self)
 		self.factory = Factory()
 		self.cache = Cache()
@@ -270,26 +266,26 @@ class Environment:
 	
 	def parseString(self, text, path, moduleName=None):
 		if moduleName is None: moduleName = None
-		source_and_module=self.cache.getFromContent(text)
-		if ((not self.useCache) or (not source_and_module)):
+		cache_key=self.cache.key(text)
+		module=self.cache.get(cache_key)
+		if ((not self.useCache) or (not module)):
 			extension=path.split('.')[-1]
 			parser=self.parsers.get(extension)
 			if (not parser):
 				parser = self.parsers.get('sg')
-			source_and_module = parser.parseString(text, moduleName, path)
+			source_and_module=parser.parseString(text, moduleName, path)
+			module = source_and_module[1]
+			assert((source_and_module[0] == text))
 			if source_and_module[1]:
-				res=[source_and_module[0], source_and_module[1].copy().detach()]
-				assert((res[0] == text))
-				res[1].setSource(res[0])
+				res=source_and_module[1].copy().detach()
+				res.setSource(text)
 				if self.useCache:
-					self.cache.set(res)
+					self.cache.set(cache_key, res)
 			elif True:
 				error(('Could not parse file: ' + path))
 		elif True:
-			info('Parsing from cache {0}: {1}'.format(self.cache.getKeyForContent(source_and_module[0]), path))
-			clear_dataflow=ClearDataFlow()
-			clear_dataflow.run(source_and_module[1])
-		return source_and_module[1]
+			assert((module.getDataFlow() is None))
+		return module
 	
 	def listAvailableLanguages(self):
 		""" Returns a list of available languages by introspecting the modules"""
