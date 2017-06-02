@@ -179,7 +179,7 @@
 		else
 			if isString(element)
 				return element
-			elif type(element) is list
+			elif type(element) is list or type(element) is tuple
 				@embed Python
 				|return u"\n".join(self.write(_) for _ in element)
 				@end
