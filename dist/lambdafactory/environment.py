@@ -277,7 +277,7 @@ class Environment:
 			module = source_and_module[1]
 			assert((source_and_module[0] == text))
 			if source_and_module[1]:
-				res=source_and_module[1].copy().detach()
+				res=source_and_module[1]
 				res.setSource(text)
 				if self.useCache:
 					self.cache.set(cache_key, res)

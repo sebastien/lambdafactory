@@ -939,9 +939,16 @@
 	@end
 
 	@method copy
-		var res   = Element _copy (self)
-		res name  = name
-		res slots = [] + slots
+		# FIXME: This is just wrong, copy should be a deep copy instead. In
+		# that case, the copy slot's parents will still be the original
+		# slot.
+		var res      = Element _copy (self)
+		res name     = name
+		# TODO: We should do a deep copy of the slots there, but this requires
+		# audition all the uses of copy to make sure they work with
+		# a deep instead of shallow. Conceptually, it should, but we have
+		# to make sure.
+		res slots    = [] + slots
 		res slotIndex update (slotIndex)
 		res parent   = parent
 		res abstract = abstract

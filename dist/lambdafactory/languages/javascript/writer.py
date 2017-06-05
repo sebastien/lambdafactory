@@ -352,8 +352,7 @@ class Writer(AbstractWriter):
 						slot_name = "main"
 						if self._isNice:
 							declaration = "\n".join(self._section("Module main")) + "\n"
-
-					declaration   += u"{0}.{1} = {2}".format(module_name, slot_name, value_code)
+					declaration   += u"{0}.{1} = {2}".format(module_name, slot_name, self._format(value_code))
 			code.append(self._document(value))
 			code.append(declaration)
 		# --- INIT ------------------------------------------------------------
@@ -656,7 +655,7 @@ class Writer(AbstractWriter):
 		if constructors:
 			result += self._group("Constructor", 1)
 			assert len(constructors) == 1, "Multiple constructors are not supported yet"
-			result.append("%s," % (self.write(constructors[0])))
+			result.append(self._format(self.write(constructors[0])) + ",")
 		else:
 			# We write the default constructor, see 'onConstructor' for for
 			# details.
@@ -712,13 +711,14 @@ class Writer(AbstractWriter):
 			result.append("%s," % (self.write(destructors[0])))
 		if methods:
 			result += self._group("Methods", 1)
-			written_meths = ",\n\n".join(map(self.write, methods))
+			written_meths = ",\n\n".join(self._format(self.write(_)) for _ in methods)
+
 			result.append("methods: {")
 			result.append([written_meths])
 			result.append("},")
 		if classOperations:
 			result += self._group("Class methods", 1)
-			written_ops = ",\n".join(map(self.write, classOperations))
+			written_ops = ",\n\n".join(self._format(self.write(_)) for _ in classOperations)
 			result.append("operations:{")
 			result.append([written_ops])
 			result.append("},")

@@ -98,7 +98,7 @@ class AbstractWriter(Pass):
 		elif True:
 			if isString(element):
 				return element
-			elif (type(element) is list):
+			elif ((type(element) is list) or (type(element) is tuple)):
 				return u"\n".join(self.write(_) for _ in element)
 			elif element.hasAnnotation('shadow'):
 				return ''

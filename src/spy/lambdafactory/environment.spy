@@ -382,7 +382,10 @@
 			assert (source_and_module[0] == text)
 			if source_and_module[1]
 				# assert (isinstance (source_and_module[1]), interfaces IElement)
-				var res = source_and_module[1] copy () detach ()
+				# NOTE: Before we were copying and detaching the module before storing
+				# it in cache, but it's not doing any good. In particular, the copy
+				# is only shallow, and won't reset the parent properly.
+				var res = source_and_module[1]
 				res setSource (text)
 				if useCache
 					cache set (cache_key, res)
