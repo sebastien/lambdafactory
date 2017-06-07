@@ -1246,7 +1246,7 @@ class Writer(AbstractWriter):
 		]))
 
 	def _writeDictKey( self, key ):
-		if isinstance(key, interfaces.IString):
+		if isinstance(key, interfaces.IString) or isinstance(key, interfaces.INumber):
 			return self.write(key)
 		else:
 			# FIXME: Raise an error, because JavaScript only allow strings as keys
