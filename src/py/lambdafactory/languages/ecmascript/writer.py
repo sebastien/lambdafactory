@@ -35,6 +35,7 @@ RUNTIME_OPS = {
 	"map":"__map__",
 	"filter":"__filter__",
 	"reduce":"__reduce__",
+	"reducer":"__reduce_right__",
 	"iterate":"__iterate__"
 }
 

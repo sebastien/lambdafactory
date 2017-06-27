@@ -1380,6 +1380,8 @@ class Writer(AbstractWriter):
 				res = "!(" + self._runtimeIsIn(operands[0], operands[1]) + ")"
 			elif name == "!+":
 				res = self._runtimeEventBind(computation)
+			elif name == "!!":
+				res = self._runtimeEventBindOnce(computation)
 			elif name == "!-":
 				res = self._runtimeEventUnbind(computation)
 			else:
@@ -1421,6 +1423,9 @@ class Writer(AbstractWriter):
 
 	def onEventBind( self, element ):
 		return self._runtimeEventBind(element)
+
+	def onEventBindOnce( self, element ):
+		return self._runtimeEventBindOnce(element)
 
 	def onEventUnbind( self, element ):
 		return self._runtimeEventUnbind(element)
@@ -1606,10 +1611,12 @@ class Writer(AbstractWriter):
 
 
 	def onReduceIteration( self, iteration ):
+		op = iteration.getAnnotation("operator")
 		return self._runtimeReduce(
 			iteration.getIterator(),
 			iteration.getClosure(),
-			iteration.getInitialValue()
+			iteration.getInitialValue(),
+			op.getContent() == "::<" if op else False
 		)
 
 	def _writeRangeIteration( self, iteration ):
@@ -2110,11 +2117,12 @@ class Writer(AbstractWriter):
 	def _runtimeMap( self, lvalue, rvalue ):
 		return self._runtimeOp("map", lvalue, rvalue)
 
-	def _runtimeReduce( self, lvalue, rvalue, initial=None ):
+	def _runtimeReduce( self, lvalue, rvalue, initial=None, reverse=False ):
+		name = "reducer" if reverse else "reduce"
 		if initial is None:
-			return self._runtimeOp("reduce", lvalue, rvalue)
+			return self._runtimeOp(name, lvalue, rvalue)
 		else:
-			return self._runtimeOp("reduce", lvalue, rvalue, initial)
+			return self._runtimeOp(name, lvalue, rvalue, initial)
 
 	def _runtimeFilter( self, lvalue, rvalue ):
 		return self._runtimeOp("filter", lvalue, rvalue)
@@ -2218,6 +2226,15 @@ class Writer(AbstractWriter):
 			self.write(element.getEvent()) or "undefined",
 			self.write(element.getArguments()) or "undefined",
 		)
+
+	def _runtimeEventBindOnce( self, element ):
+		return "__once__({0}, {1}, {2})".format(
+			self.write(element.getTarget()) or "undefined",
+			self.write(element.getEvent()) or "undefined",
+			self.write(element.getArguments()) or "undefined",
+		)
+
+
 
 	def _runtimeEventUnbind( self, element ):
 		return "__unbind__({0}, {1}, {2})".format(

@@ -1138,6 +1138,9 @@
 @class IEventBind: IEventOperation
 @end
 
+@class IEventBindOnce: IEventOperation
+@end
+
 @class IEventUnbind: IEventOperation
 @end
 
