@@ -1093,6 +1093,9 @@ class IEventTrigger(IEventOperation):
 class IEventBind(IEventOperation):
 	pass
 
+class IEventBindOnce(IEventOperation):
+	pass
+
 class IEventUnbind(IEventOperation):
 	pass
 

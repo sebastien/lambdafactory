@@ -199,6 +199,10 @@ class Factory:
 		arguments = list(map(self._ensureArg,arguments or []))
 		return self._getImplementation("EventBind")(scope, name, arguments)
 
+	def bindEventOnce( self, scope, name, arguments ):
+		arguments = list(map(self._ensureArg,arguments or []))
+		return self._getImplementation("EventBindOnce")(scope, name, arguments)
+
 	def unbindEvent( self, scope, name, arguments ):
 		arguments = list(map(self._ensureArg,arguments or []))
 		return self._getImplementation("EventUnbind")(scope, name, arguments)

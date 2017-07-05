@@ -457,8 +457,8 @@ class Writer(AbstractWriter):
 		imported    = self.getImportedModules(moduleElement)
 		imports     = (", " + ", ".join(['"' + _ + '"' for _ in imported])) if imported else ""
 		preamble = """// START:UMD_PREAMBLE
-		\"use strict\";
 		(function (global, factory) {
+			\"use strict\";
 			if (typeof define === "function" && define.amd) {
 				return define(["require", "exports" IMPORTS], factory);
 			} else if (typeof exports !== "undefined") {
@@ -2188,10 +2188,12 @@ class Writer(AbstractWriter):
 			self.runtimePrefix, self.jsCore,
 		)
 	def _runtimeAccess( self, target, index ):
-		return "%s%saccess(%s,%s)" % (
-			self.runtimePrefix, self.jsCore,
-			target, index
-		)
+		# FIXME: This should be included in a default runtime
+		return (
+			"(function(t,i){{return typeof(i) != 'number' ? t[i] : i < 0 "
+			"&& (typeof(t) == 'string' || t instanceof Array || t && isNumber(t.length))"
+			"? t[t.length + i] : t[i]}}({0},{1}))"
+		).format(target, index)
 
 	def _runtimeSlice( self, target, start, end ):
 		return "%s%sslice(%s,%s,%s)" % (

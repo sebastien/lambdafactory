@@ -1327,6 +1327,9 @@ class EventTrigger(EventOperation, IEventTrigger):
 class EventBind(EventOperation, IEventBind):
 	pass
 
+class EventBindOnce(EventOperation, IEventBindOnce):
+	pass
+
 class EventUnbind(EventOperation, IEventUnbind):
 	pass
 
