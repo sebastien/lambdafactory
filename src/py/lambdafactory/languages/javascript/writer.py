@@ -493,10 +493,9 @@ class Writer(AbstractWriter):
 				if alias:
 					symbols.append("const {0} = {1};".format(alias or safe_module, safe_module))
 			else:
-				symbols.append("const {0} = {1}.{2};".format(alias or slot, safe_module, slot))
-				# NOTE: Re-enabled 2017-10-30: We need to support stuff like
-				# `@import mat4 from gl.matrix`. Not sure why it was disabled.
-				# NOTE: Disabled 2017-05-08
+				pass
+				# NOTE: Disabled 2017-05-08, as references to imported symbols
+				# are always absolute.
 				# Extend gets a special treatment
 				# if module != "extend" or alias:
 				# 	symbols.append("var {0} = {1}.{2};".format(alias or slot, safe_module, slot))

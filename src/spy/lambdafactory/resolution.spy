@@ -506,6 +506,9 @@
 		# FIXME: This implementation is a bit messy
 		if slot_and_value == FAILED
 			self environment report error ("Imported module not found in scope:", module_name, "in", element getName())
+			# We make sure that the module exists
+			_ensureModule (fromModuleName, operation)
+			return _importSymbol (operation, symbolName, fromModuleName, moduleDest, alias)
 		elif symbol_name == "*"
 			# We import all the symbols defined in the module
 			var imported_module = slot_and_value[1]
@@ -563,6 +566,27 @@
 			assert (module getDataFlow() resolve (name)[0] getDataFlow() getElement() == module)
 		end
 		return imported
+	@end
+
+	@method _ensureModule moduleName, operation
+	| Ensures that the given module is registered, even if it cannot be
+	| located.
+		var module = self program getModule (moduleName)
+		if not module
+			module = self program factory createModule (moduleName)
+			# Here we need to manually add the dataflow as we're patching
+			# the program model live. Ideally, the transformation passes
+			# should udpate themselves.
+			var df = self program factory createDataFlow (module)
+			df setParent (self program getDataFlow ())
+			module setDataFlow (df)
+			module setImported (True)
+			# NOTE: Not sure if this is right
+			df declareImported (moduleName, None, operation)
+			# We add the module
+			self program addModule (module)
+		end
+		return module
 	@end
 
 	@method onEnumerationType element
