@@ -120,6 +120,8 @@ class Writer(JavaScriptWriter):
 		self.pushContext (element)
 		yield "function(_) {"
 		yield "\tvar res = class extends " + self._onClassParents(element, self.getClassParents(element), base="_") + " {"
+		# We need to pass arguments as-is
+		yield ["\t\tconstructor(){super(...arguments);}"]
 		yield [self._onClassBody(element, withConstructors=False, withAccessors=False, withProperties=False)]
 		yield "\t}"
 		# Now we take care of accessors. Somehow they don't seem to work

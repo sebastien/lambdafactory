@@ -6,7 +6,7 @@
 # License   : Revised BSD License
 # -----------------------------------------------------------------------------
 # Creation  : 2006-11-02
-# Last mod  : 2016-12-07
+# Last mod  : 2017-10-30
 # -----------------------------------------------------------------------------
 
 # TODO: Cleanup the code generation by moving the templates to the top
@@ -14,6 +14,7 @@
 # TODO: When constructor is empty, should assign default attributes anyway
 # TODO: Support optional meta-data
 # TODO: Provide a global rewrite operation
+# TODO: Use const whenever possible
 
 from   lambdafactory.modelwriter import AbstractWriter, flatten
 import lambdafactory.interfaces as interfaces
@@ -490,9 +491,11 @@ class Writer(AbstractWriter):
 			if not slot:
 				# Modules are already imported
 				if alias:
-					symbols.append("var {0} = {1};".format(alias or safe_module, safe_module))
+					symbols.append("const {0} = {1};".format(alias or safe_module, safe_module))
 			else:
-				pass
+				symbols.append("const {0} = {1}.{2};".format(alias or slot, safe_module, slot))
+				# NOTE: Re-enabled 2017-10-30: We need to support stuff like
+				# `@import mat4 from gl.matrix`. Not sure why it was disabled.
 				# NOTE: Disabled 2017-05-08
 				# Extend gets a special treatment
 				# if module != "extend" or alias:
@@ -500,7 +503,7 @@ class Writer(AbstractWriter):
 		return [
 			preamble.replace("MODULE", module_name).replace("IMPORT", imports),
 		] + [
-			"var {0} = require(\"{1}\");".format(_.replace(".","_"), _) for _ in imported
+			"const {0} = require(\"{1}\");".format(_.replace(".","_"), _) for _ in imported
 		] + symbols + module_declaration + ["// END:UMD_PREAMBLE\n"]
 
 	def getModuleUMDSuffix( self, moduleElement ):
