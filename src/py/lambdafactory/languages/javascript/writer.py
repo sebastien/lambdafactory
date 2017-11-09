@@ -99,11 +99,19 @@ class Writer(AbstractWriter):
 	# safe.
 	RNDVARLETTERS  = "ijklmonpqrstuvwxyzabcdefgh"
 	UNIT_OPERATORS = UNIT_OPERATORS
+	RUNTIME_OPS = {
+		"isIn":"__in__",
+		"map":"__map__",
+		"filter":"__filter__",
+		"reduce":"__reduce__",
+		"reducer":"__reduce_right__",
+		"iterate":"__iterate__"
+	}
 
 	def __init__( self ):
 		AbstractWriter.__init__(self)
 		self.runtimePrefix                = ""
-		self.jsCore                  = "extend."
+		self.jsCore                  = "declare"
 		self.jsSelf                  = "self"
 		self.jsModule                = "__module__"
 		self.jsInit                  = "__init__"
@@ -235,6 +243,7 @@ class Writer(AbstractWriter):
 				return self.getSafeSuperName(element) + ("." + name if name else "")
 
 	def getSafeSuperName( self, element ):
+		"""Returns the absolute name of the given element's parent."""
 		parent = element.getParent()
 		name   = element.getName()
 		if not parent:
@@ -403,8 +412,10 @@ class Writer(AbstractWriter):
 		declaration = []
 		names       = full_name.split(".")
 		if len(names) == 1:
-			declaration.append("var {0}=typeof(extend)!='undefined' ? "
-				"extend.module('{0}') : (typeof({0})!='undefined' ? {0} : "
+			pass
+			# NOTE: Disabled for now
+			declaration.append("var {0}=typeof(runtime)!='undefined' ? "
+				"runtime.module('{0}') : (typeof({0})!='undefined' ? {0} : "
 				"{{}});".format(local_name))
 		else:
 			parents = []
@@ -414,8 +425,8 @@ class Writer(AbstractWriter):
 				parent_abs_name      = ".".join(parents)
 				parent_safe_name = "_".join(parents)
 				declaration.append(
-					"var {0}=typeof(extend)!='undefined' ? "
-					"extend.module('{1}') : (typeof({1})!='undefined' ? {1} : "
+					"var {0}=typeof(runtime)!='undefined' ? "
+					"runtime.module('{1}') : (typeof({1})!='undefined' ? {1} : "
 					"{{}});".format(parent_safe_name, parent_abs_name))
 				if i > 0:
 					declaration.append("if (typeof({0})==='undefined') {{{0}={1};}};".format(
@@ -431,7 +442,7 @@ class Writer(AbstractWriter):
 					symbols.append("var {0} = {1};".format(alias or module, module))
 			else:
 				# Extend gets a special treatment
-				if module != "extend" or alias:
+				if alias:
 					symbols.append("var {0} = {1}.{2};".format(alias or slot, module, slot))
 		return [
 			"// START:VANILLA_PREAMBLE",
@@ -576,8 +587,6 @@ class Writer(AbstractWriter):
 				line = "c.{0} = __module__;".format(name)
 			res.append(line)
 		return (self._section("Module registration") if self._isNice else []) + [
-			"// Registers the module in `extend`, if available" if self._isNice else None,
-			# "if (typeof extend !== 'undefined') {{extend.module(\"{0}\", {1});}}".format(".".join(names), safe_name),
 			"// Registers the module in the globals, creating any submodule if necessary" if self._isNice else None,
 			"if (typeof window !== 'undefined') {",
 			res,
@@ -603,7 +612,7 @@ class Writer(AbstractWriter):
 
 	def onClass( self, classElement ):
 		"""Writes a class element."""
-		parents = self.getClassParents(classElement)
+		parents, traits = self.getClassParentAndTraits(classElement)
 		parent  = "undefined"
 		if len(parents) == 1:
 			parent_class = parents[0]
@@ -634,6 +643,7 @@ class Writer(AbstractWriter):
 		result = []
 		result.append(           "name  :'%s'," % (self.getAbsoluteName(classElement)))
 		if parent: result.append("parent: %s," % (parent))
+		if traits: result.append("traits: [{0}],".format(", ".join(self.getSafeName(_) for _ in traits)))
 		# We collect class attributes
 		attributes   = classElement.getAttributes()
 		constructors = classElement.getConstructors()
@@ -670,14 +680,9 @@ class Writer(AbstractWriter):
 				# sure to know the parent constructors arity -- this is just a
 				# way to cover our ass. We encapsulate the __super__ declaration
 				# in a block to avoid scoping problems.
-				invoke_parent_constructor = u"".join([
-					"// Invokes the parent constructor - this requires the parent to be an extend.Class class\n",
-					"\tif (true) {var __super__=",
-					# FIXME: Make sure that that the module name is not shadowed
-					# by something else
-					"%s.getSuper(%s.getParent());" % (self._runtimeSelfReference(classElement), self.getSafeSuperName(classElement)),
-					"__super__.initialize.apply(__super__, arguments);}"
-				])
+				invoke_parent_constructor = u"\n".join(
+					"if ({0} && {0}.__init__) {{ {0}.__init__.apply(self, arguments); }}".format(self.getSafeSuperName(_)) for _ in parents
+				)
 			for a in classElement.getAttributes():
 				if not a.getDefaultValue(): continue
 				constructor_attributes.append(
@@ -696,7 +701,7 @@ class Writer(AbstractWriter):
 					self.options["ENABLE_METADATA"] and "initialize: __def(function(){" \
 					or "initialize: function(){"
 				),
-				["var %s = this;" % (self._runtimeSelfReference(classElement))],
+				["const %s = this;" % (self._runtimeSelfReference(classElement))],
 				constructor_attributes or None,
 				invoke_parent_constructor,
 				(
@@ -726,7 +731,7 @@ class Writer(AbstractWriter):
 			result.append("},")
 		if result[-1][-1] == ",":result[-1] =result[-1][:-1]
 		return (
-			"extend.Class({",
+			self.jsCore + ".Class({",
 			result,
 			"})"
 		)
@@ -777,7 +782,7 @@ class Writer(AbstractWriter):
 				method_name,
 				", ".join(map(self.write, methodElement.getParameters()))
 			),
-			["var %s = this;" % (self._runtimeSelfReference(methodElement))],
+			["const %s = this;" % (self._runtimeSelfReference(methodElement))],
 			self._writeClosureArguments(methodElement),
 			self.writeFunctionWhen(methodElement),
 			self.writeFunctionPre(methodElement),
@@ -825,7 +830,7 @@ class Writer(AbstractWriter):
 				self.options["ENABLE_METADATA"] and "%s:__def(function(%s){" \
 				or "%s: function( %s ){"
 			) % (method_name, ", ".join(map(self.write, args))),
-			["var %s = this;" % (self._runtimeSelfReference(methodElement))], #, self.getAbsoluteName(methodElement.getParent()))],
+			["const %s = this;" % (self._runtimeSelfReference(methodElement))], #, self.getAbsoluteName(methodElement.getParent()))],
 			self._writeClosureArguments(methodElement),
 			self.writeFunctionWhen(methodElement),
 			list(map(self._writeStatement, methodElement.getOperations())),
@@ -927,7 +932,7 @@ class Writer(AbstractWriter):
 				)  % (
 					", ".join(map(self.write, function.getParameters()))
 				),
-				['var %s = %s;' % (self._runtimeSelfReference(function), self.getResolvedName(function.parent))],
+				['const %s = %s;' % (self._runtimeSelfReference(function), self.getResolvedName(function.parent))],
 				self._writeClosureArguments(function),
 				self.writeFunctionWhen(function),
 				list(map(self._writeStatement, function.getOperations())),
@@ -953,7 +958,7 @@ class Writer(AbstractWriter):
 				)
 			]
 		if function.getAnnotations(withName="post"):
-			res[0] = "var __wrapped__ = " + res[0] + ";"
+			res[0] = "const __wrapped__ = " + res[0] + ";"
 			if parent and isinstance(parent, interfaces.IModule):
 				res.insert(0, 'var %s=%s;' % (self._runtimeSelfReference(function), self.getAbsoluteName(parent)))
 			res.append("var result = __wrapped__.apply(%s, arguments);" % (self._runtimeSelfReference(function)))
@@ -2063,10 +2068,12 @@ class Writer(AbstractWriter):
 	# =========================================================================
 	# RUNTIME
 	# =========================================================================
+	# This contains all the javascript snippets that are susceptible of
+	# changing across the runties.
 
 	def _runtimeSuper( self, element ):
+		c = self.getCurrentClass()
 		if self.isIn(interfaces.IClassAttribute) or self.isIn(interfaces.IClassMethod):
-			c = self.getCurrentClass()
 			p = self.getClassParents(c)
 			# FIXME: Submodule support
 			if p:
@@ -2077,41 +2084,76 @@ class Writer(AbstractWriter):
 			assert self.resolve("self"), "Super must be used inside method"
 			# FIXME: Should check that the element has a method in parent scope
 			# FIXME: Submodule support
-			return "%s.getSuper(%s.getParent())" % (
-				self._runtimeSelfReference(element),
-				self.getSafeSuperName(self.getCurrentClass())
-			)
+			p = self.getClassParents(c)
+			if p:
+				return "({0}.prototype)".format(
+					self.getSafeSuperName(p[0]),
+					self._runtimeSelfReference(element),
+				)
+			else:
+				return "(Object.getPrototypeOf({0}).prototype)".format(
+					self.getSafeSuperName(self.getCurrentClass()),
+					self._runtimeSelfReference(element),
+				)
 
-	def _runtimeSuperResolution( self, relement, reference ):
-		return "{0}.getSuper().{1}".format(
-			self.runtimePrefix,
-			self._rewriteSymbol(resolution.getReference().getReferenceName())
-		)
+	# def _runtimeSuperResolution( self, relement, reference ):
+	def _runtimeSuperResolution( self, resolution ):
+		# We need to check wether we're in a closure or not. If we are,
+		# then we can't user `super`
+		s = self._runtimeSelfReference(resolution)
+		invocation = self.findInContext(interfaces.IInvocation)
+		if invocation and invocation.getTarget() == resolution:
+			# This is awkward, but that's how you emulate a super invocation
+			return "Object.getPrototypeOf(Object.getPrototypeOf({0})).{1}.bind({0})".format(s, name)
+		else:
+			m = s + ".__super_method__" + name
+			n = "self.prototype." + name
+			# NOTE: The commented line is a relatively bad way to do the
+			# binding
+			#return "(typeof {0} === typeof undefined ? {0} = function(){{return {1}.apply(self,arguments);}} : {0})".format(m, n)
+			return n + ".bind(" + s + ")"
 
 	def _runtimeGetMethodByName(self, name, value=None, element=None):
 		return self._runtimeSelfReference(value) + "." + name
 
 	def _runtimeWrapMethodByName(self, name, value=None, element=None):
+		s = self._runtimeSelfReference(element)
 		if isinstance(value, interfaces.IClassMethod):
-			if value.parent == self.getCurrentClass():
-				return "{0}.{1}".format(self.jsSelf, name)
+			if self.findInContext(interfaces.IClassMethod):
+				# In ES, we need to re-bind static methods when we're calling
+				# them back, otherwise the reference will be lost.
+				return "{0}.{1}.bind({0})".format(s, name)
 			else:
-				return self._runtimeGetCurrentClass() + ".getOperation('%s')" % (name)
+				return "Object.getPrototypeOf({0}).constructor.{1}.bind(Object.getPrototypeOf({0}).constructor)".format(s, name)
 		else:
-			return self._runtimeSelfReference(value) + ".getMethod('" + name + "')"
+			return "{0}.{1}.bind({0})".format(s, name)
 
 	def _runtimeGetCurrentClass(self, element=None ):
 		if self.indexLikeInContext(interfaces.IClassAttribute) >= 0:
 			return self.getSafeName(self.findInContext(interfaces.IClass))
 		else:
-			return "({0}.getClass ? {0}.getClass() : Object.getPrototypeOf({0}).constructor)".format(self.jsSelf)
+			return "(Object.getPrototypeOf({0}).constructor)".format(self.jsSelf)
+
+	def _runtimeReturnBreak( self ):
+		return "return __BREAK__;"
+
+	def _runtimeReturnContinue( self ):
+		return "return __CONTINUE__;"
+
+	def _runtimeReturnType( self ):
+		return "__RETURN__"
+
+	def _runtimeNothing( self ):
+		return "__NOTHING__"
 
 	def _runtimeOp( self, name, *args ):
-		args = [self.write(_) if isinstance(_,interfaces.IElement) else _ for _ in args]
-		return "extend." + name + "(" + ", ".join(args) + ")"
+		return "{0}({1})".format(
+			self.RUNTIME_OPS.get(name) or name,
+			", ".join(self.write(_) for _ in args)
+		)
 
 	def _runtimeIsIn( self, element, collection ):
-		return self._runtimeOp("isIn", element, collection)
+		return self._runtimeOp("isIn", collection, element)
 
 	def _runtimeModuleName( self, element=None ):
 		return "__module__"
@@ -2152,14 +2194,11 @@ class Writer(AbstractWriter):
 			json.dumps("(failed `" + predicate + "`)"),
 		)
 
-	def _runtimeReturnType( self ):
-		return self.runtimePrefix + "FLOW_RETURN"
+	def _runtimeRestArguments( self, i ):
+		return "Array.prototype.slice.call(arguments," + str(i) + ")"
 
-	def _runtimeReturnBreak( self ):
-		return "return " + self.runtimePrefix + "FLOW_BREAK;"
-
-	def _runtimeReturnContinue( self ):
-		return "return " + self.runtimePrefix + "FLOW_CONTINUE;"
+	def _runtimeDefaultValue( self, name, value ):
+		return name + " === undefined ? " + value + " : " + name
 
 	def _runtimeReturnValue( self, value ):
 		return "return new " + self._runtimeReturnType() + "(" + value + ");"
@@ -2167,8 +2206,17 @@ class Writer(AbstractWriter):
 	def _runtimeSelfReference( self, element=None ):
 		return self.jsSelf
 
-	def _runtimeSelfBinding( self, element=None ):
-		return "var self = this;"
+	def _runtimeSelfBinding( self, element ):
+		c = self.getCurrentContext()
+		t = "this"
+		if isinstance(c, interfaces.IModule):
+			t = "__module__"
+		elif isinstance(c, interfaces.ISingleton):
+			return None
+		elif isinstance(c, interfaces.IClassMethod):
+			t = "this"
+			#t = self.getSafeName(self.getCurrentClass())
+		return "const {0} = {1};".format(self.jsSelf, t)
 
 	def _runtimeInvocation( self, element ):
 		return "{0}({1})".format(
@@ -2177,18 +2225,28 @@ class Writer(AbstractWriter):
 		)
 
 	def _runtimeSuperInvocation( self, element ):
-		return "{0}({1})".format(
-			self.write(element.getTarget()),
-			", ".join(map(self.write, element.getArguments())),
-		)
+		target = element.getTarget()
+		if isinstance(target, interfaces.IReference) and target.getReferenceName() == "super":
+			# We have a direct super invocation, which means we're invoking the
+			# super constructor
+			return "Object.getPrototypeOf({0}).constructor.apply({2},[{1}])".format(
+				self.getSafeSuperName(self.getCurrentClass()),
+				", ".join(map(self.write, element.getArguments())),
+				self._runtimeSelfReference(),
+			)
+		else:
+			# Otherwise we're invoking a method from the super, which
+			# is a simple call forwarding
+			return "{0}.apply({2},[{1}])".format(
+				self.write(element.getTarget()),
+				", ".join(map(self.write, element.getArguments())),
+				self._runtimeSelfReference(),
+			)
 
 	def _runtimePreamble( self ):
 		return []
 
-	def _runtimeNothing( self ):
-		return "%s%sNothing" % (
-			self.runtimePrefix, self.jsCore,
-		)
+
 	def _runtimeAccess( self, target, index ):
 		# FIXME: This should be included in a default runtime
 		return (

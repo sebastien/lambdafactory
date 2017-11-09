@@ -350,7 +350,7 @@
 			for parent_class_ref in current_class getParentClassesRefs ()
 				var parent_class_name = parent_class_ref getReferenceName ()
 				# NOTE: We resolve in the parent dataflow to avoid resovling the parent class name
-				# in case such as @class Application: Application with @import Application from app
+				# in case such as @class Application: Application with @import Application from apr
 				var resolution = resolve ( parent_class_name, current_class getDataFlow () parent)
 				# NOTE: So this is an edge case where we have a local slot shadowing an import. We do
 				# want parents to resolve imported/shadowed first. Also, note that this does
@@ -391,6 +391,19 @@
 
 		@method getCurrentClassAncestors
 			return getClassAncestors (self getCurrentClass())
+		@end
+
+		@method getClassParentAndTraits element
+			parents = []
+			traits  = []
+			for parent in getClassParents(element)
+				if isinstance(parent, interfaces ITrait)
+					traits append (parent)
+				else
+					parents append (parent)
+				end
+			end
+			return [parents, traits]
 		@end
 
 		@method getClassAncestors theClass=None
@@ -636,132 +649,6 @@
 	@method getName
 	| Returns the name of this pass
 		return NAME
-	@end
-
-@end
-
-# ============================================================================
-#
-# GLOBAL RUNTIME PASS
-#
-# ============================================================================
-
-@class ExtendJSRuntime: Pass
-| This pass is like an importation and will simply bind the symbols
-
-	@shared HANDLES  = [ interfaces IProgram, interfaces IModule]
-	@shared NAME     = "GlobalRuntime"
-	# In Extend: grep "@function" Sources/extend-*.sjs | cut -d:  -f2 | cut -d" " -f2 | sort | xargs -n1 python -c 'import sys,json;print (json.dumps(sys.argv[1]))'
-	@shared FUNCTIONS = [
-		"access"
-		"add"
-		"asMap"
-		"assert"
-		"bool"
-		"capitalize"
-		"car"
-		"cdr"
-		"cmp"
-		"copy"
-		"debug"
-		"difference"
-		"equals"
-		"equals"
-		"error"
-		"exception"
-		"fail"
-		"filter"
-		"find"
-		"findLike"
-		"findOneOf"
-		"first"
-		"foldl"
-		"greater"
-		"insert"
-		"intersection"
-		"isDefined"
-		"isFunction"
-		"isIn"
-		"isInstance"
-		"isIterable"
-		"isList"
-		"isMap"
-		"isNumber"
-		"isObject"
-		"isString"
-		"isUndefined"
-		"items"
-		"itemsAsMap"
-		"iterate"
-		"json"
-		"keys"
-		"last"
-		"list"
-		"len"
-		"lower"
-		"map"
-		"map0"
-		"map1"
-		"map2"
-		"map3"
-		"merge"
-		"module"
-		"offset"
-		"pairs"
-		"print"
-		"range"
-		"reduce"
-		"remove"
-		"removeAt"
-		"replace"
-		"require"
-		"reverse"
-		"slice"
-		"smaller"
-		"sorted"
-		"sprintf"
-		"str"
-		"strip"
-		"type"
-		"union"
-		"unjson"
-		"upper"
-		"values"
-		"warning"
-		"words"
-		"xor"
-	]
-
-	@property runtime
-
-	@constructor
-		Pass __init__ (self)
-	@end
-
-	@method onProgram program
-		runtime = environment factory createModule ("extend")
-		runtime addAnnotation (environment factory annotation ("shadow"))
-		for f in FUNCTIONS
-			var fun = environment factory createFunction (f)
-			fun addAnnotation (environment factory annotation ("shadow"))
-			runtime setSlot (f, fun)
-		end
-		program addModule (runtime, 0)
-	@end
-
-	@method onModule module
-		var imports = module getImportOperations()
-		@embed Python
-		|assert self.runtime, "No runtime defined in ExtendJSRuntime pass"
-		@end
-		var f =  environment factory
-		var s = []
-		var o = runtime getAbsoluteName ()
-		for _ in runtime getSlotNames ()
-			s append (f importSymbol (_, o, None))
-		end
-		module addImportOperation (environment factory importSymbols (s, o), 0)
-		return False
 	@end
 
 @end
@@ -1049,28 +936,63 @@
 | code.
 
 	@shared   HANDLES = [
+		interfaces IProgram
 		interfaces IReference
-		interfaces IFunction
-		interfaces IElement
 	]
+
 	@shared   NAME    = "CountReferences"
 
-	@method addReferer element, context=(self getCurrentContext ())
+	@property entryPoints = [
+		"ff.ui.components.Component"
+		"ff.ui.components.bind"
+	]
+
+
+	@method incReference element, context=None
 		var refcount = element getAnnotation "refcount"
 		var referers = element getAnnotation "referers"
 		if refcount
 			refcount setContent (refcount getContent () + 1)
-			referers getContent () append (context)
+			referers = referers getContent ()
+			if context and context not in referers
+				referers append (context)
+			end
+			return True
 		else
 			self annotate (element, "refcount", 1)
-			self annotate (element, "referers", [context])
+			if context
+				referers = [context]
+			else
+				referers = []
+			end
+			self annotate (element, "referers", referers)
+			return False
 		end
 	@end
 
-	@method onFunction element
-		if element getName () == interfaces Constants ModuleInit
-			# This is a trick to make sure that this will be "sticky"
-			addReferer (element, element)
+	@method addReferer element, context=(self getCurrentContext ())
+	| Adds the given `context` as a referer to the given element.
+		# We increase references to the parent, which does not trigger
+		# walk.
+		var parent = element parent
+		while parent
+			incReference (parent, element)
+			parent = parent parent
+		end
+		# If we had no reference defined before, then we walk the element
+		# to transitively mark new references.
+		if not incReference (element, context)
+			walk (element)
+		end
+	@end
+
+	@method onProgram element
+		for entry in entryPoints
+			let slot_value = resolveAbsolute (entry)
+			if slot_value[1]
+				let e = slot_value[1]
+				addReferer (e, element)
+			end
 		end
 	@end
 
@@ -1082,10 +1004,6 @@
 				addReferer (value)
 			end
 		end
-	@end
-
-	@method onElement element
-		# Just a generic handle for element
 	@end
 
 @end
@@ -1128,7 +1046,7 @@
 					element removeAnnotation "shadow"
 				end
 			end
-		else
+		elif value getAbsoluteName ()
 			self annotate (value, "shadow")
 		end
 	@end

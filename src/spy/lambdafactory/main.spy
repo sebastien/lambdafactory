@@ -339,10 +339,6 @@
 
 	@method setupPasses language=None, withPasses=None, options=None
 		if not withPasses
-			# TODO: Add groups of passes
-			if (language == "javascript" or language == "actionscript") and (not ("NORUNTIME" in options))
-				environment addPass ( new passes ExtendJSRuntime() )
-			end
 			environment addPass ( new passes Importation         ())
 			environment addPass ( new passes ControlFlow         ())
 			environment addPass ( new resolution BasicDataFlow   ())
@@ -350,12 +346,18 @@
 		else
 			# We have a custom set of passes
 			for the_pass in withPasses
-				if the_pass find "." == -1
+				if the_pass == "std"
+					# We add standard passes
+					environment addPass ( new passes Importation         ())
+					environment addPass ( new passes ControlFlow         ())
+					environment addPass ( new resolution BasicDataFlow   ())
+					environment addPass ( new resolution DataFlowBinding ())
+				elif the_pass find "." == -1
 					var pass_class = None
 					if hasattr(passes, the_pass)
-						var pass_class = getattr(passes, the_pass)
+						pass_class = getattr(passes, the_pass)
 					elif hasattr(resolution, the_pass)
-						var pass_class = getattr(resolution, the_pass)
+						pass_class = getattr(resolution, the_pass)
 					else
 						environment report error ("LambdaFactory standard pass not found:", the_pass)
 						assert (None)

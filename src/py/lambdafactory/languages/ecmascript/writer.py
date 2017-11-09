@@ -30,14 +30,7 @@ model:
    be overriden by subclasses.
 """
 
-RUNTIME_OPS = {
-	"isIn":"__in__",
-	"map":"__map__",
-	"filter":"__filter__",
-	"reduce":"__reduce__",
-	"reducer":"__reduce_right__",
-	"iterate":"__iterate__"
-}
+
 
 #------------------------------------------------------------------------------
 #
@@ -87,7 +80,7 @@ class Writer(JavaScriptWriter):
 		yield "Object.defineProperty({0}, \"__parents__\", {{writable:false,value:[{1}]}});".format(safe_name, ",".join(self.getSafeName(_) for _ in parents))
 		yield "Object.defineProperty({0}, \"__name__\", {{value:\"{1}\",writable:false}});".format(safe_name, abs_name)
 		# NOTE: Disabled for now, but might be useful for class method self reference
-		# yield "var self={0};".format(safe_name)
+		# yield "const self={0};".format(safe_name)
 		for _ in element.getClassAttributes():
 			self.pushContext(_)
 			yield "Object.defineProperty({0}, \"{1}\", {{value:{2},writable:true}});".format(
@@ -177,6 +170,22 @@ class Writer(JavaScriptWriter):
 			yield "\t\t{0}.__init_properties__(self);".format(self.getSafeName(t))
 		yield "\t}"
 		yield "});"
+		# Class attributes
+		for _ in element.getClassAttributes():
+			self.pushContext(_)
+			yield "Object.defineProperty({0}, \"{1}\", {{value:{2},writable:true}});".format(
+				safe_name,
+				_.getName(),
+				self.write(_.getDefaultValue()) or "undefined")
+			self.popContext()
+		# Class methods
+		for _ in element.getClassMethods():
+			self.pushContext(_)
+			yield "Object.defineProperty({0}, \"{1}\", {{value:".format(safe_name, _.getName())
+			for line in self.onFunction(_, anonymous=True):
+				yield [line]
+			yield ",writable:true});"
+			self.popContext()
 		self.popContext()
 
 	def onSingleton( self, element ):
@@ -188,7 +197,7 @@ class Writer(JavaScriptWriter):
 				yield "\tvar {0} = {1}".format(element.getName(), line[1:])
 			else:
 				yield "\t" + line
-		yield "\tvar self=new {0}();".format(element.getName())
+		yield "\tconst self=new {0}();".format(element.getName())
 		yield "\tObject.defineProperty(self, '__name__', {{value:\"{0}\",writable:false}});".format(self.getAbsoluteName(element))
 		yield "\treturn self;"
 		yield "}();"
@@ -298,7 +307,13 @@ class Writer(JavaScriptWriter):
 		return self.onFunction( element, modifier="" )
 
 	def onClassMethod( self, element ):
-		return self.onFunction( element, modifier="static" )
+		if isinstance(element.parent, interfaces.ITrait):
+			return ["static {1}() {{return {0}.{1}.apply(this, arguments);}}".format(
+				self.getSafeName(element.parent),
+				element.getName()
+			)]
+		else:
+			return self.onFunction( element, modifier="static" )
 
 	def onConstructor( self, element ):
 		call_super   = None
@@ -361,7 +376,7 @@ class Writer(JavaScriptWriter):
 
 	def _onFunctionBody( self, element, body=None, bindSelf=True, operations=None ):
 		"""Writes the body of a function."""
-		# Adds the `var self = this`
+		# Adds the `const self = this`
 		if bindSelf: yield self._runtimeSelfBinding(element)
 		for _ in self._writeImplicitAllocations(element):
 			yield _
@@ -432,49 +447,6 @@ class Writer(JavaScriptWriter):
 	# UTILITIES
 	# =========================================================================
 
-	def _runtimeOp( self, name, *args ):
-		return "{0}({1})".format(
-			RUNTIME_OPS.get(name) or name,
-			", ".join(self.write(_) for _ in args)
-		)
-
-	def _runtimeReturnBreak( self ):
-		return "return __BREAK__;"
-
-	def _runtimeReturnContinue( self ):
-		return "return __CONTINUE__;"
-
-	def _runtimeReturnType( self ):
-		return "__RETURN__"
-
-	def _runtimeNothing( self ):
-		return "__NOTHING__"
-
-	def _runtimeRestArguments( self, i ):
-		return "Array.prototype.slice.call(arguments," + str(i) + ")"
-
-	def _runtimeDefaultValue( self, name, value ):
-		return name + " === undefined ? " + value + " : " + name
-
-	def _runtimeIsIn( self, element, collection ):
-		# NOTE: The is in is reversed in the ES runtime
-		return self._runtimeOp("isIn", collection, element)
-
-	def _runtimeSelfReference( self, element ):
-		return self.jsSelf
-
-	def _runtimeSelfBinding( self, element ):
-		c = self.getCurrentContext()
-		t = "this"
-		if isinstance(c, interfaces.IModule):
-			t = "__module__"
-		elif isinstance(c, interfaces.ISingleton):
-			return None
-		elif isinstance(c, interfaces.IClassMethod):
-			t = "this"
-			#t = self.getSafeName(self.getCurrentClass())
-		return "let {0} = {1};".format(self.jsSelf, t)
-
 	def _runtimeSuper( self, element ):
 		if self.isIn(interfaces.IClassAttribute) or self.isIn(interfaces.IClassMethod):
 			c = self.getCurrentClass()
@@ -495,34 +467,10 @@ class Writer(JavaScriptWriter):
 		if method >= closure:
 			return "super.{0}".format(name)
 		else:
-			s = self._runtimeSelfReference(resolution)
-			invocation = self.findInContext(interfaces.IInvocation)
-			if invocation and invocation.getTarget() == resolution:
-				# This is awkward, but that's how you emulate a super invocation
-				return "Object.getPrototypeOf(Object.getPrototypeOf({0})).{1}.bind({0})".format(s, name)
-			else:
-				m = s + ".__super_method__" + name
-				n = "self.prototype." + name
-				# NOTE: The commented line is a relatively bad way to do the
-				# binding
-				#return "(typeof {0} === typeof undefined ? {0} = function(){{return {1}.apply(self,arguments);}} : {0})".format(m, n)
-				return n + ".bind(" + s + ")"
-
+			return super(Writer, self)._runtimeSuperResolution( resolution )
 
 	def _runtimeGetMethodByName(self, name, value=None, element=None):
 		return self._runtimeSelfReference(element) + "." + name
-
-	def _runtimeWrapMethodByName(self, name, value=None, element=None):
-		s = self._runtimeSelfReference(element)
-		if isinstance(value, interfaces.IClassMethod):
-			if self.findInContext(interfaces.IClassMethod):
-				# In ES, we need to re-bind static methods when we're calling
-				# them back, otherwise the reference will be lost.
-				return "{0}.{1}.bind({0})".format(s, name)
-			else:
-				return "Object.getPrototypeOf({0}).constructor.{1}.bind(Object.getPrototypeOf({0}).constructor)".format(s, name)
-		else:
-			return "{0}.{1}.bind({0})".format(s, name)
 
 	def _runtimeBindEvent( self, event ):
 		return "return __bind__( self, \"{0}\", arguments[0], arguments[1] );".format(event)
