@@ -58,7 +58,7 @@ class Writer(JavaScriptWriter):
 		step  = operation.getStep()
 		step  = self.write(step) if step else 1
 		# NOTE: This is a safe, runtime-free enumeration
-		return "__range__({0},{1},{2})".format(start,end,step)
+		return "{0}__range__({1},{2},{3})".format(self.runtimePrefix, start,end,step)
 
 	# -------------------------------------------------------------------------
 	#
@@ -388,7 +388,7 @@ class Writer(JavaScriptWriter):
 		if element:
 			event = element.getAnnotation("event")
 			if event:
-				yield self._runtimeBindEvent(event.getContent())
+				yield "return " + self._runtimeEventBind(event.getContent()) + ";"
 			for _ in element.getOperations() if operations is None else operations:
 				if isinstance(_, types.LambdaType):
 					_()
@@ -431,7 +431,6 @@ class Writer(JavaScriptWriter):
 			yield ("if (!({0})) {{throw new Exception('{1}: Post condition failed"
 			"{0}';}}".format(predicate, scope))
 
-
 	# =========================================================================
 	# USEFUL PREDICATES
 	# =========================================================================
@@ -469,43 +468,21 @@ class Writer(JavaScriptWriter):
 		else:
 			return super(Writer, self)._runtimeSuperResolution( resolution )
 
-	def _runtimeGetMethodByName(self, name, value=None, element=None):
-		return self._runtimeSelfReference(element) + "." + name
-
-	def _runtimeBindEvent( self, event ):
-		return "return __bind__( self, \"{0}\", arguments[0], arguments[1] );".format(event)
-
-	def _runtimePreamble( self ):
-		return []
-
-	def _runtimeAccess( self, target, index ):
-		return "__access__({0},{1})".format(target, index)
-
-	def _runtimeSlice( self, target, start, end ):
-		return "__slice__({0},{1},{2})".format(target, start, end)
-
-	def _runtimeAssert( self, invocation ):
-		args      = invocation.getArguments()
-		predicate = self.write(args[0])
-		rest      = args[1:]
-		resolved  = self.resolve("assert")
-		if resolved:
-			assert_symbol = self.getSafeName(resolved[1])
+	def _runtimeSuperInvocation( self, element ):
+		target = element.getTarget()
+		if isinstance(target, interfaces.IReference) and target.getReferenceName() == "super":
+			# We have a direct super invocation, which means we're invoking the
+			# super constructor
+			return "super({0})".format(
+				", ".join(map(self.write, element.getArguments())),
+			)
 		else:
-			assert_symbol = "__assert__"
-		# TODO: We should include the offsets
-		return "!({1}) && {0}(false, {2}, {3}, {4})".format(
-			assert_symbol,
-			predicate,
-			json.dumps(self.getScopeName() + ":"),
-			json.dumps("(failed `" + predicate + "`)"),
-			", ".join(self.write(_) for _ in rest) or '""',
-		)
-
-	def _runtimeMapFromItems( self, items ):
-		return "[{0}].reduce(function(r,v,k){{r[v[0]]=v[1];return r;}},{{}})".format(
-			",".join("[{0},{1}]".format(self.write(k),self.write(v)) for k,v in items)
-		)
+			# Otherwise we're invoking a method from the super, which
+			# is a simple call forwarding
+			return "{0}({1})".format(
+				self.write(element.getTarget()),
+				", ".join(map(self.write, element.getArguments())),
+			)
 
 MAIN_CLASS = Writer
 

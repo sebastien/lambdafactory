@@ -110,8 +110,10 @@ class Writer(AbstractWriter):
 
 	def __init__( self ):
 		AbstractWriter.__init__(self)
-		self.runtimePrefix                = ""
-		self.jsCore                  = "declare"
+		# If the runtime functions have a prefix
+		self.runtimePrefix           = ""
+		# Only used in the declration of constructs (class, trait, singleton)
+		self.declarePrefix           = "declare."
 		self.jsSelf                  = "self"
 		self.jsModule                = "__module__"
 		self.jsInit                  = "__init__"
@@ -605,12 +607,12 @@ class Writer(AbstractWriter):
 	# =========================================================================
 
 	def onSingleton( self, element ):
-		return self.onClass(element)
+		return self.onClass(element, "Singleton")
 
 	def onTrait( self, element ):
-		return self.onClass(element)
+		return self.onClass(element, "Trait")
 
-	def onClass( self, classElement ):
+	def onClass( self, classElement, classType="Class" ):
 		"""Writes a class element."""
 		parents, traits = self.getClassParentAndTraits(classElement)
 		parent  = "undefined"
@@ -731,7 +733,7 @@ class Writer(AbstractWriter):
 			result.append("},")
 		if result[-1][-1] == ",":result[-1] =result[-1][:-1]
 		return (
-			self.jsCore + ".Class({",
+			self.declarePrefix + classType + "({",
 			result,
 			"})"
 		)
@@ -773,6 +775,11 @@ class Writer(AbstractWriter):
 		method_name = self._rewriteSymbol(methodElement.getName())
 		if method_name == interfaces.Constants.Constructor: method_name = "init"
 		if method_name == interfaces.Constants.Destructor:  method_name = "cleanup"
+		event = methodElement.getAnnotation("event")
+		if event:
+			operations = ["return " + self._runtimeEventBind(event.getContent()) + ";"]
+		else:
+			operations = list(map(self._writeStatement, methodElement.getOperations())),
 		res = (
 			self._document(methodElement),
 			(
@@ -786,7 +793,7 @@ class Writer(AbstractWriter):
 			self._writeClosureArguments(methodElement),
 			self.writeFunctionWhen(methodElement),
 			self.writeFunctionPre(methodElement),
-			list(map(self._writeStatement, methodElement.getOperations())),
+			operations,
 			(
 				(not self.options["ENABLE_METADATA"] and "}") or \
 				"}, %s)" % ( self._writeFunctionMeta(methodElement))
@@ -924,6 +931,13 @@ class Writer(AbstractWriter):
 		self.pushVarContext(function)
 		parent = function.getParent()
 		name   = self._rewriteSymbol( function.getName() )
+		# We don't forget the implicit allocations
+		implicits  = [_ for _ in self._writeImplicitAllocations(function)]
+		event = function.getAnnotation("event")
+		if event:
+			operations = ["return " + self._runtimeEventBind(event.getContent()) + ";"]
+		else:
+			operations = list(map(self._writeStatement, function.getOperations())),
 		if parent and isinstance(parent, interfaces.IModule):
 			res = [
 				(
@@ -935,7 +949,7 @@ class Writer(AbstractWriter):
 				['const %s = %s;' % (self._runtimeSelfReference(function), self.getResolvedName(function.parent))],
 				self._writeClosureArguments(function),
 				self.writeFunctionWhen(function),
-				list(map(self._writeStatement, function.getOperations())),
+				implicits, operations,
 				(
 					(not self.options["ENABLE_METADATA"] and "}") or \
 					"}, %s)" % ( self._writeFunctionMeta(function))
@@ -951,7 +965,7 @@ class Writer(AbstractWriter):
 				),
 				self._writeClosureArguments(function),
 				self.writeFunctionWhen(function),
-				list(map(self._writeStatement, function.getOperations())),
+				implicits, operations,
 				(
 					(not self.options["ENABLE_METADATA"] and "}") or \
 					"}, %s)" % ( self._writeFunctionMeta(closure))
@@ -1059,9 +1073,9 @@ class Writer(AbstractWriter):
 			arg_name = self.write(param)
 			if param.isRest():
 				assert i >= l - 2
-				result.append("%s = %s(arguments,%d)" % (
+				result.append("%s = %s__slice__(arguments,%d)" % (
 					arg_name,
-					self.runtimePrefix + self.jsCore + "sliceArguments",
+					self.runtimePrefix,
 					i
 				))
 			if not (param.getDefaultValue() is None):
@@ -1131,8 +1145,7 @@ class Writer(AbstractWriter):
 			symbol_name = ".".join(map(self._rewriteSymbol, symbol_name.split(".")))
 		# If there is no scope, then the symmbol is undefined
 		if not scope:
-			if symbol_name == "print": return self.runtimePrefix + self.jsCore + "print"
-			else: return symbol_name
+			return symbol_name
 		# If the slot is imported
 		elif slot.isImported():
 			return self._onImportedReference(symbol_name, slot)
@@ -1335,7 +1348,7 @@ class Writer(AbstractWriter):
 		else: start = "(%s)" % (self.write(start))
 		if isinstance(end, interfaces.ILiteral): end = self.write(end)
 		else: end = "(%s)" % (self.write(end))
-		res = self.runtimePrefix + self.jsCore + "range(%s,%s)" % (start, end)
+		res = "{0}__range__({1},{2})".format(self.runtimePrefix, start, end)
 		step = operation.getStep()
 		if step: res += " step " + self.write(step)
 		return res
@@ -2113,6 +2126,27 @@ class Writer(AbstractWriter):
 			#return "(typeof {0} === typeof undefined ? {0} = function(){{return {1}.apply(self,arguments);}} : {0})".format(m, n)
 			return n + ".bind(" + s + ")"
 
+	def _runtimeSuperInvocation( self, element ):
+		target = element.getTarget()
+		if isinstance(target, interfaces.IReference) and target.getReferenceName() == "super":
+			# We have a direct super invocation, which means we're invoking the
+			# super constructor
+			return "Object.getPrototypeOf({0}).constructor.apply({2},[{1}])".format(
+				self.getSafeSuperName(self.getCurrentClass()),
+				", ".join(map(self.write, element.getArguments())),
+				self._runtimeSelfReference(),
+			)
+		else:
+			# Otherwise we're invoking a method from the super, which
+			# is a simple call forwarding
+			return "{0}.apply({2},[{1}])".format(
+				self.write(element.getTarget()),
+				", ".join(map(self.write, element.getArguments())),
+				self._runtimeSelfReference(),
+			)
+
+
+
 	def _runtimeGetMethodByName(self, name, value=None, element=None):
 		return self._runtimeSelfReference(value) + "." + name
 
@@ -2186,12 +2220,18 @@ class Writer(AbstractWriter):
 		args      = invocation.getArguments()
 		predicate = self.write(args[0])
 		rest      = args[1:]
+		resolved  = self.resolve("assert")
+		if resolved:
+			assert_symbol = self.getSafeName(resolved[1])
+		else:
+			assert_symbol = "__assert__"
 		# TODO: We should include the offsets
-		return "!({0}) && extend.assert(false, {1}, {2}, {3})".format(
+		return "!({1}) && {0}(false, {2}, {3}, {4})".format(
+			assert_symbol,
 			predicate,
 			json.dumps(self.getScopeName() + ":"),
-			", ".join(self.write(_) for _ in rest) or '""',
 			json.dumps("(failed `" + predicate + "`)"),
+			", ".join(self.write(_) for _ in rest) or '""',
 		)
 
 	def _runtimeRestArguments( self, i ):
@@ -2224,51 +2264,31 @@ class Writer(AbstractWriter):
 			", ".join(map(self.write, element.getArguments())),
 		)
 
-	def _runtimeSuperInvocation( self, element ):
-		target = element.getTarget()
-		if isinstance(target, interfaces.IReference) and target.getReferenceName() == "super":
-			# We have a direct super invocation, which means we're invoking the
-			# super constructor
-			return "Object.getPrototypeOf({0}).constructor.apply({2},[{1}])".format(
-				self.getSafeSuperName(self.getCurrentClass()),
-				", ".join(map(self.write, element.getArguments())),
-				self._runtimeSelfReference(),
-			)
-		else:
-			# Otherwise we're invoking a method from the super, which
-			# is a simple call forwarding
-			return "{0}.apply({2},[{1}])".format(
-				self.write(element.getTarget()),
-				", ".join(map(self.write, element.getArguments())),
-				self._runtimeSelfReference(),
-			)
-
 	def _runtimePreamble( self ):
 		return []
 
-
 	def _runtimeAccess( self, target, index ):
-		# FIXME: This should be included in a default runtime
-		return (
-			"(function(t,i){{return typeof(i) != 'number' ? t[i] : i < 0 "
-			"&& (typeof(t) == 'string' || t instanceof Array || t && isNumber(t.length))"
-			"? t[t.length + i] : t[i]}}({0},{1}))"
-		).format(target, index)
+		return "{0}__access__({1},{2})".format(self.runtimePrefix, target, index)
+
+	# NOTE: Deprcated 2017-11-09 and left for reference
+	# def _runtimeAccess( self, target, index ):
+	# 	# FIXME: This should be included in a default runtime
+	# 	return (
+	# 		"(function(t,i){{return typeof(i) != 'number' ? t[i] : i < 0 "
+	# 		"&& (typeof(t) == 'string' || t instanceof Array || t && isNumber(t.length))"
+	# 		"? t[t.length + i] : t[i]}}({0},{1}))"
+	# 	).format(target, index)
 
 	def _runtimeSlice( self, target, start, end ):
-		return "%s%sslice(%s,%s,%s)" % (
-			self.runtimePrefix,
-			self.jsCore,
-			target,
-			start,
-			end
-		)
+		return "{0}__slice__({1},{2},{3})".format(self.runtimePrefix, target, start, end)
 
 	def _runtimeDecompose( self, context, element ):
-		return "__decompose__({0}, \"{1}\")".format(
+		return "{0}__decompose__({1}, \"{2}\")".format(
+			self.runtimePrefix,
 			self.write(context),
 			element.getReferenceName()
 		)
+
 
 	def _runtimeEventTrigger( self, element ):
 		target = self.write(element.getTarget()) or "undefined"
@@ -2283,11 +2303,18 @@ class Writer(AbstractWriter):
 		return "__send__({0}, {1}, {2}, {0})".format(target, event, args, target)
 
 	def _runtimeEventBind( self, element ):
-		return "__bind__({0}, {1}, {2})".format(
-			self.write(element.getTarget()) or "undefined",
-			self.write(element.getEvent()) or "undefined",
-			self.write(element.getArguments()) or "undefined",
-		)
+		if isinstance(element, interfaces.IElement):
+			return "{0}__bind__({1}, {2}, {3})".format(
+				self.runtimePrefix,
+				self.write(element.getTarget()) or "undefined",
+				self.write(element.getEvent()) or "undefined",
+				self.write(element.getArguments()) or "undefined",
+			)
+		else:
+			return "{0}__bind__(self, \"{1}\", arguments[0], arguments[1])".format(
+				self.runtimePrefix,
+				element
+			)
 
 	def _runtimeEventBindOnce( self, element ):
 		return "__once__({0}, {1}, {2})".format(
@@ -2296,20 +2323,17 @@ class Writer(AbstractWriter):
 			self.write(element.getArguments()) or "undefined",
 		)
 
-
-
 	def _runtimeEventUnbind( self, element ):
-		return "__unbind__({0}, {1}, {2})".format(
+		return "{0}__unbind__({1}, {2}, {2})".format(
+			self.runtimePrefix,
 			self.write(element.getTarget()) or "undefined",
 			self.write(element.getEvent()) or "undefined",
 			self.write(element.getArguments()) or "undefined",
 		)
 
 	def _runtimeMapFromItems( self, items ):
-		return "%s%screateMapFromItems(%s)" % (
-			self.runtimePrefix,
-			self.jsCore,
-			",".join("[%s,%s]" % ( self.write(k),self.write(v)) for k,v in items)
+		return "[{0}].reduce(function(r,v,k){{r[v[0]]=v[1];return r;}},{{}})".format(
+			",".join("[{0},{1}]".format(self.write(k),self.write(v)) for k,v in items)
 		)
 
 	def _runtimeUnitTestPreamble( self, element ):
