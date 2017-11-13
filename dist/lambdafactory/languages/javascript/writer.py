@@ -841,6 +841,8 @@ class Writer(AbstractWriter):
 		self.pushVarContext(methodElement)
 		method_name = self._rewriteSymbol(methodElement.getName())
 		args        = methodElement.getParameters()
+		operations = list(map(self._writeStatement, methodElement.getOperations())),
+		implicits  = [_ for _ in self._writeImplicitAllocations(methodElement)]
 		res = (
 			self._document(methodElement),
 			(
@@ -850,7 +852,7 @@ class Writer(AbstractWriter):
 			["const %s = this;" % (self._runtimeSelfReference(methodElement))], #, self.getAbsoluteName(methodElement.getParent()))],
 			self._writeClosureArguments(methodElement),
 			self.writeFunctionWhen(methodElement),
-			list(map(self._writeStatement, methodElement.getOperations())),
+			implicits, operations,
 			(
 				(not self.options["ENABLE_METADATA"] and "}") or \
 				"},%s)" % ( self._writeFunctionMeta(methodElement))
@@ -1449,7 +1451,6 @@ class Writer(AbstractWriter):
 				return self._runtimeSuperInvocation(invocation)
 			else:
 				return self._runtimeInvocation(invocation)
-
 		else:
 			raise NotImplementedError
 
@@ -1470,26 +1471,42 @@ class Writer(AbstractWriter):
 		if element.getValue().hasAnnotation("ellipsis"):
 			return "..." + r
 		elif element.isAsMap():
-			return "{'**':(%s)}" % (r)
+			# FIXME: Like **kwargs
+			raise NotImplementedError
 		elif element.isAsList():
-			return "{'*':(%s)}" % (r)
+			# FIXME: Like *kwargs
+			raise NotImplementedError
 		elif element.isByName():
 			# FIXME: Maybe rewrite name
-			return "{'^':%s,'=':(%s)}" % (repr(self._rewriteSymbol(element.getName())), r)
+			raise NotImplementedError
 		else:
 			return r
 
-	def onInstanciation( self, operation ):
+	def onInstanciation( self, element ):
 		"""Writes an invocation operation."""
-		i = operation.getInstanciable()
+		i = element.getInstanciable()
 		t = self.write(i)
 		# Invocation targets can be expressions
 		if not isinstance(i, interfaces.IReference): t = "(" + t + ")"
-		a = self.write(operation.getArguments())
-		return "new %s(%s)" % (
-			t,
-			", ".join(self.write(_) for _ in operation.getArguments())
-		)
+		args = []
+		with_ellipsis = None
+		for i,a in enumerate(element.getArguments() or ()):
+			if a.getValue().hasAnnotation("ellipsis"):
+				with_ellipsis = i
+			args.append(a)
+		if with_ellipsis is None:
+			return "new %s(%s)" % (
+				t,
+				", ".join(self.write(_) for _ in element.getArguments())
+			)
+		else:
+			# SEE: https://stackoverflow.com/questions/1606797/use-of-apply-with-new-operator-is-this-possible/8843181#8843181
+			return "(function(c){{return new (Function.prototype.bind.apply(c,Array.prototype.slice.call(arguments,0,{2}+1).concat(arguments[{2}+1])));}})({0},{1})".format(
+				t,
+				", ".join(self.write(_.getValue()) for _ in element.getArguments()),
+				i
+			)
+
 
 	def onChain( self, chain ):
 		target = self.write(chain.getTarget())
@@ -2267,10 +2284,26 @@ class Writer(AbstractWriter):
 		return "const {0} = {1};".format(self.jsSelf, t)
 
 	def _runtimeInvocation( self, element ):
-		return "{0}({1})".format(
-			self.write(element.getTarget()),
-			", ".join(map(self.write, element.getArguments())),
-		)
+		args = []
+		with_ellipsis = None
+		for i,a in enumerate(element.getArguments() or ()):
+			if a.getValue().hasAnnotation("ellipsis"):
+				with_ellipsis = i
+			args.append(a)
+		if with_ellipsis is None:
+			return "{0}({1})".format(
+				self.write(element.getTarget()),
+				", ".join(self.write(_) for _ in args)
+			)
+		else:
+			a = args[:with_ellipsis]
+			n = args[with_ellipsis:]
+			return "{0}__apply__({1},[{2}]{3})".format(
+				self.runtimePrefix,
+				self.write(element.getTarget()),
+				", ".join(self.write(_) for _ in a),
+				"".join(".concat(" + (self.write(_.getValue())) + ")" for _ in n),
+			)
 
 	def _runtimePreamble( self ):
 		return []

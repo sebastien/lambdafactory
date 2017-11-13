@@ -369,6 +369,17 @@ class Writer(JavaScriptWriter):
 				res += ";this.__init_properties__(this);"
 		return res
 
+	def onInstanciation( self, element ):
+		"""Writes an invocation operation."""
+		i = element.getInstanciable()
+		t = self.write(i)
+		# Invocation targets can be expressions
+		if not isinstance(i, interfaces.IReference): t = "(" + t + ")"
+		return "new %s(%s)" % (
+			t,
+			", ".join(self.write(_) for _ in element.getArguments())
+		)
+
 
 	# =========================================================================
 	# CALLBABLE-SPECIFIC RULES
@@ -483,6 +494,13 @@ class Writer(JavaScriptWriter):
 				self.write(element.getTarget()),
 				", ".join(map(self.write, element.getArguments())),
 			)
+
+	def _runtimeInvocation( self, element ):
+		args = element.getArguments()
+		return "{0}({1})".format(
+			self.write(element.getTarget()),
+			", ".join(self.write(_) for _ in args)
+		)
 
 MAIN_CLASS = Writer
 
