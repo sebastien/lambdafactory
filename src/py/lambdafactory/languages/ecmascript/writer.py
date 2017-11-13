@@ -254,7 +254,7 @@ class Writer(JavaScriptWriter):
 		if withAccessors:
 			for e in element.getAccessors():
 				self.pushContext(e)
-				yield self.onAccesor(e)
+				yield self.onAccessor(e)
 				self.popContext()
 			for e in element.getMutators():
 				self.pushContext(e)
@@ -297,7 +297,7 @@ class Writer(JavaScriptWriter):
 		yield self._onFunctionBody(element, body, bindSelf=bindSelf, operations=operations)
 		yield "}"
 
-	def onAccesor( self, element ):
+	def onAccessor( self, element ):
 		return self.onFunction( element, modifier="get" )
 
 	def onMutator( self, element ):

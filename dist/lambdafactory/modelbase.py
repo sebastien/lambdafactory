@@ -77,7 +77,9 @@ class Factory:
 		return self._getImplementation("DataFlowSlot")(name,value,origin,slotType)
 
 	def createProgram( self ):
-		return self._getImplementation("Program")()
+		p = self._getImplementation("Program")()
+		p.setFactory(self)
+		return p
 
 	def createInterface( self ):
 		return self._getImplementation("Interface")()

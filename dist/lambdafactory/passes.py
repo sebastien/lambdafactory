@@ -261,6 +261,16 @@ class PassContext:
 	def getCurrentClassAncestors(self):
 		return self.getClassAncestors(self.getCurrentClass())
 	
+	def getClassParentAndTraits(self, element):
+		parents = []
+		traits = []
+		for parent in self.getClassParents(element):
+			if isinstance(parent, interfaces.ITrait):
+				traits.append(parent)
+			elif True:
+				parents.append(parent)
+		return [parents, traits]
+	
 	def getClassAncestors(self, theClass=None):
 		if theClass is None: theClass = None
 		ancestors=[]
@@ -438,36 +448,6 @@ class Pass(PassContext):
 		return self.__class__.NAME
 	
 
-class ExtendJSRuntime(Pass):
-	""" This pass is like an importation and will simply bind the symbols"""
-	HANDLES = [interfaces.IProgram, interfaces.IModule]
-	NAME = 'GlobalRuntime'
-	FUNCTIONS = ['access', 'add', 'asMap', 'assert', 'bool', 'capitalize', 'car', 'cdr', 'cmp', 'copy', 'debug', 'difference', 'equals', 'equals', 'error', 'exception', 'fail', 'filter', 'find', 'findLike', 'findOneOf', 'first', 'foldl', 'greater', 'insert', 'intersection', 'isDefined', 'isFunction', 'isIn', 'isInstance', 'isIterable', 'isList', 'isMap', 'isNumber', 'isObject', 'isString', 'isUndefined', 'items', 'itemsAsMap', 'iterate', 'json', 'keys', 'last', 'list', 'len', 'lower', 'map', 'map0', 'map1', 'map2', 'map3', 'merge', 'module', 'offset', 'pairs', 'print', 'range', 'reduce', 'remove', 'removeAt', 'replace', 'require', 'reverse', 'slice', 'smaller', 'sorted', 'sprintf', 'str', 'strip', 'type', 'union', 'unjson', 'upper', 'values', 'warning', 'words', 'xor']
-	def __init__ (self):
-		self.runtime = None
-		Pass.__init__(self)
-	
-	def onProgram(self, program):
-		self.runtime = self.environment.factory.createModule('extend')
-		self.runtime.addAnnotation(self.environment.factory.annotation('shadow'))
-		for f in self.__class__.FUNCTIONS:
-			fun=self.environment.factory.createFunction(f)
-			fun.addAnnotation(self.environment.factory.annotation('shadow'))
-			self.runtime.setSlot(f, fun)
-		program.addModule(self.runtime, 0)
-	
-	def onModule(self, module):
-		imports=module.getImportOperations()
-		assert self.runtime, "No runtime defined in ExtendJSRuntime pass"
-		f=self.environment.factory
-		s=[]
-		o=self.runtime.getAbsoluteName()
-		for _ in self.runtime.getSlotNames():
-			s.append(f.importSymbol(_, o, None))
-		module.addImportOperation(self.environment.factory.importSymbols(s, o), 0)
-		return False
-	
-
 class ControlFlow(Pass):
 	HANDLES = [interfaces.ITermination]
 	def __init__ (self):
@@ -632,22 +612,47 @@ class CountReferences(Pass):
 	
 	 This is the first pass to be applied before actually removing the dead
 	 code."""
-	HANDLES = [interfaces.IReference, interfaces.IFunction, interfaces.IElement]
+	HANDLES = [interfaces.IProgram, interfaces.IReference]
 	NAME = 'CountReferences'
-	def addReferer(self, element, context=None):
-		if context is None: context = self.getCurrentContext()
+	def __init__( self, *args, **kwargs ):
+		"""Constructor wrapper to intialize class attributes"""
+		Pass.__init__(self, *args, **kwargs)
+		self.entryPoints = ['ff.ui.components.Component', 'ff.ui.components.bind']
+	def incReference(self, element, context=None):
+		if context is None: context = None
 		refcount=element.getAnnotation('refcount')
 		referers=element.getAnnotation('referers')
 		if refcount:
 			refcount.setContent((refcount.getContent() + 1))
-			referers.getContent().append(context)
+			referers = referers.getContent()
+			if (context and (context not in referers)):
+				referers.append(context)
+			return True
 		elif True:
 			self.annotate(element, 'refcount', 1)
-			self.annotate(element, 'referers', [context])
+			if context:
+				referers = [context]
+			elif True:
+				referers = []
+			self.annotate(element, 'referers', referers)
+			return False
 	
-	def onFunction(self, element):
-		if (element.getName() == interfaces.Constants.ModuleInit):
-			self.addReferer(element, element)
+	def addReferer(self, element, context=None):
+		""" Adds the given `context` as a referer to the given element."""
+		if context is None: context = self.getCurrentContext()
+		parent=element.parent
+		while parent:
+			self.incReference(parent, element)
+			parent = parent.parent
+		if (not self.incReference(element, context)):
+			self.walk(element)
+	
+	def onProgram(self, element):
+		for entry in self.entryPoints:
+			slot_value=self.resolveAbsolute(entry)
+			if slot_value[1]:
+				e=slot_value[1]
+				self.addReferer(e, element)
 	
 	def onReference(self, reference):
 		if self.isIn(interfaces.IOperation):
@@ -655,9 +660,6 @@ class CountReferences(Pass):
 			value=slot_and_value[1]
 			if value:
 				self.addReferer(value)
-	
-	def onElement(self, element):
-		pass
 	
 
 class RemoveDeadCode(Pass):
@@ -682,7 +684,7 @@ class RemoveDeadCode(Pass):
 			elif True:
 				for element in self.context:
 					element.removeAnnotation('shadow')
-		elif True:
+		elif value.getAbsoluteName():
 			self.annotate(value, 'shadow')
 	
 	def onElement(self, element):

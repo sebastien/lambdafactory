@@ -495,8 +495,8 @@ class Writer(AbstractWriter):
 			"IMPORTS", imports
 		).replace("\n\t\t", "\n")
 		module_declaration = [
-			"var __module__ = typeof(exports)==='undefined' ? {} : exports;",
-			"var {0} = __module__;".format(module_name),
+			"const __module__ = typeof(exports)==='undefined' ? {} : exports;",
+			"const {0} = __module__;".format(module_name),
 		]
 		symbols = []
 		for alias, module, slot, op in self.getImportedSymbols(moduleElement):
@@ -562,8 +562,8 @@ class Writer(AbstractWriter):
 			"goog.loadModule(function(exports){",
 			"goog.module('{0}');".format(abs_name),
 		] + modules + symbols + [
-			"var {0} = exports;".format(module_name),
-			"var __module__ = {0};".format(module_name),
+			"const {0} = exports;".format(module_name),
+			"const __module__ = {0};".format(module_name),
 			"// END:GOOGLE_PREAMBLE"
 		]
 
@@ -651,6 +651,8 @@ class Writer(AbstractWriter):
 		constructors = classElement.getConstructors()
 		destructors  = classElement.getDestructors()
 		methods      = classElement.getInstanceMethods()
+		accessors    = classElement.getAccessors()
+		mutators     = classElement.getMutators()
 		if classAttributes:
 			result += self._group("Class attributes", 1)
 			written_attrs = ",\n".join(map(self.write, classAttributes))
@@ -691,8 +693,7 @@ class Writer(AbstractWriter):
 					"// Default value for property `{0}`".format(a.getName())
 				)
 				constructor_attributes.append(
-					"if (typeof(%s.%s)=='undefined') {%s.%s = %s;};" % (
-						self._runtimeSelfReference(classElement), self._rewriteSymbol(a.getName()),
+					"{0}.{1} = {2};".format(
 						self._runtimeSelfReference(classElement), self._rewriteSymbol(a.getName()),
 						self.write(a.getDefaultValue())
 				))
@@ -718,10 +719,17 @@ class Writer(AbstractWriter):
 			result += self._group("Destructor", 1)
 			assert len(destructors) == 1, "Multiple destructors are not supported"
 			result.append("%s," % (self.write(destructors[0])))
+		if accessors:
+			result.append("accessors:{")
+			result.extend([",\n\n".join(self._format(self.onMethod(_)) for _ in accessors)])
+			result.append("},")
+		if mutators:
+			result.append("mutators:{")
+			result.extend([",\n\n".join(self._format(self.onMethod(_)) for _ in mutators)])
+			result.append("},")
 		if methods:
 			result += self._group("Methods", 1)
 			written_meths = ",\n\n".join(self._format(self.write(_)) for _ in methods)
-
 			result.append("methods: {")
 			result.append([written_meths])
 			result.append("},")
@@ -741,7 +749,7 @@ class Writer(AbstractWriter):
 	def onAttribute( self, element ):
 		default_value = element.getDefaultValue()
 		if default_value: default_value = self.write(default_value)
-		else: default_value="undefined"
+		else: default_value = "undefined"
 		return (
 			self._document(element),
 			"%s: %s" % (self._rewriteSymbol(element.getName()), default_value)
@@ -775,6 +783,8 @@ class Writer(AbstractWriter):
 		method_name = self._rewriteSymbol(methodElement.getName())
 		if method_name == interfaces.Constants.Constructor: method_name = "init"
 		if method_name == interfaces.Constants.Destructor:  method_name = "cleanup"
+		# We don't forget the implicit allocations
+		implicits  = [_ for _ in self._writeImplicitAllocations(methodElement)]
 		event = methodElement.getAnnotation("event")
 		if event:
 			operations = ["return " + self._runtimeEventBind(event.getContent()) + ";"]
@@ -793,7 +803,7 @@ class Writer(AbstractWriter):
 			self._writeClosureArguments(methodElement),
 			self.writeFunctionWhen(methodElement),
 			self.writeFunctionPre(methodElement),
-			operations,
+			implicits, operations,
 			(
 				(not self.options["ENABLE_METADATA"] and "}") or \
 				"}, %s)" % ( self._writeFunctionMeta(methodElement))
@@ -882,8 +892,7 @@ class Writer(AbstractWriter):
 			if not a.getDefaultValue(): continue
 			name = self._rewriteSymbol(a.getName())
 			attributes.append("// Default initialization of property `{0}`".format(name))
-			attributes.append("if (typeof(%s.%s)=='undefined') {%s.%s = %s;};" % (
-				self._runtimeSelfReference(element), name,
+			attributes.append("{0}.{1} = {2};".format(
 				self._runtimeSelfReference(element), name,
 				self.write(a.getDefaultValue()))
 			)
@@ -895,7 +904,7 @@ class Writer(AbstractWriter):
 			)  % (
 				", ".join(map(self.write, element.getParameters()))
 			),
-			["var %s = this;" % (self._runtimeSelfReference(element))],
+			["const %s = this;" % (self._runtimeSelfReference(element))],
 			self._writeClosureArguments(element),
 			attributes or None,
 			list(map(self._writeStatement, element.getOperations())),
@@ -974,13 +983,19 @@ class Writer(AbstractWriter):
 		if function.getAnnotations(withName="post"):
 			res[0] = "const __wrapped__ = " + res[0] + ";"
 			if parent and isinstance(parent, interfaces.IModule):
-				res.insert(0, 'var %s=%s;' % (self._runtimeSelfReference(function), self.getAbsoluteName(parent)))
-			res.append("var result = __wrapped__.apply(%s, arguments);" % (self._runtimeSelfReference(function)))
+				res.insert(0, 'const %s=%s;' % (self._runtimeSelfReference(function), self.getAbsoluteName(parent)))
+			res.append("const result = __wrapped__.apply(%s, arguments);" % (self._runtimeSelfReference(function)))
 			res.append(self.writeFunctionPost(function))
 			res.append("return result;")
 		res = self.writeDecorators(function, res)
 		self.popVarContext()
 		return res
+
+	def onAccessor( self, element ):
+		return self.onMethod(element)
+
+	def onMutator( self, element ):
+		return self.onMethod( element)
 
 	def writeDecorators( self, element, lines ):
 		d = []
@@ -2119,11 +2134,6 @@ class Writer(AbstractWriter):
 			# This is awkward, but that's how you emulate a super invocation
 			return "Object.getPrototypeOf(Object.getPrototypeOf({0})).{1}.bind({0})".format(s, name)
 		else:
-			m = s + ".__super_method__" + name
-			n = "self.prototype." + name
-			# NOTE: The commented line is a relatively bad way to do the
-			# binding
-			#return "(typeof {0} === typeof undefined ? {0} = function(){{return {1}.apply(self,arguments);}} : {0})".format(m, n)
 			return n + ".bind(" + s + ")"
 
 	def _runtimeSuperInvocation( self, element ):
@@ -2131,7 +2141,7 @@ class Writer(AbstractWriter):
 		if isinstance(target, interfaces.IReference) and target.getReferenceName() == "super":
 			# We have a direct super invocation, which means we're invoking the
 			# super constructor
-			return "Object.getPrototypeOf({0}).constructor.apply({2},[{1}])".format(
+			return "/*super()*/Object.getPrototypeOf({0}).apply({2},[{1}])".format(
 				self.getSafeSuperName(self.getCurrentClass()),
 				", ".join(map(self.write, element.getArguments())),
 				self._runtimeSelfReference(),
@@ -2144,8 +2154,6 @@ class Writer(AbstractWriter):
 				", ".join(map(self.write, element.getArguments())),
 				self._runtimeSelfReference(),
 			)
-
-
 
 	def _runtimeGetMethodByName(self, name, value=None, element=None):
 		return self._runtimeSelfReference(value) + "." + name
@@ -2169,16 +2177,16 @@ class Writer(AbstractWriter):
 			return "(Object.getPrototypeOf({0}).constructor)".format(self.jsSelf)
 
 	def _runtimeReturnBreak( self ):
-		return "return __BREAK__;"
+		return "return {0}__BREAK__;".format(self.runtimePrefix)
 
 	def _runtimeReturnContinue( self ):
-		return "return __CONTINUE__;"
+		return "return {0}__CONTINUE__;".format(self.runtimePrefix)
 
 	def _runtimeReturnType( self ):
-		return "__RETURN__"
+		return "{0}__RETURN__".format(self.runtimePrefix)
 
 	def _runtimeNothing( self ):
-		return "__NOTHING__"
+		return "{0}__NOTHING__".format(self.runtimePrefix)
 
 	def _runtimeOp( self, name, *args ):
 		return "{0}({1})".format(
@@ -2337,7 +2345,7 @@ class Writer(AbstractWriter):
 		)
 
 	def _runtimeUnitTestPreamble( self, element ):
-		return "(function(){{var __test__=new ff.util.testing.Unit('{0}');".format(self.getAbsoluteName(element.parent))
+		return "(function(){{const __test__=new ff.util.testing.Unit('{0}');".format(self.getAbsoluteName(element.parent))
 
 	def _runtimeUnitTestPostamble( self, element ):
 		return "__test__.end();}());"

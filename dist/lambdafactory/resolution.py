@@ -330,6 +330,8 @@ class DataFlowBinding(Pass):
 		df=element.getDataFlow()
 		if (slot_and_value == self.__class__.FAILED):
 			self.environment.report.error('Imported module not found in scope:', module_name, 'in', element.getName())
+			self._ensureModule(fromModuleName, operation)
+			return self._importSymbol(operation, symbolName, fromModuleName, moduleDest, alias)
 		elif (symbol_name == '*'):
 			imported_module=slot_and_value[1]
 			for slot_name in imported_module.getSlotNames():
@@ -370,6 +372,20 @@ class DataFlowBinding(Pass):
 			assert((module.getDataFlow().resolve(name)[0].getDataFlow() == module.getDataFlow()))
 			assert((module.getDataFlow().resolve(name)[0].getDataFlow().getElement() == module))
 		return imported
+	
+	def _ensureModule(self, moduleName, operation):
+		""" Ensures that the given module is registered, even if it cannot be
+		 located."""
+		module=self.program.getModule(moduleName)
+		if (not module):
+			module = self.program.factory.createModule(moduleName)
+			df=self.program.factory.createDataFlow(module)
+			df.setParent(self.program.getDataFlow())
+			module.setDataFlow(df)
+			module.setImported(True)
+			df.declareImported(moduleName, None, operation)
+			self.program.addModule(module)
+		return module
 	
 	def onEnumerationType(self, element):
 		df=self.getCurrentModule().getDataFlow()

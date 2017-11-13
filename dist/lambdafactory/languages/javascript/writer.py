@@ -6,7 +6,7 @@
 # License   : Revised BSD License
 # -----------------------------------------------------------------------------
 # Creation  : 2006-11-02
-# Last mod  : 2016-12-07
+# Last mod  : 2017-10-30
 # -----------------------------------------------------------------------------
 
 # TODO: Cleanup the code generation by moving the templates to the top
@@ -14,6 +14,7 @@
 # TODO: When constructor is empty, should assign default attributes anyway
 # TODO: Support optional meta-data
 # TODO: Provide a global rewrite operation
+# TODO: Use const whenever possible
 
 from   lambdafactory.modelwriter import AbstractWriter, flatten
 import lambdafactory.interfaces as interfaces
@@ -98,11 +99,21 @@ class Writer(AbstractWriter):
 	# safe.
 	RNDVARLETTERS  = "ijklmonpqrstuvwxyzabcdefgh"
 	UNIT_OPERATORS = UNIT_OPERATORS
+	RUNTIME_OPS = {
+		"isIn":"__in__",
+		"map":"__map__",
+		"filter":"__filter__",
+		"reduce":"__reduce__",
+		"reducer":"__reduce_right__",
+		"iterate":"__iterate__"
+	}
 
 	def __init__( self ):
 		AbstractWriter.__init__(self)
-		self.runtimePrefix                = ""
-		self.jsCore                  = "extend."
+		# If the runtime functions have a prefix
+		self.runtimePrefix           = ""
+		# Only used in the declration of constructs (class, trait, singleton)
+		self.declarePrefix           = "declare."
 		self.jsSelf                  = "self"
 		self.jsModule                = "__module__"
 		self.jsInit                  = "__init__"
@@ -234,6 +245,7 @@ class Writer(AbstractWriter):
 				return self.getSafeSuperName(element) + ("." + name if name else "")
 
 	def getSafeSuperName( self, element ):
+		"""Returns the absolute name of the given element's parent."""
 		parent = element.getParent()
 		name   = element.getName()
 		if not parent:
@@ -402,8 +414,10 @@ class Writer(AbstractWriter):
 		declaration = []
 		names       = full_name.split(".")
 		if len(names) == 1:
-			declaration.append("var {0}=typeof(extend)!='undefined' ? "
-				"extend.module('{0}') : (typeof({0})!='undefined' ? {0} : "
+			pass
+			# NOTE: Disabled for now
+			declaration.append("var {0}=typeof(runtime)!='undefined' ? "
+				"runtime.module('{0}') : (typeof({0})!='undefined' ? {0} : "
 				"{{}});".format(local_name))
 		else:
 			parents = []
@@ -413,8 +427,8 @@ class Writer(AbstractWriter):
 				parent_abs_name      = ".".join(parents)
 				parent_safe_name = "_".join(parents)
 				declaration.append(
-					"var {0}=typeof(extend)!='undefined' ? "
-					"extend.module('{1}') : (typeof({1})!='undefined' ? {1} : "
+					"var {0}=typeof(runtime)!='undefined' ? "
+					"runtime.module('{1}') : (typeof({1})!='undefined' ? {1} : "
 					"{{}});".format(parent_safe_name, parent_abs_name))
 				if i > 0:
 					declaration.append("if (typeof({0})==='undefined') {{{0}={1};}};".format(
@@ -430,7 +444,7 @@ class Writer(AbstractWriter):
 					symbols.append("var {0} = {1};".format(alias or module, module))
 			else:
 				# Extend gets a special treatment
-				if module != "extend" or alias:
+				if alias:
 					symbols.append("var {0} = {1}.{2};".format(alias or slot, module, slot))
 		return [
 			"// START:VANILLA_PREAMBLE",
@@ -481,8 +495,8 @@ class Writer(AbstractWriter):
 			"IMPORTS", imports
 		).replace("\n\t\t", "\n")
 		module_declaration = [
-			"var __module__ = typeof(exports)==='undefined' ? {} : exports;",
-			"var {0} = __module__;".format(module_name),
+			"const __module__ = typeof(exports)==='undefined' ? {} : exports;",
+			"const {0} = __module__;".format(module_name),
 		]
 		symbols = []
 		for alias, module, slot, op in self.getImportedSymbols(moduleElement):
@@ -492,10 +506,9 @@ class Writer(AbstractWriter):
 				if alias:
 					symbols.append("const {0} = {1};".format(alias or safe_module, safe_module))
 			else:
-				symbols.append("const {0} = {1}.{2};".format(alias or slot, safe_module, slot))
-				# NOTE: Re-enabled 2017-10-30: We need to support stuff like
-				# `@import mat4 from gl.matrix`. Not sure why it was disabled.
-				# NOTE: Disabled 2017-05-08
+				pass
+				# NOTE: Disabled 2017-05-08, as references to imported symbols
+				# are always absolute.
 				# Extend gets a special treatment
 				# if module != "extend" or alias:
 				# 	symbols.append("var {0} = {1}.{2};".format(alias or slot, safe_module, slot))
@@ -549,8 +562,8 @@ class Writer(AbstractWriter):
 			"goog.loadModule(function(exports){",
 			"goog.module('{0}');".format(abs_name),
 		] + modules + symbols + [
-			"var {0} = exports;".format(module_name),
-			"var __module__ = {0};".format(module_name),
+			"const {0} = exports;".format(module_name),
+			"const __module__ = {0};".format(module_name),
 			"// END:GOOGLE_PREAMBLE"
 		]
 
@@ -576,8 +589,6 @@ class Writer(AbstractWriter):
 				line = "c.{0} = __module__;".format(name)
 			res.append(line)
 		return (self._section("Module registration") if self._isNice else []) + [
-			"// Registers the module in `extend`, if available" if self._isNice else None,
-			# "if (typeof extend !== 'undefined') {{extend.module(\"{0}\", {1});}}".format(".".join(names), safe_name),
 			"// Registers the module in the globals, creating any submodule if necessary" if self._isNice else None,
 			"if (typeof window !== 'undefined') {",
 			res,
@@ -596,14 +607,14 @@ class Writer(AbstractWriter):
 	# =========================================================================
 
 	def onSingleton( self, element ):
-		return self.onClass(element)
+		return self.onClass(element, "Singleton")
 
 	def onTrait( self, element ):
-		return self.onClass(element)
+		return self.onClass(element, "Trait")
 
-	def onClass( self, classElement ):
+	def onClass( self, classElement, classType="Class" ):
 		"""Writes a class element."""
-		parents = self.getClassParents(classElement)
+		parents, traits = self.getClassParentAndTraits(classElement)
 		parent  = "undefined"
 		if len(parents) == 1:
 			parent_class = parents[0]
@@ -634,11 +645,14 @@ class Writer(AbstractWriter):
 		result = []
 		result.append(           "name  :'%s'," % (self.getAbsoluteName(classElement)))
 		if parent: result.append("parent: %s," % (parent))
+		if traits: result.append("traits: [{0}],".format(", ".join(self.getSafeName(_) for _ in traits)))
 		# We collect class attributes
 		attributes   = classElement.getAttributes()
 		constructors = classElement.getConstructors()
 		destructors  = classElement.getDestructors()
 		methods      = classElement.getInstanceMethods()
+		accessors    = classElement.getAccessors()
+		mutators     = classElement.getMutators()
 		if classAttributes:
 			result += self._group("Class attributes", 1)
 			written_attrs = ",\n".join(map(self.write, classAttributes))
@@ -670,22 +684,16 @@ class Writer(AbstractWriter):
 				# sure to know the parent constructors arity -- this is just a
 				# way to cover our ass. We encapsulate the __super__ declaration
 				# in a block to avoid scoping problems.
-				invoke_parent_constructor = u"".join([
-					"// Invokes the parent constructor - this requires the parent to be an extend.Class class\n",
-					"\tif (true) {var __super__=",
-					# FIXME: Make sure that that the module name is not shadowed
-					# by something else
-					"%s.getSuper(%s.getParent());" % (self._runtimeSelfReference(classElement), self.getSafeSuperName(classElement)),
-					"__super__.initialize.apply(__super__, arguments);}"
-				])
+				invoke_parent_constructor = u"\n".join(
+					"if ({0} && {0}.__init__) {{ {0}.__init__.apply(self, arguments); }}".format(self.getSafeSuperName(_)) for _ in parents
+				)
 			for a in classElement.getAttributes():
 				if not a.getDefaultValue(): continue
 				constructor_attributes.append(
 					"// Default value for property `{0}`".format(a.getName())
 				)
 				constructor_attributes.append(
-					"if (typeof(%s.%s)=='undefined') {%s.%s = %s;};" % (
-						self._runtimeSelfReference(classElement), self._rewriteSymbol(a.getName()),
+					"{0}.{1} = {2};".format(
 						self._runtimeSelfReference(classElement), self._rewriteSymbol(a.getName()),
 						self.write(a.getDefaultValue())
 				))
@@ -696,7 +704,7 @@ class Writer(AbstractWriter):
 					self.options["ENABLE_METADATA"] and "initialize: __def(function(){" \
 					or "initialize: function(){"
 				),
-				["var %s = this;" % (self._runtimeSelfReference(classElement))],
+				["const %s = this;" % (self._runtimeSelfReference(classElement))],
 				constructor_attributes or None,
 				invoke_parent_constructor,
 				(
@@ -711,10 +719,17 @@ class Writer(AbstractWriter):
 			result += self._group("Destructor", 1)
 			assert len(destructors) == 1, "Multiple destructors are not supported"
 			result.append("%s," % (self.write(destructors[0])))
+		if accessors:
+			result.append("accessors:{")
+			result.extend([",\n\n".join(self._format(self.onMethod(_)) for _ in accessors)])
+			result.append("},")
+		if mutators:
+			result.append("mutators:{")
+			result.extend([",\n\n".join(self._format(self.onMethod(_)) for _ in mutators)])
+			result.append("},")
 		if methods:
 			result += self._group("Methods", 1)
 			written_meths = ",\n\n".join(self._format(self.write(_)) for _ in methods)
-
 			result.append("methods: {")
 			result.append([written_meths])
 			result.append("},")
@@ -726,7 +741,7 @@ class Writer(AbstractWriter):
 			result.append("},")
 		if result[-1][-1] == ",":result[-1] =result[-1][:-1]
 		return (
-			"extend.Class({",
+			self.declarePrefix + classType + "({",
 			result,
 			"})"
 		)
@@ -734,7 +749,7 @@ class Writer(AbstractWriter):
 	def onAttribute( self, element ):
 		default_value = element.getDefaultValue()
 		if default_value: default_value = self.write(default_value)
-		else: default_value="undefined"
+		else: default_value = "undefined"
 		return (
 			self._document(element),
 			"%s: %s" % (self._rewriteSymbol(element.getName()), default_value)
@@ -768,6 +783,13 @@ class Writer(AbstractWriter):
 		method_name = self._rewriteSymbol(methodElement.getName())
 		if method_name == interfaces.Constants.Constructor: method_name = "init"
 		if method_name == interfaces.Constants.Destructor:  method_name = "cleanup"
+		# We don't forget the implicit allocations
+		implicits  = [_ for _ in self._writeImplicitAllocations(methodElement)]
+		event = methodElement.getAnnotation("event")
+		if event:
+			operations = ["return " + self._runtimeEventBind(event.getContent()) + ";"]
+		else:
+			operations = list(map(self._writeStatement, methodElement.getOperations())),
 		res = (
 			self._document(methodElement),
 			(
@@ -777,11 +799,11 @@ class Writer(AbstractWriter):
 				method_name,
 				", ".join(map(self.write, methodElement.getParameters()))
 			),
-			["var %s = this;" % (self._runtimeSelfReference(methodElement))],
+			["const %s = this;" % (self._runtimeSelfReference(methodElement))],
 			self._writeClosureArguments(methodElement),
 			self.writeFunctionWhen(methodElement),
 			self.writeFunctionPre(methodElement),
-			list(map(self._writeStatement, methodElement.getOperations())),
+			implicits, operations,
 			(
 				(not self.options["ENABLE_METADATA"] and "}") or \
 				"}, %s)" % ( self._writeFunctionMeta(methodElement))
@@ -825,7 +847,7 @@ class Writer(AbstractWriter):
 				self.options["ENABLE_METADATA"] and "%s:__def(function(%s){" \
 				or "%s: function( %s ){"
 			) % (method_name, ", ".join(map(self.write, args))),
-			["var %s = this;" % (self._runtimeSelfReference(methodElement))], #, self.getAbsoluteName(methodElement.getParent()))],
+			["const %s = this;" % (self._runtimeSelfReference(methodElement))], #, self.getAbsoluteName(methodElement.getParent()))],
 			self._writeClosureArguments(methodElement),
 			self.writeFunctionWhen(methodElement),
 			list(map(self._writeStatement, methodElement.getOperations())),
@@ -870,8 +892,7 @@ class Writer(AbstractWriter):
 			if not a.getDefaultValue(): continue
 			name = self._rewriteSymbol(a.getName())
 			attributes.append("// Default initialization of property `{0}`".format(name))
-			attributes.append("if (typeof(%s.%s)=='undefined') {%s.%s = %s;};" % (
-				self._runtimeSelfReference(element), name,
+			attributes.append("{0}.{1} = {2};".format(
 				self._runtimeSelfReference(element), name,
 				self.write(a.getDefaultValue()))
 			)
@@ -883,7 +904,7 @@ class Writer(AbstractWriter):
 			)  % (
 				", ".join(map(self.write, element.getParameters()))
 			),
-			["var %s = this;" % (self._runtimeSelfReference(element))],
+			["const %s = this;" % (self._runtimeSelfReference(element))],
 			self._writeClosureArguments(element),
 			attributes or None,
 			list(map(self._writeStatement, element.getOperations())),
@@ -919,6 +940,13 @@ class Writer(AbstractWriter):
 		self.pushVarContext(function)
 		parent = function.getParent()
 		name   = self._rewriteSymbol( function.getName() )
+		# We don't forget the implicit allocations
+		implicits  = [_ for _ in self._writeImplicitAllocations(function)]
+		event = function.getAnnotation("event")
+		if event:
+			operations = ["return " + self._runtimeEventBind(event.getContent()) + ";"]
+		else:
+			operations = list(map(self._writeStatement, function.getOperations())),
 		if parent and isinstance(parent, interfaces.IModule):
 			res = [
 				(
@@ -927,10 +955,10 @@ class Writer(AbstractWriter):
 				)  % (
 					", ".join(map(self.write, function.getParameters()))
 				),
-				['var %s = %s;' % (self._runtimeSelfReference(function), self.getResolvedName(function.parent))],
+				['const %s = %s;' % (self._runtimeSelfReference(function), self.getResolvedName(function.parent))],
 				self._writeClosureArguments(function),
 				self.writeFunctionWhen(function),
-				list(map(self._writeStatement, function.getOperations())),
+				implicits, operations,
 				(
 					(not self.options["ENABLE_METADATA"] and "}") or \
 					"}, %s)" % ( self._writeFunctionMeta(function))
@@ -946,22 +974,28 @@ class Writer(AbstractWriter):
 				),
 				self._writeClosureArguments(function),
 				self.writeFunctionWhen(function),
-				list(map(self._writeStatement, function.getOperations())),
+				implicits, operations,
 				(
 					(not self.options["ENABLE_METADATA"] and "}") or \
 					"}, %s)" % ( self._writeFunctionMeta(closure))
 				)
 			]
 		if function.getAnnotations(withName="post"):
-			res[0] = "var __wrapped__ = " + res[0] + ";"
+			res[0] = "const __wrapped__ = " + res[0] + ";"
 			if parent and isinstance(parent, interfaces.IModule):
-				res.insert(0, 'var %s=%s;' % (self._runtimeSelfReference(function), self.getAbsoluteName(parent)))
-			res.append("var result = __wrapped__.apply(%s, arguments);" % (self._runtimeSelfReference(function)))
+				res.insert(0, 'const %s=%s;' % (self._runtimeSelfReference(function), self.getAbsoluteName(parent)))
+			res.append("const result = __wrapped__.apply(%s, arguments);" % (self._runtimeSelfReference(function)))
 			res.append(self.writeFunctionPost(function))
 			res.append("return result;")
 		res = self.writeDecorators(function, res)
 		self.popVarContext()
 		return res
+
+	def onAccessor( self, element ):
+		return self.onMethod(element)
+
+	def onMutator( self, element ):
+		return self.onMethod( element)
 
 	def writeDecorators( self, element, lines ):
 		d = []
@@ -1054,9 +1088,9 @@ class Writer(AbstractWriter):
 			arg_name = self.write(param)
 			if param.isRest():
 				assert i >= l - 2
-				result.append("%s = %s(arguments,%d)" % (
+				result.append("%s = %s__slice__(arguments,%d)" % (
 					arg_name,
-					self.runtimePrefix + self.jsCore + "sliceArguments",
+					self.runtimePrefix,
 					i
 				))
 			if not (param.getDefaultValue() is None):
@@ -1126,8 +1160,7 @@ class Writer(AbstractWriter):
 			symbol_name = ".".join(map(self._rewriteSymbol, symbol_name.split(".")))
 		# If there is no scope, then the symmbol is undefined
 		if not scope:
-			if symbol_name == "print": return self.runtimePrefix + self.jsCore + "print"
-			else: return symbol_name
+			return symbol_name
 		# If the slot is imported
 		elif slot.isImported():
 			return self._onImportedReference(symbol_name, slot)
@@ -1330,7 +1363,7 @@ class Writer(AbstractWriter):
 		else: start = "(%s)" % (self.write(start))
 		if isinstance(end, interfaces.ILiteral): end = self.write(end)
 		else: end = "(%s)" % (self.write(end))
-		res = self.runtimePrefix + self.jsCore + "range(%s,%s)" % (start, end)
+		res = "{0}__range__({1},{2})".format(self.runtimePrefix, start, end)
 		step = operation.getStep()
 		if step: res += " step " + self.write(step)
 		return res
@@ -2063,10 +2096,12 @@ class Writer(AbstractWriter):
 	# =========================================================================
 	# RUNTIME
 	# =========================================================================
+	# This contains all the javascript snippets that are susceptible of
+	# changing across the runties.
 
 	def _runtimeSuper( self, element ):
+		c = self.getCurrentClass()
 		if self.isIn(interfaces.IClassAttribute) or self.isIn(interfaces.IClassMethod):
-			c = self.getCurrentClass()
 			p = self.getClassParents(c)
 			# FIXME: Submodule support
 			if p:
@@ -2077,41 +2112,90 @@ class Writer(AbstractWriter):
 			assert self.resolve("self"), "Super must be used inside method"
 			# FIXME: Should check that the element has a method in parent scope
 			# FIXME: Submodule support
-			return "%s.getSuper(%s.getParent())" % (
-				self._runtimeSelfReference(element),
-				self.getSafeSuperName(self.getCurrentClass())
-			)
+			p = self.getClassParents(c)
+			if p:
+				return "({0}.prototype)".format(
+					self.getSafeSuperName(p[0]),
+					self._runtimeSelfReference(element),
+				)
+			else:
+				return "(Object.getPrototypeOf({0}).prototype)".format(
+					self.getSafeSuperName(self.getCurrentClass()),
+					self._runtimeSelfReference(element),
+				)
 
-	def _runtimeSuperResolution( self, relement, reference ):
-		return "{0}.getSuper().{1}".format(
-			self.runtimePrefix,
-			self._rewriteSymbol(resolution.getReference().getReferenceName())
-		)
+	# def _runtimeSuperResolution( self, relement, reference ):
+	def _runtimeSuperResolution( self, resolution ):
+		# We need to check wether we're in a closure or not. If we are,
+		# then we can't user `super`
+		s = self._runtimeSelfReference(resolution)
+		invocation = self.findInContext(interfaces.IInvocation)
+		if invocation and invocation.getTarget() == resolution:
+			# This is awkward, but that's how you emulate a super invocation
+			return "Object.getPrototypeOf(Object.getPrototypeOf({0})).{1}.bind({0})".format(s, name)
+		else:
+			return n + ".bind(" + s + ")"
+
+	def _runtimeSuperInvocation( self, element ):
+		target = element.getTarget()
+		if isinstance(target, interfaces.IReference) and target.getReferenceName() == "super":
+			# We have a direct super invocation, which means we're invoking the
+			# super constructor
+			return "/*super()*/Object.getPrototypeOf({0}).apply({2},[{1}])".format(
+				self.getSafeSuperName(self.getCurrentClass()),
+				", ".join(map(self.write, element.getArguments())),
+				self._runtimeSelfReference(),
+			)
+		else:
+			# Otherwise we're invoking a method from the super, which
+			# is a simple call forwarding
+			return "{0}.apply({2},[{1}])".format(
+				self.write(element.getTarget()),
+				", ".join(map(self.write, element.getArguments())),
+				self._runtimeSelfReference(),
+			)
 
 	def _runtimeGetMethodByName(self, name, value=None, element=None):
 		return self._runtimeSelfReference(value) + "." + name
 
 	def _runtimeWrapMethodByName(self, name, value=None, element=None):
+		s = self._runtimeSelfReference(element)
 		if isinstance(value, interfaces.IClassMethod):
-			if value.parent == self.getCurrentClass():
-				return "{0}.{1}".format(self.jsSelf, name)
+			if self.findInContext(interfaces.IClassMethod):
+				# In ES, we need to re-bind static methods when we're calling
+				# them back, otherwise the reference will be lost.
+				return "{0}.{1}.bind({0})".format(s, name)
 			else:
-				return self._runtimeGetCurrentClass() + ".getOperation('%s')" % (name)
+				return "Object.getPrototypeOf({0}).constructor.{1}.bind(Object.getPrototypeOf({0}).constructor)".format(s, name)
 		else:
-			return self._runtimeSelfReference(value) + ".getMethod('" + name + "')"
+			return "{0}.{1}.bind({0})".format(s, name)
 
 	def _runtimeGetCurrentClass(self, element=None ):
 		if self.indexLikeInContext(interfaces.IClassAttribute) >= 0:
 			return self.getSafeName(self.findInContext(interfaces.IClass))
 		else:
-			return "({0}.getClass ? {0}.getClass() : Object.getPrototypeOf({0}).constructor)".format(self.jsSelf)
+			return "(Object.getPrototypeOf({0}).constructor)".format(self.jsSelf)
+
+	def _runtimeReturnBreak( self ):
+		return "return {0}__BREAK__;".format(self.runtimePrefix)
+
+	def _runtimeReturnContinue( self ):
+		return "return {0}__CONTINUE__;".format(self.runtimePrefix)
+
+	def _runtimeReturnType( self ):
+		return "{0}__RETURN__".format(self.runtimePrefix)
+
+	def _runtimeNothing( self ):
+		return "{0}__NOTHING__".format(self.runtimePrefix)
 
 	def _runtimeOp( self, name, *args ):
-		args = [self.write(_) if isinstance(_,interfaces.IElement) else _ for _ in args]
-		return "extend." + name + "(" + ", ".join(args) + ")"
+		return "{0}({1})".format(
+			self.RUNTIME_OPS.get(name) or name,
+			", ".join(self.write(_) for _ in args)
+		)
 
 	def _runtimeIsIn( self, element, collection ):
-		return self._runtimeOp("isIn", element, collection)
+		return self._runtimeOp("isIn", collection, element)
 
 	def _runtimeModuleName( self, element=None ):
 		return "__module__"
@@ -2144,22 +2228,25 @@ class Writer(AbstractWriter):
 		args      = invocation.getArguments()
 		predicate = self.write(args[0])
 		rest      = args[1:]
+		resolved  = self.resolve("assert")
+		if resolved:
+			assert_symbol = self.getSafeName(resolved[1])
+		else:
+			assert_symbol = "__assert__"
 		# TODO: We should include the offsets
-		return "!({0}) && extend.assert(false, {1}, {2}, {3})".format(
+		return "!({1}) && {0}(false, {2}, {3}, {4})".format(
+			assert_symbol,
 			predicate,
 			json.dumps(self.getScopeName() + ":"),
-			", ".join(self.write(_) for _ in rest) or '""',
 			json.dumps("(failed `" + predicate + "`)"),
+			", ".join(self.write(_) for _ in rest) or '""',
 		)
 
-	def _runtimeReturnType( self ):
-		return self.runtimePrefix + "FLOW_RETURN"
+	def _runtimeRestArguments( self, i ):
+		return "Array.prototype.slice.call(arguments," + str(i) + ")"
 
-	def _runtimeReturnBreak( self ):
-		return "return " + self.runtimePrefix + "FLOW_BREAK;"
-
-	def _runtimeReturnContinue( self ):
-		return "return " + self.runtimePrefix + "FLOW_CONTINUE;"
+	def _runtimeDefaultValue( self, name, value ):
+		return name + " === undefined ? " + value + " : " + name
 
 	def _runtimeReturnValue( self, value ):
 		return "return new " + self._runtimeReturnType() + "(" + value + ");"
@@ -2167,16 +2254,19 @@ class Writer(AbstractWriter):
 	def _runtimeSelfReference( self, element=None ):
 		return self.jsSelf
 
-	def _runtimeSelfBinding( self, element=None ):
-		return "var self = this;"
+	def _runtimeSelfBinding( self, element ):
+		c = self.getCurrentContext()
+		t = "this"
+		if isinstance(c, interfaces.IModule):
+			t = "__module__"
+		elif isinstance(c, interfaces.ISingleton):
+			return None
+		elif isinstance(c, interfaces.IClassMethod):
+			t = "this"
+			#t = self.getSafeName(self.getCurrentClass())
+		return "const {0} = {1};".format(self.jsSelf, t)
 
 	def _runtimeInvocation( self, element ):
-		return "{0}({1})".format(
-			self.write(element.getTarget()),
-			", ".join(map(self.write, element.getArguments())),
-		)
-
-	def _runtimeSuperInvocation( self, element ):
 		return "{0}({1})".format(
 			self.write(element.getTarget()),
 			", ".join(map(self.write, element.getArguments())),
@@ -2185,32 +2275,28 @@ class Writer(AbstractWriter):
 	def _runtimePreamble( self ):
 		return []
 
-	def _runtimeNothing( self ):
-		return "%s%sNothing" % (
-			self.runtimePrefix, self.jsCore,
-		)
 	def _runtimeAccess( self, target, index ):
-		# FIXME: This should be included in a default runtime
-		return (
-			"(function(t,i){{return typeof(i) != 'number' ? t[i] : i < 0 "
-			"&& (typeof(t) == 'string' || t instanceof Array || t && isNumber(t.length))"
-			"? t[t.length + i] : t[i]}}({0},{1}))"
-		).format(target, index)
+		return "{0}__access__({1},{2})".format(self.runtimePrefix, target, index)
+
+	# NOTE: Deprcated 2017-11-09 and left for reference
+	# def _runtimeAccess( self, target, index ):
+	# 	# FIXME: This should be included in a default runtime
+	# 	return (
+	# 		"(function(t,i){{return typeof(i) != 'number' ? t[i] : i < 0 "
+	# 		"&& (typeof(t) == 'string' || t instanceof Array || t && isNumber(t.length))"
+	# 		"? t[t.length + i] : t[i]}}({0},{1}))"
+	# 	).format(target, index)
 
 	def _runtimeSlice( self, target, start, end ):
-		return "%s%sslice(%s,%s,%s)" % (
-			self.runtimePrefix,
-			self.jsCore,
-			target,
-			start,
-			end
-		)
+		return "{0}__slice__({1},{2},{3})".format(self.runtimePrefix, target, start, end)
 
 	def _runtimeDecompose( self, context, element ):
-		return "__decompose__({0}, \"{1}\")".format(
+		return "{0}__decompose__({1}, \"{2}\")".format(
+			self.runtimePrefix,
 			self.write(context),
 			element.getReferenceName()
 		)
+
 
 	def _runtimeEventTrigger( self, element ):
 		target = self.write(element.getTarget()) or "undefined"
@@ -2225,11 +2311,18 @@ class Writer(AbstractWriter):
 		return "__send__({0}, {1}, {2}, {0})".format(target, event, args, target)
 
 	def _runtimeEventBind( self, element ):
-		return "__bind__({0}, {1}, {2})".format(
-			self.write(element.getTarget()) or "undefined",
-			self.write(element.getEvent()) or "undefined",
-			self.write(element.getArguments()) or "undefined",
-		)
+		if isinstance(element, interfaces.IElement):
+			return "{0}__bind__({1}, {2}, {3})".format(
+				self.runtimePrefix,
+				self.write(element.getTarget()) or "undefined",
+				self.write(element.getEvent()) or "undefined",
+				self.write(element.getArguments()) or "undefined",
+			)
+		else:
+			return "{0}__bind__(self, \"{1}\", arguments[0], arguments[1])".format(
+				self.runtimePrefix,
+				element
+			)
 
 	def _runtimeEventBindOnce( self, element ):
 		return "__once__({0}, {1}, {2})".format(
@@ -2238,24 +2331,21 @@ class Writer(AbstractWriter):
 			self.write(element.getArguments()) or "undefined",
 		)
 
-
-
 	def _runtimeEventUnbind( self, element ):
-		return "__unbind__({0}, {1}, {2})".format(
+		return "{0}__unbind__({1}, {2}, {2})".format(
+			self.runtimePrefix,
 			self.write(element.getTarget()) or "undefined",
 			self.write(element.getEvent()) or "undefined",
 			self.write(element.getArguments()) or "undefined",
 		)
 
 	def _runtimeMapFromItems( self, items ):
-		return "%s%screateMapFromItems(%s)" % (
-			self.runtimePrefix,
-			self.jsCore,
-			",".join("[%s,%s]" % ( self.write(k),self.write(v)) for k,v in items)
+		return "[{0}].reduce(function(r,v,k){{r[v[0]]=v[1];return r;}},{{}})".format(
+			",".join("[{0},{1}]".format(self.write(k),self.write(v)) for k,v in items)
 		)
 
 	def _runtimeUnitTestPreamble( self, element ):
-		return "(function(){{var __test__=new ff.util.testing.Unit('{0}');".format(self.getAbsoluteName(element.parent))
+		return "(function(){{const __test__=new ff.util.testing.Unit('{0}');".format(self.getAbsoluteName(element.parent))
 
 	def _runtimeUnitTestPostamble( self, element ):
 		return "__test__.end();}());"

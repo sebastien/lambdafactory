@@ -268,20 +268,23 @@ class Command:
 		if withPasses is None: withPasses = None
 		if options is None: options = None
 		if (not withPasses):
-			if (((language == 'javascript') or (language == 'actionscript')) and (not ('NORUNTIME' in options))):
-				self.environment.addPass(passes.ExtendJSRuntime())
 			self.environment.addPass(passes.Importation())
 			self.environment.addPass(passes.ControlFlow())
 			self.environment.addPass(resolution.BasicDataFlow())
 			self.environment.addPass(resolution.DataFlowBinding())
 		elif True:
 			for the_pass in withPasses:
-				if (the_pass.find('.') == -1):
+				if (the_pass == 'std'):
+					self.environment.addPass(passes.Importation())
+					self.environment.addPass(passes.ControlFlow())
+					self.environment.addPass(resolution.BasicDataFlow())
+					self.environment.addPass(resolution.DataFlowBinding())
+				elif (the_pass.find('.') == -1):
 					pass_class=None
 					if hasattr(passes, the_pass):
-						pass_class=getattr(passes, the_pass)
+						pass_class = getattr(passes, the_pass)
 					elif hasattr(resolution, the_pass):
-						pass_class=getattr(resolution, the_pass)
+						pass_class = getattr(resolution, the_pass)
 					elif True:
 						self.environment.report.error('LambdaFactory standard pass not found:', the_pass)
 						assert(None)
