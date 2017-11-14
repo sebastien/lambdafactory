@@ -365,6 +365,8 @@ class Writer(AbstractWriter):
 						if self._isNice:
 							declaration = "\n".join(self._section("Module main")) + "\n"
 					declaration   += u"{0}.{1} = {2}".format(module_name, slot_name, self._format(value_code))
+					if isinstance(value, interfaces.IClass):
+						declaration += ";\n" + self._format(self._onClassPostamble(value, module_name + "." + slot_name))
 			code.append(self._document(value))
 			code.append(declaration)
 		# --- INIT ------------------------------------------------------------
@@ -416,7 +418,7 @@ class Writer(AbstractWriter):
 		if len(names) == 1:
 			pass
 			# NOTE: Disabled for now
-			declaration.append("var {0}=typeof(runtime)!='undefined' ? "
+			declaration.append("const {0}=typeof(runtime)!='undefined' ? "
 				"runtime.module('{0}') : (typeof({0})!='undefined' ? {0} : "
 				"{{}});".format(local_name))
 		else:
@@ -427,7 +429,7 @@ class Writer(AbstractWriter):
 				parent_abs_name      = ".".join(parents)
 				parent_safe_name = "_".join(parents)
 				declaration.append(
-					"var {0}=typeof(runtime)!='undefined' ? "
+					"const {0}=typeof(runtime)!='undefined' ? "
 					"runtime.module('{1}') : (typeof({1})!='undefined' ? {1} : "
 					"{{}});".format(parent_safe_name, parent_abs_name))
 				if i > 0:
@@ -441,11 +443,11 @@ class Writer(AbstractWriter):
 			if not slot:
 				# Modules are already imported
 				if alias:
-					symbols.append("var {0} = {1};".format(alias or module, module))
+					symbols.append("const {0} = {1};".format(alias or module, module))
 			else:
 				# Extend gets a special treatment
 				if alias:
-					symbols.append("var {0} = {1}.{2};".format(alias or slot, module, slot))
+					symbols.append("const {0} = {1}.{2};".format(alias or slot, module, slot))
 		return [
 			"// START:VANILLA_PREAMBLE",
 		] + declaration + [
@@ -612,6 +614,17 @@ class Writer(AbstractWriter):
 	def onTrait( self, element ):
 		return self.onClass(element, "Trait")
 
+	def _onClassPostamble( self, element, name=None ):
+		classAttributes = element.getClassAttributes()
+		name = name or self.getAbsoluteName(element).replace(".", "_")
+		for attr in classAttributes:
+			default_value = attr.getDefaultValue()
+			yield "{0}.{1} = {2};".format(
+				name,
+				self._rewriteSymbol(attr.getName()),
+				self.write(default_value) if default_value else "undefined"
+			)
+
 	def onClass( self, classElement, classType="Class" ):
 		"""Writes a class element."""
 		parents, traits = self.getClassParentAndTraits(classElement)
@@ -628,19 +641,10 @@ class Writer(AbstractWriter):
 		# We create a map of class methods, including inherited class methods
 		# so that we can copy the implementation of these
 		classOperations = {}
-		# NOTE: This is not necessary since Extend-3.1
-		# for name, method in classElement.getInheritedClassMethods().items():
-		# 	# FIXME: Maybe use wrapper instead
-		# 	classOperations[name] = self._writeClassMethodProxy(classElement, method)
-		# Here, we've got to cheat a little bit. Each class method will
-		# generate an '_imp' suffixed method that will be invoked by the
 		for meth in classElement.getClassMethods():
 			classOperations[self._rewriteSymbol(meth.getName())] = meth
 		classOperations = list(classOperations.values())
-		classAttributes = {}
-		for attribute in classElement.getClassAttributes():
-			classAttributes[self._rewriteSymbol(attribute.getName())] = self.write(attribute)
-		classAttributes = list(classAttributes.values())
+		classAttributes = classElement.getClassAttributes()
 		# === RESULT ==========================================================
 		result = []
 		result.append(           "name  :'%s'," % (self.getAbsoluteName(classElement)))
@@ -653,12 +657,8 @@ class Writer(AbstractWriter):
 		methods      = classElement.getInstanceMethods()
 		accessors    = classElement.getAccessors()
 		mutators     = classElement.getMutators()
-		if classAttributes:
-			result += self._group("Class attributes", 1)
-			written_attrs = ",\n".join(map(self.write, classAttributes))
-			result.append("shared: {")
-			result.append([written_attrs])
-			result.append("},")
+		# NOTE: We need to defer the shared attrs in case we create a value
+		# that depends on a class
 		if attributes:
 			# In attributes, we only print the name, ans use Undefined as the
 			# value, because properties will be instanciated at construction
@@ -667,7 +667,6 @@ class Writer(AbstractWriter):
 			result.append("properties: {")
 			result.append([written_attrs])
 			result.append("},")
-
 		if constructors:
 			result += self._group("Constructor", 1)
 			assert len(constructors) == 1, "Multiple constructors are not supported yet"
@@ -740,11 +739,12 @@ class Writer(AbstractWriter):
 			result.append([written_ops])
 			result.append("},")
 		if result[-1][-1] == ",":result[-1] =result[-1][:-1]
-		return (
+		res =  [
 			self.declarePrefix + classType + "({",
 			result,
 			"})"
-		)
+		]
+		return res
 
 	def onAttribute( self, element ):
 		default_value = element.getDefaultValue()
@@ -776,113 +776,6 @@ class Writer(AbstractWriter):
 			return (
 				"%s;" % (self._rewriteSymbol(element.getName()))
 			)
-
-	def onMethod( self, methodElement ):
-		"""Writes a method element."""
-		self.pushVarContext(methodElement)
-		method_name = self._rewriteSymbol(methodElement.getName())
-		if method_name == interfaces.Constants.Constructor: method_name = "init"
-		if method_name == interfaces.Constants.Destructor:  method_name = "cleanup"
-		# We don't forget the implicit allocations
-		implicits  = [_ for _ in self._writeImplicitAllocations(methodElement)]
-		event = methodElement.getAnnotation("event")
-		if event:
-			operations = ["return " + self._runtimeEventBind(event.getContent()) + ";"]
-		else:
-			operations = list(map(self._writeStatement, methodElement.getOperations())),
-		res = (
-			self._document(methodElement),
-			(
-				self.options["ENABLE_METADATA"] and "%s:__def(function(%s) {" \
-				or "%s: function(%s) {"
-			) % (
-				method_name,
-				", ".join(map(self.write, methodElement.getParameters()))
-			),
-			["const %s = this;" % (self._runtimeSelfReference(methodElement))],
-			self._writeClosureArguments(methodElement),
-			self.writeFunctionWhen(methodElement),
-			self.writeFunctionPre(methodElement),
-			implicits, operations,
-			(
-				(not self.options["ENABLE_METADATA"] and "}") or \
-				"}, %s)" % ( self._writeFunctionMeta(methodElement))
-			)
-		)
-		self.popVarContext()
-		return res
-
-	def _writeFunctionMeta( self, function ):
-		arguments = []
-		arity     = 0
-		for arg in function.getParameters():
-			a = {"name":self._rewriteSymbol(arg.getName())}
-			if arg.isOptional():
-				a["flags"] = "?"
-			elif arg.isRest():
-				a["flags"] = "*"
-			elif arg.isKeywordsRest():
-				a["flags"] = "**"
-			elif arg.getDefaultValue():
-				a["flags"] = "="
-			arguments.append(a)
-		return "{arguments:%s}" % (arguments)
-
-	def writeFunctionWhen(self, methodElement):
-		return [self.write(
-			"if (!({0})) {{return undefined}};".format(self.write(_.content))
-		) for _ in methodElement.getAnnotations("when")]
-
-	def writeFunctionPre(self, methodElement):
-		return ["extend.assert({0}, 'Precondition failed in {1}):".format(self.write(_.content), self.getScopeName()) for _ in methodElement.getAnnotations("pre")]
-
-	def onClassMethod( self, methodElement ):
-		"""Writes a class method element."""
-		self.pushVarContext(methodElement)
-		method_name = self._rewriteSymbol(methodElement.getName())
-		args        = methodElement.getParameters()
-		operations = list(map(self._writeStatement, methodElement.getOperations())),
-		implicits  = [_ for _ in self._writeImplicitAllocations(methodElement)]
-		res = (
-			self._document(methodElement),
-			(
-				self.options["ENABLE_METADATA"] and "%s:__def(function(%s){" \
-				or "%s: function( %s ){"
-			) % (method_name, ", ".join(map(self.write, args))),
-			["const %s = this;" % (self._runtimeSelfReference(methodElement))], #, self.getAbsoluteName(methodElement.getParent()))],
-			self._writeClosureArguments(methodElement),
-			self.writeFunctionWhen(methodElement),
-			implicits, operations,
-			(
-				(not self.options["ENABLE_METADATA"] and "}") or \
-				"},%s)" % ( self._writeFunctionMeta(methodElement))
-			)
-		)
-		self.popVarContext()
-		return res
-
-	def _writeClassMethodProxy(self, currentClass, inheritedMethodElement):
-		"""This function is used to wrap class methods inherited from parent
-		classes, so that inheriting operations from parent classes works
-		properly. This may look a bit dirty, but it's the only way I found to
-		implement this properly"""
-		method_name = self._rewriteSymbol(inheritedMethodElement.getName())
-		method_args = inheritedMethodElement.getParameters()
-		return (
-			(
-				self.options["ENABLE_METADATA"] and "%s:__def(function(%s){" \
-				or "%s: function( %s ){"
-			) % (method_name, ", ".join(map(self.write, method_args))),
-			["return %s.%s.apply(%s, arguments);" % (
-				self.getAbsoluteName(inheritedMethodElement.getParent()),
-				method_name,
-				self.getAbsoluteName(currentClass)
-			)],
-			(
-				(not self.options["ENABLE_METADATA"] and "}") or \
-				"}, %s)" % ( self._writeFunctionMeta(inheritedMethodElement))
-			)
-		)
 
 	def onConstructor( self, element ):
 		"""Writes a constructor element"""
@@ -918,6 +811,42 @@ class Writer(AbstractWriter):
 		self.popVarContext()
 		return res
 
+	def onMethod( self, element ):
+		"""Writes a method element."""
+		return self._onFunctionBody(element, prefix="{0}: ".format(
+			(element.getName())))
+
+	def onClassMethod( self, element ):
+		"""Writes a class method element."""
+		return self._onFunctionBody(element, prefix="{0}: ".format(
+			(element.getName())))
+
+	def _writeFunctionMeta( self, function ):
+		arguments = []
+		arity     = 0
+		for arg in function.getParameters():
+			a = {"name":self._rewriteSymbol(arg.getName())}
+			if arg.isOptional():
+				a["flags"] = "?"
+			elif arg.isRest():
+				a["flags"] = "*"
+			elif arg.isKeywordsRest():
+				a["flags"] = "**"
+			elif arg.getDefaultValue():
+				a["flags"] = "="
+			arguments.append(a)
+		return "{arguments:%s}" % (arguments)
+
+	def writeFunctionWhen(self, methodElement):
+		return [self.write(
+			"if (!({0})) {{return undefined}};".format(self.write(_.content))
+		) for _ in methodElement.getAnnotations("when")]
+
+	def writeFunctionPre(self, methodElement):
+		return ["extend.assert({0}, 'Precondition failed in {1}):".format(self.write(_.content), self.getScopeName()) for _ in methodElement.getAnnotations("pre")]
+
+
+
 	# =========================================================================
 	# FUNCTIONS
 	# =========================================================================
@@ -939,57 +868,52 @@ class Writer(AbstractWriter):
 
 	def onFunction( self, function ):
 		"""Writes a function element."""
-		self.pushVarContext(function)
-		parent = function.getParent()
-		name   = self._rewriteSymbol( function.getName() )
-		# We don't forget the implicit allocations
-		implicits  = [_ for _ in self._writeImplicitAllocations(function)]
-		event = function.getAnnotation("event")
+		return self._onFunctionBody(function)
+
+	def _onFunctionBody( self, element, prefix="" ):
+		"""Writes the body of a function."""
+		self.pushVarContext(element)
+		res         = []
+		parent      = element.getParent()
+		name        = self._rewriteSymbol( element.getName() )
+		if name == interfaces.Constants.Constructor:
+			name = "init"
+		elif name == interfaces.Constants.Destructor:
+			name = "cleanup"
+		event       = element.getAnnotation("event")
+		# Content
+		self_ref    = []
+		allocations = list(self._writeAllocations(element))
+		params      = ", ".join(map(self.write, element.getParameters()))
+		arguments   = self._writeClosureArguments(element)
+		guards      = self.writeFunctionWhen(element)
+		pre         = self.writeFunctionPre(element)
 		if event:
 			operations = ["return " + self._runtimeEventBind(event.getContent()) + ";"]
 		else:
-			operations = list(map(self._writeStatement, function.getOperations())),
+			operations = list(map(self._writeStatement, element.getOperations()))
 		if parent and isinstance(parent, interfaces.IModule):
-			res = [
-				(
-					self.options["ENABLE_METADATA"] and "__def(function(%s) {" \
-					or "function(%s){"
-				)  % (
-					", ".join(map(self.write, function.getParameters()))
-				),
-				['const %s = %s;' % (self._runtimeSelfReference(function), self.getResolvedName(function.parent))],
-				self._writeClosureArguments(function),
-				self.writeFunctionWhen(function),
-				implicits, operations,
-				(
-					(not self.options["ENABLE_METADATA"] and "}") or \
-					"}, %s)" % ( self._writeFunctionMeta(function))
-				)
+			self_ref = ['const {0} = {1};'.format(
+				self._runtimeSelfReference(element),
+				self.getResolvedName(element.parent))
 			]
 		else:
-			res = [
-				(
-					self.options["ENABLE_METADATA"] and "__def(function(%s) {" \
-					or "function(%s) {"
-				)  % (
-					", ".join(map(self.write, function.getParameters()))
-				),
-				self._writeClosureArguments(function),
-				self.writeFunctionWhen(function),
-				implicits, operations,
-				(
-					(not self.options["ENABLE_METADATA"] and "}") or \
-					"}, %s)" % ( self._writeFunctionMeta(closure))
-				)
-			]
-		if function.getAnnotations(withName="post"):
+			self_ref = ["const {0} = this;".format(self._runtimeSelfReference(element))]
+		# We build the whole thing
+		res = [
+			"{0}function({1}){{".format(prefix, params),
+		] + self_ref + arguments + guards + pre + allocations + operations + ["}"]
+		# FIXME: Rework
+		# And append the annotations
+		if element.getAnnotations(withName="post"):
 			res[0] = "const __wrapped__ = " + res[0] + ";"
 			if parent and isinstance(parent, interfaces.IModule):
-				res.insert(0, 'const %s=%s;' % (self._runtimeSelfReference(function), self.getAbsoluteName(parent)))
-			res.append("const result = __wrapped__.apply(%s, arguments);" % (self._runtimeSelfReference(function)))
-			res.append(self.writeFunctionPost(function))
+				res.insert(0, 'const %s=%s;' %
+			   (self._runtimeSelfReference(element), self.getAbsoluteName(parent)))
+			res.append("const result = __wrapped__.apply(%s, arguments);" % (self._runtimeSelfReference(element)))
+			res.append(self.writeFunctionPost(element))
 			res.append("return result;")
-		res = self.writeDecorators(function, res)
+		res = self.writeDecorators(element, res)
 		self.popVarContext()
 		return res
 
@@ -1025,7 +949,7 @@ class Writer(AbstractWriter):
 		an iteration loop.
 		"""
 		operations = closure.getOperations()
-		implicits  = [_ for _ in self._writeImplicitAllocations(closure)]
+		implicits  = [_ for _ in self._writeAllocations(closure)]
 		if bodyOnly:
 			result = implicits + [self._format(self.write(_)) + ";" for _ in operations]
 		else:
@@ -1102,7 +1026,6 @@ class Writer(AbstractWriter):
 				))
 			i += 1
 		return result
-
 
 	# =========================================================================
 	# BLOCKS
@@ -1311,14 +1234,16 @@ class Writer(AbstractWriter):
 	# OPERATIONS
 	# =========================================================================
 
-	def onAllocation( self, allocation ):
+	def onAllocation( self, allocation, prefix="" ):
 		"""Writes an allocation operation."""
 		s = allocation.getSlotToAllocate()
 		v = allocation.getDefaultValue()
+		# NOTE: We don't do any declaration here as the declaration happens
+		# in the parent scope
 		if v:
-			return "var %s = %s" % (self._rewriteSymbol(s.getName()), self._format(self.write(v)))
+			return "%s%s = %s" % (prefix, self._rewriteSymbol(s.getName()), self._format(self.write(v)))
 		else:
-			return "var %s" % (self._rewriteSymbol(s.getName()))
+			return "%s%s" % (prefix, self._rewriteSymbol(s.getName()))
 
 	def onAssignment( self, assignation ):
 		"""Writes an assignation operation."""
@@ -1530,7 +1455,8 @@ class Writer(AbstractWriter):
 		if not in_process and selection.hasAnnotation("if-expression"):
 			return self._format(self._writeSelectionInExpression(selection))
 		rules     = selection.getRules()
-		implicits = [_ for _ in self._writeImplicitAllocations(selection)]
+		#implicits = [_ for _ in self._writeImplicitAllocations(selection)]
+		implicits = []
 		result    = []
 		last      = len(rules) - 1
 		for i in range(0,len(rules)):
@@ -1937,13 +1863,31 @@ class Writer(AbstractWriter):
 	# TYPES
 	# =========================================================================
 
-	def onType( self, element ):
-		parents = [self.getSafeName(_) for _ in element.parents]
-		if element.isConcrete():
-			slots = [_ for _ in element.constraints if isinstance(_, interfaces.ISlotConstraint)]
-			args  = ", ".join(_.getName() for _ in slots)
-			yield "class (" + args + "){"
-			yield "}"
+	def onType( self, element, anonymous=False ):
+		assert element.isConcrete()
+		parents = element.getParents()
+		traits  = [_ for _ in parents if isinstance(_, interfaces.ITrait)]
+		parents = [_ for _ in parents if _ not in traits]
+		self.pushContext (element)
+		safe_name = self.getSafeName(element)
+		abs_name  = element.getAbsoluteName()
+		name      = "" if anonymous else ((element.getName() or "") + " ")
+		slots     = [_ for _ in element.constraints if isinstance(_, interfaces.ISlotConstraint)]
+		yield "declare.Class({"
+		if parents:
+			yield "\tparent: {0},".format(self.getSafeName(parents[0]))
+		if traits:
+			yield "\ttraits: [{0}],".format(",".join(self.getSafeName(_) for _ in traits))
+		yield "\tconstructor:function({0}){{".format(", ".join(_.getName() for _ in slots))
+		if parents:
+			yield "\t\tObject.getPrototypeOf(this).apply(this,[]);"
+		# TODO: Init traits?
+		for s in slots:
+			yield "\t\tthis.{0} = {0};".format(s.getName())
+		yield "\t},"
+		yield "\tname:\"{0}\"".format(abs_name)
+		yield "});"
+		self.popContext ()
 
 	def onEnumerationType( self, element ):
 		symbols = [_.getName() for _ in element.getSymbols()]
@@ -2058,12 +2002,20 @@ class Writer(AbstractWriter):
 		return res
 
 	def _writeImplicitAllocations( self, element ):
+		for _ in self._writeAllocations(element, True):
+			yield _
+
+	def _writeAllocations( self, element, implicitsOnly=False ):
 		# FIXME: assert(element.dataflow) fails sometimes
 		if element and element.dataflow:
 			# NOTE: Implicits can sometimes be declared twice
-			l = [_.getName() for _ in element.dataflow.slots if _.isImplicit()]
-			if l:
-				yield "var {0}; /* implicits */".format(", ".join(l))
+			declared = {}
+			for s in element.dataflow.slots:
+				if s.isArgument() or s.isImported() or s.isEnvironment(): continue
+				if s.isImplicit() or (not implicitsOnly):
+					declared[s.getName()] = True
+			if declared:
+				yield "var {0};".format(", ".join(declared.keys()))
 
 	def _writeUnitTests( self, element ):
 		"""Writes the unit tests for this element and all its descendants,
