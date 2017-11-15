@@ -103,7 +103,8 @@ class Writer(JavaScriptWriter):
 		if parent:
 			yield "\t\tsuper();"
 		for s in slots:
-			yield "\t\tthis.{0} = {0};".format(s.getName())
+			yield "\t\tif (this.{0} === undefined) {{this.{0} = {0};}}".format(s.getName())
+
 		yield "\t}"
 		yield "}"
 		yield "Object.defineProperty({0}, \"__name__\", {{value:\"{1}\",writable:false}});".format(safe_name, abs_name)
@@ -280,7 +281,7 @@ class Writer(JavaScriptWriter):
 						v = a.getDefaultValue()
 						if v:
 							yield (
-								"if (typeof {0}.{1} === typeof undefined) {{{0}.{1} = {2};}}".format(
+								"if ({0}.{1} === undefined) {{{0}.{1} = {2};}}".format(
 								"self", a.getName(), self.write(v))
 							)
 

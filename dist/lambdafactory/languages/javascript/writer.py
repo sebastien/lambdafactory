@@ -663,7 +663,7 @@ class Writer(AbstractWriter):
 			# In attributes, we only print the name, ans use Undefined as the
 			# value, because properties will be instanciated at construction
 			result += self._group("Properties", 1)
-			written_attrs = ",\n".join(["%s:undefined" % (self._rewriteSymbol(e.getName())) for e in attributes])
+			written_attrs = ",\n".join(["%s:declare.NOTHING" % (self._rewriteSymbol(e.getName())) for e in attributes])
 			result.append("properties: {")
 			result.append([written_attrs])
 			result.append("},")
@@ -684,7 +684,9 @@ class Writer(AbstractWriter):
 				# way to cover our ass. We encapsulate the __super__ declaration
 				# in a block to avoid scoping problems.
 				invoke_parent_constructor = u"\n".join(
-					"if ({0} && {0}.__init__) {{ {0}.__init__.apply(self, arguments); }}".format(self.getSafeSuperName(_)) for _ in parents
+					#"if ({0} && {0}.__init__) {{ {0}.__init__.apply(self, arguments); }}".format(self.getSafeSuperName(_)) for _ in parents
+					"if ({0}) {{ {0}.apply(self, arguments); }}".format(self.getSafeSuperName(_)) for _ in parents
+
 				)
 			for a in classElement.getAttributes():
 				if not a.getDefaultValue(): continue
@@ -692,7 +694,7 @@ class Writer(AbstractWriter):
 					"// Default value for property `{0}`".format(a.getName())
 				)
 				constructor_attributes.append(
-					"{0}.{1} = {2};".format(
+					"if ({0}.{1} === declare.NOTHING){{{0}.{1} = {2};}}".format(
 						self._runtimeSelfReference(classElement), self._rewriteSymbol(a.getName()),
 						self.write(a.getDefaultValue())
 				))
@@ -787,7 +789,7 @@ class Writer(AbstractWriter):
 			if not a.getDefaultValue(): continue
 			name = self._rewriteSymbol(a.getName())
 			attributes.append("// Default initialization of property `{0}`".format(name))
-			attributes.append("{0}.{1} = {2};".format(
+			attributes.append("if ({0}.{1}===declare.NOTHING){{{0}.{1} = {2};}}".format(
 				self._runtimeSelfReference(element), name,
 				self.write(a.getDefaultValue()))
 			)
@@ -2250,11 +2252,22 @@ class Writer(AbstractWriter):
 		else:
 			a = args[:with_ellipsis]
 			n = args[with_ellipsis:]
-			return "{0}__apply__({1},[{2}]{3})".format(
+			# FIXME: There was an __apply__ primitive before, but I don't
+			# think it's necessary.
+			args  = None
+			# If there is only one narg and no regular arg, we don't
+			# need to create a new array.
+			if not a and len(n) == 1:
+				args = self.write(n[0].getValue())
+			else:
+				args = "[{0}].{1}".format(
+					", ".join(self.write(_) for _ in a),
+					"".join(".concat(" + (self.write(_.getValue())) + ")" for _ in n),
+				)
+			return "({1}).apply(self,{2})".format(
 				self.runtimePrefix,
 				self.write(element.getTarget()),
-				", ".join(self.write(_) for _ in a),
-				"".join(".concat(" + (self.write(_.getValue())) + ")" for _ in n),
+				args,
 			)
 
 	def _runtimePreamble( self ):
