@@ -103,7 +103,7 @@ class Writer(JavaScriptWriter):
 		if parent:
 			yield "\t\tsuper();"
 		for s in slots:
-			yield "\t\tif (typeof {0} != \"undefined\") {{this.{0} = {0};}}".format(s.getName())
+			yield "\t\tthis.{0} = {0};".format(s.getName())
 		yield "\t}"
 		yield "}"
 		yield "Object.defineProperty({0}, \"__name__\", {{value:\"{1}\",writable:false}});".format(safe_name, abs_name)
@@ -441,6 +441,14 @@ class Writer(JavaScriptWriter):
 			predicate = self.write(a.getContent())
 			yield ("if (!({0})) {{throw new Exception('{1}: Post condition failed"
 			"{0}';}}".format(predicate, scope))
+
+
+	# =========================================================================
+	# OPERATIONS
+	# =========================================================================
+
+	def onAllocation( self, element ):
+		return JavaScriptWriter.onAllocation(self, element, "var ")
 
 	# =========================================================================
 	# USEFUL PREDICATES
