@@ -2012,12 +2012,24 @@ class Writer(AbstractWriter):
 		if element and element.dataflow:
 			# NOTE: Implicits can sometimes be declared twice
 			declared = {}
-			for s in element.dataflow.slots:
+			for s in self._walkDataFlowSlots(element.dataflow):
 				if s.isArgument() or s.isImported() or s.isEnvironment(): continue
 				if s.isImplicit() or (not implicitsOnly):
 					declared[s.getName()] = True
 			if declared:
 				yield "var {0};".format(", ".join(declared.keys()))
+
+	def _walkDataFlowSlots( self, dataflow ):
+		"""Recursively walks the slots of the given dataflow, skipping
+		closures."""
+		for s in dataflow.slots:
+			yield s
+		for c in dataflow.children:
+			# We don't analyze the closures, as they have their own
+			# scope.
+			if isinstance(c, interfaces.IClosure): continue
+			for s in self._walkDataFlowSlots(c):
+				yield s
 
 	def _writeUnitTests( self, element ):
 		"""Writes the unit tests for this element and all its descendants,
