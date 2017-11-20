@@ -1277,7 +1277,7 @@ class Writer(AbstractWriter):
 			ks = m.group(3)
 			f  = m.group(4) # Formatter
 			v  = json.dumps(ks) if ks else ki # Value
-			r.append("extend.sprintf(_[{0}],{1})".format(v, json.dumps(f)) if f else "_[{0}]".format(v))
+			r.append("{0}__sprintf__(_[{0}],{1})".format(self.runtimePrefix, v, json.dumps(f)) if f else "_[{0}]".format(v))
 			o = m.end()
 		r.append(json.dumps(s[o:]))
 		# FIXME: Optimize so that no function has to be called if the arguments
@@ -1448,7 +1448,7 @@ class Writer(AbstractWriter):
 			implicit_slot.getName() + "=" + self.write(chain.getTarget()) + ";",
 		] + [
 			# We filter out the implict reference
-			prefix + self._format(self.write(g) + ";" for g in groups if not isinstance(g, interfaces.IImplicitReference))
+			prefix + self._format(self.write(g)) + ";" for g in groups if not isinstance(g, interfaces.IImplicitReference)
 		]
 
 	def onSelection( self, selection ):
@@ -1878,9 +1878,15 @@ class Writer(AbstractWriter):
 		yield "declare.Class({"
 		if parents:
 			yield "\tparent: {0},".format(self.getSafeName(parents[0]))
+		if slots:
+			yield "\tproperties: {"
+			for i,s in enumerate(slots):
+				suffix = "," if i < len(slots) else ""
+				yield "\t\t{0} : declare.NOTHING{1}".format(s.getName(), suffix)
+			yield "\t},"
 		if traits:
 			yield "\ttraits: [{0}],".format(",".join(self.getSafeName(_) for _ in traits))
-		yield "\tconstructor:function({0}){{".format(", ".join(_.getName() for _ in slots))
+		yield "\tinitialize:function({0}){{".format(", ".join(_.getName() for _ in slots))
 		if parents:
 			yield "\t\tObject.getPrototypeOf(this).apply(this,[]);"
 		# TODO: Init traits?
@@ -2124,11 +2130,20 @@ class Writer(AbstractWriter):
 		if isinstance(target, interfaces.IReference) and target.getReferenceName() == "super":
 			# We have a direct super invocation, which means we're invoking the
 			# super constructor
-			return "/*super()*/Object.getPrototypeOf({0}).apply({2},[{1}])".format(
-				self.getSafeSuperName(self.getCurrentClass()),
-				", ".join(map(self.write, element.getArguments())),
-				self._runtimeSelfReference(),
-			)
+			current_class = self.getCurrentClass()
+			if isinstance(current_class, interfaces.ISingleton):
+				# For singletons the absolute name is actually the class name
+				return "/*singleton:super()*/Object.getPrototypeOf(Object.getPrototypeOf(self).constructor).apply({2},[{1}])".format(
+					self.getSafeSuperName(self.getCurrentClass()),
+					", ".join(map(self.write, element.getArguments())),
+					self._runtimeSelfReference(),
+				)
+			else:
+				return "/*super()*/Object.getPrototypeOf({0}).apply({2},[{1}])".format(
+					self.getSafeSuperName(self.getCurrentClass()),
+					", ".join(map(self.write, element.getArguments())),
+					self._runtimeSelfReference(),
+				)
 		else:
 			# Otherwise we're invoking a method from the super, which
 			# is a simple call forwarding
