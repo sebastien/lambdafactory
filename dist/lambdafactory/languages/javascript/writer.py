@@ -689,14 +689,14 @@ class Writer(AbstractWriter):
 
 				)
 			for a in classElement.getAttributes():
-				if not a.getDefaultValue(): continue
+				default_value = a.getDefaultValue()
 				constructor_attributes.append(
 					"// Default value for property `{0}`".format(a.getName())
 				)
 				constructor_attributes.append(
 					"if ({0}.{1} === declare.NOTHING){{{0}.{1} = {2};}}".format(
 						self._runtimeSelfReference(classElement), self._rewriteSymbol(a.getName()),
-						self.write(a.getDefaultValue())
+						self.write(default_value) if default_value else "undefined"
 				))
 			# We only need a default constructor when we have class attributes
 			# declared and no constructor declared
@@ -786,13 +786,13 @@ class Writer(AbstractWriter):
 		attributes    = []
 		# FIXME: Same as onClass
 		for a in current_class.getAttributes():
-			if not a.getDefaultValue(): continue
+			default_value = a.getDefaultValue()
 			name = self._rewriteSymbol(a.getName())
 			attributes.append("// Default initialization of property `{0}`".format(name))
 			attributes.append("if ({0}.{1}===declare.NOTHING){{{0}.{1} = {2};}}".format(
 				self._runtimeSelfReference(element), name,
-				self.write(a.getDefaultValue()))
-			)
+				self.write(default_value) if default_value else "undefined"
+			))
 		res = (
 			self._document(element),
 			(
@@ -2012,12 +2012,24 @@ class Writer(AbstractWriter):
 		if element and element.dataflow:
 			# NOTE: Implicits can sometimes be declared twice
 			declared = {}
-			for s in element.dataflow.slots:
+			for s in self._walkDataFlowSlots(element.dataflow):
 				if s.isArgument() or s.isImported() or s.isEnvironment(): continue
 				if s.isImplicit() or (not implicitsOnly):
 					declared[s.getName()] = True
 			if declared:
 				yield "var {0};".format(", ".join(declared.keys()))
+
+	def _walkDataFlowSlots( self, dataflow ):
+		"""Recursively walks the slots of the given dataflow, skipping
+		closures."""
+		for s in dataflow.slots:
+			yield s
+		for c in dataflow.children:
+			# We don't analyze the closures, as they have their own
+			# scope.
+			if isinstance(c, interfaces.IClosure): continue
+			for s in self._walkDataFlowSlots(c):
+				yield s
 
 	def _writeUnitTests( self, element ):
 		"""Writes the unit tests for this element and all its descendants,
