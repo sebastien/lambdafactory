@@ -376,6 +376,8 @@
 			var extension           = path split "." [-1]
 			var parser              = parsers get (extension)
 			if not parser -> parser = parsers get "sg"
+			# We make sure the text is an UTF string
+			# text = text decode "utf-8"
 			# NOTE: This does not apply any pass
 			var source_and_module   = parser parseString (text, moduleName, path)
 			module = source_and_module[1]

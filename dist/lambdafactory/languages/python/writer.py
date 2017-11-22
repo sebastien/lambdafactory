@@ -71,6 +71,7 @@ class Writer(AbstractWriter):
 		code = [
 			"#" + SNIP % ("%s.py" % (self.getAbsoluteName(moduleElement).replace(".", "/"))),
 			"#!/usr/bin/env python",
+			"# encoding: utf-8",
 			self._document(moduleElement),
 			"import sys",
 			"__module__ = sys.modules[__name__]"
