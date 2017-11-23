@@ -1,13 +1,14 @@
 #8< ---[lambdafactory/splitter.py]---
 #!/usr/bin/env python
+# encoding: utf-8
 import sys
 __module__ = sys.modules[__name__]
 import os
 __module_name__ = 'lambdafactory.splitter'
-SNIP_START = '8< ---['
-SNIP_END = ']---'
-SNIP = ((SNIP_START + '%s') + SNIP_END)
-ERR_MUST_START_WITH_SNIP = 'ERR_MUST_START_WITH_SNIP'
+SNIP_START = u'8< ---['
+SNIP_END = u']---'
+SNIP = ((SNIP_START + u'%s') + SNIP_END)
+ERR_MUST_START_WITH_SNIP = u'ERR_MUST_START_WITH_SNIP'
 class FileSplitter:
 	""" Some languages (like Java or ActionScript) may generate multiple files
 	 for one single module. The FileSplitter makes it easy for front-end to
@@ -36,7 +37,7 @@ class FileSplitter:
 		parents=os.path.dirname(path)
 		if (not os.path.exists(parents)):
 			os.makedirs(parents)
-		self.currentFile = file(path, 'w')
+		self.currentFile = file(path, u'w')
 	
 	def writeLine(self, line):
 		""" Writes the given line to the current file"""
@@ -55,7 +56,7 @@ class FileSplitter:
 				path=line[(i + len(SNIP_START)):j]
 				self.newFile(path)
 			elif True:
-				self.writeLine((line + ((addEOL and '\n') or '')))
+				self.writeLine((line + ((addEOL and u'\n') or u'')))
 		self.end()
 	
 	def fromLines(self, lines, addEOL=None):
@@ -63,6 +64,6 @@ class FileSplitter:
 		return self.fromStream(lines, addEOL)
 	
 	def fromString(self, text):
-		return self.fromLines(text.split('\n'), True)
+		return self.fromLines(text.split(u'\n'), True)
 	
 

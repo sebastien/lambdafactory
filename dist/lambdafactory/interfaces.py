@@ -1,16 +1,17 @@
 #8< ---[lambdafactory/interfaces.py]---
 #!/usr/bin/env python
+# encoding: utf-8
 import sys
 __module__ = sys.modules[__name__]
 __module_name__ = 'lambdafactory.interfaces'
 class Constants:
-	MainFunction = '__main__'
-	CurrentModule = '__current__'
-	Constructor = '__init__'
-	Init = '__init__'
-	Destructor = '__destroy__'
-	ModuleInit = '__moduleinit__'
-	CurrentValue = '__currentvalue__'
+	MainFunction = u'__main__'
+	CurrentModule = u'__current__'
+	Constructor = u'__init__'
+	Init = u'__init__'
+	Destructor = u'__destroy__'
+	ModuleInit = u'__moduleinit__'
+	CurrentValue = u'__currentvalue__'
 	PARENS_PRIORITY = 9999
 
 class IAnnotation:
@@ -882,7 +883,7 @@ class IImportOperation(IOperation):
 
 class IImportSymbolOperation(IImportOperation):
 	ARGS = [IEvaluable, IEvaluable, IEvaluable]
-	ARG_NAMES = ['ImportedElement', 'ImportOrigin', 'Alias']
+	ARG_NAMES = [u'ImportedElement', u'ImportOrigin', u'Alias']
 	def getImportedElement(self):
 		"""	Returns a reference or a resolution that will allow to get the
 			imported element."""
@@ -911,7 +912,7 @@ class IImportSymbolOperation(IImportOperation):
 
 class IImportSymbolsOperation(IImportOperation):
 	ARGS = [[IEvaluable], IEvaluable]
-	ARG_NAMES = ['ImportedElements', 'ImportOrigin']
+	ARG_NAMES = [u'ImportedElements', u'ImportOrigin']
 	def getImportedElements(self):
 		"""	Returns a reference or a resolution that will allow to get the
 			imported element."""
@@ -923,7 +924,7 @@ class IImportSymbolsOperation(IImportOperation):
 
 class IImportModuleOperation(IImportOperation):
 	ARGS = [IEvaluable, IEvaluable]
-	ARG_NAMES = ['ImportedModuleName', 'Alias']
+	ARG_NAMES = [u'ImportedModuleName', u'Alias']
 	def getImportedModuleName(self):
 		""" Returns the list of names representing the modules to load"""
 		return self.getOpArgument(0)
@@ -934,7 +935,7 @@ class IImportModuleOperation(IImportOperation):
 
 class IImportModulesOperation(IImportOperation):
 	ARGS = [[IEvaluable]]
-	ARG_NAMES = ['ImportedModuleNames']
+	ARG_NAMES = [u'ImportedModuleNames']
 	def getImportedModuleNames(self):
 		""" Returns the list of names representing the modules to load"""
 		return [_.getImportedModuleName() for _ in self.getOpArgument(0)]
@@ -947,7 +948,7 @@ class IImportModulesOperation(IImportOperation):
 class IEvaluation(IOperation):
 	""" An operation that simply returns its value, evaluating it if necessary."""
 	ARGS = [IEvaluable, IEvaluable]
-	ARG_NAMES = ['Evaluable']
+	ARG_NAMES = [u'Evaluable']
 	def getEvaluable(self):
 		return self.getOpArgument(0)
 	

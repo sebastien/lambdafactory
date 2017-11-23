@@ -1,5 +1,6 @@
 #8< ---[lambdafactory/modelwriter.py]---
 #!/usr/bin/env python
+# encoding: utf-8
 import sys
 __module__ = sys.modules[__name__]
 import lambdafactory.interfaces as interfaces
@@ -8,7 +9,7 @@ from lambdafactory.passes import Pass
 from lambdafactory.splitter import SNIP
 import string, types
 __module_name__ = 'lambdafactory.modelwriter'
-PREFIX = '\t'
+PREFIX = u'\t'
 def _format (value, level=None):
 	""" Format helper operation. See @format"""
 	self=__module__
@@ -81,7 +82,7 @@ class AbstractWriter(Pass):
 				return (value + element)
 	
 	def lines(self, value, prefix=None):
-		if prefix is None: prefix = ''
+		if prefix is None: prefix = u''
 		if isString(value):
 			yield prefix + value
 		elif type(value) in (tuple, list, types.GeneratorType):
@@ -94,14 +95,14 @@ class AbstractWriter(Pass):
 	def write(self, element):
 		res=None
 		if (element is None):
-			return ''
+			return u''
 		elif True:
 			if isString(element):
 				return element
 			elif ((type(element) is list) or (type(element) is tuple)):
 				return u"\n".join(self.write(_) for _ in element)
-			elif element.hasAnnotation('shadow'):
-				return ''
+			elif element.hasAnnotation(u'shadow'):
+				return u''
 			elif True:
 				this_interfaces = self.HANDLES
 				for  the_interface in this_interfaces:
@@ -131,7 +132,7 @@ class AbstractWriter(Pass):
 				line=self.write(module)
 				if line:
 					lines.append(line)
-		return '\n'.join(lines)
+		return u'\n'.join(lines)
 	
 	def _format(self, *values):
 		return format(*values)

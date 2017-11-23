@@ -1,5 +1,6 @@
 #8< ---[lambdafactory/model.py]---
 #!/usr/bin/env python
+# encoding: utf-8
 """ This module is the default implementation of the LambdaFactory interfaces.
  It defines objects that allow you to build a complete OO program model on
  which you can apply transformation passes, and from which you can generate
@@ -27,12 +28,12 @@ def ensureUnicode (value):
 		return value.decode("utf8") if isinstance(value, str) else value
 
 
-ERR_SLOT_NOT_FOUND = 'ERR_SLOT_NOT_FOUND'
-ERR_SLOT_VALUE_NOT_ASSIGNABLE = 'ERR_SLOT_VALUE_NOT_ASSIGNABLE'
-ERR_MODULE_ADDED_TWICE = 'ERR_MODULE_ADDED_TWICE'
-ERR_ABSTRACT_PROCESS_NO_OPERATIONS = 'ERR_ABSTRACT_PROCESS_NO_OPERATIONS'
-ERR_NOT_AN_OPERATION = 'ERR_NOT_AN_OPERATION'
-ERR_CLOSURE_ARGUMENT_NOT_SLOT = 'ERR_CLOSURE_ARGUMENT_NOT_SLOT'
+ERR_SLOT_NOT_FOUND = u'ERR_SLOT_NOT_FOUND'
+ERR_SLOT_VALUE_NOT_ASSIGNABLE = u'ERR_SLOT_VALUE_NOT_ASSIGNABLE'
+ERR_MODULE_ADDED_TWICE = u'ERR_MODULE_ADDED_TWICE'
+ERR_ABSTRACT_PROCESS_NO_OPERATIONS = u'ERR_ABSTRACT_PROCESS_NO_OPERATIONS'
+ERR_NOT_AN_OPERATION = u'ERR_NOT_AN_OPERATION'
+ERR_CLOSURE_ARGUMENT_NOT_SLOT = u'ERR_CLOSURE_ARGUMENT_NOT_SLOT'
 class DataFlowSlot(IDataFlowSlot):
 	def __init__ (self, name, value, origin, slotType):
 		self.name = None
@@ -106,11 +107,11 @@ class DataFlow(IDataFlow):
 	 While 'DataFlow' and 'Context' may appear very similar, they are not the
 	 same: contexts are elements that keep track of declared slots, while the
 	 dataflow make use of the context to weave the elements togeher."""
-	ARGUMENT = 'argument'
-	ENVIRONMENT = 'environment'
-	LOCAL = 'local'
-	IMPORTED = 'imported'
-	IMPLICIT = 'implicit'
+	ARGUMENT = u'argument'
+	ENVIRONMENT = u'environment'
+	LOCAL = u'local'
+	IMPORTED = u'imported'
+	IMPLICIT = u'implicit'
 	def __init__ (self, element, parent=None):
 		self.program = None
 		self.element = None
@@ -336,7 +337,7 @@ class DataFlow(IDataFlow):
 		""" Finds the first generated name that is not already defined in this
 		 scope or in a parent."""
 		i=0
-		prefix=''
+		prefix=u''
 		n=(prefix + self._generateName(i))
 		while (self.resolve(n)[0] != None):
 			i = (i + 1)
@@ -345,7 +346,7 @@ class DataFlow(IDataFlow):
 	
 	def _generateName(self, index):
 		""" A helper to generate a variable name from a number"""
-		l='abcdefghijklmnopqrstuvwxyz'
+		l=u'abcdefghijklmnopqrstuvwxyz'
 		n=len(l)
 		if (index < n):
 			return l[index]
@@ -390,7 +391,7 @@ class Element:
 			if self.parent:
 				parent_name=self.parent.getAbsoluteName()
 				if parent_name:
-					return ((parent_name + '.') + name)
+					return ((parent_name + u'.') + name)
 				elif True:
 					return name
 		elif True:
@@ -503,7 +504,7 @@ class Element:
 		self.addAnnotation(documentation)
 	
 	def getDocumentation(self):
-		return self.getAnnotation('documentation')
+		return self.getAnnotation(u'documentation')
 	
 	def getDataFlow(self):
 		return self.dataflow
@@ -515,7 +516,7 @@ class Element:
 		return self.dataflow
 	
 	def ownsDataFlow(self):
-		raise 'Not implemented'
+		raise u'Not implemented'
 	
 	def getAbstractType(self):
 		if (self.abstractType is None):
@@ -669,14 +670,14 @@ class Annotation(Element, IAnnotation):
 class Comment(Annotation, IComment):
 	def __init__ (self, content=None):
 		if content is None: content = None
-		Annotation.__init__(self, 'comment', content)
+		Annotation.__init__(self, u'comment', content)
 	
 	pass
 
 class Documentation(Annotation, IDocumentation):
 	def __init__ (self, content=None):
 		if content is None: content = None
-		Annotation.__init__(self, 'documentation', content)
+		Annotation.__init__(self, u'documentation', content)
 	
 	pass
 
@@ -724,7 +725,7 @@ class Context(Element, IContext):
 		if assignParent is None: assignParent = True
 		if (evaluable and (not isinstance(evaluable, IAssignable))):
 			raise ERR_SLOT_VALUE_NOT_ASSIGNABLE
-		if ((assignParent and isinstance(evaluable, IContext)) or hasattr(evaluable, 'setParent')):
+		if ((assignParent and isinstance(evaluable, IContext)) or hasattr(evaluable, u'setParent')):
 			evaluable.setParent(self)
 		if (self.slotIndex.get(name) is None):
 			self.slots.append([name, evaluable, None, None])
@@ -804,7 +805,7 @@ class Context(Element, IContext):
 			if p:
 				parent_name=p.getAbsoluteName()
 				if parent_name:
-					return ((parent_name + '.') + self.name)
+					return ((parent_name + u'.') + self.name)
 				elif True:
 					return self.name
 			elif True:
@@ -922,7 +923,7 @@ class Module(Context, IModule):
 	
 	def getParentName(self):
 		""" Returns 'grandparentname.parentname'"""
-		return ('.'.join(self.name.split('.')[0:-1]) or None)
+		return (u'.'.join(self.name.split(u'.')[0:-1]) or None)
 	
 	def getAbsoluteName(self):
 		""" A module name is already absolute, so 'getAbsoluteName' is the same as
@@ -1094,9 +1095,9 @@ class Callable(Process):
 		""" Adds a `mutates` annotation to this closure saying that it mutates
 		 the slot named `name` in its scope."""
 		if slot is None: slot = None
-		a=self.getAnnotation('mutates')
+		a=self.getAnnotation(u'mutates')
 		if (not a):
-			self.addAnnotation('mutates', {(name):slot})
+			self.addAnnotation(u'mutates', {(name):slot})
 		elif True:
 			a.content[name] = slot
 	
@@ -1104,15 +1105,15 @@ class Callable(Process):
 		""" Adds a `encloses` annotation to this closure saying that it mutates
 		 the slot named `name` in its scope."""
 		if slot is None: slot = None
-		a=self.getAnnotation('encloses')
+		a=self.getAnnotation(u'encloses')
 		if (not a):
-			self.addAnnotation('encloses', {(name):slot})
+			self.addAnnotation(u'encloses', {(name):slot})
 		elif True:
 			a.content[name] = slot
 	
 	def hasMutation(self, name):
 		""" Tells if the closure has a `mutates` annotation of the given name"""
-		a=self.getAnnotation('mutates')
+		a=self.getAnnotation(u'mutates')
 		if a:
 			return (name in a.content)
 		elif True:
@@ -1158,7 +1159,7 @@ class Function(Callable, IFunction):
 	
 	def getAbsoluteName(self):
 		if self.getParent():
-			return ((self.getParent().getAbsoluteName() + '.') + self.name)
+			return ((self.getParent().getAbsoluteName() + u'.') + self.name)
 		elif True:
 			return self.name
 	

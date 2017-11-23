@@ -161,7 +161,6 @@ class Cache:
 			f.close()
 		except Exception as e:
 			f.close()
-			os.unlink(p)
 			error(u'Cache.set {0}: {1}'.format(k, e))
 			return None
 		pm=self._getPathForModuleName(module.getAbsoluteName())

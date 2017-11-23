@@ -1,12 +1,13 @@
 #8< ---[lambdafactory/resolution.py]---
 #!/usr/bin/env python
+# encoding: utf-8
 import sys
 __module__ = sys.modules[__name__]
 import lambdafactory.interfaces as interfaces
 from lambdafactory.passes import Pass
 import re, math
 __module_name__ = 'lambdafactory.resolution'
-LETTERS = 'abcdefghijklmnopqrstuvwxyz'
+LETTERS = u'abcdefghijklmnopqrstuvwxyz'
 class BasicDataFlow(Pass):
 	""" The basic dataflow pass will associate DataFlow objects to elements which
 	 don't have any already, and will make sure that Context slots are defined
@@ -32,9 +33,9 @@ class BasicDataFlow(Pass):
 	 2) Properly flow classes (so that resolution in parents can happen)
 	 3) Attaches operations that reference a value to the original slot (this
 	    prepares the path for the typing pass)"""
-	RE_IMPLICIT = re.compile('^_[0-9]?$')
+	RE_IMPLICIT = re.compile(u'^_[0-9]?$')
 	HANDLES = [interfaces.IProgram, interfaces.IModule, interfaces.IClass, interfaces.IMethod, interfaces.IClosure, interfaces.IBlock, interfaces.IProcess, interfaces.IContext, interfaces.IAllocation, interfaces.IAssignment, interfaces.IIteration, interfaces.IChain, interfaces.ISelection, interfaces.IOperation, interfaces.IAnonymousReference, interfaces.IImplicitReference, interfaces.IReference, interfaces.IValue]
-	NAME = 'Resolution'
+	NAME = u'Resolution'
 	def __init__ (self):
 		Pass.__init__(self)
 	
@@ -64,15 +65,15 @@ class BasicDataFlow(Pass):
 		return dataflow
 	
 	def _ensureAnnotationsDataflow(self, element):
-		for _ in element.getAnnotations('where'):
+		for _ in element.getAnnotations(u'where'):
 			self.ensureDataFlow(_.getContent())
 	
 	def onProgram(self, element):
 		dataflow=self.ensureDataFlow(element)
-		dataflow.declareEnvironment('Undefined', None)
-		dataflow.declareEnvironment('True', None)
-		dataflow.declareEnvironment('False', None)
-		dataflow.declareEnvironment('Null', None)
+		dataflow.declareEnvironment(u'Undefined', None)
+		dataflow.declareEnvironment(u'True', None)
+		dataflow.declareEnvironment(u'False', None)
+		dataflow.declareEnvironment(u'Null', None)
 	
 	def onModule(self, element):
 		dataflow=self.ensureDataFlow(element)
@@ -90,14 +91,14 @@ class BasicDataFlow(Pass):
 	
 	def onClass(self, element):
 		dataflow=self.ensureDataFlow(element)
-		dataflow.declareEnvironment('super', None)
-		dataflow.declareEnvironment('self', None)
+		dataflow.declareEnvironment(u'super', None)
+		dataflow.declareEnvironment(u'self', None)
 		self.onContext(element)
 	
 	def onMethod(self, element):
 		dataflow=self.ensureDataFlow(element)
-		dataflow.declareEnvironment('super', None)
-		dataflow.declareEnvironment('self', None)
+		dataflow.declareEnvironment(u'super', None)
+		dataflow.declareEnvironment(u'self', None)
 		self.onClosure(element)
 	
 	def onClosure(self, element):
@@ -225,7 +226,7 @@ class BasicDataFlow(Pass):
 				parameters=closure.parameters
 				while (len(parameters) <= n):
 					l=len(parameters)
-					p=self.environment.factory._param(('_' + str(l)))
+					p=self.environment.factory._param((u'_' + str(l)))
 					parameters.append(p)
 					if dataflow:
 						dataflow.declareArgument(p.getName(), p)
@@ -248,7 +249,7 @@ class BasicDataFlow(Pass):
 class ClearDataFlow(Pass):
 	""" Cleares the dataflows from the elements"""
 	HANDLES = [interfaces.IProgram, interfaces.IModule, interfaces.IClass, interfaces.IMethod, interfaces.IClosure, interfaces.IProcess, interfaces.IContext, interfaces.IAllocation, interfaces.IOperation, interfaces.IArgument, interfaces.IValue]
-	NAME = 'ClearDataflow'
+	NAME = u'ClearDataflow'
 	def __init__ (self):
 		Pass.__init__(self)
 	
@@ -304,7 +305,7 @@ class ClearDataFlow(Pass):
 		self.clearDataFlow(element)
 	
 	def _clearAnnotationsDataFlow(self, element):
-		for _ in (element.getAnnotations('where') or []):
+		for _ in (element.getAnnotations(u'where') or []):
 			self.clearDataFlow(_)
 	
 
@@ -315,7 +316,7 @@ class DataFlowBinding(Pass):
 	 resolution has failed (and there is an inconsistency in the program model)."""
 	FAILED = tuple([None, None])
 	HANDLES = [interfaces.IModule, interfaces.IClass, interfaces.IContext, interfaces.IEnumerationType]
-	NAME = 'ClassParentsResolution'
+	NAME = u'ClassParentsResolution'
 	def __init__ (self):
 		Pass.__init__(self)
 	
@@ -329,10 +330,10 @@ class DataFlowBinding(Pass):
 		imported_name=(alias or symbol_name)
 		df=element.getDataFlow()
 		if (slot_and_value == self.__class__.FAILED):
-			self.environment.report.error('Imported module not found in scope:', module_name, 'in', element.getName())
+			self.environment.report.error(u'Imported module not found in scope:', module_name, u'in', element.getName())
 			self._ensureModule(fromModuleName, operation)
 			return self._importSymbol(operation, symbolName, fromModuleName, moduleDest, alias)
-		elif (symbol_name == '*'):
+		elif (symbol_name == u'*'):
 			imported_module=slot_and_value[1]
 			for slot_name in imported_module.getSlotNames():
 				result.update(self._importSymbol(operation, slot_name, fromModuleName, moduleDest))
@@ -340,7 +341,7 @@ class DataFlowBinding(Pass):
 			symbol_slot_and_value=self.resolve(symbol_name, slot_and_value[1])
 			if (symbol_slot_and_value == self.__class__.FAILED):
 				if (fromModuleName != self.getCurrentModule().getAbsoluteName()):
-					self.environment.report.error('Symbol not found in module scope:', symbol_name, 'in', module_name)
+					self.environment.report.error(u'Symbol not found in module scope:', symbol_name, u'in', module_name)
 				if (not df.hasSlot(imported_name)):
 					df.declareImported(imported_name, None, operation)
 				result[imported_name] = None
@@ -350,7 +351,7 @@ class DataFlowBinding(Pass):
 				previous_slot=df.getSlot(imported_name)
 				if previous_slot:
 					assert((not previous_slot.overrides))
-					previous_slot.overrides = df._slot(imported_name, value, operation, 'imported')
+					previous_slot.overrides = df._slot(imported_name, value, operation, u'imported')
 				elif True:
 					df.declareImported(imported_name, value, operation)
 					assert((df.resolve(imported_name)[0].getDataFlow() == df))
@@ -363,7 +364,7 @@ class DataFlowBinding(Pass):
 		imported={}
 		slot_and_value=self.resolveAbsolute(fullname)
 		if (slot_and_value == self.__class__.FAILED):
-			self.environment.report.error('Imported module not found in scope:', fullname, 'in', module.getName())
+			self.environment.report.error(u'Imported module not found in scope:', fullname, u'in', module.getName())
 		elif True:
 			name=(alias or fullname)
 			module.getDataFlow().declareImported(name, slot_and_value[1], operation)
@@ -413,11 +414,11 @@ class DataFlowBinding(Pass):
 				for s in i.getOpArgument(0):
 					imported.update(self._importSymbol(i, s.getImportedElement(), s.getImportOrigin(), element, s.getAlias()))
 			elif True:
-				self.environment.report.error(('DataFlowBinding: operation not implemented ' + repr(i)))
-		if element.hasAnnotation('imported'):
-			element.getAnnotation('imported').value.update(imported)
+				self.environment.report.error((u'DataFlowBinding: operation not implemented ' + repr(i)))
+		if element.hasAnnotation(u'imported'):
+			element.getAnnotation(u'imported').value.update(imported)
 		elif True:
-			element.setAnnotation('imported', imported)
+			element.setAnnotation(u'imported', imported)
 		return imported
 	
 	def onClass(self, element):
@@ -427,7 +428,7 @@ class DataFlowBinding(Pass):
 				assert(parent_class.getDataFlow())
 				element.getDataFlow().addSource(parent_class.getDataFlow())
 			elif isinstance(parent_class, interfaces.IReference):
-				self.environment.report.error(((('Unresolved parent class: ' + parent_class.getReferenceName()) + ' in ') + element.getAbsoluteName()))
+				self.environment.report.error((((u'Unresolved parent class: ' + parent_class.getReferenceName()) + u' in ') + element.getAbsoluteName()))
 	
 	def onContext(self, element):
 		element.dataflow.ensureImplicitsNamed()

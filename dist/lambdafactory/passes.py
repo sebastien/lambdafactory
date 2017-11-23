@@ -1,13 +1,14 @@
 #8< ---[lambdafactory/passes.py]---
 #!/usr/bin/env python
+# encoding: utf-8
 import sys
 __module__ = sys.modules[__name__]
 import lambdafactory.reporter as reporter
 import lambdafactory.interfaces as interfaces
 import json
 __module_name__ = 'lambdafactory.passes'
-ERR_NO_DATAFLOW_AVAILABLE = 'ERR_NO_DATAFLOW_AVAILABLE'
-ERR_PASS_HANDLER_NOT_DEFINED = 'ERR_PASS_HANDLER_NOT_DEFINED'
+ERR_NO_DATAFLOW_AVAILABLE = u'ERR_NO_DATAFLOW_AVAILABLE'
+ERR_PASS_HANDLER_NOT_DEFINED = u'ERR_PASS_HANDLER_NOT_DEFINED'
 class PassContext:
 	""" The 'PassContext' represents the current state of one or more passes when
 	 walking the program. It offers access to the 'environment' (gives access
@@ -191,7 +192,7 @@ class PassContext:
 				n=_.getName()
 				if n:
 					r.append(_.getName())
-		return '.'.join(r)
+		return u'.'.join(r)
 	
 	def getCurrentDataFlow(self):
 		i=(len(self.context) - 1)
@@ -244,7 +245,7 @@ class PassContext:
 				resolution = [resolution[0].overrides, resolution[0].overrides.getValue()]
 			if (resolution[1] == theClass):
 				module=theClass.getParent()
-				imported=module.getAnnotation('imported')
+				imported=module.getAnnotation(u'imported')
 				if imported:
 					resolution = [None, imported.content.get(parent_class_name)]
 			elif (not resolution[1]):
@@ -387,7 +388,7 @@ class PassContext:
 				matching_module = module
 				return tuple([None, module])
 			match_index=referenceOrName.find(mname)
-			if (((match_index == 0) and referenceOrName.startswith(mname)) and (referenceOrName[mname_len] == '.')):
+			if (((match_index == 0) and referenceOrName.startswith(mname)) and (referenceOrName[mname_len] == u'.')):
 				if (not matching_module):
 					matching_module = module
 				elif (len(module.getName()) > len(matching_module.getName())):
@@ -422,7 +423,7 @@ class PassContext:
 
 class Pass(PassContext):
 	HANDLES = []
-	NAME = ''
+	NAME = u''
 	def __init__ (self):
 		self.options = {}
 		PassContext.__init__(self)
@@ -436,9 +437,9 @@ class Pass(PassContext):
 		 name (without the leading 'I')."""
 		for interface in self.__class__.HANDLES:
 			if isinstance(element, interface):
-				handler_name=('on' + interface.__name__[1:])
+				handler_name=(u'on' + interface.__name__[1:])
 				if (not hasattr(self, handler_name)):
-					self.environment.report.error('Handler does not define pass for:', handler_name)
+					self.environment.report.error(u'Handler does not define pass for:', handler_name)
 					raise ERR_PASS_HANDLER_NOT_DEFINED(handler_name)
 				return getattr(self, handler_name)
 		return None
@@ -458,9 +459,9 @@ class ControlFlow(Pass):
 		j=self.lastIndexInContext(interfaces.IClosure)
 		if ((i >= 0) and (j == (i + 1))):
 			e=self.context[i]
-			element.addAnnotation('in-iteration')
-			if (not e.hasAnnotation('terminates')):
-				e.addAnnotation('terminates')
+			element.addAnnotation(u'in-iteration')
+			if (not e.hasAnnotation(u'terminates')):
+				e.addAnnotation(u'terminates')
 	
 
 class Importation(Pass):
@@ -469,7 +470,7 @@ class Importation(Pass):
 	 and will trigger the loading and parsing of each module into the current
 	 program."""
 	HANDLES = [interfaces.IModule]
-	NAME = 'Importation'
+	NAME = u'Importation'
 	def __init__ (self):
 		Pass.__init__(self)
 	
@@ -495,7 +496,7 @@ class Importation(Pass):
 				if (not self.program.hasModuleWithName(imported_module_name)):
 					imported_modules.append(self.environment.importModule(imported_module_name))
 			elif True:
-				self.environment.report.error(('Importation pass: operation not implemented ' + repr(i)))
+				self.environment.report.error((u'Importation pass: operation not implemented ' + repr(i)))
 			for m in imported_modules:
 				if (m and (not self.program.hasModule(m))):
 					self.program.addModule(m)
@@ -506,7 +507,7 @@ class DocumentationPass(Pass):
 	""" The documentation pass will run SDoc on all the modules declared in this
 	 program, creating an HTML file."""
 	HANDLES = [interfaces.IModule, interfaces.IModuleAttribute, interfaces.IClass, interfaces.IClassAttribute, interfaces.IClassMethod, interfaces.IAttribute, interfaces.IMethod, interfaces.IFunction]
-	NAME = 'Documentation'
+	NAME = u'Documentation'
 	def __init__ (self, args=None):
 		self.doc = []
 		self._module = None
@@ -533,32 +534,32 @@ class DocumentationPass(Pass):
 			p.append(_.getReferenceName())
 		c=self._base(element)
 		c.update({'parents':p, 'shared':[], 'operations':[], 'attributes':[], 'methods':[]})
-		self._module['classes'].append(c)
+		self._module[u'classes'].append(c)
 		self._class = c
 	
 	def onModuleAttribute(self, element):
 		e=self._attribute(element)
-		self._module['attributes'].append(e)
+		self._module[u'attributes'].append(e)
 	
 	def onClassAttribute(self, element):
 		e=self._attribute(element)
-		self._class['shared'].append(e)
+		self._class[u'shared'].append(e)
 	
 	def onAttribute(self, element):
 		e=self._attribute(element)
-		(self._class or self._module)['attributes'].append(e)
+		(self._class or self._module)[u'attributes'].append(e)
 	
 	def onClassMethod(self, element):
 		e=self._function(element)
-		self._class['operations'].append(e)
+		self._class[u'operations'].append(e)
 	
 	def onMethod(self, element):
 		e=self._function(element)
-		self._class['methods'].append(e)
+		self._class[u'methods'].append(e)
 	
 	def onFunction(self, element):
 		e=self._function(element)
-		self._module['functions'].append(e)
+		self._module[u'functions'].append(e)
 	
 	def _base(self, element):
 		e={'type':self.getType(element), 'name':element.getName(), 'doc':self.getDocumentation(element), 'scope':self.getScopeName(), 'source':element.getSourcePath(), 'offsets':element.getOffsets()}
@@ -566,12 +567,12 @@ class DocumentationPass(Pass):
 	
 	def _attribute(self, element):
 		e=self._base(element)
-		e['value'] = self.writeValue(element)
+		e[u'value'] = self.writeValue(element)
 		return e
 	
 	def _function(self, element):
 		e=self._base(element)
-		e['value'] = None
+		e[u'value'] = None
 		p=[]
 		for _ in element.getParameters():
 			p.append({'name':_.getName(), 'scope':self.getScopeName(), 'value':self.writeValue(None)})
@@ -587,7 +588,7 @@ class DocumentationPass(Pass):
 			return None
 	
 	def getType(self, element):
-		return element.__class__.__name__.rsplit('.', 1)[-1].lower()
+		return element.__class__.__name__.rsplit(u'.', 1)[-1].lower()
 	
 	def getDocumentation(self, element):
 		doc=element.getDocumentation()
@@ -604,7 +605,7 @@ class DocumentationPass(Pass):
 
 class TransformAsynchronousInvocations(Pass):
 	HANDLES = [interfaces.IClosure]
-	NAME = 'AsynchronousInvocationsExpansion'
+	NAME = u'AsynchronousInvocationsExpansion'
 
 class CountReferences(Pass):
 	""" This pass adds "refcount" and "referers" annotations to all the referenced
@@ -613,15 +614,15 @@ class CountReferences(Pass):
 	 This is the first pass to be applied before actually removing the dead
 	 code."""
 	HANDLES = [interfaces.IProgram, interfaces.IReference]
-	NAME = 'CountReferences'
+	NAME = u'CountReferences'
 	def __init__( self, *args, **kwargs ):
 		"""Constructor wrapper to intialize class attributes"""
 		Pass.__init__(self, *args, **kwargs)
-		self.entryPoints = ['ff.ui.components.Component', 'ff.ui.components.bind']
+		self.entryPoints = [u'ff.ui.components.Component', u'ff.ui.components.bind']
 	def incReference(self, element, context=None):
 		if context is None: context = None
-		refcount=element.getAnnotation('refcount')
-		referers=element.getAnnotation('referers')
+		refcount=element.getAnnotation(u'refcount')
+		referers=element.getAnnotation(u'referers')
 		if refcount:
 			refcount.setContent((refcount.getContent() + 1))
 			referers = referers.getContent()
@@ -629,12 +630,12 @@ class CountReferences(Pass):
 				referers.append(context)
 			return True
 		elif True:
-			self.annotate(element, 'refcount', 1)
+			self.annotate(element, u'refcount', 1)
 			if context:
 				referers = [context]
 			elif True:
 				referers = []
-			self.annotate(element, 'referers', referers)
+			self.annotate(element, u'referers', referers)
 			return False
 	
 	def addReferer(self, element, context=None):
@@ -664,28 +665,28 @@ class CountReferences(Pass):
 
 class RemoveDeadCode(Pass):
 	HANDLES = [interfaces.IConstruct, interfaces.IElement]
-	NAME = 'RemoveDeadCode'
+	NAME = u'RemoveDeadCode'
 	def onConstruct(self, value):
 		""" For every construct, we see if there is a refcount or not, and we
 		 see if at least one referer has a refcount. If it's not the case,
 		 then the value will be shadowed, and its refcount set to 0."""
 		actual_count=0
-		refcount=value.getAnnotation('refcount')
-		referers=value.getAnnotation('referers')
+		refcount=value.getAnnotation(u'refcount')
+		referers=value.getAnnotation(u'referers')
 		if refcount:
 			referers = referers.getContent()
 			for r in referers:
-				r_refcount=r.getAnnotation('refcount')
+				r_refcount=r.getAnnotation(u'refcount')
 				if (r_refcount and (r_refcount.getContent() > 0)):
 					actual_count = (actual_count + 1)
 			if (actual_count == 0):
-				self.annotate(value, 'shadow')
+				self.annotate(value, u'shadow')
 				refcount.setContent(0)
 			elif True:
 				for element in self.context:
-					element.removeAnnotation('shadow')
+					element.removeAnnotation(u'shadow')
 		elif value.getAbsoluteName():
-			self.annotate(value, 'shadow')
+			self.annotate(value, u'shadow')
 	
 	def onElement(self, element):
 		pass

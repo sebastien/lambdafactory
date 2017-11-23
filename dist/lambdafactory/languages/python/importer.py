@@ -1,12 +1,13 @@
 #8< ---[lambdafactory/languages/python/importer.py]---
 #!/usr/bin/env python
+# encoding: utf-8
 import sys
 __module__ = sys.modules[__name__]
 import types
 __module_name__ = 'lambdafactory.languages.python.importer'
 class Importer:
 	""" Imports Python module into the current environment."""
-	MODULE_IGNORES = ['__builtins__']
+	MODULE_IGNORES = [u'__builtins__']
 	def __init__ (self, environment):
 		self.environment = None
 		self.environment = environment
@@ -37,7 +38,7 @@ class Importer:
 		return c
 	
 	def _getPythonFunctionArguments(self, function):
-		if hasattr(function, 'im_func'):
+		if hasattr(function, u'im_func'):
 			function = function.im_func
 		f=self.environment.getFactory()
 		defaults=function.func_defaults

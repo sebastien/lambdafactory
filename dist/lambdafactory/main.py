@@ -1,5 +1,6 @@
 #8< ---[lambdafactory/main.py]---
 #!/usr/bin/env python
+# encoding: utf-8
 """ Command-line interface and main module for LambdaFactory"""
 import sys
 __module__ = sys.modules[__name__]
@@ -20,29 +21,29 @@ def ensureOutput (value):
 
 
 class Command:
-	OPT_LANG = 'Specifies the target language (js, java, pnuts, actionscript)'
-	OPT_OUTPUT = 'Specifies the output where the files will be generated (stdout, file or folder)'
-	OPT_VERBOSE = 'Verbose parsing output (useful for debugging)'
-	OPT_API = 'Generates SDoc API documentation (given the API filename)'
-	OPT_TEST = 'Tells wether the source code is valid or not'
-	OPT_DEFINE = 'Defines a specific target (for @specific)'
-	OPT_OPTIONS = 'Options for program transformation passes'
-	OPT_RUN = 'Directly runs the script (default)'
-	OPT_COMPILE = 'Compiles the given code to the output (current) directory'
-	OPT_RUNTIME = 'Outputs the runtime as well when compiled'
-	OPT_VERSION = 'Ensures that Sugar is at least of the given version'
-	OPT_SOURCE = 'Directly gives the source'
-	OPT_INCLUDE_SOURCE = 'Includes source in compiled code'
-	OPT_CACHE = 'Uses compilation cache'
-	OPT_MODULE = 'Specifies the module name'
-	OPT_LIB = 'Specifies a file to be used as a library or a library directory'
-	OPT_INCLUDES = 'Specifies a file to be included in the copmilation output'
-	OPT_PREPROC = 'Applies the given preprocessor to the source'
-	OPT_PASSES = 'Specifies the passes used in the compilation process. Passes are identified by the class name which is expected to be found in either lambdafactory.passes or lambdafactory.resolution modules, or is given as an absolute class name.'
+	OPT_LANG = u'Specifies the target language (js, java, pnuts, actionscript)'
+	OPT_OUTPUT = u'Specifies the output where the files will be generated (stdout, file or folder)'
+	OPT_VERBOSE = u'Verbose parsing output (useful for debugging)'
+	OPT_API = u'Generates SDoc API documentation (given the API filename)'
+	OPT_TEST = u'Tells wether the source code is valid or not'
+	OPT_DEFINE = u'Defines a specific target (for @specific)'
+	OPT_OPTIONS = u'Options for program transformation passes'
+	OPT_RUN = u'Directly runs the script (default)'
+	OPT_COMPILE = u'Compiles the given code to the output (current) directory'
+	OPT_RUNTIME = u'Outputs the runtime as well when compiled'
+	OPT_VERSION = u'Ensures that Sugar is at least of the given version'
+	OPT_SOURCE = u'Directly gives the source'
+	OPT_INCLUDE_SOURCE = u'Includes source in compiled code'
+	OPT_CACHE = u'Uses compilation cache'
+	OPT_MODULE = u'Specifies the module name'
+	OPT_LIB = u'Specifies a file to be used as a library or a library directory'
+	OPT_INCLUDES = u'Specifies a file to be included in the copmilation output'
+	OPT_PREPROC = u'Applies the given preprocessor to the source'
+	OPT_PASSES = u'Specifies the passes used in the compilation process. Passes are identified by the class name which is expected to be found in either lambdafactory.passes or lambdafactory.resolution modules, or is given as an absolute class name.'
 	def __init__ (self, programName=None):
 		self.programName = None
 		self.environment = None
-		if programName is None: programName = 'lambdafactory'
+		if programName is None: programName = u'lambdafactory'
 		self.programName = programName
 		self.createEnvironment()
 		self.environment.loadLanguages()
@@ -54,7 +55,7 @@ class Command:
 		 when embedding LambdaFactory somewhere."""
 		output=StringIO()
 		self.run(args, output)
-		return ('' + output.getvalue())
+		return (u'' + output.getvalue())
 	
 	def run(self, arguments, output=None):
 		if output is None: output = sys.stdout
@@ -105,22 +106,22 @@ class Command:
 		options, args = option_parser.parse_args(args=arguments)
 		language=options.lang
 		program=self.environment.program
-		if (options.cache in ['no', 'none', 'false', '/dev/null', False]):
+		if (options.cache in [u'no', u'none', u'false', u'/dev/null', False]):
 			self.environment.useCache = False
-		elif (options.cache in ['yes', 'true', True]):
+		elif (options.cache in [u'yes', u'true', True]):
 			self.environment.useCache = True
 		elif True:
 			self.environment.useCache = True
 			self.environment.cache.setPath(options.cache)
-		if os.environ.get('SUGAR_MODULES'):
-			m=os.environ['SUGAR_MODULES']
-			self.environment.options['modules'] = m
+		if os.environ.get(u'SUGAR_MODULES'):
+			m=os.environ[u'SUGAR_MODULES']
+			self.environment.options[u'modules'] = m
 			self.environment.options[m] = True
-		if os.environ.get('SUGAR_BACKEND'):
-			self.environment.options['backend'] = os.environ['SUGAR_BACKEND']
+		if os.environ.get(u'SUGAR_BACKEND'):
+			self.environment.options[u'backend'] = os.environ[u'SUGAR_BACKEND']
 		if options.targets:
 			for option_target in options.targets:
-				name_value=option_target.split('=', 1)
+				name_value=option_target.split(u'=', 1)
 				if (len(name_value) == 1):
 					self.environment.options[option_target] = True
 				elif True:
@@ -134,19 +135,19 @@ class Command:
 					if parsed_module:
 						program.addModule(parsed_module)
 		if options.source:
-			raise Exception('Not supported yet')
+			raise Exception(u'Not supported yet')
 		elif True:
 			if options.module:
 				if (len(args) > 1):
-					raise Exception('Only one source file is accepted with the -m option')
+					raise Exception(u'Only one source file is accepted with the -m option')
 			for source_path in args:
 				result_module=self.parseFile(source_path, options.module)
 				if result_module:
 					program.addModule(result_module)
-				if (language == 'none'):
+				if (language == u'none'):
 					language = None
 				elif (not language):
-					language = (self.environment.options.get('backend') or self.guessLanguage(source_path))
+					language = (self.environment.options.get(u'backend') or self.guessLanguage(source_path))
 				elif True:
 					language = self.environment.normalizeLanguage(language)
 		if options.libraries:
@@ -158,37 +159,37 @@ class Command:
 					elif True:
 						program.addModule(module)
 						for name_and_value in module.getSlots():
-							name_and_value[1].addAnnotation(self.environment.getFactory().annotation('shadow'))
+							name_and_value[1].addAnnotation(self.environment.getFactory().annotation(u'shadow'))
 				elif True:
 					self.environment.addLibraryPath(l)
-		if (language == 'none'):
+		if (language == u'none'):
 			language = None
 		if options.passes:
-			self.setupPasses(language, options.passes.split(','), (options.passOptions or []))
+			self.setupPasses(language, options.passes.split(u','), (options.passOptions or []))
 		elif True:
 			self.setupPasses(language, None, (options.passOptions or []))
 		if program.getModules():
 			self.transformProgram(program)
 		if options.api:
-			doc_pass=self.environment.getPass('Documentation')
-			doc_pass.setWriter(self.getWriter('js'))
+			doc_pass=self.environment.getPass(u'Documentation')
+			doc_pass.setWriter(self.getWriter(u'js'))
 			json_documentation = doc_pass.asJSON()
-			if (options.api == '-'):
+			if (options.api == u'-'):
 				output.write(json_documentation)
 			elif True:
-				f=open(options.api, 'w')
+				f=open(options.api, u'w')
 				f.write(json_documentation)
 				f.close()
 		elif options.compile:
 			program_source=self.writeProgram(program, language, options.runtime, options.includeSource)
 			if (not options.output):
 				output.write(ensureOutput(program_source))
-				output.write('\n')
+				output.write(u'\n')
 			elif os.path.isdir(options.output):
 				splitter=FileSplitter(options.output)
 				splitter.fromString(program_source)
 			elif True:
-				f=open(options.output, 'a')
+				f=open(options.output, u'a')
 				f.write(ensureOutput(program_source))
 				f.close()
 		elif options.run:
@@ -196,21 +197,21 @@ class Command:
 			file_and_path=tempfile.mkstemp()
 			os.write(file_and_path[0], ensureOutput(program_source))
 			os.close(file_and_path[0])
-			args_str=' '.join(args[1:])
+			args_str=u' '.join(args[1:])
 			interpreter=None
 			path=file_and_path[1]
 			compilers=None
 			command=None
-			if (language in ['js', 'javascript', 'es', 'ecmascript']):
-				interpreter = (os.getenv('SUGAR_JS') or 'js')
-				command = ((((interpreter + ' ') + path) + ' ') + args_str)
-			elif (language in ['python']):
-				interpreter = (os.getenv('SUGAR_PYTHON') or 'python')
-				command = ((((interpreter + ' ') + path) + ' ') + args_str)
+			if (language in [u'js', u'javascript', u'es', u'ecmascript']):
+				interpreter = (os.getenv(u'SUGAR_JS') or u'js')
+				command = ((((interpreter + u' ') + path) + u' ') + args_str)
+			elif (language in [u'python']):
+				interpreter = (os.getenv(u'SUGAR_PYTHON') or u'python')
+				command = ((((interpreter + u' ') + path) + u' ') + args_str)
 			if command:
 				status = ((os.system(command) / 256) or status)
 			elif True:
-				self.environment.report.error('No command defined to run language: {0}'.format(language))
+				self.environment.report.error(u'No command defined to run language: {0}'.format(language))
 			os.unlink(path)
 		return program
 	
@@ -242,7 +243,7 @@ class Command:
 			writer.setEnvironment(self.environment)
 			return writer
 		elif True:
-			self.environment.report.error('Language not defined: {0}'.format(name))
+			self.environment.report.error(u'Language not defined: {0}'.format(name))
 			return None
 	
 	def writeProgram(self, program, inLanguage, includeRuntime=None, includeSource=None):
@@ -255,7 +256,7 @@ class Command:
 				program_source = (writer.getRuntimeSource() + program_source)
 			return program_source
 		elif True:
-			return ''
+			return u''
 	
 	def createEnvironment(self):
 		self.environment = Environment()
@@ -274,29 +275,29 @@ class Command:
 			self.environment.addPass(resolution.DataFlowBinding())
 		elif True:
 			for the_pass in withPasses:
-				if (the_pass == 'std'):
+				if (the_pass == u'std'):
 					self.environment.addPass(passes.Importation())
 					self.environment.addPass(passes.ControlFlow())
 					self.environment.addPass(resolution.BasicDataFlow())
 					self.environment.addPass(resolution.DataFlowBinding())
-				elif (the_pass.find('.') == -1):
+				elif (the_pass.find(u'.') == -1):
 					pass_class=None
 					if hasattr(passes, the_pass):
 						pass_class = getattr(passes, the_pass)
 					elif hasattr(resolution, the_pass):
 						pass_class = getattr(resolution, the_pass)
 					elif True:
-						self.environment.report.error('LambdaFactory standard pass not found:', the_pass)
+						self.environment.report.error(u'LambdaFactory standard pass not found:', the_pass)
 						assert(None)
 					self.environment.addPass(pass_class())
 				elif True:
-					module_name=the_pass[0:the_pass.rfind('.')]
-					exec(('import ' + module_name))
+					module_name=the_pass[0:the_pass.rfind(u'.')]
+					exec((u'import ' + module_name))
 					pass_class=eval(the_pass)
 					if pass_class:
 						self.environment.addPass(pass_class())
 					elif True:
-						self.environment.report.error('Custom pass not found:', the_pass)
+						self.environment.report.error(u'Custom pass not found:', the_pass)
 						assert(None)
 	
 
