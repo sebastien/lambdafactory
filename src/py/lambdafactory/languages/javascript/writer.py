@@ -22,6 +22,10 @@ import lambdafactory.reporter   as reporter
 from   lambdafactory.splitter import SNIP
 import os.path, re, time, string, random, json
 
+PYTHON2 = sys.version_info[0] < 3
+if not PYTHON2:
+	unicode = str
+
 #------------------------------------------------------------------------------
 #
 #  GLOBALS
