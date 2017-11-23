@@ -2287,7 +2287,7 @@ class Writer(AbstractWriter):
 			if not a and len(n) == 1:
 				args = self.write(n[0].getValue())
 			else:
-				args = "[{0}].{1}".format(
+				args = "[{0}]{1}".format(
 					", ".join(self.write(_) for _ in a),
 					"".join(".concat(" + (self.write(_.getValue())) + ")" for _ in n),
 				)

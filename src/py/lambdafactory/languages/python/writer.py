@@ -318,6 +318,9 @@ class Writer(AbstractWriter):
 			res.append("if (not (%s)): raise new Exception('Assertion failed')" % (self.write(a.getContent())))
 		return self._format(res) or None
 
+	def onInitializer( self, element ):
+		return self.onFunction(element)
+
 	def onFunction( self, function ):
 		"""Writes a function element."""
 		parent = function.getParent()
