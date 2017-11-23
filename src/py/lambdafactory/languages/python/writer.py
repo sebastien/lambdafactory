@@ -15,7 +15,8 @@ from lambdafactory.modelwriter import AbstractWriter, flatten
 import lambdafactory.interfaces as interfaces
 import lambdafactory.reporter as reporter
 from lambdafactory.splitter import SNIP
-import os.path, re, time, string, random
+import os.path, sys, re, time, string, random
+PYTHON3 = sys.version_info.major >= 3
 
 #------------------------------------------------------------------------------
 #
@@ -538,7 +539,11 @@ class Writer(AbstractWriter):
 	def onString( self, element ):
 		"""Writes a string element."""
 		s = element.getActualValue()
-		return repr(s)
+		r = repr(s)
+		if PYTHON3:
+			return "u" + r
+		else:
+			return r
 
 	def onList( self, element ):
 		"""Writes a list element."""
