@@ -189,12 +189,16 @@
 		if os path exists (p)
 			var f   = open (p)
 			try
+				# FIXME: Somehow there are issues with restoring the
+				# module in Py3K
 				var res = pickle load (f)
+				f close ()
 			catch e
-				error ("Cache. {0}: {1}" format (sig, e))
+				error ("Cache error: {0}: {1}" format (sig, e))
+				f close ()
+				os unlink (p)
 				res = None
 			end
-			f close ()
 			return res
 		else
 			return None
@@ -212,7 +216,7 @@
 			f close ()
 		catch e
 			f close ()
-			os unlink (p)
+			# os unlink (p)
 			error ("Cache.set {0}: {1}" format (k, e))
 			return None
 		end

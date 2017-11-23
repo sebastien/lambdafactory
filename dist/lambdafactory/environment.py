@@ -1,5 +1,6 @@
 #8< ---[lambdafactory/environment.py]---
 #!/usr/bin/env python
+# encoding: utf-8
 import sys
 __module__ = sys.modules[__name__]
 import os, stat, sys, pickle, hashlib, imp
@@ -10,12 +11,12 @@ from lambdafactory.resolution import ClearDataFlow
 __module_name__ = 'lambdafactory.environment'
 def error (message):
 	self=__module__
-	sys.stderr.write('[!] {0}\n'.format(message))
+	sys.stderr.write(u'[!] {0}\n'.format(message))
 
 
 def info (message):
 	self=__module__
-	sys.stderr.write('--- {0}\n'.format(message))
+	sys.stderr.write(u'--- {0}\n'.format(message))
 
 
 class Importer:
@@ -30,11 +31,11 @@ class Importer:
 	def findSugarModule(self, moduleName, paths=None):
 		""" Finds the module with the given name in the given ppaths"""
 		if paths is None: paths = None
-		exts=['.sg', '.sjs', '.sjava', '.spnuts', '.spy']
+		exts=[u'.sg', u'.sjs', u'.sjava', u'.spnuts', u'.spy']
 		paths = ((paths or []) + self.environment.libraryPaths)
-		if os.environ.get('SUGARPATH'):
-			paths.extend(os.environ.get('SUGARPATH').split(':'))
-		module_path=moduleName.replace('.', os.path.sep)
+		if os.environ.get(u'SUGARPATH'):
+			paths.extend(os.environ.get(u'SUGARPATH').split(u':'))
+		module_path=moduleName.replace(u'.', os.path.sep)
 		for path in paths:
 			path = os.path.abspath(os.path.expandvars(os.path.expanduser(path)))
 			for ext in exts:
@@ -46,10 +47,10 @@ class Importer:
 	def importModule(self, moduleName):
 		module_path=self.findSugarModule(moduleName)
 		if module_path:
-			self.environment.report.trace('Importing module', moduleName, 'from', module_path)
+			self.environment.report.trace(u'Importing module', moduleName, u'from', module_path)
 			return self.importModuleFromFile(module_path, moduleName)
 		elif True:
-			self.environment.report.error('Module not found:', moduleName)
+			self.environment.report.error(u'Module not found:', moduleName)
 	
 	def importModuleFromFile(self, modulePath, moduleName=None):
 		if moduleName is None: moduleName = None
@@ -60,7 +61,7 @@ class Importer:
 				module.setName(moduleName)
 			module.setImported(True)
 		elif True:
-			self.environment.report.error('Cannot parse module:', moduleName)
+			self.environment.report.error(u'Cannot parse module:', moduleName)
 		self.environment.report.dedent()
 		return module
 	
@@ -80,11 +81,11 @@ class Language:
 		self.name = name
 		assert name, "No language specified"
 		self.basePath = self.basePath
-		self.runtime = self.loadModule('runtime')
-		self.importer = self.loadModule('importer')
-		self.writer = self.loadModule('writer')
-		self.reader = self.loadModule('reader')
-		self.runner = self.loadModule('runner')
+		self.runtime = self.loadModule(u'runtime')
+		self.importer = self.loadModule(u'importer')
+		self.writer = self.loadModule(u'writer')
+		self.reader = self.loadModule(u'reader')
+		self.runner = self.loadModule(u'runner')
 	
 	def addRecognizedExtension(self, extension):
 		self.readExtensions.append(extension.lower())
@@ -100,11 +101,11 @@ class Language:
 			module_name = "lambdafactory.languages." + self.name + "." + moduleName
 			root_module = __import__(module_name)
 			module      = getattr(getattr(getattr(root_module, "languages"), self.name), moduleName)
-			return getattr(module, 'MAIN_CLASS')
+			return getattr(module, u'MAIN_CLASS')
 		except Exception as e:
 			error=str(e)
-			if (not error.startswith('No module')):
-				self.environment.report.error(((((('Language ' + str(self.name)) + ', cannot import module ') + str(moduleName)) + ': ') + str(e)))
+			if (not error.startswith(u'No module')):
+				self.environment.report.error((((((u'Language ' + str(self.name)) + u', cannot import module ') + str(moduleName)) + u': ') + str(e)))
 			return None
 	
 
@@ -116,9 +117,9 @@ class Cache:
 	 content/<sig>.model"""
 	def __init__ (self):
 		self.root = None
-		cache_path=os.path.expanduser('~/.cache/lambdafactory')
-		if ('LF_CACHE' in os.environ):
-			cache_path = os.environ['LF_CACHE']
+		cache_path=os.path.expanduser(u'~/.cache/lambdafactory')
+		if (u'LF_CACHE' in os.environ):
+			cache_path = os.environ[u'LF_CACHE']
 		self.setPath(cache_path)
 	
 	def setPath(self, root):
@@ -139,10 +140,12 @@ class Cache:
 			f=open(p)
 			try:
 				res=pickle.load(f)
+				f.close()
 			except Exception as e:
-				error('Cache. {0}: {1}'.format(sig, e))
+				error(u'Cache error: {0}: {1}'.format(sig, e))
+				f.close()
+				os.unlink(p)
 				res = None
-			f.close()
 			return res
 		elif True:
 			return None
@@ -150,7 +153,7 @@ class Cache:
 	def set(self, key, module):
 		k=key
 		p=self._getPathForSignature(k)
-		f=open(p, 'wb')
+		f=open(p, u'wb')
 		try:
 			pickle.dump(module, f, pickle.HIGHEST_PROTOCOL)
 			f.flush()
@@ -159,7 +162,7 @@ class Cache:
 		except Exception as e:
 			f.close()
 			os.unlink(p)
-			error('Cache.set {0}: {1}'.format(k, e))
+			error(u'Cache.set {0}: {1}'.format(k, e))
 			return None
 		pm=self._getPathForModuleName(module.getAbsoluteName())
 		if os.path.exists(pm):
@@ -171,10 +174,10 @@ class Cache:
 		pass
 	
 	def _getPathForSignature(self, sig):
-		return (((self.root + '/content-') + sig) + '.cache')
+		return (((self.root + u'/content-') + sig) + u'.cache')
 	
 	def _getPathForModuleName(self, name):
-		return (((self.root + '/module-') + name) + '.cache')
+		return (((self.root + u'/module-') + name) + u'.cache')
 	
 	def _exists(self, path):
 		""" Tests if the given path exists and has been created less than 24h ago.
@@ -199,7 +202,7 @@ class Environment:
 	 program. The order of passe is important, as some passes depend on each other.
 	 It is up to the 'lambdafactory.main.Command' subclass to set up the passes
 	 appropriately."""
-	ALIASES = {'javascript':['javascript', 'js', 'jscript'], 'ecmascript':['ecmascript', 'es', 'escript'], 'python':['python', 'py']}
+	ALIASES = {'javascript':[u'javascript', u'js', u'jscript'], 'ecmascript':[u'ecmascript', u'es', u'escript'], 'python':[u'python', u'py']}
 	def __init__ (self):
 		self.factory = None
 		self.program = None
@@ -240,7 +243,7 @@ class Environment:
 	
 	def runPasses(self, program):
 		for p in self.passes:
-			self.report.trace('Running pass {0}'.format(p.__class__.__name__))
+			self.report.trace(u'Running pass {0}'.format(p.__class__.__name__))
 			p.run(program)
 	
 	def getFactory(self):
@@ -259,7 +262,7 @@ class Environment:
 	
 	def parseFile(self, path, moduleName=None):
 		if moduleName is None: moduleName = None
-		f=open(path, 'rb')
+		f=open(path, u'rb')
 		text=f.read()
 		f.close()
 		return self.parseString(text, path, moduleName)
@@ -269,10 +272,10 @@ class Environment:
 		cache_key=self.cache.key(text)
 		module=self.cache.get(cache_key)
 		if ((not self.useCache) or (not module)):
-			extension=path.split('.')[-1]
+			extension=path.split(u'.')[-1]
 			parser=self.parsers.get(extension)
 			if (not parser):
-				parser = self.parsers.get('sg')
+				parser = self.parsers.get(u'sg')
 			source_and_module=parser.parseString(text, moduleName, path)
 			module = source_and_module[1]
 			assert((source_and_module[0] == text))
@@ -282,17 +285,17 @@ class Environment:
 				if self.useCache:
 					self.cache.set(cache_key, res)
 			elif True:
-				error(('Could not parse file: ' + path))
+				error((u'Could not parse file: ' + path))
 		elif True:
 			assert((module.getDataFlow() is None))
 		return module
 	
 	def listAvailableLanguages(self):
 		""" Returns a list of available languages by introspecting the modules"""
-		base_dir=os.path.join(os.path.dirname(os.path.abspath(__file__)), 'languages')
+		base_dir=os.path.join(os.path.dirname(os.path.abspath(__file__)), u'languages')
 		languages=[]
 		for name in os.listdir(base_dir):
-			if (((not name.startswith('.')) and os.path.isdir(os.path.join(base_dir, name))) and (not name.startswith('_'))):
+			if (((not name.startswith(u'.')) and os.path.isdir(os.path.join(base_dir, name))) and (not name.startswith(u'_'))):
 				languages.append(name)
 		return languages
 	
@@ -315,7 +318,7 @@ class Environment:
 	def loadLanguage(self, name):
 		""" Loads the given language plug-in and returns a dictionary containing
 		 its features."""
-		if ((name == 'none') or (not name)):
+		if ((name == u'none') or (not name)):
 			return None
 		name = self.normalizeLanguage(name)
 		if (not (name in self.languages.keys())):

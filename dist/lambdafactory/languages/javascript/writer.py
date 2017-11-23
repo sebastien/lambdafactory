@@ -20,7 +20,7 @@ from   lambdafactory.modelwriter import AbstractWriter, flatten
 import lambdafactory.interfaces as interfaces
 import lambdafactory.reporter   as reporter
 from   lambdafactory.splitter import SNIP
-import os.path, re, time, string, random, json
+import os.path, re, time, string, random, json, sys
 
 PYTHON2 = sys.version_info[0] < 3
 if not PYTHON2:
