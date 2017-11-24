@@ -9,6 +9,7 @@ from lambdafactory.modelbase import Factory
 from lambdafactory.passes import PassContext
 from lambdafactory.resolution import ClearDataFlow
 __module_name__ = 'lambdafactory.environment'
+PY_VERSION = sys.version_info.major
 def error (message):
 	self=__module__
 	sys.stderr.write(u'[!] {0}\n'.format(message))
@@ -123,6 +124,7 @@ class Cache:
 		self.setPath(cache_path)
 	
 	def setPath(self, root):
+		root = os.path.join(root, (u'py' + str(PY_VERSION)))
 		if (not os.path.exists(root)):
 			os.makedirs(root)
 		self.root = root

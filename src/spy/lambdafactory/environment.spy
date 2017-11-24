@@ -5,6 +5,8 @@
 @import PassContext from lambdafactory.passes
 @import ClearDataFlow from lambdafactory.resolution
 
+@shared PY_VERSION = sys version_info major
+
 # FIXME: User reporter
 @function error message
 	sys stderr write ("[!] {0}\n" format (message))
@@ -169,6 +171,7 @@
 	@end
 
 	@method setPath root
+		root = os path join (root, "py" + str(PY_VERSION))
 		if not os path exists (root)
 			os makedirs (root)
 		end
@@ -190,7 +193,8 @@
 			var f   = open (p)
 			try
 				# FIXME: Somehow there are issues with restoring the
-				# module in Py3K
+				# module in Py3K, where there are encoding issues with
+				# the UTF strings
 				var res = pickle load (f)
 				f close ()
 			catch e
