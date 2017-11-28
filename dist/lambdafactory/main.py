@@ -17,7 +17,7 @@ def ensureOutput (value):
 	if sys.version_info.major >= 3:
 		return value.decode("utf8") if not isinstance(value, str) else value
 	else:
-		return value.encode("utf8") if isinstance(value, unicode) else value
+		return value.decode("utf8") if isinstance(value, str) else value
 
 
 class Command:
