@@ -20,6 +20,22 @@ def info (message):
 	sys.stderr.write(u'--- {0}\n'.format(message))
 
 
+def ensureUnicode (value):
+	self=__module__
+	if sys.version_info.major >= 3:
+		return value.decode("utf8") if not isinstance(value, str) else value
+	else:
+		return value.decode("utf8") if not isinstance(value, unicode) else value
+
+
+def ensureBytes (value):
+	self=__module__
+	if sys.version_info.major >= 3:
+		return value.encode("utf8") if isinstance(value, str) else value
+	else:
+		return value.encode("utf8") if isinstance(value, unicode) else value
+
+
 class Importer:
 	""" The Environment importer class acts like a "hub" for language-specific
 	 importers. It will try, according to the current environment settings,
@@ -263,14 +279,15 @@ class Environment:
 	
 	def parseFile(self, path, moduleName=None):
 		if moduleName is None: moduleName = None
-		f=open(path, u'rb')
-		text=f.read()
+		f=open(path, u'r')
+		text=ensureUnicode(f.read())
 		f.close()
 		return self.parseString(text, path, moduleName)
 	
 	def parseString(self, text, path, moduleName=None):
 		if moduleName is None: moduleName = None
-		cache_key=self.cache.key(text)
+		text = ensureUnicode(text)
+		cache_key=self.cache.key(ensureBytes(text))
 		module=self.cache.get(cache_key)
 		if ((not self.useCache) or (not module)):
 			extension=path.split(u'.')[-1]

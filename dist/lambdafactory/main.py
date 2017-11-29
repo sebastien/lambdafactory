@@ -15,9 +15,11 @@ __module_name__ = 'lambdafactory.main'
 def ensureOutput (value):
 	self=__module__
 	if sys.version_info.major >= 3:
+		# For Python-3 we expect streams to take unicode
 		return value.decode("utf8") if not isinstance(value, str) else value
 	else:
-		return value.decode("utf8") if isinstance(value, str) else value
+		# For Python-2 we expect streams to take bytes
+		return value.encode("utf8") if isinstance(value, unicode) else value
 
 
 class Command:

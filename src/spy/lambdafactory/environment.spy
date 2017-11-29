@@ -16,6 +16,24 @@
 	sys stderr write ("--- {0}\n" format (message))
 @end
 
+@function ensureUnicode value
+	@embed Python
+	|if sys.version_info.major >= 3:
+	|	return value.decode("utf8") if not isinstance(value, str) else value
+	|else:
+	|	return value.decode("utf8") if not isinstance(value, unicode) else value
+	@end
+@end
+
+@function ensureBytes value
+	@embed Python
+	|if sys.version_info.major >= 3:
+	|	return value.encode("utf8") if isinstance(value, str) else value
+	|else:
+	|	return value.encode("utf8") if isinstance(value, unicode) else value
+	@end
+@end
+
 # -----------------------------------------------------------------------------
 #
 # IMPORTER
@@ -371,14 +389,15 @@
 
 	# TODO: Cache should be per parser
 	@method parseFile path, moduleName=None
-		var f    = open (path, "rb")
-		var text = f read ()
+		var f    = open (path, "r")
+		var text = ensureUnicode (f read ())
 		f close ()
 		return parseString (text, path, moduleName)
 	@end
 
 	@method parseString text, path, moduleName=None
-		let cache_key = cache key (text)
+		text          = ensureUnicode (text)
+		let cache_key = cache key (ensureBytes (text))
 		var module    = cache get (cache_key)
 		if (not useCache) or (not module)
 			var extension           = path split "." [-1]
