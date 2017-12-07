@@ -14,7 +14,7 @@
 	@embed Python
 	|if sys.version_info.major >= 3:
 	|	# For Python-3 we expect streams to take unicode
-	|	return value.decode("utf8") if not isinstance(value, str) else value
+	|	return value.encode("utf8") if not isinstance(value, bytes) else value
 	|else:
 	|	# For Python-2 we expect streams to take bytes
 	|	return value.encode("utf8") if isinstance(value, unicode) else value
@@ -234,20 +234,20 @@
 			if options api == "-"
 				output write ( json_documentation )
 			else
-				var f = open(options api, "w")
-				f write (json_documentation)
+				var f = open(options api, "wb")
+				f write (ensureOutput(json_documentation))
 				f close ()
 			end
 		elif options compile
 			var program_source = writeProgram (program, language, options runtime, options includeSource)
 			if not options output
 				output write (ensureOutput(program_source))
-				output write ("\n" )
+				output write (ensureOutput("\n" ))
 			elif os path isdir (options output)
 				var splitter = FileSplitter(options output)
 				splitter fromString (program_source)
 			else
-				var f = open(options output, "a")
+				var f = open(options output, "ab")
 				f write (ensureOutput (program_source))
 				f close ()
 			end

@@ -208,7 +208,7 @@
 	@method get sig
 		var p   = _getPathForSignature(sig)
 		if os path exists (p)
-			var f   = open (p)
+			var f = open (p, "rb")
 			try
 				# FIXME: Somehow there are issues with restoring the
 				# module in Py3K, where there are encoding issues with
@@ -389,7 +389,7 @@
 
 	# TODO: Cache should be per parser
 	@method parseFile path, moduleName=None
-		var f    = open (path, "r")
+		var f    = open (path, "rb")
 		var text = ensureUnicode (f read ())
 		f close ()
 		return parseString (text, path, moduleName)
