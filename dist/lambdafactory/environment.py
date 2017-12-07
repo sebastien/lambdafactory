@@ -155,7 +155,7 @@ class Cache:
 	def get(self, sig):
 		p=self._getPathForSignature(sig)
 		if os.path.exists(p):
-			f=open(p)
+			f=open(p, u'rb')
 			try:
 				res=pickle.load(f)
 				f.close()
@@ -279,7 +279,7 @@ class Environment:
 	
 	def parseFile(self, path, moduleName=None):
 		if moduleName is None: moduleName = None
-		f=open(path, u'r')
+		f=open(path, u'rb')
 		text=ensureUnicode(f.read())
 		f.close()
 		return self.parseString(text, path, moduleName)

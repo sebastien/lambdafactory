@@ -16,7 +16,7 @@ def ensureOutput (value):
 	self=__module__
 	if sys.version_info.major >= 3:
 		# For Python-3 we expect streams to take unicode
-		return value.decode("utf8") if not isinstance(value, str) else value
+		return value.encode("utf8") if not isinstance(value, bytes) else value
 	else:
 		# For Python-2 we expect streams to take bytes
 		return value.encode("utf8") if isinstance(value, unicode) else value
@@ -179,19 +179,19 @@ class Command:
 			if (options.api == u'-'):
 				output.write(json_documentation)
 			elif True:
-				f=open(options.api, u'w')
-				f.write(json_documentation)
+				f=open(options.api, u'wb')
+				f.write(ensureOutput(json_documentation))
 				f.close()
 		elif options.compile:
 			program_source=self.writeProgram(program, language, options.runtime, options.includeSource)
 			if (not options.output):
 				output.write(ensureOutput(program_source))
-				output.write(u'\n')
+				output.write(ensureOutput(u'\n'))
 			elif os.path.isdir(options.output):
 				splitter=FileSplitter(options.output)
 				splitter.fromString(program_source)
 			elif True:
-				f=open(options.output, u'a')
+				f=open(options.output, u'ab')
 				f.write(ensureOutput(program_source))
 				f.close()
 		elif options.run:
