@@ -9,16 +9,21 @@ from lambdafactory.environment import Environment
 from lambdafactory.splitter import FileSplitter
 import lambdafactory.passes as passes
 import lambdafactory.resolution as resolution
-from io import StringIO
+from io import BytesIO, TextIOBase
 import sys
 __module_name__ = 'lambdafactory.main'
-def ensureOutput (value):
+def ensureOutput (value, output=None):
 	self=__module__
+	if output is None: output = None
 	if sys.version_info.major >= 3:
 		# For Python-3 we expect streams to take unicode
-		return value.encode("utf8") if not isinstance(value, bytes) else value
+		if output and isinstance(output, TextIOBase):
+			return value.decode("utf8") if isinstance(value, bytes) else value
+		else:
+			return value.encode("utf8") if not isinstance(value, bytes) else value
 	else:
 		# For Python-2 we expect streams to take bytes
+		if isinstance(value,bytes): return str(value)
 		return value.encode("utf8") if isinstance(value, unicode) else value
 
 
@@ -55,9 +60,9 @@ class Command:
 		""" Runs Sugar, but instead of printing the result to the given
 		 output, it returns a Python string with the result. It is very useful
 		 when embedding LambdaFactory somewhere."""
-		output=StringIO()
+		output=BytesIO()
 		self.run(args, output)
-		return (u'' + output.getvalue())
+		return output.getvalue().decode(u'utf-8')
 	
 	def run(self, arguments, output=None):
 		if output is None: output = sys.stdout
@@ -180,25 +185,26 @@ class Command:
 				output.write(json_documentation)
 			elif True:
 				f=open(options.api, u'wb')
-				f.write(ensureOutput(json_documentation))
+				f.write(ensureOutput(json_documentation, f))
 				f.close()
 		elif options.compile:
 			program_source=self.writeProgram(program, language, options.runtime, options.includeSource)
 			if (not options.output):
-				output.write(ensureOutput(program_source))
-				output.write(ensureOutput(u'\n'))
+				output.write(ensureOutput(program_source, output))
+				output.write(ensureOutput(u'\n', output))
 			elif os.path.isdir(options.output):
 				splitter=FileSplitter(options.output)
 				splitter.fromString(program_source)
 			elif True:
 				f=open(options.output, u'ab')
-				f.write(ensureOutput(program_source))
+				f.write(ensureOutput(program_source, f))
 				f.close()
 		elif options.run:
 			program_source=self.writeProgram(program, language, True, options.includeSource)
 			file_and_path=tempfile.mkstemp()
-			os.write(file_and_path[0], ensureOutput(program_source))
-			os.close(file_and_path[0])
+			f=open(file_and_path[0], u'wb')
+			f.write(ensureOutput(program_source, f))
+			f.close()
 			args_str=u' '.join(args[1:])
 			interpreter=None
 			path=file_and_path[1]

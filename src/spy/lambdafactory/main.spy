@@ -5,18 +5,22 @@
 @import FileSplitter from lambdafactory.splitter
 @import lambdafactory.passes as passes
 @import lambdafactory.resolution as resolution
-@import StringIO from io
+@import BytesIO, TextIOBase from io
 @import sys
 
 # TODO: languages should be backends
 
-@function ensureOutput value
+@function ensureOutput value, output=None
 	@embed Python
 	|if sys.version_info.major >= 3:
 	|	# For Python-3 we expect streams to take unicode
-	|	return value.encode("utf8") if not isinstance(value, bytes) else value
+	|	if output and isinstance(output, TextIOBase):
+	|		return value.decode("utf8") if isinstance(value, bytes) else value
+	|	else:
+	|		return value.encode("utf8") if not isinstance(value, bytes) else value
 	|else:
 	|	# For Python-2 we expect streams to take bytes
+	|	if isinstance(value,bytes): return str(value)
 	|	return value.encode("utf8") if isinstance(value, unicode) else value
 	@end
 @end
@@ -63,9 +67,9 @@
 	| Runs Sugar, but instead of printing the result to the given
 	| output, it returns a Python string with the result. It is very useful
 	| when embedding LambdaFactory somewhere.
-		var output = new StringIO ()
+		var output = new BytesIO ()
 		run (args, output)
-		return "" + output getvalue()
+		return output getvalue() decode "utf-8"
 	@end
 
 	@method run arguments, output=sys stdout
@@ -235,27 +239,28 @@
 				output write ( json_documentation )
 			else
 				var f = open(options api, "wb")
-				f write (ensureOutput(json_documentation))
+				f write (ensureOutput(json_documentation, f))
 				f close ()
 			end
 		elif options compile
 			var program_source = writeProgram (program, language, options runtime, options includeSource)
 			if not options output
-				output write (ensureOutput(program_source))
-				output write (ensureOutput("\n" ))
+				output write (ensureOutput(program_source, output))
+				output write (ensureOutput("\n" , output))
 			elif os path isdir (options output)
 				var splitter = FileSplitter(options output)
 				splitter fromString (program_source)
 			else
 				var f = open(options output, "ab")
-				f write (ensureOutput (program_source))
+				f write (ensureOutput (program_source, f))
 				f close ()
 			end
 		elif options run
 			var program_source = writeProgram (program, language, True, options includeSource)
 			var file_and_path = tempfile mkstemp ()
-			os write(file_and_path[0], ensureOutput (program_source))
-			os close(file_and_path[0])
+			var f = open (file_and_path[0], "wb")
+			f write(ensureOutput (program_source, f))
+			f close ()
 			var args_str = " " join(args[1:])
 			var interpreter = None
 			var path = file_and_path[1]
