@@ -370,7 +370,9 @@ class Writer(AbstractWriter):
 							declaration = "\n".join(self._section("Module main")) + "\n"
 					declaration   += u"{0}.{1} = {2}".format(module_name, slot_name, self._format(value_code))
 					if isinstance(value, interfaces.IClass):
+						self.pushContext(value)
 						declaration += ";\n" + self._format(self._onClassPostamble(value, module_name + "." + slot_name))
+						self.popContext()
 			code.append(self._document(value))
 			code.append(declaration)
 		# --- INIT ------------------------------------------------------------
