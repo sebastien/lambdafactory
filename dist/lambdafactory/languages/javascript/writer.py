@@ -624,12 +624,14 @@ class Writer(AbstractWriter):
 		classAttributes = element.getClassAttributes()
 		name = name or self.getAbsoluteName(element).replace(".", "_")
 		for attr in classAttributes:
+			self.pushContext(attr)
 			default_value = attr.getDefaultValue()
 			yield "{0}.{1} = {2};".format(
 				name,
 				self._rewriteSymbol(attr.getName()),
 				self.write(default_value) if default_value else "undefined"
 			)
+			self.popContext()
 
 	def onClass( self, classElement, classType="Class" ):
 		"""Writes a class element."""
