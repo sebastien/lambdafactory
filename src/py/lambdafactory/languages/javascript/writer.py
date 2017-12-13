@@ -809,6 +809,7 @@ class Writer(AbstractWriter):
 			)  % (
 				", ".join(map(self.write, element.getParameters()))
 			),
+			list(self._writeAllocations(element)),
 			["const %s = this;" % (self._runtimeSelfReference(element))],
 			self._writeClosureArguments(element),
 			attributes or None,
@@ -853,9 +854,8 @@ class Writer(AbstractWriter):
 		) for _ in methodElement.getAnnotations("when")]
 
 	def writeFunctionPre(self, methodElement):
+		# FIXME
 		return ["extend.assert({0}, 'Precondition failed in {1}):".format(self.write(_.content), self.getScopeName()) for _ in methodElement.getAnnotations("pre")]
-
-
 
 	# =========================================================================
 	# FUNCTIONS
@@ -2022,6 +2022,8 @@ class Writer(AbstractWriter):
 			yield _
 
 	def _writeAllocations( self, element, implicitsOnly=False ):
+		"""Looks for allocations made within the current element and
+		declares them all at once."""
 		# FIXME: assert(element.dataflow) fails sometimes
 		if element and element.dataflow:
 			# NOTE: Implicits can sometimes be declared twice

@@ -145,7 +145,6 @@
 | same: contexts are elements that keep track of declared slots, while the
 | dataflow make use of the context to weave the elements togeher.
 
-
 	@shared ARGUMENT    = "argument"
 	@shared ENVIRONMENT = "environment"
 	@shared LOCAL       = "local"

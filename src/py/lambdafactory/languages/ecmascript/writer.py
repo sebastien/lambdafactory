@@ -234,7 +234,7 @@ class Writer(JavaScriptWriter):
 		# Init method
 		if withProperties:
 			yield "\t__init_properties__() {"
-			yield "\t\tlet self=this;"
+			yield "\t\tconst self=this;"
 			parents = self.getClassParents(element)
 			traits  = [_ for _ in parents if isinstance(_, interfaces.ITrait)]
 			classes = [_ for _ in parents if _ not in traits]
@@ -319,7 +319,7 @@ class Writer(JavaScriptWriter):
 	def onConstructor( self, element ):
 		call_super   = None
 		init         = []
-		traits_super = ["let self=this;"]
+		traits_super = ["const self=this;"]
 		ops          = []
 		# Constructor can be none in some cases
 		c          = element.parent if element else self.getCurrentClass()
