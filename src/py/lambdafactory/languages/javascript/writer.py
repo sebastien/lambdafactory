@@ -1702,7 +1702,8 @@ class Writer(AbstractWriter):
 			# to the iterated expression
 			"// Iterates over `{0}`. This works on array,objects and null/undefined".format(self.write(iterator)),
 			"var {l}={iterator};".format(l=l, iterator=iterator),
-			"var {k}={l} instanceof Array ? {l} : Object.getOwnPropertyNames({l}||{{}});".format(k=k, l=l),
+			# NOTE: Was getOwnPropertyNames
+			"var {k}={l} instanceof Array ? {l} : ({l} instanceof Object ? Object.keys({l}) : []);".format(k=k, l=l),
 			"var {kl}={k}.length;".format(k=k, kl=kl),
 			# Now if the iterated expression is not an array, we get its keys
 			"for (var {ki}=0;{ki}<{kl};{ki}++){{".format(ki=ki, kl=kl),
