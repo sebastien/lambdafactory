@@ -1760,7 +1760,6 @@ class Writer(AbstractWriter):
 
 
 	def onTypeIdentification( self, element ):
-
 		return self._runtimeTypeIdentify(element)
 
 	def onEvaluation( self, operation ):
@@ -2358,7 +2357,7 @@ class Writer(AbstractWriter):
 			args = self.write(args[0])
 		else:
 			args = "[" + ", ".join(self.write(_) for _ in args) + "]"
-		return "__send__({0}, {1}, {2}, {0})".format(target, event, args, target)
+		return "{0}__send__({1}, {2}, {3}, {1})".format(self.runtimePrefix, target, event, args)
 
 	def _runtimeEventBind( self, element ):
 		if isinstance(element, interfaces.IElement):
@@ -2375,14 +2374,15 @@ class Writer(AbstractWriter):
 			)
 
 	def _runtimeEventBindOnce( self, element ):
-		return "__once__({0}, {1}, {2})".format(
+		return "{0}__once__({1}, {2}, {3})".format(
+			self.runtimePrefix,
 			self.write(element.getTarget()) or "undefined",
 			self.write(element.getEvent()) or "undefined",
 			self.write(element.getArguments()) or "undefined",
 		)
 
 	def _runtimeEventUnbind( self, element ):
-		return "{0}__unbind__({1}, {2}, {2})".format(
+		return "{0}__unbind__({1}, {2}, {3})".format(
 			self.runtimePrefix,
 			self.write(element.getTarget()) or "undefined",
 			self.write(element.getEvent()) or "undefined",
