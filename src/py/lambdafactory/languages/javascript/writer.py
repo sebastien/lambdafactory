@@ -594,7 +594,7 @@ class Writer(AbstractWriter):
 			if i<last:
 				line = "c = c.{0} = c.{0} || {{}};".format(name)
 			else:
-				line = "c.{0} = __module__;".format(name)
+				line = "if (typeof (c.{0}) === 'undefined') {{ c.{0} = __module__; }}".format(name)
 			res.append(line)
 		return (self._section("Module registration") if self._isNice else []) + [
 			"// Registers the module in the globals, creating any submodule if necessary" if self._isNice else None,

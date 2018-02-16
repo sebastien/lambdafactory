@@ -191,7 +191,13 @@
 	@method setPath root
 		root = os path join (root, "py" + str(PY_VERSION))
 		if not os path exists (root)
-			os makedirs (root)
+			# NOTE: This might fail with mutliple processes
+			@embed Python
+			|try:
+			|	os.makedirs(root)
+			|except FileExistsError:
+			|	pass
+			@end
 		end
 		self root = root
 		return self

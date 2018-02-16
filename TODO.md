@@ -6,6 +6,15 @@ High-priority
 
 N/A
 
+When importing symbols from modules, they should be absolutely bound
+@import lower from ff.text
+
+should create a reference
+
+	ff_text__lower
+
+That would save many resolutions
+
 Nice to have
 ============
 
