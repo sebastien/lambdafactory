@@ -142,7 +142,10 @@ class Cache:
 	def setPath(self, root):
 		root = os.path.join(root, (u'py' + str(PY_VERSION)))
 		if (not os.path.exists(root)):
-			os.makedirs(root)
+			try:
+				os.makedirs(root)
+			except FileExistsError:
+				pass
 		self.root = root
 		return self
 	
