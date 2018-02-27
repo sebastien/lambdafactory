@@ -486,16 +486,16 @@ class Writer(AbstractWriter):
 			} else if (typeof exports !== "undefined") {
 				return factory(require, exports);
 			} else {
-				var module  = {exports:{}};
-				var require = function(_){
+				var _module  = {exports:{}};
+				var _require = function(_){
 					_=_.split(".");_.reverse();
 					var c=global;
 					while (c && _.length > 0){c=c[_.pop()]}
 					return c;
 				}
-				factory(require, module.exports);
-				global.actual = module.exports;
-				return module.exports;
+				factory(_require, _module.exports);
+				global.actual = _module.exports;
+				return _module.exports;
 			}
 		})(this, function (require, exports) {""".replace(
 			"MODULE", module_name
