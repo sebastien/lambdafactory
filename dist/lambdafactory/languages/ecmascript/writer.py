@@ -44,6 +44,7 @@ class Writer(JavaScriptWriter):
 		JavaScriptWriter.__init__(self)
 		self.jsInit = "__init__"
 		self.jsSelf = "self"
+		self.runtimeModules = [self.runtimePrefix[:-1]]
 
 	# -------------------------------------------------------------------------
 	#

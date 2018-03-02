@@ -104,10 +104,10 @@ class Writer(AbstractWriter):
 	RNDVARLETTERS  = "ijklmonpqrstuvwxyzabcdefgh"
 	UNIT_OPERATORS = UNIT_OPERATORS
 	RUNTIME_OPS = {
-		"isIn":"__in__",
-		"map":"__map__",
-		"filter":"__filter__",
-		"reduce":"__reduce__",
+		"isIn"   :"__in__",
+		"map"    :"__map__",
+		"filter" :"__filter__",
+		"reduce" :"__reduce__",
 		"reducer":"__reduce_right__",
 		"iterate":"__iterate__"
 	}
@@ -115,9 +115,9 @@ class Writer(AbstractWriter):
 	def __init__( self ):
 		AbstractWriter.__init__(self)
 		# If the runtime functions have a prefix
-		self.runtimePrefix           = ""
+		self.runtimePrefix           = "runtime."
 		# Only used in the declration of constructs (class, trait, singleton)
-		self.declarePrefix           = "declare."
+		self.declarePrefix           = "runtime_oop."
 		self.jsSelf                  = "self"
 		self.jsModule                = "__module__"
 		self.jsInit                  = "__init__"
@@ -127,6 +127,7 @@ class Writer(AbstractWriter):
 		self._generatedVars          = [0]
 		self._isNice                 = False
 		self._withUnits              = False
+		self.runtimeModules          = [self.runtimePrefix[:-1], self.declarePrefix[:-1].replace("_", ".")]
 
 	def _getRandomVariable( self ):
 		s = "__"
@@ -192,14 +193,6 @@ class Writer(AbstractWriter):
 			else:
 				res += letter
 		return res
-
-	def getRuntimeSource(s):
-		"""Returns the JavaScript code for the runtime that is necassary to run
-		the program."""
-		this_file = os.path.abspath(__file__)
-		js_runtime = os.path.join(os.path.dirname(this_file), "runtime.js")
-		f = open(js_runtime, 'r') ; text = f.read() ; f.close()
-		return text
 
 	# =========================================================================
 	# NAMES
@@ -425,8 +418,8 @@ class Writer(AbstractWriter):
 			pass
 			# NOTE: Disabled for now
 			declaration.append("const {0}=typeof(runtime)!='undefined' ? "
-				"runtime.module('{0}') : (typeof({0})!='undefined' ? {0} : "
-				"{{}});".format(local_name))
+				"{1}module('{0}') : (typeof({0})!='undefined' ? {0} : "
+				"{{}});".format(local_name, self.runtimePrefix))
 		else:
 			parents = []
 			current = names[-1]
@@ -435,9 +428,9 @@ class Writer(AbstractWriter):
 				parent_abs_name      = ".".join(parents)
 				parent_safe_name = "_".join(parents)
 				declaration.append(
-					"const {0}=typeof(runtime)!='undefined' ? "
-					"runtime.module('{1}') : (typeof({1})!='undefined' ? {1} : "
-					"{{}});".format(parent_safe_name, parent_abs_name))
+					"const {0}=typeof({2})!='undefined' ? "
+					"{2}module('{1}') : (typeof({1})!='undefined' ? {1} : "
+					"{{}});".format(parent_safe_name, parent_abs_name, self.runtimePrefix))
 				if i > 0:
 					declaration.append("if (typeof({0})==='undefined') {{{0}={1};}};".format(
 						parent_abs_name,
@@ -476,7 +469,7 @@ class Writer(AbstractWriter):
 		# SEE: http://babeljs.io/docs/plugins/transform-es2015-modules-umd/
 		module_name = self.getSafeName(moduleElement)
 		abs_name    = self.getAbsoluteName(moduleElement)
-		imported    = self.getImportedModules(moduleElement)
+		imported    = self.runtimeModules + self.getImportedModules(moduleElement)
 		imports     = (", " + ", ".join(['"' + _ + '"' for _ in imported])) if imported else ""
 		preamble = """// START:UMD_PREAMBLE
 		(function (global, factory) {
@@ -671,7 +664,7 @@ class Writer(AbstractWriter):
 			# In attributes, we only print the name, ans use Undefined as the
 			# value, because properties will be instanciated at construction
 			result += self._group("Properties", 1)
-			written_attrs = ",\n".join(["%s:declare.NOTHING" % (self._rewriteSymbol(e.getName())) for e in attributes])
+			written_attrs = ",\n".join(["%s:%sNOTHING" % (self._rewriteSymbol(e.getName()), self.declarePrefix) for e in attributes])
 			result.append("properties: {")
 			result.append([written_attrs])
 			result.append("},")
@@ -702,9 +695,10 @@ class Writer(AbstractWriter):
 					"// Default value for property `{0}`".format(a.getName())
 				)
 				constructor_attributes.append(
-					"if ({0}.{1} === declare.NOTHING){{{0}.{1} = {2};}}".format(
+					"if ({0}.{1} === {3}NOTHING){{{0}.{1} = {2};}}".format(
 						self._runtimeSelfReference(classElement), self._rewriteSymbol(a.getName()),
-						self.write(default_value) if default_value else "undefined"
+						self.write(default_value) if default_value else "undefined",
+						self.declarePrefix,
 				))
 			# We only need a default constructor when we have class attributes
 			# declared and no constructor declared
@@ -2197,7 +2191,8 @@ class Writer(AbstractWriter):
 		return "{0}__NOTHING__".format(self.runtimePrefix)
 
 	def _runtimeOp( self, name, *args ):
-		return "{0}({1})".format(
+		return "{0}{1}({2})".format(
+			self.runtimePrefix,
 			self.RUNTIME_OPS.get(name) or name,
 			", ".join(self.write(_) for _ in args)
 		)
@@ -2423,7 +2418,7 @@ class Writer(AbstractWriter):
 				slot, value = self.resolve(t.getReferenceName())
 				if value:
 					rvalue = self.getSafeName(value)
-		return "__isa__({0}, {1})".format(lvalue, rvalue)
+		return "{0}__isa__({1}, {2})".format(self.runtimePrefix, lvalue, rvalue)
 
 MAIN_CLASS = Writer
 
