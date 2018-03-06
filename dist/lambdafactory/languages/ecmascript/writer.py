@@ -337,7 +337,7 @@ class Writer(JavaScriptWriter):
 		# order -- there are issues with the `this` reference in traits that
 		# pushed us to move to explicit constructors.
 		for t in traits:
-			traits_super.append("{0}.__init__(self);".format(self.getSafeName(t)))
+			traits_super.append("{0}.__init__.apply(self, arguments);".format(self.getSafeName(t)))
 		# We only use super if the clas has parents and ther is no explicit
 		# constructor
 		if c and not call_super:
