@@ -151,11 +151,11 @@ class Writer(JavaScriptWriter):
 		# NOTE: Here we're moving the constructors to a static initialize
 		# function, as there's some issues having a constructor super in traits when the
 		# trait has no parent (ie. this is undefined).
-		yield "\tfunction(self){"
+		yield "\tfunction(){const self=this;"
 		parents = self.getClassParents(element)
 		for _ in self.getClassParents(element):
 			if isinstance(_, interfaces.ITrait):
-				yield "\t\t{0}.__init__(self);".format(self.getSafeName(_))
+				yield "\t\t{0}.__init__.apply(self, arguments);".format(self.getSafeName(_))
 		for c in element.getConstructors():
 			yield [[self._onFunctionBody(c, bindSelf=False)]]
 		yield "\t}"
