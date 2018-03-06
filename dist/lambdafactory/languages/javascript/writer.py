@@ -1905,7 +1905,7 @@ class Writer(AbstractWriter):
 		yield "{};"
 		for i,_ in enumerate(symbols):
 			# NOTE: Symbol is not supported yet, but would be preferrable
-			yield "{0}.{1} = {0}.{3}.{1} = {4}(new Number({2}), \"{1}\");".format(m, _, i, element.getName(), "__set_name__")
+			yield "{0}.{1} = {0}.{3}.{1} = {4}(new Number({2}), \"{1}\");".format(m, _, i, element.getName(), self.runtimePrefix + "__set_name__")
 			# FIXME: This has unexpected side effects
 			# yield "{0}.{1}.__name__ = \"{2}.{1}\";".format(m, _, element.getName())
 
