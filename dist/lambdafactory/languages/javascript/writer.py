@@ -469,7 +469,7 @@ class Writer(AbstractWriter):
 		# SEE: http://babeljs.io/docs/plugins/transform-es2015-modules-umd/
 		module_name = self.getSafeName(moduleElement)
 		abs_name    = self.getAbsoluteName(moduleElement)
-		imported    = self.runtimeModules + self.getImportedModules(moduleElement)
+		imported    = list(set(self.runtimeModules + self.getImportedModules(moduleElement)))
 		imports     = (", " + ", ".join(['"' + _ + '"' for _ in imported])) if imported else ""
 		preamble = """// START:UMD_PREAMBLE
 		(function (global, factory) {
