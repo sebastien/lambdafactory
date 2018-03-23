@@ -791,9 +791,10 @@ class Writer(AbstractWriter):
 			default_value = a.getDefaultValue()
 			name = self._rewriteSymbol(a.getName())
 			attributes.append("// Default initialization of property `{0}`".format(name))
-			attributes.append("if ({0}.{1}===declare.NOTHING){{{0}.{1} = {2};}}".format(
+			attributes.append("if ({0}.{1}==={3}NOTHING){{{0}.{1} = {2};}}".format(
 				self._runtimeSelfReference(element), name,
-				self.write(default_value) if default_value else "undefined"
+				self.write(default_value) if default_value else "undefined",
+				self.declarePrefix
 			))
 		res = (
 			self._document(element),
@@ -1877,14 +1878,14 @@ class Writer(AbstractWriter):
 		abs_name  = element.getAbsoluteName()
 		name      = "" if anonymous else ((element.getName() or "") + " ")
 		slots     = [_ for _ in element.constraints if isinstance(_, interfaces.ISlotConstraint)]
-		yield "declare.Class({"
+		yield self.declarePrefix + "Class({"
 		if parents:
 			yield "\tparent: {0},".format(self.getSafeName(parents[0]))
 		if slots:
 			yield "\tproperties: {"
 			for i,s in enumerate(slots):
 				suffix = "," if i < len(slots) else ""
-				yield "\t\t{0} : declare.NOTHING{1}".format(s.getName(), suffix)
+				yield "\t\t{1} : {0}NOTHING{2}".format(self.declarePrefix, s.getName(), suffix)
 			yield "\t},"
 		if traits:
 			yield "\ttraits: [{0}],".format(",".join(self.getSafeName(_) for _ in traits))
