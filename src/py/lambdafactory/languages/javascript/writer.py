@@ -2151,7 +2151,7 @@ class Writer(AbstractWriter):
 		else:
 			# Otherwise we're invoking a method from the super, which
 			# is a simple call forwarding
-			return "{0}.apply({2},[{1}])".format(
+			return "({0}.apply({2},[{1}]))".format(
 				self.write(element.getTarget()),
 				", ".join(map(self.write, element.getArguments())),
 				self._runtimeSelfReference(),
@@ -2246,7 +2246,7 @@ class Writer(AbstractWriter):
 		)
 
 	def _runtimeRestArguments( self, i ):
-		return "Array.prototype.slice.call(arguments," + str(i) + ")"
+		return "(Array.prototype.slice.call(arguments," + str(i) + "))"
 
 	def _runtimeDefaultValue( self, name, value ):
 		return name + " === undefined ? " + value + " : " + name
@@ -2303,14 +2303,14 @@ class Writer(AbstractWriter):
 				# Here we need to make sure that when we have a.b(‥) that
 				# `a` is preserved as the this. We need to use the runtime
 				# as otherwise we'd need to evaluate the context twice.
-				return "{0}__apply__({1},\"{2}\",{3})".format(
+				return "({0}__apply__({1},\"{2}\",{3}))".format(
 					self.runtimePrefix,
 					self.write(target.getContext()),
 					self.write(target.getReference().getReferenceName()),
 					args,
 				)
 			else:
-				return "({1}).apply(self,{2})".format(
+				return "(({1}).apply(self,{2}))".format(
 					self.runtimePrefix,
 					self.write(element.getTarget()),
 					args,
