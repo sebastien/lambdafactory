@@ -913,8 +913,7 @@ class Writer(AbstractWriter):
 		if element.getAnnotations(withName="post"):
 			res[0] = "const __wrapped__ = " + res[0] + ";"
 			if parent and isinstance(parent, interfaces.IModule):
-				res.insert(0, 'const %s=%s;' %
-			   (self._runtimeSelfReference(element), self.getAbsoluteName(parent)))
+				res.insert(0, 'const %s=%s;' % (self._runtimeSelfReference(element), self.getAbsoluteName(parent)))
 			res.append("const result = __wrapped__.apply(%s, arguments);" % (self._runtimeSelfReference(element)))
 			res.append(self.writeFunctionPost(element))
 			res.append("return result;")

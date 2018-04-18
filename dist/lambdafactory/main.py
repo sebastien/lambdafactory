@@ -260,8 +260,6 @@ class Command:
 		writer=self.getWriter(inLanguage)
 		if writer:
 			program_source=writer.run(program)
-			if includeRuntime:
-				program_source = (writer.getRuntimeSource() + program_source)
 			return program_source
 		elif True:
 			return u''

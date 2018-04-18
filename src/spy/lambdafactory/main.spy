@@ -328,9 +328,6 @@
 		var writer = getWriter (inLanguage)
 		if writer
 			var program_source = writer run (program)
-			if includeRuntime
-				program_source = writer getRuntimeSource() + program_source
-			end
 			return program_source
 		else
 			return ""
