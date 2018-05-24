@@ -63,6 +63,7 @@ OPTION_NICE           = "nice"
 OPTION_NOPARENS       = "noparens"
 OPTION_EXTEND_ITERATE = "iterate"
 OPTION_TESTS          = "tests"
+OPTION_NOBINDING      = "nobinding"
 
 OPTIONS = {
 	"ENABLE_METADATA" : False,
@@ -314,6 +315,7 @@ class Writer(AbstractWriter):
 		self._isNice      = self.environment.options.get(OPTION_NICE)
 		self._isUnambiguous = not self.environment.options.get(OPTION_NOPARENS)
 		self._withUnits     = self.environment.options.get(OPTION_TESTS)
+		self._noBinding     = self.environment.options.get(OPTION_NOBINDING)
 		if self.environment.options.get(MODULE_UMD):
 			self._moduleType = MODULE_UMD
 		elif self.environment.options.get(MODULE_GOOGLE):
@@ -370,7 +372,7 @@ class Writer(AbstractWriter):
 			code.append(declaration)
 		# --- INIT ------------------------------------------------------------
 		# FIXME: Init should be only invoked once
-		if self._moduleType != MODULE_VANILLA:
+		if self._moduleType != MODULE_VANILLA and not self._noBinding:
 			code.extend(self.registerModuleInWindow(moduleElement))
 		if self._isNice:
 			code += self._section("Module initialization code")
