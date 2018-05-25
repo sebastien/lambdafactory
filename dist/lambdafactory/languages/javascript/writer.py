@@ -1696,7 +1696,6 @@ class Writer(AbstractWriter):
 		return self._format(
 			# OK, so it is a bit complicated here. We start by storing a reference
 			# to the iterated expression
-			"// Iterates over `{0}`. This works on array,objects and null/undefined".format(self.write(iterator)),
 			"var {l}={iterator};".format(l=l, iterator=iterator),
 			# NOTE: Was getOwnPropertyNames
 			"var {k}={l} instanceof Array ? {l} : ({l} instanceof Object ? Object.keys({l}) : []);".format(k=k, l=l),
