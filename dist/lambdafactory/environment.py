@@ -65,7 +65,8 @@ class Importer:
 		module_path=self.findSugarModule(moduleName)
 		if module_path:
 			self.environment.report.trace(u'Importing module', moduleName, u'from', module_path)
-			return self.importModuleFromFile(module_path, moduleName)
+			m=self.importModuleFromFile(module_path, moduleName)
+			return m
 		elif True:
 			self.environment.report.error(u'Module not found:', moduleName)
 	

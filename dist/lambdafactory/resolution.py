@@ -350,7 +350,6 @@ class DataFlowBinding(Pass):
 				assert((df.getElement() == element))
 				previous_slot=df.getSlot(imported_name)
 				if previous_slot:
-					assert((not previous_slot.overrides))
 					previous_slot.overrides = df._slot(imported_name, value, operation, u'imported')
 				elif True:
 					df.declareImported(imported_name, value, operation)
@@ -416,7 +415,7 @@ class DataFlowBinding(Pass):
 			elif True:
 				self.environment.report.error((u'DataFlowBinding: operation not implemented ' + repr(i)))
 		if element.hasAnnotation(u'imported'):
-			element.getAnnotation(u'imported').value.update(imported)
+			element.getAnnotation(u'imported').setContent(imported)
 		elif True:
 			element.setAnnotation(u'imported', imported)
 		return imported

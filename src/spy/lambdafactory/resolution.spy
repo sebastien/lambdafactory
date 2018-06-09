@@ -538,7 +538,7 @@
 					# We declare that the slot overrides the imported one
 					# if previous_slot overrides
 					# 	throw new Exception("Imported name {0} overrides previously defined slot" format(imported_name))
-					assert (not previous_slot overrides)
+					# assert (not previous_slot overrides)
 					# NOTE: This is a bit of a hack to be able to still access that one
 					previous_slot overrides = df _slot (imported_name, value, operation, "imported")
 				else
@@ -625,7 +625,7 @@
 			end
 		end
 		if element hasAnnotation "imported"
-			element getAnnotation "imported" value update (imported)
+			element getAnnotation "imported" setContent (imported)
 		else
 			element setAnnotation ("imported", imported)
 		end

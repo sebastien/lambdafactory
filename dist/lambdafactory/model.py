@@ -650,6 +650,7 @@ class Annotation(Element, IAnnotation):
 		if name is None: name = None
 		if content is None: content = None
 		Element.__init__(self, name)
+		IAnnotation.__init__(self)
 		self.name = name
 		self.content = content
 	

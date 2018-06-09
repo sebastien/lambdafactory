@@ -81,7 +81,8 @@
 		if module_path
 			environment report trace ("Importing module", moduleName, "from", module_path)
 			#, "from", module_path, "...")
-			return importModuleFromFile (module_path, moduleName)
+			var m = importModuleFromFile (module_path, moduleName)
+			return m
 		else
 			environment report error ("Module not found:", moduleName)
 		end
