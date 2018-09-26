@@ -884,7 +884,6 @@
 	@constructor name=None, content=None
 		#REWRITE: super()
 		Element __init__ ( self, name )
-		IAnnotation __init__(self)
 		self name = name
 		self content = content
 	@end

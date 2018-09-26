@@ -234,10 +234,10 @@ class Writer(AbstractWriter):
 	def getSafeName( self, element ):
 		"""Returns the same as absolute name but with `_` instead of `_`."""
 		if self._moduleType == MODULE_VANILLA:
-			return self.getAbsoluteName(element)
+			return self.getAbsoluteName(element).replace("/", ".").replace(":", ".")
 		else:
 			if isinstance(element, interfaces.IProgram) or isinstance(element, interfaces.IModule):
-				return self.getAbsoluteName(element).replace(".", "_")
+				return self.getAbsoluteName(element).replace(".", "_").replace("/", ".").replace(":", ".")
 			else:
 				name = self.getName()
 				return self.getSafeSuperName(element) + ("." + name if name else "")
@@ -471,7 +471,7 @@ class Writer(AbstractWriter):
 		# SEE: http://babeljs.io/docs/plugins/transform-es2015-modules-umd/
 		module_name = self.getSafeName(moduleElement)
 		abs_name    = self.getAbsoluteName(moduleElement)
-		imported    = list(set(self.runtimeModules + self.getImportedModules(moduleElement)))
+		imported    = list(set(self.runtimeModules + [_ for _ in self.getImportedModules(moduleElement)]))
 		imports     = (", " + ", ".join(['"' + _ + '"' for _ in imported])) if imported else ""
 		preamble = """// START:UMD_PREAMBLE
 		(function (global, factory) {

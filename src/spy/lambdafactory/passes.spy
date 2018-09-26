@@ -713,23 +713,23 @@
 				var imported_module_name   = i getImportedModuleName()
 				var imported_module_origin = i getAlias()
 				if not program hasModuleWithName (imported_module_name)
-					imported_modules append (environment importModule (imported_module_name))
+					imported_modules append (_importModule (imported_module_name))
 				end
 			elif isinstance(i, interfaces IImportModulesOperation)
 				for imported_module_name in i getImportedModuleNames ()
 					if not program hasModuleWithName (imported_module_name)
-						imported_modules append (environment importModule (imported_module_name))
+						imported_modules append (_importModule (imported_module_name))
 					end
 				end
 			elif isinstance(i, interfaces IImportSymbolOperation)
 				var imported_module_name = i getImportOrigin()
 				if not program hasModuleWithName (imported_module_name)
-					imported_modules append (environment importModule (imported_module_name))
+					imported_modules append (_importModule (imported_module_name))
 				end
 			elif isinstance(i, interfaces IImportSymbolsOperation)
 				var imported_module_name = i getImportOrigin()
 				if not program hasModuleWithName (imported_module_name)
-					imported_modules append (environment importModule (imported_module_name))
+					imported_modules append (_importModule (imported_module_name))
 				end
 			else
 				environment report error ("Importation pass: operation not implemented " + repr(i))
@@ -742,6 +742,15 @@
 			end
 		end
 		return False
+	@end
+
+	@method _importModule name
+	| A helper to import the given model
+		if isinstance(name, interfaces IString)
+			return environment importDynamicModule (name getActualValue ())
+		else
+			return environment importModule (name)
+		end
 	@end
 
 @end

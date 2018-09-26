@@ -26,7 +26,7 @@ model:
 
 1) Constructors do not directly initialize attributes/properties, but
    instead defer the initialization to the `__init_properties__` method
-   defined in classes. This ensures that proerties initialization can
+   defined in classes. This ensures that proprties initialization can
    be overriden by subclasses.
 """
 

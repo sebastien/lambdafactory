@@ -43,6 +43,7 @@ class Importer:
 	 corresponding to the given module."""
 	def __init__ (self, environment):
 		self.environment = None
+		self.ignored = []
 		self.environment = environment
 	
 	def findSugarModule(self, moduleName, paths=None):
@@ -50,6 +51,8 @@ class Importer:
 		if paths is None: paths = None
 		exts=[u'.sg', u'.sjs', u'.sjava', u'.spnuts', u'.spy']
 		paths = ((paths or []) + self.environment.libraryPaths)
+		if (moduleName in self.ignored):
+			return None
 		if os.environ.get(u'SUGARPATH'):
 			paths.extend(os.environ.get(u'SUGARPATH').split(u':'))
 		module_path=moduleName.replace(u'.', os.path.sep)

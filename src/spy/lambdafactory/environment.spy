@@ -47,6 +47,7 @@
 | corresponding to the given module.
 
 	@property environment
+	@property ignored = []
 
 	@constructor environment
 		self environment = environment
@@ -56,6 +57,9 @@
 	| Finds the module with the given name in the given ppaths
 		var exts = [".sg", ".sjs", ".sjava", ".spnuts", ".spy"]
 		paths = (paths or []) + environment libraryPaths
+		if moduleName in ignored
+			return None
+		end
 		if os environ get "SUGARPATH"
 			paths extend (os environ get "SUGARPATH" split ":")
 		end
@@ -72,12 +76,10 @@
 		end
 		return None
 	@end
-
-	# FIXME: This should be language specific
-	@method importModule moduleName
+	@method importModule moduleName, modulePath=None
 		# FIXME: Should use a module cache, same for parsefile so that we don't re-parse
 		# all the time
-		var module_path = findSugarModule (moduleName)
+		var module_path = modulePath or findSugarModule (moduleName)
 		if module_path
 			environment report trace ("Importing module", moduleName, "from", module_path)
 			#, "from", module_path, "...")
@@ -381,16 +383,46 @@
 		return factory
 	@end
 
-	@method importModule moduleName, importModule=True
+
+	@method importDynamicModule moduleName
+		return importModule (moduleName)
+	@end
+
+
+	@method importModule moduleURI, importModule=True
 		assert (program)
-		if importModule and (not program hasModuleWithName (moduleName))
-			var module = importer importModule (moduleName)
+		if importModule and (not program hasModuleWithName (moduleURI))
+			var path   = resolveModule (moduleURI)
+			if not path
+				error ("Cannot locate module file for module '{0}'" format (moduleURI))
+				return None
+			elif not os path exists(path)
+				error ("Cannot find module implementation for {0} at: {1}" format (moduleURI, path))
+				return None
+			end
+			var module = importer importModule (moduleURI, path)
 			if module
 				program addModule (module)
 			end
 			return module
 		else
-			return program getModule (moduleName)
+			return program getModule (moduleURI)
+		end
+	@end
+
+	@method resolveModule moduleURI
+		var origin = moduleURI split (":", 1)
+		if len(origin) == 1
+			return importer findSugarModule (moduleURI)
+		else
+			if origin[0] == "components"
+				return "lib/components/" +  origin[1] replace (".", "/") + ".sjs"
+			elif origin[0] == "file"
+				return origin[1]
+			else
+				environment report error ("Unknown origin:", moduleURI)
+				return None
+			end
 		end
 	@end
 
