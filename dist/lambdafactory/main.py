@@ -46,6 +46,7 @@ class Command:
 	OPT_LIB = u'Specifies a file to be used as a library or a library directory'
 	OPT_INCLUDES = u'Specifies a file to be included in the copmilation output'
 	OPT_PREPROC = u'Applies the given preprocessor to the source'
+	OPT_IGNORES = u'Does not try to resolve the given modules'
 	OPT_PASSES = u'Specifies the passes used in the compilation process. Passes are identified by the class name which is expected to be found in either lambdafactory.passes or lambdafactory.resolution modules, or is given as an absolute class name.'
 	def __init__ (self, programName=None):
 		self.programName = None
@@ -106,6 +107,8 @@ class Command:
 			help=self.OPT_LIB)
 		option_parser.add_option("-I", "--include", action="append", dest="includes",
 			help=self.OPT_INCLUDES)
+		option_parser.add_option("--ignores", action="append", dest="ignores",
+			help=self.OPT_IGNORES)
 		option_parser.add_option("-P", "--passes", action="store", dest="passes",
 			help=self.OPT_PASSES)
 		option_parser.add_option("-V", None, action="store", dest="version",

@@ -234,10 +234,10 @@ class Writer(AbstractWriter):
 	def getSafeName( self, element ):
 		"""Returns the same as absolute name but with `_` instead of `_`."""
 		if self._moduleType == MODULE_VANILLA:
-			return self.getAbsoluteName(element)
+			return self.getAbsoluteName(element).replace("/", ".").replace(":", ".")
 		else:
 			if isinstance(element, interfaces.IProgram) or isinstance(element, interfaces.IModule):
-				return self.getAbsoluteName(element).replace(".", "_")
+				return self.getAbsoluteName(element).replace(".", "_").replace("/", ".").replace(":", ".")
 			else:
 				name = self.getName()
 				return self.getSafeSuperName(element) + ("." + name if name else "")
@@ -471,7 +471,7 @@ class Writer(AbstractWriter):
 		# SEE: http://babeljs.io/docs/plugins/transform-es2015-modules-umd/
 		module_name = self.getSafeName(moduleElement)
 		abs_name    = self.getAbsoluteName(moduleElement)
-		imported    = list(set(self.runtimeModules + self.getImportedModules(moduleElement)))
+		imported    = list(set(self.runtimeModules + [_ for _ in self.getImportedModules(moduleElement)]))
 		imports     = (", " + ", ".join(['"' + _ + '"' for _ in imported])) if imported else ""
 		preamble = """// START:UMD_PREAMBLE
 		(function (global, factory) {
@@ -666,10 +666,19 @@ class Writer(AbstractWriter):
 			# In attributes, we only print the name, ans use Undefined as the
 			# value, because properties will be instanciated at construction
 			result += self._group("Properties", 1)
-			written_attrs = ",\n".join(["%s:%sNOTHING" % (self._rewriteSymbol(e.getName()), self.declarePrefix) for e in attributes])
-			result.append("properties: {")
-			result.append([written_attrs])
-			result.append("},")
+			# written_attrs = ",\n".join(["%s:%sNOTHING" % (self._rewriteSymbol(e.getName()), self.declarePrefix) for e in attributes])
+			attributes = []
+			for a in classElement.getAttributes():
+				default_value = a.getDefaultValue()
+				name = self._rewriteSymbol(a.getName())
+				attributes.append("{0}.{1} = {2};".format(
+					self._runtimeSelfReference(classElement), name,
+					self.write(default_value) if default_value else "undefined",
+					self.declarePrefix
+				))
+			result.append("properties: (function(){var self=this;")
+			result.append(attributes)
+			result.append("}),")
 		if constructors:
 			result += self._group("Constructor", 1)
 			assert len(constructors) == 1, "Multiple constructors are not supported yet"
@@ -682,6 +691,7 @@ class Writer(AbstractWriter):
 			# FIXME: Implement proper attribute initialization even in
 			# subclasses
 			if len(parents) > 0:
+				# NOTE: The runtime takes care of initializing traits
 				# We have to do the following JavaScript code because we're not
 				# sure to know the parent constructors arity -- this is just a
 				# way to cover our ass. We encapsulate the __super__ declaration
@@ -689,19 +699,8 @@ class Writer(AbstractWriter):
 				invoke_parent_constructor = u"\n".join(
 					#"if ({0} && {0}.__init__) {{ {0}.__init__.apply(self, arguments); }}".format(self.getSafeSuperName(_)) for _ in parents
 					"if ({0}) {{ {0}.apply(self, arguments); }}".format(self.getSafeSuperName(_)) for _ in parents
+				)
 
-				)
-			for a in classElement.getAttributes():
-				default_value = a.getDefaultValue()
-				constructor_attributes.append(
-					"// Default value for property `{0}`".format(a.getName())
-				)
-				constructor_attributes.append(
-					"if ({0}.{1} === {3}NOTHING){{{0}.{1} = {2};}}".format(
-						self._runtimeSelfReference(classElement), self._rewriteSymbol(a.getName()),
-						self.write(default_value) if default_value else "undefined",
-						self.declarePrefix,
-				))
 			# We only need a default constructor when we have class attributes
 			# declared and no constructor declared
 			default_constructor = (
@@ -787,17 +786,6 @@ class Writer(AbstractWriter):
 		"""Writes a constructor element"""
 		self.pushVarContext(element)
 		current_class = self.getCurrentClass()
-		attributes    = []
-		# FIXME: Same as onClass
-		for a in current_class.getAttributes():
-			default_value = a.getDefaultValue()
-			name = self._rewriteSymbol(a.getName())
-			attributes.append("// Default initialization of property `{0}`".format(name))
-			attributes.append("if ({0}.{1}==={3}NOTHING){{{0}.{1} = {2};}}".format(
-				self._runtimeSelfReference(element), name,
-				self.write(default_value) if default_value else "undefined",
-				self.declarePrefix
-			))
 		res = (
 			self._document(element),
 			(
@@ -809,7 +797,6 @@ class Writer(AbstractWriter):
 			list(self._writeAllocations(element)),
 			["const %s = this;" % (self._runtimeSelfReference(element))],
 			self._writeClosureArguments(element),
-			attributes or None,
 			list(map(self._writeStatement, element.getOperations())),
 			(
 				(not self.options["ENABLE_METADATA"] and "}") or \
@@ -1862,7 +1849,7 @@ class Writer(AbstractWriter):
 			return embed.getCode()
 
 	def onWhere( self, eleent ):
-		import ipdb ; ipdb.set_trace()
+		yield "// @where not implemented"
 
 	# =========================================================================
 	# TYPES
@@ -1882,11 +1869,12 @@ class Writer(AbstractWriter):
 		if parents:
 			yield "\tparent: {0},".format(self.getSafeName(parents[0]))
 		if slots:
-			yield "\tproperties: {"
+			# FIXME: Not sure this is right
+			yield "\tproperties: (function(self){"
 			for i,s in enumerate(slots):
 				suffix = "," if i < len(slots) else ""
 				yield "\t\t{1} : {0}NOTHING{2}".format(self.declarePrefix, s.getName(), suffix)
-			yield "\t},"
+			yield "\t}),"
 		if traits:
 			yield "\ttraits: [{0}],".format(",".join(self.getSafeName(_) for _ in traits))
 		yield "\tinitialize:function({0}){{".format(", ".join(_.getName() for _ in slots))

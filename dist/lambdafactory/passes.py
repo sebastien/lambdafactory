@@ -482,25 +482,32 @@ class Importation(Pass):
 				imported_module_name=i.getImportedModuleName()
 				imported_module_origin=i.getAlias()
 				if (not self.program.hasModuleWithName(imported_module_name)):
-					imported_modules.append(self.environment.importModule(imported_module_name))
+					imported_modules.append(self._importModule(imported_module_name))
 			elif isinstance(i, interfaces.IImportModulesOperation):
 				for imported_module_name in i.getImportedModuleNames():
 					if (not self.program.hasModuleWithName(imported_module_name)):
-						imported_modules.append(self.environment.importModule(imported_module_name))
+						imported_modules.append(self._importModule(imported_module_name))
 			elif isinstance(i, interfaces.IImportSymbolOperation):
 				imported_module_name=i.getImportOrigin()
 				if (not self.program.hasModuleWithName(imported_module_name)):
-					imported_modules.append(self.environment.importModule(imported_module_name))
+					imported_modules.append(self._importModule(imported_module_name))
 			elif isinstance(i, interfaces.IImportSymbolsOperation):
 				imported_module_name=i.getImportOrigin()
 				if (not self.program.hasModuleWithName(imported_module_name)):
-					imported_modules.append(self.environment.importModule(imported_module_name))
+					imported_modules.append(self._importModule(imported_module_name))
 			elif True:
 				self.environment.report.error((u'Importation pass: operation not implemented ' + repr(i)))
 			for m in imported_modules:
 				if (m and (not self.program.hasModule(m))):
 					self.program.addModule(m)
 		return False
+	
+	def _importModule(self, name):
+		""" A helper to import the given model"""
+		if isinstance(name, interfaces.IString):
+			return self.environment.importDynamicModule(name.getActualValue())
+		elif True:
+			return self.environment.importModule(name)
 	
 
 class DocumentationPass(Pass):

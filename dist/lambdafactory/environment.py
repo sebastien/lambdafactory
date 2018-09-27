@@ -64,8 +64,9 @@ class Importer:
 					return file_path
 		return None
 	
-	def importModule(self, moduleName):
-		module_path=self.findSugarModule(moduleName)
+	def importModule(self, moduleName, modulePath=None):
+		if modulePath is None: modulePath = None
+		module_path=(modulePath or self.findSugarModule(moduleName))
 		if module_path:
 			self.environment.report.trace(u'Importing module', moduleName, u'from', module_path)
 			m=self.importModuleFromFile(module_path, moduleName)
@@ -273,16 +274,39 @@ class Environment:
 	def getFactory(self):
 		return self.factory
 	
-	def importModule(self, moduleName, importModule=None):
+	def importDynamicModule(self, moduleName):
+		return self.importModule(moduleName)
+	
+	def importModule(self, moduleURI, importModule=None):
 		if importModule is None: importModule = True
 		assert(self.program)
-		if (importModule and (not self.program.hasModuleWithName(moduleName))):
-			module=self.importer.importModule(moduleName)
+		if (importModule and (not self.program.hasModuleWithName(moduleURI))):
+			path=self.resolveModule(moduleURI)
+			if (not path):
+				error(u"Cannot locate module file for module '{0}'".format(moduleURI))
+				return None
+			elif (not os.path.exists(path)):
+				error(u'Cannot find module implementation for {0} at: {1}'.format(moduleURI, path))
+				return None
+			module=self.importer.importModule(moduleURI, path)
 			if module:
 				self.program.addModule(module)
 			return module
 		elif True:
-			return self.program.getModule(moduleName)
+			return self.program.getModule(moduleURI)
+	
+	def resolveModule(self, moduleURI):
+		origin=moduleURI.split(u':', 1)
+		if (len(origin) == 1):
+			return self.importer.findSugarModule(moduleURI)
+		elif True:
+			if (origin[0] == u'components'):
+				return ((u'lib/components/' + origin[1].replace(u'.', u'/')) + u'.sjs')
+			elif (origin[0] == u'file'):
+				return origin[1]
+			elif True:
+				environment.report.error(u'Unknown origin:', moduleURI)
+				return None
 	
 	def parseFile(self, path, moduleName=None):
 		if moduleName is None: moduleName = None
