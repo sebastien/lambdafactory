@@ -808,12 +808,12 @@ class Writer(AbstractWriter):
 
 	def onMethod( self, element ):
 		"""Writes a method element."""
-		return self._onFunctionBody(element, prefix="{0}: ".format(
+		return self._onFunctionBody(element, prefix="\"{0}\": ".format(
 			(element.getName())))
 
 	def onClassMethod( self, element ):
 		"""Writes a class method element."""
-		return self._onFunctionBody(element, prefix="{0}: ".format(
+		return self._onFunctionBody(element, prefix="\"{0}\": ".format(
 			(element.getName())))
 
 	def _writeFunctionMeta( self, function ):
