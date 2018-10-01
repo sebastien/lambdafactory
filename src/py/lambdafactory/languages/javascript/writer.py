@@ -2126,13 +2126,13 @@ class Writer(AbstractWriter):
 			current_class = self.getCurrentClass()
 			if isinstance(current_class, interfaces.ISingleton):
 				# For singletons the absolute name is actually the class name
-				return "/*singleton:super()*/Object.getPrototypeOf(Object.getPrototypeOf(self).constructor).apply({2},[{1}])".format(
+				return "Object.getPrototypeOf(Object.getPrototypeOf(self).constructor).apply({2},[{1}])".format(
 					self.getSafeSuperName(self.getCurrentClass()),
 					", ".join(map(self.write, element.getArguments())),
 					self._runtimeSelfReference(),
 				)
 			else:
-				return "/*super()*/Object.getPrototypeOf({0}).apply({2},[{1}])".format(
+				return "Object.getPrototypeOf({0}).apply({2},[{1}])".format(
 					self.getSafeSuperName(self.getCurrentClass()),
 					", ".join(map(self.write, element.getArguments())),
 					self._runtimeSelfReference(),
