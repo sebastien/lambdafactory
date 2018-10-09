@@ -72,8 +72,8 @@
 		if handle
 			# TODO: Optimize by removing passes not interested in
 			# going deeper
-			if handle (element) != False
-				continue_walking = True
+			if handle (element) == False
+				continue_walking = False
 			end
 		end
 		# FIXME: Elements should offer a 'walk' interface
@@ -951,19 +951,52 @@
 
 	@shared   NAME    = "CountReferences"
 
+	# TODO: Source entry points from file or variable
 	@property entryPoints = [
 		"ff.ui.components.Component"
 		"ff.ui.components.bind"
 	]
 
+	@method onProgram element
+	| Resolves all the entry points in the program, and add the given
+	| referers to it (the program)
+		for entry in entryPoints
+			let slot_value = resolveAbsolute (entry)
+			if slot_value[1]
+				let e = slot_value[1]
+				addReferer (e, element)
+			end
+		end
+		return False
+	@end
 
-	@method incReference element, context=None
+	@method addReferer element, context=(self getCurrentContext ())
+	| Adds the given `context` as a referer to the given element.
+		# We increase references to the parent, which does not trigger
+		# walk.
+		var parent = element parent
+		while parent
+			_increaseRefCount (parent, element)
+			parent = parent parent
+		end
+		# If we had no reference defined before, then we walk the element
+		# to transitively mark new references.
+		if not _increaseRefCount (element, context)
+			walk (element)
+		end
+	@end
+
+	@method _increaseRefCount element, context=None
+	| Adds the given `context` as a referer of the given `element`
+	| element. This updates the `refcount` and `referers` annotations.
+	| Returns `True` if the `element` already has a referer, `False`
+	| otherwise.
 		var refcount = element getAnnotation "refcount"
 		var referers = element getAnnotation "referers"
 		if refcount
-			refcount setContent (refcount getContent () + 1)
 			referers = referers getContent ()
 			if context and context not in referers
+				refcount setContent (refcount getContent () + 1)
 				referers append (context)
 			end
 			return True
@@ -979,39 +1012,38 @@
 		end
 	@end
 
-	@method addReferer element, context=(self getCurrentContext ())
-	| Adds the given `context` as a referer to the given element.
-		# We increase references to the parent, which does not trigger
-		# walk.
-		var parent = element parent
-		while parent
-			incReference (parent, element)
-			parent = parent parent
-		end
-		# If we had no reference defined before, then we walk the element
-		# to transitively mark new references.
-		if not incReference (element, context)
-			walk (element)
-		end
-	@end
-
-	@method onProgram element
-		for entry in entryPoints
-			let slot_value = resolveAbsolute (entry)
-			if slot_value[1]
-				let e = slot_value[1]
-				addReferer (e, element)
-			end
-		end
-	@end
-
 	@method onReference reference
 		if self isIn (interfaces IOperation)
 			var slot_and_value = self resolve (reference)
-			var value          = slot_and_value[1]
+			var value          = getParentConstruct (slot_and_value[1])
 			if value
-				addReferer (value)
+				addReferer (value, getContextConstruct ())
 			end
+		end
+	@end
+	
+	@method getContextConstruct
+		for p in reversed(context)
+			if isConstruct(p)
+				return p
+			end
+		end
+		return None
+	@end
+
+	@method isConstruct value
+		return value and (isinstance(value, interfaces IConstruct) or isinstance(value, interfaces IFunction)  or isinstance(value, interfaces ISlot))
+	@end
+
+	@method getParentConstruct value
+		if not value
+			return None
+		else
+			var v = value
+			while v and not (isinstance(value, interfaces IConstruct) or isinstance(value, interfaces IFunction))
+				v = v parent
+			end
+			return v
 		end
 	@end
 
@@ -1032,6 +1064,15 @@
 
 	@shared   NAME    = "RemoveDeadCode"
 
+	@method getRefCount value
+		let ref_count = value getAnnotation "refcount"
+		if ref_count
+			return ref_count getContent ()
+		else
+			return 0
+		end
+	@end
+
 	@method onConstruct value
 	| For every construct, we see if there is a refcount or not, and we
 	| see if at least one referer has a refcount. If it's not the case,
@@ -1048,16 +1089,17 @@
 				end
 			end
 			if actual_count == 0
-				self annotate (value, "shadow")
+				self annotate (value, "deadcode")
 				refcount setContent 0
 			else
 				for element in self context
-					element removeAnnotation "shadow"
+					element removeAnnotation "deadcode"
 				end
 			end
 		elif value getAbsoluteName ()
-			self annotate (value, "shadow")
+			self annotate (value, "deadcode")
 		end
+		print ("CONSTRUCT", value getAbsoluteName (), getRefCount(value), "/")
 	@end
 
 	@method onElement element

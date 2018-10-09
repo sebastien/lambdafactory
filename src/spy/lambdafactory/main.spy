@@ -64,7 +64,7 @@
 		setupEnvironment          ()
 	@end
 
- 	@method runAsString args
+	@method runAsString args
 	| Runs Sugar, but instead of printing the result to the given
 	| output, it returns a Python string with the result. It is very useful
 	| when embedding LambdaFactory somewhere.

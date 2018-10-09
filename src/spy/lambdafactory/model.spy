@@ -62,7 +62,7 @@
 	@property dataflow
 	@property overrides  = None
 
- 	@constructor name, value, origin, slotType
+	@constructor name, value, origin, slotType
 		self name     = name
 		self value    = value
 		self origin   = origin

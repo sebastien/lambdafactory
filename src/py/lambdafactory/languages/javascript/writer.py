@@ -130,6 +130,13 @@ class Writer(AbstractWriter):
 		self._withUnits              = False
 		self.runtimeModules          = [self.runtimePrefix[:-1], self.declarePrefix[:-1].replace("_", ".")]
 
+	def isDeadCode( self, element ):
+		"""Tells if the element is dead code or not."""
+		if not element or not element.getAnnotation("deadcode"):
+			return False
+		else:
+			return True
+
 	def _getRandomVariable( self ):
 		s = "__"
 		i = self._generatedVars[0]
@@ -345,6 +352,7 @@ class Writer(AbstractWriter):
 			code.append("%s.__VERSION__='%s';" % (module_name, version.getContent()))
 		# --- SLOTS -----------------------------------------------------------
 		for name, value, accessor, mutator in moduleElement.getSlots():
+			declaration = ""
 			if isinstance(value, interfaces.IModuleAttribute):
 				declaration = u"{0}.{1};".format(module_name, self.write(value))
 			else:
@@ -369,7 +377,8 @@ class Writer(AbstractWriter):
 						declaration += ";\n" + self._format(self._onClassPostamble(value, module_name + "." + slot_name))
 						self.popContext()
 			code.append(self._document(value))
-			code.append(declaration)
+			if declaration:
+				code.append(declaration)
 		# --- INIT ------------------------------------------------------------
 		# FIXME: Init should be only invoked once
 		if self._moduleType != MODULE_VANILLA and not self._noBinding:
@@ -610,10 +619,16 @@ class Writer(AbstractWriter):
 	# =========================================================================
 
 	def onSingleton( self, element ):
-		return self.onClass(element, "Singleton")
+		if self.isDeadCode(element):
+			return []
+		else:
+			return self.onClass(element, "Singleton")
 
 	def onTrait( self, element ):
-		return self.onClass(element, "Trait")
+		if self.isDeadCode(element):
+			return []
+		else:
+			return self.onClass(element, "Trait")
 
 	def _onClassPostamble( self, element, name=None ):
 		classAttributes = element.getClassAttributes()
@@ -630,6 +645,8 @@ class Writer(AbstractWriter):
 
 	def onClass( self, classElement, classType="Class" ):
 		"""Writes a class element."""
+		if self.isDeadCode(classElement):
+			return []
 		parents, traits = self.getClassParentAndTraits(classElement)
 		parent  = "undefined"
 		if len(parents) == 1:
@@ -771,6 +788,7 @@ class Writer(AbstractWriter):
 
 	def onModuleAttribute( self, element ):
 		"""Writes an argument element."""
+		if self.isDeadCode(element): return ()
 		default_value = element.getDefaultValue()
 		if default_value:
 			default_value = self.write(default_value)
