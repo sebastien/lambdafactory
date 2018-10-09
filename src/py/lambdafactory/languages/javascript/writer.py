@@ -317,6 +317,7 @@ class Writer(AbstractWriter):
 
 	def onModule( self, moduleElement ):
 		"""Writes a Module element."""
+		if self.isDeadCode(moduleElement): return []
 		# Detects the module type
 		self._withExterns = self.environment.options.get(OPTION_EXTERNS) and True or False
 		self._isNice      = self.environment.options.get(OPTION_NICE)

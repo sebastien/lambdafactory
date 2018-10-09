@@ -254,7 +254,7 @@
 				var splitter = FileSplitter(options output)
 				splitter fromString (program_source)
 			else
-				var f = open(options output, "ab")
+				var f = open(options output, "wb")
 				f write (ensureOutput (program_source, f))
 				f close ()
 			end
@@ -345,20 +345,30 @@
 	@end
 
 	@method setupPasses language=None, withPasses=None, options=None
+		var o = {}
+		for _ in options
+			var k_v = _ split("=")
+			if len(k_v) == 1
+				o[k_v[0]] = True
+			else
+				o[k_v[0]] = k_v[1]
+			end
+		end
+		options = o
 		if not withPasses
-			environment addPass ( new passes Importation         ())
-			environment addPass ( new passes ControlFlow         ())
-			environment addPass ( new resolution BasicDataFlow   ())
-			environment addPass ( new resolution DataFlowBinding ())
+			environment addPass ( new passes Importation         (), options)
+			environment addPass ( new passes ControlFlow         (), options)
+			environment addPass ( new resolution BasicDataFlow   (), options)
+			environment addPass ( new resolution DataFlowBinding (), options)
 		else
 			# We have a custom set of passes
 			for the_pass in withPasses
 				if the_pass == "std"
 					# We add standard passes
-					environment addPass ( new passes Importation         ())
-					environment addPass ( new passes ControlFlow         ())
-					environment addPass ( new resolution BasicDataFlow   ())
-					environment addPass ( new resolution DataFlowBinding ())
+					environment addPass ( new passes Importation         (), options)
+					environment addPass ( new passes ControlFlow         (), options)
+					environment addPass ( new resolution BasicDataFlow   (), options)
+					environment addPass ( new resolution DataFlowBinding (), options)
 				elif the_pass find "." == -1
 					var pass_class = None
 					if hasattr(passes, the_pass)
@@ -369,13 +379,13 @@
 						environment report error ("LambdaFactory standard pass not found:", the_pass)
 						assert (None)
 					end
-					environment addPass (new pass_class ())
+					environment addPass (new pass_class (), options)
 				else
 					var module_name = the_pass[0:the_pass rfind (".")]
 					exec ("import " + module_name)
 					var pass_class = eval (the_pass)
 					if pass_class
-						environment addPass (new pass_class ())
+						environment addPass (new pass_class (), options)
 					else
 						environment report error ("Custom pass not found:", the_pass)
 						assert (None)

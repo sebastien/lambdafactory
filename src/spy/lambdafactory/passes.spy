@@ -1,7 +1,7 @@
 @module lambdafactory.passes
 @import lambdafactory.reporter as reporter
 @import lambdafactory.interfaces as interfaces
-@import json
+@import json, os
 
 @shared ERR_NO_DATAFLOW_AVAILABLE    = "ERR_NO_DATAFLOW_AVAILABLE"
 @shared ERR_PASS_HANDLER_NOT_DEFINED = "ERR_PASS_HANDLER_NOT_DEFINED"
@@ -26,6 +26,7 @@
 	@property programPass = None
 	@property program     = None
 	@property cache       = {}
+	@property options     = None
 
     # REWRITE: @constructor reporter=reporter.DefaultReporter
 	@constructor environment=None, programPass=None
@@ -34,6 +35,19 @@
 		if environment
 			self program = environment program
 		end
+	@end
+
+	@method getOption name
+		return options and options get(name)
+	@end
+
+	@method hasOption name
+		return options and name in options
+	@end
+
+	@method setOptions options
+		self options = options
+		return self
 	@end
 
 	@method setEnvironment environment
@@ -951,16 +965,19 @@
 
 	@shared   NAME    = "CountReferences"
 
-	# TODO: Source entry points from file or variable
-	@property entryPoints = [
-		"ff.ui.components.Component"
-		"ff.ui.components.bind"
-	]
-
 	@method onProgram element
 	| Resolves all the entry points in the program, and add the given
 	| referers to it (the program)
-		for entry in entryPoints
+		let entries_path = getOption "entryPoints" or ".entrypoints"
+		var entry_points = []
+		if entries_path
+			@embed Python
+			|if os.path.exists(entries_path):
+			|	with open(entries_path, 'rt') as f:
+			|		entry_points = [_.strip() for _ in f.readlines() if _.strip() and _.strip()[0]!="#"]
+			@end
+		end
+		for entry in entry_points
 			let slot_value = resolveAbsolute (entry)
 			if slot_value[1]
 				let e = slot_value[1]
@@ -1057,9 +1074,9 @@
 
 @class RemoveDeadCode: Pass
 
+	# TODO: Should do IAttribute, IModuleAttribute, IClassAttribute
 	@shared   HANDLES = [
 		interfaces IConstruct
-		interfaces IElement
 	]
 
 	@shared   NAME    = "RemoveDeadCode"
@@ -1099,7 +1116,6 @@
 		elif value getAbsoluteName ()
 			self annotate (value, "deadcode")
 		end
-		print ("CONSTRUCT", value getAbsoluteName (), getRefCount(value), "/")
 	@end
 
 	@method onElement element

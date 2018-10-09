@@ -351,11 +351,12 @@
 	# 	programPass setEnvironment (self)
 	# @end
 
-	@method addPass programPass
+	@method addPass programPass, options
 		@embed Python
 		|self.passes.append(programPass)
 		@end
 		programPass setEnvironment (self)
+		programPass setOptions (options)
 	@end
 
 	@method getPass name
