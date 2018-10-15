@@ -199,7 +199,7 @@ class Command:
 				splitter=FileSplitter(options.output)
 				splitter.fromString(program_source)
 			elif True:
-				f=open(options.output, u'ab')
+				f=open(options.output, u'wb')
 				f.write(ensureOutput(program_source, f))
 				f.close()
 		elif options.run:
@@ -277,18 +277,26 @@ class Command:
 		if language is None: language = None
 		if withPasses is None: withPasses = None
 		if options is None: options = None
+		o={}
+		for _ in options:
+			k_v=_.split(u'=')
+			if (len(k_v) == 1):
+				o[k_v[0]] = True
+			elif True:
+				o[k_v[0]] = k_v[1]
+		options = o
 		if (not withPasses):
-			self.environment.addPass(passes.Importation())
-			self.environment.addPass(passes.ControlFlow())
-			self.environment.addPass(resolution.BasicDataFlow())
-			self.environment.addPass(resolution.DataFlowBinding())
+			self.environment.addPass(passes.Importation(), options)
+			self.environment.addPass(passes.ControlFlow(), options)
+			self.environment.addPass(resolution.BasicDataFlow(), options)
+			self.environment.addPass(resolution.DataFlowBinding(), options)
 		elif True:
 			for the_pass in withPasses:
 				if (the_pass == u'std'):
-					self.environment.addPass(passes.Importation())
-					self.environment.addPass(passes.ControlFlow())
-					self.environment.addPass(resolution.BasicDataFlow())
-					self.environment.addPass(resolution.DataFlowBinding())
+					self.environment.addPass(passes.Importation(), options)
+					self.environment.addPass(passes.ControlFlow(), options)
+					self.environment.addPass(resolution.BasicDataFlow(), options)
+					self.environment.addPass(resolution.DataFlowBinding(), options)
 				elif (the_pass.find(u'.') == -1):
 					pass_class=None
 					if hasattr(passes, the_pass):
@@ -298,13 +306,13 @@ class Command:
 					elif True:
 						self.environment.report.error(u'LambdaFactory standard pass not found:', the_pass)
 						assert(None)
-					self.environment.addPass(pass_class())
+					self.environment.addPass(pass_class(), options)
 				elif True:
 					module_name=the_pass[0:the_pass.rfind(u'.')]
 					exec((u'import ' + module_name))
 					pass_class=eval(the_pass)
 					if pass_class:
-						self.environment.addPass(pass_class())
+						self.environment.addPass(pass_class(), options)
 					elif True:
 						self.environment.report.error(u'Custom pass not found:', the_pass)
 						assert(None)

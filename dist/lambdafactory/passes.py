@@ -5,7 +5,7 @@ import sys
 __module__ = sys.modules[__name__]
 import lambdafactory.reporter as reporter
 import lambdafactory.interfaces as interfaces
-import json
+import json, os
 __module_name__ = 'lambdafactory.passes'
 ERR_NO_DATAFLOW_AVAILABLE = u'ERR_NO_DATAFLOW_AVAILABLE'
 ERR_PASS_HANDLER_NOT_DEFINED = u'ERR_PASS_HANDLER_NOT_DEFINED'
@@ -23,12 +23,23 @@ class PassContext:
 		self.programPass = None
 		self.program = None
 		self.cache = {}
+		self.options = None
 		if environment is None: environment = None
 		if programPass is None: programPass = None
 		self.environment = environment
 		self.programPass = programPass
 		if environment:
 			self.program = environment.program
+	
+	def getOption(self, name):
+		return (self.options and self.options.get(name))
+	
+	def hasOption(self, name):
+		return (self.options and (name in self.options))
+	
+	def setOptions(self, options):
+		self.options = options
+		return self
 	
 	def setEnvironment(self, environment):
 		self.environment = environment
@@ -57,8 +68,8 @@ class PassContext:
 		continue_walking=True
 		handle=self.programPass.getHandler(element)
 		if handle:
-			if (handle(element) != False):
-				continue_walking = True
+			if (handle(element) == False):
+				continue_walking = False
 		if (continue_walking != False):
 			self.walkChildren(element)
 		self.popContext()
@@ -622,18 +633,44 @@ class CountReferences(Pass):
 	 code."""
 	HANDLES = [interfaces.IProgram, interfaces.IReference]
 	NAME = u'CountReferences'
-	def __init__( self, *args, **kwargs ):
-		"""Constructor wrapper to intialize class attributes"""
-		Pass.__init__(self, *args, **kwargs)
-		self.entryPoints = [u'ff.ui.components.Component', u'ff.ui.components.bind']
-	def incReference(self, element, context=None):
+	def onProgram(self, element):
+		""" Resolves all the entry points in the program, and add the given
+		 referers to it (the program)"""
+		entries_path=(self.getOption(u'entryPoints') or u'.entrypoints')
+		entry_points=[]
+		if entries_path:
+			if os.path.exists(entries_path):
+				with open(entries_path, 'rt') as f:
+					entry_points = [_.strip() for _ in f.readlines() if _.strip() and _.strip()[0]!="#"]
+		for entry in entry_points:
+			slot_value=self.resolveAbsolute(entry)
+			if slot_value[1]:
+				e=slot_value[1]
+				self.addReferer(e, element)
+		return False
+	
+	def addReferer(self, element, context=None):
+		""" Adds the given `context` as a referer to the given element."""
+		if context is None: context = self.getCurrentContext()
+		parent=element.parent
+		while parent:
+			self._increaseRefCount(parent, element)
+			parent = parent.parent
+		if (not self._increaseRefCount(element, context)):
+			self.walk(element)
+	
+	def _increaseRefCount(self, element, context=None):
+		""" Adds the given `context` as a referer of the given `element`
+		 element. This updates the `refcount` and `referers` annotations.
+		 Returns `True` if the `element` already has a referer, `False`
+		 otherwise."""
 		if context is None: context = None
 		refcount=element.getAnnotation(u'refcount')
 		referers=element.getAnnotation(u'referers')
 		if refcount:
-			refcount.setContent((refcount.getContent() + 1))
 			referers = referers.getContent()
 			if (context and (context not in referers)):
+				refcount.setContent((refcount.getContent() + 1))
 				referers.append(context)
 			return True
 		elif True:
@@ -645,34 +682,42 @@ class CountReferences(Pass):
 			self.annotate(element, u'referers', referers)
 			return False
 	
-	def addReferer(self, element, context=None):
-		""" Adds the given `context` as a referer to the given element."""
-		if context is None: context = self.getCurrentContext()
-		parent=element.parent
-		while parent:
-			self.incReference(parent, element)
-			parent = parent.parent
-		if (not self.incReference(element, context)):
-			self.walk(element)
-	
-	def onProgram(self, element):
-		for entry in self.entryPoints:
-			slot_value=self.resolveAbsolute(entry)
-			if slot_value[1]:
-				e=slot_value[1]
-				self.addReferer(e, element)
-	
 	def onReference(self, reference):
 		if self.isIn(interfaces.IOperation):
 			slot_and_value=self.resolve(reference)
-			value=slot_and_value[1]
+			value=self.getParentConstruct(slot_and_value[1])
 			if value:
-				self.addReferer(value)
+				self.addReferer(value, self.getContextConstruct())
+	
+	def getContextConstruct(self):
+		for p in reversed(self.context):
+			if self.isConstruct(p):
+				return p
+		return None
+	
+	def isConstruct(self, value):
+		return (value and ((isinstance(value, interfaces.IConstruct) or isinstance(value, interfaces.IFunction)) or isinstance(value, interfaces.ISlot)))
+	
+	def getParentConstruct(self, value):
+		if (not value):
+			return None
+		elif True:
+			v=value
+			while (v and (not (isinstance(value, interfaces.IConstruct) or isinstance(value, interfaces.IFunction)))):
+				v = v.parent
+			return v
 	
 
 class RemoveDeadCode(Pass):
-	HANDLES = [interfaces.IConstruct, interfaces.IElement]
+	HANDLES = [interfaces.IConstruct]
 	NAME = u'RemoveDeadCode'
+	def getRefCount(self, value):
+		ref_count=value.getAnnotation(u'refcount')
+		if ref_count:
+			return ref_count.getContent()
+		elif True:
+			return 0
+	
 	def onConstruct(self, value):
 		""" For every construct, we see if there is a refcount or not, and we
 		 see if at least one referer has a refcount. If it's not the case,
@@ -687,13 +732,13 @@ class RemoveDeadCode(Pass):
 				if (r_refcount and (r_refcount.getContent() > 0)):
 					actual_count = (actual_count + 1)
 			if (actual_count == 0):
-				self.annotate(value, u'shadow')
+				self.annotate(value, u'deadcode')
 				refcount.setContent(0)
 			elif True:
 				for element in self.context:
-					element.removeAnnotation(u'shadow')
+					element.removeAnnotation(u'deadcode')
 		elif value.getAbsoluteName():
-			self.annotate(value, u'shadow')
+			self.annotate(value, u'deadcode')
 	
 	def onElement(self, element):
 		pass

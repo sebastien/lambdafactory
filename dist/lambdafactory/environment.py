@@ -253,9 +253,10 @@ class Environment:
 		for ext in extensions:
 			self.parsers[ext.lower()] = parser
 	
-	def addPass(self, programPass):
+	def addPass(self, programPass, options):
 		self.passes.append(programPass)
 		programPass.setEnvironment(self)
+		programPass.setOptions(options)
 	
 	def getPass(self, name):
 		name = name.lower()
