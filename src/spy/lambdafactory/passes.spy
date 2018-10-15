@@ -407,7 +407,7 @@
 			return getClassAncestors (self getCurrentClass())
 		@end
 
-		@method getClassParentAndTraits element
+		@method getClassParentsAndTraits element
 			parents = []
 			traits  = []
 			for parent in getClassParents(element)
@@ -977,14 +977,34 @@
 			|		entry_points = [_.strip() for _ in f.readlines() if _.strip() and _.strip()[0]!="#"]
 			@end
 		end
+		var entries = []
 		for entry in entry_points
-			let slot_value = resolveAbsolute (entry)
-			if slot_value[1]
-				let e = slot_value[1]
-				addReferer (e, element)
-			end
+			entries = entries + getEntries (resolveAbsolute (entry) [1])
+		end
+		for entry in entries
+			addReferer (entry, element)
 		end
 		return False
+	@end
+
+	@method getEntries element
+	| If an entry is a class or module, we'll get all the symbols defined there (and for the
+	| parent classes as well).
+		var res = []
+		if isinstance (element, interfaces IModule) or isinstance (element, interfaces IClass)
+			res append (element)
+			for k_v in element getSlots ()
+				res = res + getEntries (k_v[1])
+			end
+			if isinstance(element, interfaces IClass)
+				for p in getClassParents (element)
+					res = res + getEntries (p)
+				end
+			end
+		elif element
+			res append (element)
+		end
+		return res
 	@end
 
 	@method addReferer element, context=(self getCurrentContext ())
@@ -1000,6 +1020,14 @@
 		# to transitively mark new references.
 		if not _increaseRefCount (element, context)
 			walk (element)
+		end
+		# If the element is a class/trait/singleton, we need to 
+		# increase references to the parents, otherwise they'll be
+		# marked as dead.
+		if isinstance(element, interfaces IClass)
+			for p in getClassParents (element)
+				addReferer (p, element)
+			end
 		end
 	@end
 

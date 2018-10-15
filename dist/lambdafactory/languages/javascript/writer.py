@@ -128,6 +128,7 @@ class Writer(AbstractWriter):
 		self._generatedVars          = [0]
 		self._isNice                 = False
 		self._withUnits              = False
+		self._currentModule          = None
 		self.runtimeModules          = [self.runtimePrefix[:-1], self.declarePrefix[:-1].replace("_", ".")]
 
 	def isDeadCode( self, element ):
@@ -169,7 +170,6 @@ class Writer(AbstractWriter):
 
 	def popVarContext( self ):
 		self._generatedVars.pop()
-
 
 	def _isSymbolValid( self, string ):
 		"""Tells if the name of the symbol is valid, ie. not a keyword
@@ -217,7 +217,8 @@ class Writer(AbstractWriter):
 		if not element or not element.getName(): return None
 		names = element.getName().split(".")
 		if len(names) > 1: return names if asList else ".".join(names)
-		# TODO: We should have a special handling for the current module
+		# TODO: We should have a special handling for the current module, but
+		# this is disabled for now.
 		# if element == self.getCurrentModule() and self.resolve(element.getName())[1] != element:
 		# 	return ["__module__"] if asList else "__module__"
 		if isinstance( element, interfaces.ITypeReference ):
@@ -240,6 +241,9 @@ class Writer(AbstractWriter):
 
 	def getSafeName( self, element ):
 		"""Returns the same as absolute name but with `_` instead of `_`."""
+		# NOTE: This should probably be like this
+		# if element is self.getCurrentModule():
+		# 	return "__module__"
 		if self._moduleType == MODULE_VANILLA:
 			return self.getAbsoluteName(element).replace("/", ".").replace(":", ".")
 		else:
@@ -291,6 +295,7 @@ class Writer(AbstractWriter):
 			return self.getSafeName(element)
 		elif element == self.getCurrentModule():
 			name = self.getSafeName(element_module)
+			# FIXME: We actually always want __module__
 			if self.isShadowed(name, element_module):
 				return "__module__"
 			else:
@@ -299,6 +304,7 @@ class Writer(AbstractWriter):
 			# We're in the current module, then we used the resolved
 			# name for the current module and append the local name
 			name = self.getSafeName(element_module)
+			# FIXME: We actually always want __module__
 			if self.isShadowed(name, element_module):
 				return "__module__." + local_name
 			else:
@@ -334,7 +340,7 @@ class Writer(AbstractWriter):
 		module_name             = self.getSafeName(moduleElement)
 		full_name               = self.getAbsoluteName(moduleElement)
 		code = [
-			"// " + SNIP % ("%s.js|%s" % (moduleElement.getSourcePath(), self.getAbsoluteName(moduleElement))),
+			"// " + SNIP % ("%s|%s" % (moduleElement.getSourcePath(), self.getAbsoluteName(moduleElement))),
 		] + self._header() + [
 			self._document(moduleElement),
 			self.options["ENABLE_METADATA"] and "function __def(v,m){var ms=v['__def__']||{};for(var k in m){ms[k]=m[k]};v['__def__']=ms;return v}" or None,
@@ -509,7 +515,7 @@ class Writer(AbstractWriter):
 		).replace("\n\t\t", "\n")
 		module_declaration = [
 			"const __module__ = typeof(exports)==='undefined' ? {} : exports;",
-			"const {0} = __module__;".format(module_name),
+			"const {0} = __module__;".format(module_name) if module_name != "__module__" else "",
 		]
 		symbols = []
 		for alias, module, slot, op in self.getImportedSymbols(moduleElement):
@@ -576,7 +582,7 @@ class Writer(AbstractWriter):
 			"goog.module('{0}');".format(abs_name),
 		] + modules + symbols + [
 			"const {0} = exports;".format(module_name),
-			"const __module__ = {0};".format(module_name),
+			"const __module__ = {0};".format(module_name) if module_name != "__module__" else "",
 			"// END:GOOGLE_PREAMBLE"
 		]
 
@@ -648,7 +654,7 @@ class Writer(AbstractWriter):
 		"""Writes a class element."""
 		if self.isDeadCode(classElement):
 			return []
-		parents, traits = self.getClassParentAndTraits(classElement)
+		parents, traits = self.getClassParentsAndTraits(classElement)
 		parent  = "undefined"
 		if len(parents) == 1:
 			parent_class = parents[0]

@@ -273,7 +273,7 @@ class PassContext:
 	def getCurrentClassAncestors(self):
 		return self.getClassAncestors(self.getCurrentClass())
 	
-	def getClassParentAndTraits(self, element):
+	def getClassParentsAndTraits(self, element):
 		parents = []
 		traits = []
 		for parent in self.getClassParents(element):
@@ -642,12 +642,27 @@ class CountReferences(Pass):
 			if os.path.exists(entries_path):
 				with open(entries_path, 'rt') as f:
 					entry_points = [_.strip() for _ in f.readlines() if _.strip() and _.strip()[0]!="#"]
+		entries=[]
 		for entry in entry_points:
-			slot_value=self.resolveAbsolute(entry)
-			if slot_value[1]:
-				e=slot_value[1]
-				self.addReferer(e, element)
+			entries = (entries + self.getEntries(self.resolveAbsolute(entry)[1]))
+		for entry in entries:
+			self.addReferer(entry, element)
 		return False
+	
+	def getEntries(self, element):
+		""" If an entry is a class or module, we'll get all the symbols defined there (and for the
+		 parent classes as well)."""
+		res=[]
+		if (isinstance(element, interfaces.IModule) or isinstance(element, interfaces.IClass)):
+			res.append(element)
+			for k_v in element.getSlots():
+				res = (res + self.getEntries(k_v[1]))
+			if isinstance(element, interfaces.IClass):
+				for p in self.getClassParents(element):
+					res = (res + self.getEntries(p))
+		elif element:
+			res.append(element)
+		return res
 	
 	def addReferer(self, element, context=None):
 		""" Adds the given `context` as a referer to the given element."""
@@ -658,6 +673,9 @@ class CountReferences(Pass):
 			parent = parent.parent
 		if (not self._increaseRefCount(element, context)):
 			self.walk(element)
+		if isinstance(element, interfaces.IClass):
+			for p in self.getClassParents(element):
+				self.addReferer(p, element)
 	
 	def _increaseRefCount(self, element, context=None):
 		""" Adds the given `context` as a referer of the given `element`

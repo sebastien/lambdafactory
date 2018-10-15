@@ -331,6 +331,8 @@ class Environment:
 			assert((source_and_module[0] == text))
 			if source_and_module[1]:
 				res=source_and_module[1]
+				if (res.getName() == u'__current__'):
+					res.setName(self.inferModuleName(path))
 				res.setSource(text)
 				if path:
 					res.setSourcePath(path)
@@ -377,5 +379,8 @@ class Environment:
 			language=Language(name, self)
 			self.languages[name] = language
 		return self.languages[name]
+	
+	def inferModuleName(self, path):
+		return path.rsplit(u'.', 1)[0].replace(u'/', u'.')
 	
 

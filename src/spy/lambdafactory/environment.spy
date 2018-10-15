@@ -76,6 +76,7 @@
 		end
 		return None
 	@end
+
 	@method importModule moduleName, modulePath=None
 		# FIXME: Should use a module cache, same for parsefile so that we don't re-parse
 		# all the time
@@ -452,6 +453,10 @@
 				# it in cache, but it's not doing any good. In particular, the copy
 				# is only shallow, and won't reset the parent properly.
 				var res = source_and_module[1]
+				if res getName () == "__current__"
+					# If the module is a default name, we'll try to infer a better name
+					res setName (inferModuleName (path))
+				end
 				res setSource (text)
 				if path
 					res setSourcePath (path)
@@ -518,6 +523,10 @@
 			languages[name] = language
 		end
 		return languages[name]
+	@end
+
+	@method inferModuleName path
+		return path rsplit (".", 1) [0] replace ("/", ".")
 	@end
 
 @end
