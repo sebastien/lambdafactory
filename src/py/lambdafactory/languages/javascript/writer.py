@@ -334,7 +334,7 @@ class Writer(AbstractWriter):
 		module_name             = self.getSafeName(moduleElement)
 		full_name               = self.getAbsoluteName(moduleElement)
 		code = [
-			"// " + SNIP % ("%s.js" % (self.getAbsoluteName(moduleElement).replace(".", "/"))),
+			"// " + SNIP % ("%s.js|%s" % (moduleElement.getSourcePath(), self.getAbsoluteName(moduleElement))),
 		] + self._header() + [
 			self._document(moduleElement),
 			self.options["ENABLE_METADATA"] and "function __def(v,m){var ms=v['__def__']||{};for(var k in m){ms[k]=m[k]};v['__def__']=ms;return v}" or None,

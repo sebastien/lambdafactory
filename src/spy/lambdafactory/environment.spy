@@ -453,6 +453,9 @@
 				# is only shallow, and won't reset the parent properly.
 				var res = source_and_module[1]
 				res setSource (text)
+				if path
+					res setSourcePath (path)
+				end
 				if useCache
 					cache set (cache_key, res)
 				end

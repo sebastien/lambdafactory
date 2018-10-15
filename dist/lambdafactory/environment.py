@@ -332,6 +332,8 @@ class Environment:
 			if source_and_module[1]:
 				res=source_and_module[1]
 				res.setSource(text)
+				if path:
+					res.setSourcePath(path)
 				if self.useCache:
 					self.cache.set(cache_key, res)
 			elif True:
