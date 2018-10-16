@@ -384,8 +384,10 @@ class Environment:
 		return self.languages[name]
 	
 	def inferModuleName(self, path):
-		if (u'lib/sjs/' in path):
-			path = path.split(u'lib/sjs/', 1)[-1]
+		if (u'/sjs/' in path):
+			path = path.split(u'/sjs/', 1)[-1]
+		elif (u'/components/' in path):
+			path = (u'components/' + path.split(u'/components/', 1)[-1])
 		return ".".join(_ for _ in path.rsplit(".", 1)[0].split("/") if _)
 	
 

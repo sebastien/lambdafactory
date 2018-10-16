@@ -535,8 +535,10 @@
 	@method inferModuleName path
 		# NOTE: This is not the most elegant, but we have to use conventions
 		# to infer the module's name.
-		if "lib/sjs/" in path
-			path = path split ("lib/sjs/", 1) [-1]
+		if "/sjs/" in path
+			path = path split ("/sjs/", 1) [-1]
+		elif "/components/" in path
+			path = "components/" + (path split ("/components/", 1) [-1])
 		end
 		@embed Python
 		|return ".".join(_ for _ in path.rsplit(".", 1)[0].split("/") if _)
