@@ -440,7 +440,9 @@
 		if (not useCache) or (not module)
 			var extension           = path split "." [-1]
 			var parser              = parsers get (extension)
-			if not parser -> parser = parsers get "sg"
+			if not parser
+				parser = parsers get "sg"
+			end
 			# We make sure the text is an UTF string
 			# text = text decode "utf-8"
 			# NOTE: This does not apply any pass
@@ -453,14 +455,7 @@
 				# it in cache, but it's not doing any good. In particular, the copy
 				# is only shallow, and won't reset the parent properly.
 				var res = source_and_module[1]
-				if res getName () == "__current__"
-					# If the module is a default name, we'll try to infer a better name
-					res setName (inferModuleName (path))
-				end
 				res setSource (text)
-				if path
-					res setSourcePath (path)
-				end
 				if useCache
 					cache set (cache_key, res)
 				end
@@ -471,6 +466,16 @@
 			assert (module getDataFlow () is None)
 			# NOTE: Before we were stripping the dataflow, but given that the module
 			# is cached BEFORE any pass is applied, this should be equivalent.
+		end
+		# If the module is a default name, we'll try to infer a better name
+		if module 
+			if module getName () == "__current__"
+				module setName (inferModuleName (path))
+			end
+			if path
+				module setSourcePath (path)
+			end
+
 		end
 		return module
 	@end
@@ -526,7 +531,14 @@
 	@end
 
 	@method inferModuleName path
-		return path rsplit (".", 1) [0] replace ("/", ".")
+		# NOTE: This is not the most elegant, but we have to use conventions
+		# to infer the module's name.
+		if "lib/sjs/" in path
+			path = path split ("lib/sjs/", 1) [-1]
+		end
+		@embed Python
+		|return ".".join(_ for _ in path.rsplit(".", 1)[0].split("/") if _)
+		@end
 	@end
 
 @end

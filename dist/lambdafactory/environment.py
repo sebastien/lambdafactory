@@ -331,17 +331,18 @@ class Environment:
 			assert((source_and_module[0] == text))
 			if source_and_module[1]:
 				res=source_and_module[1]
-				if (res.getName() == u'__current__'):
-					res.setName(self.inferModuleName(path))
 				res.setSource(text)
-				if path:
-					res.setSourcePath(path)
 				if self.useCache:
 					self.cache.set(cache_key, res)
 			elif True:
 				error((u'Could not parse file: ' + path))
 		elif True:
 			assert((module.getDataFlow() is None))
+		if module:
+			if (module.getName() == u'__current__'):
+				module.setName(self.inferModuleName(path))
+			if path:
+				module.setSourcePath(path)
 		return module
 	
 	def listAvailableLanguages(self):
@@ -381,6 +382,8 @@ class Environment:
 		return self.languages[name]
 	
 	def inferModuleName(self, path):
-		return path.rsplit(u'.', 1)[0].replace(u'/', u'.')
+		if (u'lib/sjs/' in path):
+			path = path.split(u'lib/sjs/', 1)[-1]
+		return ".".join(_ for _ in path.rsplit(".", 1)[0].split("/") if _)
 	
 

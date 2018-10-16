@@ -437,7 +437,7 @@ class Writer(AbstractWriter):
 			# NOTE: Disabled for now
 			declaration.append("const {0}=typeof(runtime)!='undefined' ? "
 				"{1}module('{0}') : (typeof({0})!='undefined' ? {0} : "
-				"{{}});".format(local_name, self.runtimePrefix))
+				"{{}});".format(local_name, self.runtimePrefix.replace(".","")))
 		else:
 			parents = []
 			current = names[-1]
@@ -448,7 +448,7 @@ class Writer(AbstractWriter):
 				declaration.append(
 					"const {0}=typeof({2})!='undefined' ? "
 					"{2}module('{1}') : (typeof({1})!='undefined' ? {1} : "
-					"{{}});".format(parent_safe_name, parent_abs_name, self.runtimePrefix))
+					"{{}});".format(parent_safe_name, parent_abs_name, self.runtimePrefix.replace(".","")))
 				if i > 0:
 					declaration.append("if (typeof({0})==='undefined') {{{0}={1};}};".format(
 						parent_abs_name,
