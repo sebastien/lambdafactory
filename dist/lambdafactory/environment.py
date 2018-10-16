@@ -332,6 +332,8 @@ class Environment:
 			if source_and_module[1]:
 				res=source_and_module[1]
 				res.setSource(text)
+				if (module.getName() == u'__current__'):
+					module.addAnnotation(u'inferred-name')
 				if self.useCache:
 					self.cache.set(cache_key, res)
 			elif True:
@@ -339,7 +341,7 @@ class Environment:
 		elif True:
 			assert((module.getDataFlow() is None))
 		if module:
-			if (module.getName() == u'__current__'):
+			if ((module.getName() == u'__current__') or module.hasAnnotation(u'inferred-name')):
 				module.setName(self.inferModuleName(path))
 			if path:
 				module.setSourcePath(path)

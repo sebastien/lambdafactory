@@ -456,6 +456,9 @@
 				# is only shallow, and won't reset the parent properly.
 				var res = source_and_module[1]
 				res setSource (text)
+				if module getName () == "__current__"
+					module addAnnotation "inferred-name"
+				end
 				if useCache
 					cache set (cache_key, res)
 				end
@@ -469,13 +472,12 @@
 		end
 		# If the module is a default name, we'll try to infer a better name
 		if module 
-			if module getName () == "__current__"
+			if module getName () == "__current__" or module hasAnnotation "inferred-name"
 				module setName (inferModuleName (path))
 			end
 			if path
 				module setSourcePath (path)
 			end
-
 		end
 		return module
 	@end
