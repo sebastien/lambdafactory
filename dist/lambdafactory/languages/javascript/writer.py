@@ -245,12 +245,12 @@ class Writer(AbstractWriter):
 		# if element is self.getCurrentModule():
 		# 	return "__module__"
 		if self._moduleType == MODULE_VANILLA:
-			return self.getAbsoluteName(element).replace("/", ".").replace(":", ".")
+			return self.getAbsoluteName(element).replace("/", ".").replace(":", ".").replace("-","_")
 		else:
 			if isinstance(element, interfaces.IProgram) or isinstance(element, interfaces.IModule):
-				return self.getAbsoluteName(element).replace(".", "_").replace("/", ".").replace(":", ".")
+				return self.getAbsoluteName(element).replace(".", "_").replace("-", "_").replace("/", ".").replace(":", ".")
 			else:
-				name = self.getName()
+				name = self.getName().replace("-", "_")
 				return self.getSafeSuperName(element) + ("." + name if name else "")
 
 	def getSafeSuperName( self, element ):
@@ -534,7 +534,7 @@ class Writer(AbstractWriter):
 		return [
 			preamble.replace("MODULE", module_name).replace("IMPORT", imports),
 		] + [
-			"const {0} = require(\"{1}\");".format(_.replace(".","_"), _) for _ in imported
+			"const {0} = require(\"{1}\");".format(_.replace(".","_").replace("-","_"), _) for _ in imported
 		] + symbols + module_declaration + ["// END:UMD_PREAMBLE\n"]
 
 	def getModuleUMDSuffix( self, moduleElement ):
