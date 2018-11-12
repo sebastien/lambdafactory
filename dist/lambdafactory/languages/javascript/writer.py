@@ -519,7 +519,7 @@ class Writer(AbstractWriter):
 		]
 		symbols = []
 		for alias, module, slot, op in self.getImportedSymbols(moduleElement):
-			safe_module = module.replace(".", "_")
+			safe_module = module.replace(".", "_").replace("-","_")
 			if not slot:
 				# Modules are already imported
 				if alias:
