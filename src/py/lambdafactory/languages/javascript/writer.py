@@ -1894,10 +1894,10 @@ class Writer(AbstractWriter):
 		if parents:
 			yield "\tparent: {0},".format(self.getSafeName(parents[0]))
 		if slots:
-			# FIXME: Not sure this is right
+			n = len(slots)
 			yield "\tproperties: (function(self){"
 			for i,s in enumerate(slots):
-				suffix = "," if i < len(slots) else ""
+				suffix = "," if i < n - 1 else ""
 				yield "\t\t{1} : {0}NOTHING{2}".format(self.declarePrefix, s.getName(), suffix)
 			yield "\t}),"
 		if traits:
