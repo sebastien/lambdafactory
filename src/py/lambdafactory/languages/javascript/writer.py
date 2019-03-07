@@ -470,7 +470,7 @@ class Writer(AbstractWriter):
 			if not slot:
 				# Modules are already imported
 				if alias:
-					symbols.append("const {0} = {1};".format(alias or module, module))
+					symbols.append("const {0} = {1};".format(self.getSafeLocalName(alias or module), module))
 			else:
 				# Extend gets a special treatment
 				if alias:
@@ -529,7 +529,7 @@ class Writer(AbstractWriter):
 		]
 		symbols = []
 		for alias, module, slot, op in self.getImportedSymbols(moduleElement):
-			safe_module = self.getSafeName(module)
+			safe_module = self.getSafeLocalName(module)
 			if not slot:
 				# Modules are already imported
 				if alias:
@@ -544,7 +544,7 @@ class Writer(AbstractWriter):
 		return [
 			preamble.replace("MODULE", module_name).replace("IMPORT", imports),
 		] + [
-			"const {0} = require(\"{1}\");".format(self.getSafeName(_), _) for _ in imported
+			"const {0} = require(\"{1}\");".format(self.getSafeLocalName(_), _) for _ in imported
 		] + symbols + module_declaration + ["// END:UMD_PREAMBLE\n"]
 
 	def getModuleUMDSuffix( self, moduleElement ):
@@ -571,7 +571,7 @@ class Writer(AbstractWriter):
 			elif not slot:
 				# Modules are already imported
 				if alias:
-					symbols.append("var {0} = {1};".format(alias or self.getSafeName(module), self.getSafeName(module)))
+					symbols.append("var {0} = {1};".format(alias or self.getSafeLocalName(module), self.getSafeName(module)))
 			else:
 				pass
 				# NOTE: Disabled 2017-05-08
