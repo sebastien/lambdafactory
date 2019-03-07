@@ -419,7 +419,7 @@
 			elif origin[0] == "file"
 				return origin[1]
 			else
-				environment report error ("Unknown origin:", moduleURI)
+				report error ("Unknown origin:", moduleURI)
 				return None
 			end
 		end

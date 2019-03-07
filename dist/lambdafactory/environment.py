@@ -306,7 +306,7 @@ class Environment:
 			elif (origin[0] == u'file'):
 				return origin[1]
 			elif True:
-				environment.report.error(u'Unknown origin:', moduleURI)
+				self.report.error(u'Unknown origin:', moduleURI)
 				return None
 	
 	def parseFile(self, path, moduleName=None):
