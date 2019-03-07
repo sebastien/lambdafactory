@@ -36,6 +36,8 @@ RE_TEMPLATE        = re.compile("\$\{[^\}]+\}")
 VALID_SYMBOL       = re.compile("^[\$_A-Za-z][\$_A-Za-z0-9]*$")
 VALID_SYMBOL_CHARS = "_0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
 
+RE_SAFENAME        = re.compile("[\:\-/]")
+
 # NOTE: This is not the complete list of keywords for JavaScript, we removed
 # some such as typeof, null, which may be used as functions/values in code.
 # NOTE: removed catch, as it clashes with the Promise
@@ -239,12 +241,18 @@ class Writer(AbstractWriter):
 					names.insert(0, n)
 		return names if asList else ".".join(names)
 
+	def getSafeLocalName( self, element ):
+		return self.getSafeName(element).replace(".", "_")
+
 	def getSafeName( self, element ):
 		"""Returns the same as absolute name but with `_` instead of `_`."""
 		# NOTE: This should probably be like this
 		# if element is self.getCurrentModule():
 		# 	return "__module__"
-		if self._moduleType == MODULE_VANILLA:
+
+		if isinstance(element, str):
+			return RE_SAFENAME.sub("_", element)
+		elif self._moduleType == MODULE_VANILLA:
 			return self.getAbsoluteName(element).replace("/", ".").replace(":", ".").replace("-","_")
 		else:
 			if isinstance(element, interfaces.IProgram) or isinstance(element, interfaces.IModule):
@@ -265,7 +273,9 @@ class Writer(AbstractWriter):
 			else:
 				return "__module__" + "." + name
 		else:
-			return self.getSafeName(parent) + "." + name
+			# NOTE: We want the *local* name, as the module should 
+			# be imported at that stage and bound to a local symbol.
+			return self.getSafeLocalName(parent) + "." + name
 
 	def getResolvedName( self, element ):
 		"""Returns the absolute name of the element, resolved in the current
@@ -474,7 +484,7 @@ class Writer(AbstractWriter):
 		]
 
 	def getModuleVanillaSuffix( self, moduleElement ):
-		safe_name = self.getAbsoluteName(moduleElement).replace(".", "_")
+		safe_name = self.getSafeName(moduleElement)
 		return [
 			"\n// START:VANILLA_POSTAMBLE",
 			"return {0};}})({0});".format(safe_name),
@@ -519,7 +529,7 @@ class Writer(AbstractWriter):
 		]
 		symbols = []
 		for alias, module, slot, op in self.getImportedSymbols(moduleElement):
-			safe_module = module.replace(".", "_").replace("-","_")
+			safe_module = self.getSafeName(module)
 			if not slot:
 				# Modules are already imported
 				if alias:
@@ -534,7 +544,7 @@ class Writer(AbstractWriter):
 		return [
 			preamble.replace("MODULE", module_name).replace("IMPORT", imports),
 		] + [
-			"const {0} = require(\"{1}\");".format(_.replace(".","_").replace("-","_"), _) for _ in imported
+			"const {0} = require(\"{1}\");".format(self.getSafeName(_), _) for _ in imported
 		] + symbols + module_declaration + ["// END:UMD_PREAMBLE\n"]
 
 	def getModuleUMDSuffix( self, moduleElement ):
@@ -553,7 +563,7 @@ class Writer(AbstractWriter):
 		module_name = self.getSafeName(moduleElement)
 		abs_name    = self.getAbsoluteName(moduleElement)
 		# NOTE: We prevent modules from importing themselves
-		modules     = ["var {1} = goog.require('{0}');".format(_, _.replace(".", "_")) for _ in self.getImportedModules(moduleElement) if _ != abs_name]
+		modules     = ["var {1} = goog.require('{0}');".format(_, self.getSafeName(_)) for _ in self.getImportedModules(moduleElement) if _ != abs_name]
 		symbols     = []
 		for alias, module, slot, op in self.getImportedSymbols(moduleElement):
 			if module == abs_name:
@@ -561,7 +571,7 @@ class Writer(AbstractWriter):
 			elif not slot:
 				# Modules are already imported
 				if alias:
-					symbols.append("var {0} = {1};".format(alias or module.replace(".", "_"), module.replace(".", "_")))
+					symbols.append("var {0} = {1};".format(alias or self.getSafeName(module), self.getSafeName(module)))
 			else:
 				pass
 				# NOTE: Disabled 2017-05-08
@@ -639,7 +649,7 @@ class Writer(AbstractWriter):
 
 	def _onClassPostamble( self, element, name=None ):
 		classAttributes = element.getClassAttributes()
-		name = name or self.getAbsoluteName(element).replace(".", "_")
+		name = name or self.getSafeName(element)
 		for attr in classAttributes:
 			self.pushContext(attr)
 			default_value = attr.getDefaultValue()
