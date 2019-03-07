@@ -301,8 +301,8 @@ class Environment:
 		if (len(origin) == 1):
 			return self.importer.findSugarModule(moduleURI)
 		elif True:
-			if (origin[0] == u'components'):
-				return ((u'lib/components/' + origin[1].replace(u'.', u'/')) + u'.sjs')
+			if (origin[0] == u'component'):
+				return ((u'lib/components/' + origin[1].replace(u'.', u'/')) + u'/model.sjs')
 			elif (origin[0] == u'file'):
 				return origin[1]
 			elif True:

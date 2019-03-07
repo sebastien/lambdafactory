@@ -414,8 +414,9 @@
 		if len(origin) == 1
 			return importer findSugarModule (moduleURI)
 		else
-			if origin[0] == "components"
-				return "lib/components/" +  origin[1] replace (".", "/") + ".sjs"
+			if origin[0] == "component"
+				# NOTE: This is a bit brittle as the component might have submodules
+				return "lib/components/" +  origin[1] replace (".", "/") + "/model.sjs"
 			elif origin[0] == "file"
 				return origin[1]
 			else
