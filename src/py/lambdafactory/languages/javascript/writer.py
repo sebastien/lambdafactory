@@ -242,14 +242,15 @@ class Writer(AbstractWriter):
 		return names if asList else ".".join(names)
 
 	def getSafeLocalName( self, element ):
-		return self.getSafeName(element).replace(".", "_")
+		name = self.getSafeName(element)
+		# If the name is local to the module, we don't remove the `.`
+		return name if name.startswith("__module__.") else name.replace(".", "_")
 
 	def getSafeName( self, element ):
 		"""Returns the same as absolute name but with `_` instead of `_`."""
 		# NOTE: This should probably be like this
 		# if element is self.getCurrentModule():
 		# 	return "__module__"
-
 		if isinstance(element, str):
 			return RE_SAFENAME.sub("_", element)
 		elif self._moduleType == MODULE_VANILLA:
