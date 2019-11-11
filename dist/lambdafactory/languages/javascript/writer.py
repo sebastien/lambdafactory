@@ -1400,6 +1400,8 @@ class Writer(AbstractWriter):
 		# FIXME: This should be defined as options
 		if target_name in ("extend.assert", "__assert__", "ff.errors.assert"):
 			return self._runtimeAssert(invocation)
+		elif target_name in ("extend.should", "__should__", "ff.errors.should"):
+			return self._runtimeAssert(invocation, "should")
 		elif invocation.isByPositionOnly():
 			if self._isSuperInvocation(invocation):
 				return self._runtimeSuperInvocation(invocation)
@@ -2252,15 +2254,15 @@ class Writer(AbstractWriter):
 		else:
 			return result
 
-	def _runtimeAssert( self, invocation ):
+	def _runtimeAssert( self, invocation, symbol="assert" ):
 		args      = invocation.getArguments()
 		predicate = self.write(args[0])
 		rest      = args[1:]
-		resolved  = self.resolve("assert")
+		resolved  = self.resolve(symbol)
 		if resolved:
 			assert_symbol = self.getSafeName(resolved[1])
 		else:
-			assert_symbol = "__assert__"
+			assert_symbol = f"__{symbol}__"
 		# TODO: We should include the offsets
 		return "!({1}) && {0}(false, {2}, {3}, {4})".format(
 			assert_symbol,
