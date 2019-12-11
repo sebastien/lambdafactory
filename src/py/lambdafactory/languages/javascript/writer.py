@@ -1398,9 +1398,9 @@ class Writer(AbstractWriter):
 			s, e = self.resolve(target)
 			target_name = self.getAbsoluteName(e) if e else target.getReferenceName()
 		# FIXME: This should be defined as options
-		if target_name in ("extend.assert", "__assert__", "ff.errors.assert"):
+		if target_name in ("extend.assert", "__assert__", "std.errors.assert"):
 			return self._runtimeAssert(invocation)
-		elif target_name in ("extend.should", "__should__", "ff.errors.should"):
+		elif target_name in ("extend.should", "__should__", "std.errors.should"):
 			return self._runtimeAssert(invocation, "should")
 		elif invocation.isByPositionOnly():
 			if self._isSuperInvocation(invocation):
@@ -2417,7 +2417,7 @@ class Writer(AbstractWriter):
 		)
 
 	def _runtimeUnitTestPreamble( self, element ):
-		return "(function(){{const __test__=new ff.util.testing.Unit('{0}');".format(self.getAbsoluteName(element.parent))
+		return "(function(){{const __test__=new std.util.testing.Unit('{0}');".format(self.getAbsoluteName(element.parent))
 
 	def _runtimeUnitTestPostamble( self, element ):
 		return "__test__.end();}());"
